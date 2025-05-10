@@ -1,10 +1,11 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import { derived } from "svelte/store"; // 'svelte/store' からインポート
   import CollectionElements from "@/components/Sidebar/CollectionElements.svelte";
   import { sidebarCollectionElements } from "@/store/sidebarCollectionElements";
   import { createWritable, localStorageWritable } from "@/lib/utils";
   import { type SortOrder } from "@/components/Sidebar/sort";
-  import { type Option, collectionElementsToOptions } from "@/lib/trieFilter";
+  import { type Option, collectionElementsToOptions } from "@/lib/filter";
   import { useFilter } from "@/lib/filter";
   import Search from "@/components/Sidebar/Search.svelte";
   import Header from "@/components/Sidebar/Header.svelte";
@@ -12,7 +13,7 @@
   import MinimalSidebar from "@/components/Sidebar/MinimalSidebar.svelte";
   import { fly } from "svelte/transition";
   import SubHeader from "@/components/Sidebar/SubHeader.svelte";
-  import { searchAttributes } from "@/components/Sidebar/searchAttributes";
+  import { searchAttributes, PLAY_STATUS_KEYS, type AttributeKey, type Attribute } from "@/components/Sidebar/searchAttributes"; // Attribute型もインポート
   import { search } from "@/components/Sidebar/search";
   import { query } from "@/store/query";
 
@@ -30,6 +31,15 @@
   const { filtered } = useFilter(query, elementOptions, getElementOptions);
   let order = localStorageWritable<SortOrder>("sort-order", "gamename-asc");
   const { attributes, toggleEnable } = searchAttributes();
+
+  // 属性リストをプレイ状況とその他に分割
+  const playStatusAttributes = derived(attributes, ($attributes: Attribute[]) => // $attributesに型注釈
+    $attributes.filter((attr: Attribute) => PLAY_STATUS_KEYS.includes(attr.key as AttributeKey)) // attrに型注釈
+  );
+  const otherAttributes = derived(attributes, ($attributes: Attribute[]) => // $attributesに型注釈
+    $attributes.filter((attr: Attribute) => !PLAY_STATUS_KEYS.includes(attr.key as AttributeKey)) // attrに型注釈
+  );
+
 
   const shown = sidebarCollectionElements.shown;
   filtered.subscribe(() => shown.set(search($filtered, $attributes, $order)));
@@ -57,7 +67,8 @@
           <Search
             bind:query={$query}
             bind:order={$order}
-            attributes={$attributes}
+            playStatusAttributes={$playStatusAttributes}
+            otherAttributes={$otherAttributes}
             on:toggleAttributeEnabled={(e) => toggleEnable(e.detail.key)}
           />
         </div>

@@ -25,9 +25,9 @@
     <Detail {work} />
   </div>
 {:else}
-  <div class="p-(x-8 y-8) w-full min-h-0 max-w-256 space-y-8">
+  <div class="p-(x-8 y-8) w-full min-h-0 max-w-288 space-y-8">
     <div
-      class="grid grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] w-full gap-8"
+      class="grid grid-cols-[repeat(auto-fill,_minmax(400px,_1fr))] w-full gap-8"
     >
       <WorkImage name={work.name} src={work.imgUrl} />
       <WorkMain {work} />
