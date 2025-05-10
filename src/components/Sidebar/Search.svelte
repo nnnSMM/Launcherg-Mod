@@ -15,15 +15,18 @@
 
   export let query: string;
   export let order: SortOrder;
-  export let attributes: Attribute[];
+  // export let attributes: Attribute[]; // 変更: このプロパティは削除
+  export let playStatusAttributes: Attribute[]; // 追加: プレイ状況属性リスト
+  export let otherAttributes: Attribute[];    // 追加: その他の属性リスト
 
   const dispatcher = createEventDispatcher<{
     toggleAttributeEnabled: { key: AttributeKey };
   }>();
 
-  let isShowBack = false;
-  let isShowForward = true;
-  const onScroll = (e: Event) => {
+  // otherAttributes 用のスクロール制御
+  let isShowBackOther = false;
+  let isShowForwardOther = true;
+  const onScrollOther = (e: Event) => {
     const element = e.target as HTMLElement;
     const rect = element.getBoundingClientRect();
     const width = element.scrollWidth;
@@ -31,14 +34,13 @@
     const left = element.scrollLeft;
     const right = width - rect.width - left;
 
-    isShowBack = left > 0;
-    isShowForward = right > 0;
+    isShowBackOther = left > 0;
+    isShowForwardOther = right > 0;
   };
-
-  let scrollable: SvelteComponent;
+  let scrollableOther: SvelteComponent;
 </script>
 
-<div class="space-y-1 w-full">
+<div class="space-y-2 w-full">
   <div class="flex items-center gap-2">
     <div class="flex-1">
       <SearchInput
@@ -64,31 +66,48 @@
       <SortPopover bind:value={order} on:close={() => close(null)} />
     </APopover>
   </div>
-  <div class="relative hide-scrollbar">
-    <ScrollableHorizontal
-      on:scroll={(e) => onScroll(e.detail.event)}
-      bind:this={scrollable}
-    >
-      <div class="flex items-center gap-2 pb-1">
-        {#each attributes as attribute (attribute.key)}
-          <SearchAttribute
-            {attribute}
-            on:click={() =>
-              dispatcher("toggleAttributeEnabled", { key: attribute.key })}
-          />
-        {/each}
-      </div>
-    </ScrollableHorizontal>
-    <SearchAttrributeControl
-      appendClass="left-0"
-      back
-      show={isShowBack}
-      on:click={() => scrollable.scrollBy({ left: -100, behavior: "smooth" })}
-    />
-    <SearchAttrributeControl
-      appendClass="right-0"
-      show={isShowForward}
-      on:click={() => scrollable.scrollBy({ left: 100, behavior: "smooth" })}
-    />
-  </div>
+
+  <!-- プレイ状況ボタンセクション -->
+  {#if playStatusAttributes && playStatusAttributes.length > 0}
+    <div class="flex flex-wrap items-center gap-2 pb-1">
+      {#each playStatusAttributes as attribute (attribute.key)}
+        <SearchAttribute
+          {attribute}
+          on:click={() =>
+            dispatcher("toggleAttributeEnabled", { key: attribute.key })}
+        />
+      {/each}
+    </div>
+  {/if}
+
+  <!-- その他の属性ボタンセクション -->
+  {#if otherAttributes && otherAttributes.length > 0}
+    <div class="relative hide-scrollbar">
+      <ScrollableHorizontal
+        on:scroll={(e) => onScrollOther(e.detail.event)}
+        bind:this={scrollableOther}
+      >
+        <div class="flex items-center gap-2 pb-1">
+          {#each otherAttributes as attribute (attribute.key)}
+            <SearchAttribute
+              {attribute}
+              on:click={() =>
+                dispatcher("toggleAttributeEnabled", { key: attribute.key })}
+            />
+          {/each}
+        </div>
+      </ScrollableHorizontal>
+      <SearchAttrributeControl
+        appendClass="left-0"
+        back
+        show={isShowBackOther}
+        on:click={() => scrollableOther.scrollBy({ left: -100, behavior: "smooth" })}
+      />
+      <SearchAttrributeControl
+        appendClass="right-0"
+        show={isShowForwardOther}
+        on:click={() => scrollableOther.scrollBy({ left: 100, behavior: "smooth" })}
+      />
+    </div>
+  {/if}
 </div>

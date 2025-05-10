@@ -88,14 +88,14 @@
   };
 
   const playStatusOptions: { label: string; value: PlayStatusType; icon: string }[] = [
-    { label: "未プレイ", value: PlayStatus.Unplayed, icon: "i-material-symbols-play-circle-outline-rounded" }, // アイコンに -rounded を追加
-    { label: "プレイ中", value: PlayStatus.Playing, icon: "i-material-symbols-pause-circle-outline-rounded" }, // アイコンに -rounded を追加
-    { label: "クリア済み", value: PlayStatus.Cleared, icon: "i-material-symbols-check-circle-outline-rounded" }, // アイコンに -rounded を追加
+    { label: "未プレイ", value: PlayStatus.Unplayed, icon: "i-material-symbols-play-circle-outline-rounded" },
+    { label: "プレイ中", value: PlayStatus.Playing, icon: "i-material-symbols-pause-circle-outline-rounded" },
+    { label: "クリア済み", value: PlayStatus.Cleared, icon: "i-material-symbols-check-circle-outline-rounded" },
   ];
 
   $: currentPlayStatusOption = playStatusOptions.find(opt => opt.value === currentPlayStatus);
   $: currentPlayStatusIcon = currentPlayStatusOption?.icon || "";
-  $: currentPlayStatusLabel = currentPlayStatusOption?.label || "状態を選択"; // ラベルも取得
+  $: currentPlayStatusLabel = currentPlayStatusOption?.label || "状態を選択";
 
 
   $: playTimePromise = commandGetPlayTomeMinutes(id);
@@ -148,7 +148,7 @@
         title="プレイ状況を選択"
       >
         <ButtonBase
-            appendClass="h-8 px-3 flex items-center justify-center gap-2 min-w-32"
+            appendClass="h-8 px-3 flex items-center justify-between gap-2 w-36"
             variant={currentPlayStatus === PlayStatus.Unplayed ? "normal" : currentPlayStatus === PlayStatus.Playing ? "accent" : "success"}
             tooltip={{
               content: "プレイ状況を変更",
@@ -157,9 +157,11 @@
               delay: 1000,
             }}
         >
-            <div class="{currentPlayStatusIcon} w-4 h-4 flex-shrink-0 {currentPlayStatus === PlayStatus.Unplayed ? 'color-text-primary' : 'color-text-white'}" />
-            <span class="text-body2 font-medium {currentPlayStatus === PlayStatus.Unplayed ? 'text-text-primary' : 'text-text-white'}">{currentPlayStatusLabel}</span>
-            <div class="i-material-symbols-arrow-drop-down w-4 h-4 ml-auto flex-shrink-0 {currentPlayStatus === PlayStatus.Unplayed ? 'color-text-primary' : 'color-text-white'}" />
+            <div class="flex items-center gap-1 overflow-hidden">
+                <div class="{currentPlayStatusIcon} w-4 h-4 flex-shrink-0 {currentPlayStatus === PlayStatus.Unplayed ? 'color-text-primary' : 'color-text-white'}" />
+                <span class="text-body2 font-medium truncate {currentPlayStatus === PlayStatus.Unplayed ? 'text-text-primary' : 'text-text-white'}">{currentPlayStatusLabel}</span>
+            </div>
+            <div class="i-material-symbols-arrow-drop-down w-4 h-4 flex-shrink-0 {currentPlayStatus === PlayStatus.Unplayed ? 'color-text-primary' : 'color-text-white'}" />
         </ButtonBase>
       </Select>
       <ButtonCancel
