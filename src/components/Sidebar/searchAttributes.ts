@@ -3,11 +3,9 @@ import { PlayStatus } from "@/lib/types";
 import { createLocalStorageWritable } from "@/lib/utils";
 
 export const ATTRIBUTES = {
-  // プレイ状況を先頭に定義
   UNPLAYED: "unplayed",
   PLAYING: "playing",
   CLEARED: "cleared",
-  // それ以外の属性
   NUKIGE: "nukige",
   NOT_NUKIGE: "not_nukige",
   LIKE: "like",
@@ -26,8 +24,8 @@ export const ATTRIBUTE_LABELS: { [key in AttributeKey]: string } = {
 
 export type AttributeKey = (typeof ATTRIBUTES)[keyof typeof ATTRIBUTES];
 
-// プレイ状況のキーを定義し、エクスポートする
 export const PLAY_STATUS_KEYS: AttributeKey[] = [ATTRIBUTES.UNPLAYED, ATTRIBUTES.PLAYING, ATTRIBUTES.CLEARED];
+const NUKIGE_KEYS: AttributeKey[] = [ATTRIBUTES.NUKIGE, ATTRIBUTES.NOT_NUKIGE]; // 抜きゲー関連キーを追加
 
 const EXPECTED_KEYS = Object.values(ATTRIBUTES);
 const INITIAL_ATTRIBUTES = EXPECTED_KEYS.map((v) => ({
@@ -80,11 +78,30 @@ export const searchAttributes = () => {
     initialOrStoredAttributes
   );
 
-  const toggleEnable = (key: AttributeKey) => {
-    attributes.update((attrs) => {
-      const updatedAttrs = attrs.map(attr =>
-        attr.key === key ? { ...attr, enabled: !attr.enabled } : attr
-      );
+  const toggleEnable = (keyToToggle: AttributeKey) => {
+    attributes.update((currentAttrs) => {
+      // まず、クリックされた属性の enabled 状態をトグル（反転）するかどうかを決定
+      // すでに有効な同じボタンをクリックした場合は無効に、無効なボタンをクリックした場合は有効にする
+      const currentlyEnabled = currentAttrs.find(attr => attr.key === keyToToggle)?.enabled || false;
+      const newEnabledState = !currentlyEnabled;
+
+      let updatedAttrs = currentAttrs.map(attr => {
+        // プレイ状況の排他制御
+        if (PLAY_STATUS_KEYS.includes(keyToToggle) && PLAY_STATUS_KEYS.includes(attr.key)) {
+          return { ...attr, enabled: attr.key === keyToToggle ? newEnabledState : false };
+        }
+        // 抜きゲー関連の排他制御
+        if (NUKIGE_KEYS.includes(keyToToggle) && NUKIGE_KEYS.includes(attr.key)) {
+          return { ...attr, enabled: attr.key === keyToToggle ? newEnabledState : false };
+        }
+        // それ以外の属性、またはグループ外の属性で、今回トグル対象のキーの場合
+        if (attr.key === keyToToggle) {
+            return { ...attr, enabled: newEnabledState };
+        }
+        // それ以外の属性はそのまま
+        return attr;
+      });
+
       return updatedAttrs.sort(sortAttributes);
     });
   };
