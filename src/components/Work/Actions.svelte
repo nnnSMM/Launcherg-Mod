@@ -9,6 +9,7 @@
     commandOpenFolder,
     commandPlayGame,
     commandUpdateElementLike,
+    commandUpdateElementPlayStatus,
     commandUpsertCollectionElement,
   } from "@/lib/command";
   import { showErrorToast } from "@/lib/toast";
@@ -21,11 +22,14 @@
   import ImportManually from "@/components/Sidebar/ImportManually.svelte";
   import { deleteTab, tabs, selected } from "@/store/tabs";
   import DeleteElement from "@/components/Work/DeleteElement.svelte";
-  import type { AllGameCacheOne } from "@/lib/types";
+  import type { AllGameCacheOne, PlayStatus as PlayStatusType } from "@/lib/types";
+  import { PlayStatus } from "@/lib/types";
   import OtherInformation from "@/components/Work/OtherInformation.svelte";
   import { registerCollectionElementDetails } from "@/lib/registerCollectionElementDetails";
   import QrCode from "@/components/Work/QRCode.svelte";
   import { startProcessMap } from "@/store/startProcessMap";
+  import Select from "@/components/UI/Select.svelte";
+  import ButtonBase from "@/components/UI/ButtonBase.svelte";
 
   export let name: string;
   export let id: number;
@@ -64,6 +68,7 @@
   };
 
   let isLike = false;
+  let currentPlayStatus: PlayStatusType = PlayStatus.Unplayed;
 
   const toggleLike = async () => {
     await commandUpdateElementLike(id, !isLike);
@@ -71,10 +76,33 @@
     sidebarCollectionElements.updateLike(id, isLike);
   };
 
+  const handlePlayStatusSelect = (event: CustomEvent<{ value: string | number }>) => {
+    const newStatus = event.detail.value as PlayStatusType;
+    updatePlayStatus(newStatus);
+  };
+
+  const updatePlayStatus = async (newStatus: PlayStatusType) => {
+    await commandUpdateElementPlayStatus(id, newStatus);
+    currentPlayStatus = newStatus;
+    sidebarCollectionElements.updatePlayStatus(id, newStatus);
+  };
+
+  const playStatusOptions: { label: string; value: PlayStatusType; icon: string }[] = [
+    { label: "未プレイ", value: PlayStatus.Unplayed, icon: "i-material-symbols-play-circle-outline-rounded" }, // アイコンに -rounded を追加
+    { label: "プレイ中", value: PlayStatus.Playing, icon: "i-material-symbols-pause-circle-outline-rounded" }, // アイコンに -rounded を追加
+    { label: "クリア済み", value: PlayStatus.Cleared, icon: "i-material-symbols-check-circle-outline-rounded" }, // アイコンに -rounded を追加
+  ];
+
+  $: currentPlayStatusOption = playStatusOptions.find(opt => opt.value === currentPlayStatus);
+  $: currentPlayStatusIcon = currentPlayStatusOption?.icon || "";
+  $: currentPlayStatusLabel = currentPlayStatusOption?.label || "状態を選択"; // ラベルも取得
+
+
   $: playTimePromise = commandGetPlayTomeMinutes(id);
   $: elementPromise = (async () => {
     const element = await commandGetCollectionElement(id);
     isLike = !!element.likeAt;
+    currentPlayStatus = element.playStatus;
     return element;
   })();
 
@@ -110,24 +138,37 @@
       text="Memo"
       on:click={() => push(`/memos/${id}?gamename=${name}`)}
     />
-    <!-- <div class="flex items-end gap-2 h-8 min-w-0">
-      <div class="text-(text-primary body2) whitespace-nowrap">Time</div>
-      {#await playTimePromise then playTime}
-        <div class="text-(text-primary body)">
-          {`${`${Math.floor(playTime / 60)}`.padStart(2, "0")}:${`${Math.floor(
-            playTime % 60
-          )}`.padStart(2, "0")}`}
-        </div>
-      {/await}
-    </div> -->
     <div class="flex items-center gap-2 ml-auto">
+      <Select
+        options={playStatusOptions}
+        bind:value={currentPlayStatus}
+        iconClass=""
+        on:select={handlePlayStatusSelect}
+        showSelectedCheck={false}
+        title="プレイ状況を選択"
+      >
+        <ButtonBase
+            appendClass="h-8 px-3 flex items-center justify-center gap-2 min-w-32"
+            variant={currentPlayStatus === PlayStatus.Unplayed ? "normal" : currentPlayStatus === PlayStatus.Playing ? "accent" : "success"}
+            tooltip={{
+              content: "プレイ状況を変更",
+              placement: "bottom",
+              theme: "default",
+              delay: 1000,
+            }}
+        >
+            <div class="{currentPlayStatusIcon} w-4 h-4 flex-shrink-0 {currentPlayStatus === PlayStatus.Unplayed ? 'color-text-primary' : 'color-text-white'}" />
+            <span class="text-body2 font-medium {currentPlayStatus === PlayStatus.Unplayed ? 'text-text-primary' : 'text-text-white'}">{currentPlayStatusLabel}</span>
+            <div class="i-material-symbols-arrow-drop-down w-4 h-4 ml-auto flex-shrink-0 {currentPlayStatus === PlayStatus.Unplayed ? 'color-text-primary' : 'color-text-white'}" />
+        </ButtonBase>
+      </Select>
       <ButtonCancel
         icon="i-material-symbols-qr-code"
         on:click={() => (isOpenQrCode = true)}
       />
       <ButtonCancel
         icon={isLike
-          ? "i-material-symbols-favorite-rounded"
+          ? "i-material-symbols-favorite-rounded color-accent-error"
           : "i-material-symbols-favorite-outline-rounded"}
         on:click={toggleLike}
       />

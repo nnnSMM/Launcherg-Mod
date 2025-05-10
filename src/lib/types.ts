@@ -45,6 +45,13 @@ export type Collection = {
   name: string;
 };
 
+export const PlayStatus = { // 追加
+  Unplayed: 0,
+  Playing: 1,
+  Cleared: 2,
+} as const;
+export type PlayStatus = (typeof PlayStatus)[keyof typeof PlayStatus]; // 追加
+
 export type CollectionElement = {
   id: number; // Work.id と同じ
   gamename: string;
@@ -56,6 +63,7 @@ export type CollectionElement = {
   installAt: string | null;
   lastPlayAt: string | null;
   likeAt: string | null;
+  playStatus: PlayStatus; // 追加
   registeredAt: string;
   exePath: string;
   lnkPath: string;

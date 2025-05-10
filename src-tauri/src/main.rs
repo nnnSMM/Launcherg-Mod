@@ -76,6 +76,7 @@ fn main() {
             command::create_element_details,
             command::get_all_elements,
             command::update_element_like,
+            command::update_element_play_status, // 追加
             command::open_folder,
             command::get_all_game_cache_last_updated,
             command::update_all_game_cache,

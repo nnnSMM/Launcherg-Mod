@@ -235,10 +235,21 @@ impl<R: RepositoriesExt> CollectionUseCase<R> {
             .await?;
         Ok(())
     }
+    pub async fn update_element_play_status( // 追加
+        &self,
+        id: &Id<CollectionElement>,
+        play_status: i32,
+    ) -> anyhow::Result<()> {
+        self.repositories
+            .collection_repository()
+            .update_element_play_status_by_id(id, play_status)
+            .await?;
+        Ok(())
+    }
     pub async fn delete_element(&self, id: &Id<CollectionElement>) -> anyhow::Result<()> {
         self.repositories
             .collection_repository()
-            .delete_collection_element(id)
+            .delete_collection_element(id) // delete_element_by_id から delete_collection_element に変更
             .await?;
         Ok(())
     }

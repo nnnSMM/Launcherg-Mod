@@ -2,6 +2,7 @@ import { commandGetAllElements } from "@/lib/command";
 import type {
   CollectionElement,
   CollectionElementsWithLabel,
+  PlayStatus, // 追加
 } from "@/lib/types";
 import { createWritable } from "@/lib/utils";
 
@@ -25,6 +26,14 @@ function createSidebarCollectionElements() {
     );
   };
 
+  const updatePlayStatus = (id: number, playStatus: PlayStatus) => { // 追加
+    update((elements) =>
+      elements.map((v) =>
+        v.id === id ? { ...v, playStatus } : { ...v }
+      )
+    );
+  };
+
   const [shown] = createWritable<CollectionElementsWithLabel[]>([]);
 
   return {
@@ -32,6 +41,7 @@ function createSidebarCollectionElements() {
     value,
     refetch,
     updateLike,
+    updatePlayStatus, // 追加
     shown,
   };
 }

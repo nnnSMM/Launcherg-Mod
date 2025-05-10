@@ -23,6 +23,7 @@ pub struct CollectionElement {
     pub install_at: Option<DateTime<Local>>,
     pub last_play_at: Option<DateTime<Local>>,
     pub like_at: Option<DateTime<Local>>,
+    pub play_status: i32, // 追加
     pub thumbnail_width: Option<i32>,
     pub thumbnail_height: Option<i32>,
     pub created_at: DateTime<Local>,
@@ -36,6 +37,7 @@ pub struct NewCollectionElement {
     pub exe_path: Option<String>,
     pub lnk_path: Option<String>,
     pub install_at: Option<DateTime<Local>>,
+    // play_status は初期登録時はデフォルト0とし、更新で対応するためここには含めない
 }
 
 #[derive(new, Debug, Clone, Serialize, Deserialize)]

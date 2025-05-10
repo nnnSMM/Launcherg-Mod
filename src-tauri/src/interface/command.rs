@@ -387,6 +387,18 @@ pub async fn update_element_like(
 }
 
 #[tauri::command]
+pub async fn update_element_play_status( // 追加
+    modules: State<'_, Arc<Modules>>,
+    id: i32,
+    play_status: i32,
+) -> anyhow::Result<(), CommandError> {
+    Ok(modules
+        .collection_use_case()
+        .update_element_play_status(&Id::new(id), play_status)
+        .await?)
+}
+
+#[tauri::command]
 pub fn open_folder(path: String) -> anyhow::Result<(), CommandError> {
     let p = std::path::Path::new(&path);
     let path = match p.is_file() {

@@ -28,7 +28,7 @@ impl CollectionRepository for RepositoryImpl<CollectionElement> {
     ) -> anyhow::Result<Option<CollectionElement>> {
         let pool = self.pool.0.clone();
         let elements =
-            query_as::<_, CollectionElementTable>("select collection_elements.*, cde.collection_element_id, cde.gamename_ruby, cde.sellday, cde.is_nukige, cde.brandname, cde.brandname_ruby from collection_elements inner join collection_element_details cde on cde.collection_element_id = collection_elements.id where collection_elements.id = ?")
+            query_as::<_, CollectionElementTable>("select ce.*, cde.collection_element_id, cde.gamename_ruby, cde.sellday, cde.is_nukige, cde.brandname, cde.brandname_ruby from collection_elements ce inner join collection_element_details cde on cde.collection_element_id = ce.id where ce.id = ?")
                 .bind(id.value)
                 .fetch_all(&*pool)
                 .await?
@@ -49,12 +49,12 @@ impl CollectionRepository for RepositoryImpl<CollectionElement> {
             .bind(new.gamename.clone())
             .bind(new.exe_path.clone())
             .bind(new.lnk_path.clone())
-            .bind(new.install_at.and_then(|v| Some(v.naive_utc()))) // TODO: naive_utc いるか確認
+            .bind(new.install_at.and_then(|v| Some(v.naive_utc())))
             .bind(new.gamename.clone())
             .bind(new.exe_path.clone())
             .bind(new.lnk_path.clone())
-            .bind(new.install_at.and_then(|v| Some(v.naive_utc()))) // TODO: naive_utc いるか確認
-            .bind(Local::now().naive_utc()) // TODO: naive_utc いるか確認
+            .bind(new.install_at.and_then(|v| Some(v.naive_utc())))
+            .bind(Local::now().naive_utc())
             .execute(&*pool)
             .await?;
         Ok(())
@@ -148,7 +148,6 @@ impl CollectionRepository for RepositoryImpl<CollectionElement> {
         if details.len() == 0 {
             return Ok(());
         }
-        // ref: https://docs.rs/sqlx-core/latest/sqlx_core/query_builder/struct.QueryBuilder.html#method.push_values
         let mut query_builder = QueryBuilder::new(
             "INSERT INTO collection_element_details (collection_element_id, gamename_ruby, sellday, is_nukige, brandname, brandname_ruby) ",
         );
@@ -255,7 +254,7 @@ impl CollectionRepository for RepositoryImpl<CollectionElement> {
     ) -> anyhow::Result<()> {
         let pool = self.pool.0.clone();
         query("update collection_elements set last_play_at = ? where id = ?")
-            .bind(last_play_at.naive_utc()) // TODO: naive_utc いるか確認
+            .bind(last_play_at.naive_utc())
             .bind(id.value)
             .execute(&*pool)
             .await?;
@@ -268,7 +267,20 @@ impl CollectionRepository for RepositoryImpl<CollectionElement> {
     ) -> anyhow::Result<()> {
         let pool = self.pool.0.clone();
         query("update collection_elements set like_at = ? where id = ?")
-            .bind(like_at.and_then(|v| Some(v.naive_utc()))) // TODO: naive_utc いるか確認
+            .bind(like_at.and_then(|v| Some(v.naive_utc())))
+            .bind(id.value)
+            .execute(&*pool)
+            .await?;
+        Ok(())
+    }
+    async fn update_element_play_status_by_id( // 追加
+        &self,
+        id: &Id<CollectionElement>,
+        play_status: i32,
+    ) -> anyhow::Result<()> {
+        let pool = self.pool.0.clone();
+        query("update collection_elements set play_status = ? where id = ?")
+            .bind(play_status)
             .bind(id.value)
             .execute(&*pool)
             .await?;
@@ -276,7 +288,7 @@ impl CollectionRepository for RepositoryImpl<CollectionElement> {
     }
     async fn delete_element_by_id(&self, id: &Id<CollectionElement>) -> anyhow::Result<()> {
         let pool = self.pool.0.clone();
-        query("delete collection_elements where id = ?")
+        query("delete from collection_elements where id = ?") // collection_elements から削除
             .bind(id.value)
             .execute(&*pool)
             .await?;
