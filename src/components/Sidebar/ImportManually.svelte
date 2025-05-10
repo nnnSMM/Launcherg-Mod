@@ -1,6 +1,6 @@
 <script lang="ts">
   import Input from "@/components/UI/Input.svelte";
-  import InputPath from "@/components/UI/InputPath.svelte";
+  import InputFilePath from "@/components/UI/InputFilePath.svelte";
   import Modal from "@/components/UI/Modal.svelte";
   import { commandGetGameCandidates } from "@/lib/command";
   import { useImportManually } from "@/lib/importManually";
@@ -58,7 +58,7 @@
 >
   <div class="space-y-4">
     {#if withInputPath}
-      <InputPath
+      <InputFilePath
         {path}
         label="EXEファイル or ショットカットファイル のパス"
         placeholder="C:\game\Monkeys!!\Monkeys!!.exe"
