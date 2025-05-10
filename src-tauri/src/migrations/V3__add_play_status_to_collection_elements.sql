@@ -1,0 +1,1 @@
+ALTER TABLE collection_elements ADD COLUMN play_status INTEGER NOT NULL DEFAULT 0;

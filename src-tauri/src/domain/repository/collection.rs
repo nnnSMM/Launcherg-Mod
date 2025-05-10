@@ -53,6 +53,11 @@ pub trait CollectionRepository {
         id: &Id<CollectionElement>,
         like_at: Option<DateTime<Local>>,
     ) -> Result<()>;
+    async fn update_element_play_status_by_id( // 追加
+        &self,
+        id: &Id<CollectionElement>,
+        play_status: i32,
+    ) -> Result<()>;
 
     async fn delete_element_by_id(&self, id: &Id<CollectionElement>) -> Result<()>;
 }
