@@ -3,163 +3,203 @@ import { push, type RouteLoadedEvent } from "svelte-spa-router";
 
 export type Tab = {
   id: number;
-  workId: number;
-  type: "works" | "memos";
+  workId?: number;
+  type: "works" | "memos" | "settings";
   scrollTo: number;
   title: string;
+  path: string; // ★ path を必須プロパティに変更 (設定タブも明確なパスを持つため)
 };
 
-const isValidTabType = (src: string): src is "works" | "memos" => {
-  return src === "works" || src === "memos";
+const isValidTabType = (src: string): src is "works" | "memos" | "settings" => {
+  return src === "works" || src === "memos" || src === "settings";
 };
+
+// 設定タブは「プレイ状況一括設定」専用とする
+const PLAY_STATUS_EDITOR_TAB_ID = -100; // 固定IDは維持しても良いが、重複しないように注意
+const PLAY_STATUS_EDITOR_PATH = "/settings/play-status";
+const PLAY_STATUS_EDITOR_TITLE = "プレイ状況一括編集";
+
 const createTabs = () => {
-  const [tabs, getTabs] = createLocalStorageWritable<Tab[]>("tabs", [
-    { id: 0, workId: 7402, type: "works", scrollTo: 0, title: "G線上の魔王" },
-    {
-      id: 2,
-      workId: 21228,
-      type: "memos",
-      scrollTo: 0,
-      title: "メモ - G線上の魔王",
-    },
-    { id: 3, workId: 20460, type: "works", scrollTo: 0, title: "G線上の魔王" },
-    {
-      id: 4,
-      workId: 21531,
-      type: "memos",
-      scrollTo: 0,
-      title: "メモ - G線上の魔王",
-    },
-  ]);
-
-  const [selected, getSelected] = createLocalStorageWritable("tab-selected", 0);
+  const [tabs, getTabs] = createLocalStorageWritable<Tab[]>("tabs", []);
+  const [selected, getSelected] = createLocalStorageWritable("tab-selected", -1);
 
   const routeLoaded = (event: RouteLoadedEvent) => {
-    const isHome = event.detail.location === "/";
-    if (isHome) {
+    const location = event.detail.location;
+    const params = event.detail.params;
+
+    if (location === "/") {
       selected.set(-1);
       return;
     }
 
-    const params = event.detail.params;
-    if (!params) {
-      console.error("params is null (not home)");
-      return;
+    const pathSegments = location.split("/").filter(Boolean);
+    const tabTypeSegment = pathSegments[0];
+    let entityId: number | undefined = undefined;
+    if (pathSegments[1] && (tabTypeSegment === "works" || tabTypeSegment === "memos")) {
+        entityId = +pathSegments[1];
     }
-    const id = +params["id"];
-    if (!id || isNaN(id)) {
-      console.error("params[id] is undefined (not home)");
+
+    if (!isValidTabType(tabTypeSegment)) {
+      console.error("Invalid tab type from route:", tabTypeSegment);
+      push("/");
       return;
     }
 
-    const tabType = event.detail.location.split("/")[1];
-    if (!isValidTabType(tabType)) {
-      console.error("tabType is invalid (not home)");
-      return;
+    let tabToSelectIndex = -1;
+
+    if (location === PLAY_STATUS_EDITOR_PATH && tabTypeSegment === "settings") { // ★ 設定タブのパスで判定
+        tabToSelectIndex = getTabs().findIndex(t => t.id === PLAY_STATUS_EDITOR_TAB_ID && t.type === "settings");
+        if (tabToSelectIndex === -1) {
+            const settingsTab: Tab = {
+                id: PLAY_STATUS_EDITOR_TAB_ID,
+                type: "settings",
+                scrollTo: 0,
+                title: PLAY_STATUS_EDITOR_TITLE,
+                path: PLAY_STATUS_EDITOR_PATH,
+            };
+            tabs.update(currentTabs => [...currentTabs, settingsTab]);
+            tabToSelectIndex = getTabs().length - 1;
+        }
+    } else if (tabTypeSegment === "works" || tabTypeSegment === "memos") {
+        if (!entityId || isNaN(entityId)) {
+            console.error("Missing or invalid entityId for works/memos tab at location:", location);
+            // entityId がない場合は、新しいタブを開くのではなく、既存のタブを探すだけにするか、
+            // あるいはエラーとしてホームに戻す。ここでは既存のタブを探す試みは維持。
+            // もし対応する workId のタブがなければ、何もしないか、ホームに戻る。
+            const existingTabIndex = getTabs().findIndex(t => t.workId === entityId && t.type === tabTypeSegment);
+            if (existingTabIndex !== -1) {
+                tabToSelectIndex = existingTabIndex;
+            } else {
+                // gamename がないとタイトルが作れないので、新しいタブは開かない
+                const searchParams = new URLSearchParams(event.detail.querystring);
+                const gamename = searchParams.get("gamename");
+                if (gamename) {
+                    let title = gamename;
+                    if (tabTypeSegment === "memos") {
+                        title = `メモ - ${title}`;
+                    }
+                    const newTab: Tab = {
+                        id: new Date().getTime(),
+                        workId: entityId,
+                        type: tabTypeSegment,
+                        scrollTo: 0,
+                        title,
+                        path: `/${tabTypeSegment}/${entityId}${event.detail.querystring ? `?${event.detail.querystring}` : ''}`,
+                    };
+                    tabs.update(v => [...v, newTab]);
+                    tabToSelectIndex = getTabs().length - 1;
+                } else {
+                    console.warn(`Cannot open new ${tabTypeSegment} tab for ${entityId} without gamename.`);
+                    // push("/"); // 必要ならホームに戻す
+                }
+            }
+        } else {
+            tabToSelectIndex = getTabs().findIndex(t => t.workId === entityId && t.type === tabTypeSegment);
+            if (tabToSelectIndex === -1) {
+                const searchParams = new URLSearchParams(event.detail.querystring);
+                const gamename = searchParams.get("gamename");
+                if (!gamename) {
+                    console.error(`Gamename query param missing for new ${tabTypeSegment} tab for workId ${entityId}`);
+                }
+                let title = gamename || `ID: ${entityId}`;
+                if (tabTypeSegment === "memos") {
+                    title = `メモ - ${title}`;
+                }
+                const newTab: Tab = {
+                    id: new Date().getTime(),
+                    workId: entityId,
+                    type: tabTypeSegment,
+                    scrollTo: 0,
+                    title,
+                    path: `/${tabTypeSegment}/${entityId}${event.detail.querystring ? `?${event.detail.querystring}` : ''}`,
+                };
+                tabs.update(v => [...v, newTab]);
+                tabToSelectIndex = getTabs().length - 1;
+            }
+        }
     }
 
-    const tabIndex = getTabs().findIndex(
-      (v) => v.workId === id && v.type === tabType
-    );
-    if (tabIndex === -1) {
-      const searchParams = new URLSearchParams(event.detail.querystring);
-      const gamename = searchParams.get("gamename");
-      if (!gamename) {
-        console.error("tabs にないのに gamename の queryParam がない");
-        return;
-      }
-      let title = gamename;
-      if (tabType === "memos") {
-        title = `メモ - ${title}`;
-      }
-      const newTab: Tab = {
-        id: new Date().getTime(),
-        type: tabType,
-        workId: id,
-        scrollTo: 0,
-        title,
-      };
-      tabs.update((v) => {
-        return [...v, newTab];
-      });
-      const newSelected = getTabs().length - 1;
-      selected.set(newSelected);
-    } else {
-      selected.set(tabIndex);
+
+    if (tabToSelectIndex !== -1) {
+        selected.set(tabToSelectIndex);
+    } else if (location !== "/" && location !== PLAY_STATUS_EDITOR_PATH) { // ★設定タブ以外で適切なタブが見つからなければ
+        // 既に適切なURLにいるがタブリストにない場合（例：URL直打ちでquerystringなし）
+        // この状態を許容するか、ホームに戻すか。
+        // console.warn("No tab found for current route, staying or pushing home:", location);
+        // push("/");
     }
   };
-  const deleteTab = (id: number) => {
-    const deleteIndex = getTabs().findIndex((v) => v.id === id);
-    const currentIndex = getSelected();
 
-    const isCurrentTab = deleteIndex === currentIndex;
-    const isDeletePrevTab = deleteIndex < currentIndex;
-    const isRightestTab = deleteIndex === getTabs().length - 1;
+  const deleteTab = (idToDelete: number) => {
+    const currentTabs = getTabs();
+    const deleteIndex = currentTabs.findIndex(t => t.id === idToDelete);
+    if (deleteIndex === -1) return;
 
-    tabs.update((v) => {
-      const newTabs = v.filter((tab) => tab.id !== id);
-      if (newTabs.length === 0) {
-        push("/");
-      }
-      return newTabs;
-    });
+    const currentSelectedRaw = getSelected();
+    let newSelectedRaw = currentSelectedRaw;
 
-    if (isRightestTab && getTabs().length === 0) {
-      return;
-    }
+    const newTabs = currentTabs.filter(t => t.id !== idToDelete);
+    tabs.set(newTabs);
 
-    if (isCurrentTab) {
-      const newIndex = isRightestTab ? currentIndex - 1 : currentIndex;
-      if (newIndex < 0 && getTabs().length > 0) { // 全削除後に1つだけ残った場合など
-          const nextTab = getTabs()[0];
-          push(`/${nextTab.type}/${nextTab.workId}`);
-          selected.set(0); // selectedも更新
-      } else if (getTabs().length > 0) {
-          const nextTab = getTabs()[newIndex];
-          push(`/${nextTab.type}/${nextTab.workId}`);
-          // selected は routeLoaded で更新されるはず
-      }
-      return;
-    }
-
-    if (isDeletePrevTab) {
-      selected.update((v) => v - 1);
-      return;
-    }
-  };
-
-  const initialize = () => {
-    const _tabs = getTabs();
-    const index = getSelected();
-    if (_tabs.length === 0 && index === -1) { // 初期状態でタブが空、selectedも-1ならホーム
-        push("/");
-        return;
-    }
-    if (_tabs.length - 1 < index || index < 0) {
-      console.warn("Invalid selected index, redirecting to home.", { // console.error から warn に変更
-        tabs: getTabs(),
-        selected: getSelected(),
-      });
+    if (newTabs.length === 0) {
       selected.set(-1);
       push("/");
       return;
     }
-    const tab = _tabs[index];
-    push(`/${tab.type}/${tab.workId}`);
+
+    if (currentSelectedRaw === deleteIndex) {
+      newSelectedRaw = Math.max(0, deleteIndex - 1);
+      const nextTabToPush = newTabs[newSelectedRaw];
+      if (nextTabToPush) {
+        push(nextTabToPush.path); // path を使う
+      } else {
+        push("/");
+      }
+    } else if (currentSelectedRaw > deleteIndex) {
+      newSelectedRaw = currentSelectedRaw - 1;
+    }
+    selected.set(newSelectedRaw);
   };
 
-  const getSelectedTab = () => {
+
+  const initialize = () => {
+    const _tabs = getTabs();
+    const index = getSelected();
+
+    if (_tabs.length === 0) {
+        selected.set(-1);
+        if (window.location.pathname !== "/") push("/");
+        return;
+    }
+    if (index < 0 || index >= _tabs.length) {
+      const firstTab = _tabs[0];
+      if (firstTab) {
+        selected.set(0);
+        push(firstTab.path); // path を使う
+      } else {
+        selected.set(-1);
+        push("/");
+      }
+      return;
+    }
+    const tab = _tabs[index];
+    push(tab.path); // path を使う
+  };
+
+  const getSelectedTab = (): Tab | undefined => {
     const selIndex = getSelected();
     const currentTabs = getTabs();
     if (selIndex >= 0 && selIndex < currentTabs.length) {
         return currentTabs[selIndex];
     }
-    return undefined; // 範囲外なら undefined を返す
+    return undefined;
   };
 
-  // --- ここから追加 ---
   const reorderTabs = (oldIndex: number, newIndex: number) => {
     tabs.update(currentTabs => {
+      if (oldIndex < 0 || oldIndex >= currentTabs.length || newIndex < 0 || newIndex > currentTabs.length) {
+        return currentTabs;
+      }
       const itemToMove = currentTabs[oldIndex];
       const remainingItems = currentTabs.filter((_, index) => index !== oldIndex);
       const reorderedTabs = [
@@ -167,47 +207,61 @@ const createTabs = () => {
         itemToMove,
         ...remainingItems.slice(newIndex)
       ];
-
-      // アクティブなタブのインデックスを更新
       const activeTabId = getSelectedTab()?.id;
       if (activeTabId !== undefined) {
         const newActiveIndex = reorderedTabs.findIndex(tab => tab.id === activeTabId);
-        if (newActiveIndex !== -1) {
-          selected.set(newActiveIndex);
-        } else {
-          // 万が一アクティブタブが見つからなくなったら先頭を選択（あるいはエラー処理）
-          selected.set(0);
-        }
+        selected.set(newActiveIndex !== -1 ? newActiveIndex : 0);
       } else if (reorderedTabs.length > 0) {
-        selected.set(0); // アクティブタブが不明でタブが存在する場合は先頭を選択
+        selected.set(0);
       } else {
-        selected.set(-1); // タブがなくなったら-1
+        selected.set(-1);
       }
       return reorderedTabs;
     });
   };
-  // --- ここまで追加 ---
+
+  const openSettingsTab = () => {
+    const currentOpenTabs = getTabs();
+    const settingsTabIndex = currentOpenTabs.findIndex(t => t.id === PLAY_STATUS_EDITOR_TAB_ID);
+
+    if (settingsTabIndex !== -1) {
+      selected.set(settingsTabIndex);
+      push(PLAY_STATUS_EDITOR_PATH);
+    } else {
+      const settingsTab: Tab = {
+        id: PLAY_STATUS_EDITOR_TAB_ID,
+        type: "settings",
+        scrollTo: 0,
+        title: PLAY_STATUS_EDITOR_TITLE,
+        path: PLAY_STATUS_EDITOR_PATH,
+      };
+      tabs.update(v => [...v, settingsTab]);
+      selected.set(getTabs().length - 1);
+      push(PLAY_STATUS_EDITOR_PATH);
+    }
+  };
 
   return {
-    tabs, // getTabsではなく、writableなtabsストア自体を返す
-    selected, // getSelectedではなく、writableなselectedストア自体を返す
+    tabs,
+    selected,
     getSelectedTab,
     routeLoaded,
     deleteTab,
     initialize,
-    reorderTabs, // 追加
+    reorderTabs,
+    openSettingsTab,
   };
 };
 
-// createTabs() の戻り値の型を明示的に定義 (省略可能だが可読性のため)
 interface TabsStore {
   tabs: ReturnType<typeof createLocalStorageWritable<Tab[]>>[0];
   selected: ReturnType<typeof createLocalStorageWritable<number>>[0];
   getSelectedTab: () => Tab | undefined;
   routeLoaded: (event: RouteLoadedEvent) => void;
-  deleteTab: (id: number) => void;
+  deleteTab: (idToDelete: number) => void;
   initialize: () => void;
   reorderTabs: (oldIndex: number, newIndex: number) => void;
+  openSettingsTab: () => void;
 }
 
 const createdTabs: TabsStore = createTabs();
@@ -219,5 +273,6 @@ export const {
   routeLoaded,
   deleteTab,
   initialize,
-  reorderTabs, // 追加
+  reorderTabs,
+  openSettingsTab,
 } = createdTabs;
