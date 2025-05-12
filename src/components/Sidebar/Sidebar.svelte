@@ -1,21 +1,21 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { derived } from "svelte/store"; // 'svelte/store' からインポート
+  import { derived } from "svelte/store";
   import CollectionElements from "@/components/Sidebar/CollectionElements.svelte";
   import { sidebarCollectionElements } from "@/store/sidebarCollectionElements";
-  import { createWritable, localStorageWritable } from "@/lib/utils";
-  import { type SortOrder } from "@/components/Sidebar/sort";
-  import { type Option, collectionElementsToOptions } from "@/lib/filter";
-  import { useFilter } from "@/lib/filter";
+  import { createWritable } from "@/lib/utils";
+  import type { SortOrder } from "@/components/Sidebar/sort";
+  import { type Option, collectionElementsToOptions, useFilter } from "@/lib/filter";
   import Search from "@/components/Sidebar/Search.svelte";
   import Header from "@/components/Sidebar/Header.svelte";
   import { showSidebar } from "@/store/showSidebar";
   import MinimalSidebar from "@/components/Sidebar/MinimalSidebar.svelte";
   import { fly } from "svelte/transition";
   import SubHeader from "@/components/Sidebar/SubHeader.svelte";
-  import { searchAttributes, PLAY_STATUS_KEYS, type AttributeKey, type Attribute } from "@/components/Sidebar/searchAttributes"; // Attribute型もインポート
+  import { PLAY_STATUS_KEYS, type AttributeKey, type Attribute } from "@/components/Sidebar/searchAttributes";
   import { search } from "@/components/Sidebar/search";
   import { query } from "@/store/query";
+  import { currentSortOrder, currentAttributes, toggleAttribute } from "@/store/viewSettings";
 
   onMount(async () => {
     await sidebarCollectionElements.refetch();
@@ -29,26 +29,18 @@
   );
 
   const { filtered } = useFilter(query, elementOptions, getElementOptions);
-  let order = localStorageWritable<SortOrder>("sort-order", "gamename-asc");
-  const { attributes, toggleEnable } = searchAttributes();
 
-  // 属性リストをプレイ状況とその他に分割
-  const playStatusAttributes = derived(attributes, ($attributes: Attribute[]) => // $attributesに型注釈
-    $attributes.filter((attr: Attribute) => PLAY_STATUS_KEYS.includes(attr.key as AttributeKey)) // attrに型注釈
+  const playStatusAttributes = derived(currentAttributes, ($attributes: Attribute[]) =>
+    $attributes.filter((attr: Attribute) => PLAY_STATUS_KEYS.includes(attr.key as AttributeKey))
   );
-  const otherAttributes = derived(attributes, ($attributes: Attribute[]) => // $attributesに型注釈
-    $attributes.filter((attr: Attribute) => !PLAY_STATUS_KEYS.includes(attr.key as AttributeKey)) // attrに型注釈
+  const otherAttributes = derived(currentAttributes, ($attributes: Attribute[]) =>
+    $attributes.filter((attr: Attribute) => !PLAY_STATUS_KEYS.includes(attr.key as AttributeKey))
   );
-
 
   const shown = sidebarCollectionElements.shown;
-  filtered.subscribe(() => shown.set(search($filtered, $attributes, $order)));
-  attributes.subscribe(() => shown.set(search($filtered, $attributes, $order)));
-  order.subscribe(() => shown.set(search($filtered, $attributes, $order)));
 
-  sidebarCollectionElements.subscribe(() => {
-    shown.set(search($filtered, $attributes, $order));
-  });
+  $: shown.set(search($filtered, $currentAttributes, $currentSortOrder));
+
 </script>
 
 <div
@@ -66,10 +58,10 @@
         <div class="w-full mt-2 px-2">
           <Search
             bind:query={$query}
-            bind:order={$order}
+            bind:order={$currentSortOrder}
             playStatusAttributes={$playStatusAttributes}
             otherAttributes={$otherAttributes}
-            on:toggleAttributeEnabled={(e) => toggleEnable(e.detail.key)}
+            on:toggleAttributeEnabled={(e) => toggleAttribute(e.detail.key)}
           />
         </div>
         <div class="mt-1 min-h-0">

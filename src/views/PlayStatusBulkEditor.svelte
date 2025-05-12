@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { writable } from 'svelte/store';
+  import { derived, writable } from "svelte/store"; // writable もインポート
   import type { CollectionElement, PlayStatus as PlayStatusType } from "@/lib/types";
   import { PlayStatus } from "@/lib/types";
   import { commandGetAllElements, commandUpdateElementPlayStatus } from "@/lib/command";
@@ -9,6 +9,14 @@
   import Button from "@/components/UI/Button.svelte";
   import VirtualScroller from "@/components/UI/VirtualScroller.svelte";
   import MasonryLayoutForPlayStatus from "@/components/PlayStatusBulkEditor/MasonryLayoutForPlayStatus.svelte";
+
+  import { query as textQueryStore } from "@/store/query";
+  import { currentSortOrder, currentAttributes } from "@/store/viewSettings";
+  import { FILTER_BY_ATTRIBUTE, type Attribute } from "@/components/Sidebar/searchAttributes";
+  import { sort as sortElementsOriginal, type SortOrder } from "@/components/Sidebar/sort";
+  import { collectionElementsToOptions as convertElementsToOptionsForFilter, type Option as FilterOption } from "@/lib/filter";
+  import { useFilter as useTextQueryFilter } from "@/lib/filter";
+
 
   let allGamesFromApi = writable<CollectionElement[]>([]);
   let selectedGameIdsStore = writable(new Set<number>());
@@ -27,6 +35,59 @@
       isLoading = false;
     }
   });
+
+  const textFilterOptionsForThisPage = derived(allGamesFromApi, ($allGames): FilterOption<number>[] => // ★戻り値の型を明示
+    convertElementsToOptionsForFilter($allGames)
+  );
+
+  const { filtered: textFilteredGameIdOptions } = useTextQueryFilter<number>(
+    textQueryStore,
+    textFilterOptionsForThisPage,
+    () => convertElementsToOptionsForFilter($allGamesFromApi)
+  );
+
+  const processedDisplayGames = derived< // ★ derivedの型引数を追加
+    [typeof allGamesFromApi, typeof textFilteredGameIdOptions, typeof currentAttributes, typeof currentSortOrder],
+    CollectionElement[] // ★ このストアが持つデータの型
+  >(
+    [allGamesFromApi, textFilteredGameIdOptions, currentAttributes, currentSortOrder],
+    ([$allGames, $textFilteredIdOpts, $attributeFilters, $sortOrder], set) => {
+      const textFilteredIdSet = new Set($textFilteredIdOpts.map(opt => opt.value));
+      let filteredByText = $allGames.filter(game => textFilteredIdSet.has(game.id));
+
+      const activeAttributeFilters = $attributeFilters.filter(attr => attr.enabled);
+      let filteredByAttributes = filteredByText;
+      if (activeAttributeFilters.length > 0) {
+        filteredByAttributes = activeAttributeFilters.reduce((acc, currentFilter) => {
+          const filterFn = FILTER_BY_ATTRIBUTE[currentFilter.key];
+          return filterFn ? filterFn(acc) : acc;
+        }, filteredByText);
+      }
+
+      const sortedGroupedGames = sortElementsOriginal(filteredByAttributes, $sortOrder);
+      const sortedFlatGames = sortedGroupedGames.flatMap(group => group.elements);
+
+      set(sortedFlatGames);
+    }
+  );
+
+  const displayGamesWithPreview = derived< // ★ derivedの型引数を追加
+    [typeof processedDisplayGames, typeof selectedGameIdsStore, typeof targetPlayStatusStore],
+    CollectionElement[] // ★ このストアが持つデータの型
+  >(
+    [processedDisplayGames, selectedGameIdsStore, targetPlayStatusStore],
+    ([$processedGames, $selectedIds, $targetPlayStatus], set) => {
+        // $processedGames が CollectionElement[] であることを TypeScript に伝える
+        const games = ($processedGames as CollectionElement[]).map((game: CollectionElement) => { // ★ game に型注釈
+            if($selectedIds.has(game.id)) {
+                return {...game, playStatus: $targetPlayStatus };
+            }
+            return game;
+        });
+        set(games);
+    }
+  );
+
 
   const toggleGameSelection = (gameId: number) => {
     selectedGameIdsStore.update(currentSet => {
@@ -137,7 +198,7 @@
   {:else}
     <div class="flex-1 min-h-0 overflow-hidden">
       <VirtualScroller
-        className="p-4"
+        className="p-1"
         let:setVirtualHeight
         let:contentsWidth
         let:contentsScrollY
@@ -145,7 +206,7 @@
         let:contentsScrollTo
       >
         <MasonryLayoutForPlayStatus
-          elementsStore={allGamesFromApi}
+          elementsStore={displayGamesWithPreview}
           selectedIdsStore={selectedGameIdsStore}
           previewTargetPlayStatus={$targetPlayStatusStore}
           onToggleSelection={(id) => toggleGameSelection(id)}
