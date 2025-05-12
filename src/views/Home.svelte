@@ -116,8 +116,21 @@
         {/if}
       {/await}
     </div>
-    <div class="flex items-center gap-4">
-      <h3 class="text-(text-primary h3) font-medium">登録したゲーム</h3>
+    <div class="flex items-center gap-4 flex-wrap">
+      <h3 class="text-(text-primary h3) font-medium mr-auto">登録したゲーム</h3>
+      <a href="/settings/play-status" use:link class="ml-auto md:ml-0">
+        <Button
+          text="プレイ状況を一括編集"
+          leftIcon="i-material-symbols-label-outline-rounded"
+          variant="normal"
+          tooltip={{
+            content: "すべてのゲームのプレイ状況を一括で設定します",
+            placement: "bottom",
+            theme: "default",
+            delay: 1000,
+          }}
+        />
+      </a>
       <Button
         leftIcon="i-material-symbols-refresh-rounded"
         text="サムネイルを再取得する"

@@ -3,16 +3,18 @@
   import { push } from "svelte-spa-router";
 
   export let tab: Tab;
-  export let selected: boolean;          // このタブが現在選択されているか
-  export let isDragging: boolean = false;    // このATabインスタンスが「ゴーストタブ」として機能しているか
-  export let isPlaceholder: boolean = false; // このATabインスタンスが「プレースホルダー」として機能しているか
-  export let isAnyTabDragging: boolean = false; // いずれかのタブがドラッグされているか (リスト全体の状態)
+  export let selected: boolean;
+  export let isDragging: boolean = false;
+  export let isPlaceholder: boolean = false;
+  export let isAnyTabDragging: boolean = false;
 
   $: tabIcon =
     tab.type === "works"
       ? "i-material-symbols-computer-outline-rounded color-accent-accent"
       : tab.type === "memos"
       ? "i-material-symbols-drive-file-rename-outline color-accent-edit"
+      : tab.type === "settings"
+      ? "i-material-symbols-label-outline-rounded color-text-tertiary"
       : "";
 
   const closeWheelClick = (e: MouseEvent) => {
@@ -24,17 +26,21 @@
 
   const handleClick = () => {
     if (isDragging || isPlaceholder || isAnyTabDragging) return;
-    push(`/${tab.type}/${tab.workId}`);
+    push(tab.path);
   };
 
-  // スタイルを決定するためのリアクティブな変数
-  $: isActiveLook = selected && !isPlaceholder && !isDragging; // 通常のアクティブ状態
-  $: isGhostOrPlaceholderActiveLook = isDragging || isPlaceholder; // ゴーストまたはプレースホルダーの時に注目風にするか
-
+  const handleKeyDown = (event: KeyboardEvent) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      handleClick();
+    }
+  };
 </script>
 
 <div
+  role="button"
+  tabindex="0"
   on:click={handleClick}
+  on:keydown={handleKeyDown}
   on:mousedown={closeWheelClick}
   class="tab-container"
   class:cursor-pointer={!isAnyTabDragging && !isPlaceholder && !isDragging}
@@ -43,17 +49,17 @@
 >
   <div
     class="tab-content-area flex items-center gap-2 px-3 h-10 transition-all border-(b-1px r-1px solid border-primary) group max-w-60"
-    class:bg-bg-primary={isActiveLook || isGhostOrPlaceholderActiveLook}
-    class:border-b-transparent={isActiveLook || isGhostOrPlaceholderActiveLook}
-    class:bg-bg-disabled={!isActiveLook && !isGhostOrPlaceholderActiveLook}
-    class:hover:bg-bg-primary={!selected && !isPlaceholder && !isDragging && !isAnyTabDragging}
+    class:bg-bg-primary={(selected && !isPlaceholder && !isDragging)}
+    class:border-b-transparent={(selected && !isPlaceholder && !isDragging)}
+    class:bg-bg-disabled={(!selected && !isPlaceholder && !isDragging)}
+    class:hover:bg-bg-primary={(!selected && !isPlaceholder && !isDragging && !isAnyTabDragging)}
     class:ghost-appearance={isDragging}
   >
     <div class="{tabIcon} w-5 h-5 flex-shrink-0" />
     <div
       class="tab-title text-body2 whitespace-nowrap text-ellipsis overflow-hidden"
-      class:text-text-primary={isActiveLook || isGhostOrPlaceholderActiveLook}
-      class:text-text-tertiary={!isActiveLook && !isGhostOrPlaceholderActiveLook}
+      class:text-text-primary={(selected && !isPlaceholder && !isDragging)}
+      class:text-text-tertiary={((!selected || isPlaceholder || isDragging))}
     >
       {tab.title}
     </div>
@@ -64,8 +70,8 @@
     >
       <button
         class="group-hover:opacity-100 opacity-0 transition-all w-5 h-5 i-iconoir-cancel"
-        class:color-text-secondary={isActiveLook || isGhostOrPlaceholderActiveLook}
-        class:color-text-tertiary={!isActiveLook && !isGhostOrPlaceholderActiveLook}
+        class:color-text-secondary={(selected && !isPlaceholder && !isDragging)}
+        class:color-text-tertiary={((!selected || isPlaceholder || isDragging))}
         on:click|stopPropagation={() => {
             if (isDragging || isPlaceholder || isAnyTabDragging) return;
             deleteTab(tab.id);
@@ -84,10 +90,7 @@
     -ms-user-select: none;
   }
   .placeholder-style {
-    /* ATabList側の .is-drag-placeholder で opacity を制御 */
   }
   .ghost-appearance {
-    /* ゴーストタブがATabコンポーネントで描画される際の追加スタイル */
-    /* 例: ATabListの.ghost-tabのスタイルと合わせる */
   }
 </style>
