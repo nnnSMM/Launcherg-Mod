@@ -87,15 +87,41 @@
     sidebarCollectionElements.updatePlayStatus(id, newStatus);
   };
 
-  const playStatusOptions: { label: string; value: PlayStatusType; icon: string }[] = [
-    { label: "未プレイ", value: PlayStatus.Unplayed, icon: "i-material-symbols-play-circle-outline-rounded" },
-    { label: "プレイ中", value: PlayStatus.Playing, icon: "i-material-symbols-pause-circle-outline-rounded" },
-    { label: "クリア済み", value: PlayStatus.Cleared, icon: "i-material-symbols-check-circle-outline-rounded" },
+  const playStatusOptionsData: {
+    label: string;
+    value: PlayStatusType;
+    icon: string;
+    activeStyleClasses: string;
+    activeIconTextColorClass: string; // アイコンとテキスト用の共通色クラス
+  }[] = [
+    {
+      label: "未プレイ",
+      value: PlayStatus.Unplayed,
+      icon: "i-material-symbols-play-circle-outline-rounded",
+      activeStyleClasses: "bg-gray-400 !hover:bg-gray-300 text-white border-gray-400",
+      activeIconTextColorClass: "text-white"
+    },
+    {
+      label: "プレイ中",
+      value: PlayStatus.Playing,
+      icon: "i-material-symbols-pause-circle-outline-rounded",
+      activeStyleClasses: "bg-blue-500 !hover:bg-blue-400 text-white border-blue-500",
+      activeIconTextColorClass: "text-white"
+    },
+    {
+      label: "クリア済み",
+      value: PlayStatus.Cleared,
+      icon: "i-material-symbols-check-circle-outline-rounded",
+      activeStyleClasses: "bg-green-700 !hover:bg-green-600 text-white border-green-700",
+      activeIconTextColorClass: "text-white"
+    },
   ];
 
-  $: currentPlayStatusOption = playStatusOptions.find(opt => opt.value === currentPlayStatus);
-  $: currentPlayStatusIcon = currentPlayStatusOption?.icon || "";
-  $: currentPlayStatusLabel = currentPlayStatusOption?.label || "状態を選択";
+  // Selectコンポーネントのoptionsプロパティ用 (labelとvalueのみ)
+  $: selectOptionsForDropdown = playStatusOptionsData.map(opt => ({ label: opt.label, value: opt.value }));
+
+  // 現在のプレイ状況に対応するスタイル情報を取得
+  $: currentActiveStyleInfo = playStatusOptionsData.find(opt => opt.value === currentPlayStatus) || playStatusOptionsData[0];
 
 
   $: playTimePromise = commandGetPlayTomeMinutes(id);
@@ -140,28 +166,27 @@
     />
     <div class="flex items-center gap-2 ml-auto">
       <Select
-        options={playStatusOptions}
+        options={selectOptionsForDropdown}
         bind:value={currentPlayStatus}
-        iconClass=""
         on:select={handlePlayStatusSelect}
-        showSelectedCheck={false}
-        title="プレイ状況を選択"
+        showSelectedCheck={true}
+        title="プレイ状況を変更"
       >
         <ButtonBase
-            appendClass="h-8 px-3 flex items-center justify-between gap-2 w-36"
-            variant={currentPlayStatus === PlayStatus.Unplayed ? "normal" : currentPlayStatus === PlayStatus.Playing ? "accent" : "success"}
+            variant={"normal"}
+            appendClass={`h-8 px-3 flex items-center justify-between gap-1.5 min-w-32 text-sm transition-none ${currentActiveStyleInfo.activeStyleClasses}`}
             tooltip={{
-              content: "プレイ状況を変更",
+              content: "プレイ状況: " + currentActiveStyleInfo.label,
               placement: "bottom",
               theme: "default",
               delay: 1000,
             }}
         >
             <div class="flex items-center gap-1 overflow-hidden">
-                <div class="{currentPlayStatusIcon} w-4 h-4 flex-shrink-0 {currentPlayStatus === PlayStatus.Unplayed ? 'color-text-primary' : 'color-text-white'}" />
-                <span class="text-body2 font-medium truncate {currentPlayStatus === PlayStatus.Unplayed ? 'text-text-primary' : 'text-text-white'}">{currentPlayStatusLabel}</span>
+                <div class="{currentActiveStyleInfo.icon} w-4 h-4 flex-shrink-0 {currentActiveStyleInfo.activeIconTextColorClass}" />
+                <span class="text-xs font-medium truncate {currentActiveStyleInfo.activeIconTextColorClass}">{currentActiveStyleInfo.label}</span>
             </div>
-            <div class="i-material-symbols-arrow-drop-down w-4 h-4 flex-shrink-0 {currentPlayStatus === PlayStatus.Unplayed ? 'color-text-primary' : 'color-text-white'}" />
+            <div class="i-material-symbols-arrow-drop-down w-4 h-4 flex-shrink-0 {currentActiveStyleInfo.activeIconTextColorClass}" />
         </ButtonBase>
       </Select>
       <ButtonCancel
