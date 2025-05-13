@@ -21,16 +21,14 @@
 
   const DRAG_START_THRESHOLD = 5;
 
-  // --- 追加: リスト全体でドラッグ操作中かどうかのフラグ ---
   $: isAnyTabDragging = draggingTabId !== null && isActuallyDragging;
-  // --- ここまで追加 ---
 
   const handleMouseDown = (event: MouseEvent & { currentTarget: EventTarget & HTMLDivElement }, tabData: TabType, index: number) => {
     isActuallyDragging = false;
 
     const currentSelectedTab = getSelectedTab();
     if (!currentSelectedTab || currentSelectedTab.id !== tabData.id) {
-      push(`/${tabData.type}/${tabData.workId}`);
+      push(tabData.path || `/${tabData.type}/${tabData.workId}`);
     }
 
     draggingTabId = tabData.id;
@@ -54,16 +52,11 @@
     event.preventDefault();
 
     if (!isActuallyDragging) {
-      const currentSelectedTab = getSelectedTab();
-      if (currentSelectedTab && currentSelectedTab.id === draggingTabId) {
-        const deltaXSinceMouseDown = event.clientX - (originalTabRect.left);
-        const deltaYSinceMouseDown = event.clientY - (originalTabRect.top);
-        if (Math.sqrt(deltaXSinceMouseDown**2 + deltaYSinceMouseDown**2) > DRAG_START_THRESHOLD) {
-          isActuallyDragging = true;
-          showGhostTab = true;
-        } else {
-          return;
-        }
+      const deltaXFromInitialRect = event.clientX - originalTabRect.left;
+      const deltaYFromInitialRect = event.clientY - originalTabRect.top;
+      if (Math.sqrt(deltaXFromInitialRect**2 + deltaYFromInitialRect**2) > DRAG_START_THRESHOLD) {
+        isActuallyDragging = true;
+        showGhostTab = true;
       } else {
         return;
       }
@@ -73,41 +66,30 @@
     ghostTabTop = event.clientY;
 
     const currentTabs = $tabs;
-    if (currentTabs.length === 0 && draggingTabIndex !== 0) { // 最後のタブをドラッグして0個になった場合など
-        placeholderIndex = 0; // 唯一のドロップ先としてリストの先頭
+    if (currentTabs.length === 0 && draggingTabIndex !== 0) {
+        placeholderIndex = 0;
         await tick();
         return;
     }
-    if (currentTabs.length === 0 && draggingTabIndex === 0){ // タブが元々0個か、1個のタブをドラッグ中の場合
+    if (currentTabs.length === 0 && draggingTabIndex === 0){
         placeholderIndex = 0;
         await tick();
         return;
     }
 
-
-    let newPlaceholderIndex = draggingTabIndex; // 初期値は元の位置（実質インジケータなし）
-
-    // targetElementsForIndicator は、ドラッグ中の元のタブ（プレースホルダー）を除いた、
-    // インジケータの位置を計算するための基準となるタブ要素のリストと考える。
-    // しかし、実際には元のタブもレイアウト上は存在するので、全てのタブを対象にする。
+    let newPlaceholderIndex = draggingTabIndex;
     for (let i = 0; i < currentTabs.length; i++) {
+      if (i === draggingTabIndex) continue;
       const otherTabElement = tabElements[i];
       if (!otherTabElement) continue;
-
-      // ドラッグ中のタブ（プレースホルダー）自身を基準にインジケータを出すことはないので、
-      // このタブの左か右かを判定する。
       const rect = otherTabElement.getBoundingClientRect();
       const otherTabMidX = rect.left + rect.width / 2;
-
       if (event.clientX < otherTabMidX) {
-        // マウスが i 番目のタブの中央より左 => i 番目のタブの「前」にインジケータ
         newPlaceholderIndex = i;
         break;
       }
-      // マウスが i 番目のタブの中央より右 => i 番目のタブの「後」にインジケータの可能性
       newPlaceholderIndex = i + 1;
     }
-
     newPlaceholderIndex = Math.max(0, Math.min(currentTabs.length, newPlaceholderIndex));
 
     if (placeholderIndex !== newPlaceholderIndex) {
@@ -207,7 +189,6 @@
       transform: scale(1.02);
     "
   >
-    <!-- ゴーストタブ自身には isAnyTabDragging は不要（常に isDragging=true で制御） -->
     <ATab tab={ghostTabContent} selected={false} isDragging={true} />
   </div>
 {/if}
