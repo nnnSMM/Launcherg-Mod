@@ -161,11 +161,35 @@
     }
   };
 
-  const playStatusOptions: { label: string; value: PlayStatusType; icon?: string }[] = [
-    { label: "未プレイ", value: PlayStatus.Unplayed, icon: "i-material-symbols-play-circle-outline-rounded" },
-    { label: "プレイ中", value: PlayStatus.Playing, icon: "i-material-symbols-pause-circle-outline-rounded" },
-    { label: "クリア済み", value: PlayStatus.Cleared, icon: "i-material-symbols-check-circle-outline-rounded" },
-  ];
+const playStatusOptions: {
+  label: string;
+  value: PlayStatusType;
+  icon?: string;
+  activeStyleClasses: string; // 選択時のスタイル (ホバー含む)
+  inactiveStyleClasses: string; // 非選択時のスタイル (ホバー含む)
+}[] = [
+  {
+    label: "未プレイ",
+    value: PlayStatus.Unplayed,
+    icon: "i-material-symbols-play-circle-outline-rounded",
+    activeStyleClasses: "bg-gray-400 !hover:bg-gray-300 text-white border-gray-400",
+    inactiveStyleClasses: "text-text-primary bg-bg-button hover:bg-bg-button-hover border-border-primary"
+  },
+  {
+    label: "プレイ中",
+    value: PlayStatus.Playing,
+    icon: "i-material-symbols-pause-circle-outline-rounded",
+    activeStyleClasses: "bg-blue-500 !hover:bg-blue-400 text-white border-blue-500",
+    inactiveStyleClasses: "text-text-primary bg-bg-button hover:bg-bg-button-hover border-border-primary"
+  },
+  {
+    label: "クリア済み",
+    value: PlayStatus.Cleared,
+    icon: "i-material-symbols-check-circle-outline-rounded",
+    activeStyleClasses: "bg-green-700 !hover:bg-green-600 text-white border-green-700",
+    inactiveStyleClasses: "text-text-primary bg-bg-button hover:bg-bg-button-hover border-border-primary"
+  },
+];
 
 </script>
 
@@ -178,9 +202,9 @@
           <Button
             text={option.label}
             leftIcon={option.icon}
-            variant={$targetPlayStatusStore === option.value ? "success" : "normal"}
+            variant={"normal"}
             on:click={() => handleTargetPlayStatusChange(option.value)}
-            appendClass="px-3 py-1 text-sm"
+            appendClass={`px-3 py-1 text-sm ${$targetPlayStatusStore === option.value ? option.activeStyleClasses : option.inactiveStyleClasses}`}
           />
         {/each}
       </div>
