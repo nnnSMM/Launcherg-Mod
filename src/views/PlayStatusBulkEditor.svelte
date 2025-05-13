@@ -1,19 +1,22 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { derived, writable } from "svelte/store"; // writable もインポート
+  import { derived, writable } from "svelte/store";
   import type { CollectionElement, PlayStatus as PlayStatusType } from "@/lib/types";
   import { PlayStatus } from "@/lib/types";
   import { commandGetAllElements, commandUpdateElementPlayStatus } from "@/lib/command";
   import { sidebarCollectionElements } from "@/store/sidebarCollectionElements";
   import { showInfoToast, showErrorToast } from "@/lib/toast";
   import Button from "@/components/UI/Button.svelte";
+  import IconButton from "@/components/UI/IconButton.svelte";
   import VirtualScroller from "@/components/UI/VirtualScroller.svelte";
   import MasonryLayoutForPlayStatus from "@/components/PlayStatusBulkEditor/MasonryLayoutForPlayStatus.svelte";
+  import GameListLayout from "@/components/PlayStatusBulkEditor/GameListLayout.svelte";
+  import { localStorageWritable } from "@/lib/utils"; // ★ localStorageWritable をインポート
 
   import { query as textQueryStore } from "@/store/query";
   import { currentSortOrder, currentAttributes } from "@/store/viewSettings";
-  import { FILTER_BY_ATTRIBUTE, type Attribute } from "@/components/Sidebar/searchAttributes";
-  import { sort as sortElementsOriginal, type SortOrder } from "@/components/Sidebar/sort";
+  import { FILTER_BY_ATTRIBUTE } from "@/components/Sidebar/searchAttributes";
+  import { sort as sortElementsOriginal } from "@/components/Sidebar/sort";
   import { collectionElementsToOptions as convertElementsToOptionsForFilter, type Option as FilterOption } from "@/lib/filter";
   import { useFilter as useTextQueryFilter } from "@/lib/filter";
 
@@ -22,6 +25,9 @@
   let selectedGameIdsStore = writable(new Set<number>());
   let targetPlayStatusStore = writable<PlayStatusType>(PlayStatus.Unplayed);
   let isLoading = true;
+  type ViewMode = "masonry" | "list";
+  // ★変更: viewModeStore を localStorageWritable で定義
+  let viewModeStore = localStorageWritable<ViewMode>("playStatusEditorViewMode", "masonry");
 
   onMount(async () => {
     isLoading = true;
@@ -36,7 +42,7 @@
     }
   });
 
-  const textFilterOptionsForThisPage = derived(allGamesFromApi, ($allGames): FilterOption<number>[] => // ★戻り値の型を明示
+  const textFilterOptionsForThisPage = derived(allGamesFromApi, ($allGames): FilterOption<number>[] =>
     convertElementsToOptionsForFilter($allGames)
   );
 
@@ -46,9 +52,9 @@
     () => convertElementsToOptionsForFilter($allGamesFromApi)
   );
 
-  const processedDisplayGames = derived< // ★ derivedの型引数を追加
+  const processedDisplayGames = derived<
     [typeof allGamesFromApi, typeof textFilteredGameIdOptions, typeof currentAttributes, typeof currentSortOrder],
-    CollectionElement[] // ★ このストアが持つデータの型
+    CollectionElement[]
   >(
     [allGamesFromApi, textFilteredGameIdOptions, currentAttributes, currentSortOrder],
     ([$allGames, $textFilteredIdOpts, $attributeFilters, $sortOrder], set) => {
@@ -71,14 +77,13 @@
     }
   );
 
-  const displayGamesWithPreview = derived< // ★ derivedの型引数を追加
+  const displayGamesWithPreview = derived<
     [typeof processedDisplayGames, typeof selectedGameIdsStore, typeof targetPlayStatusStore],
-    CollectionElement[] // ★ このストアが持つデータの型
+    CollectionElement[]
   >(
     [processedDisplayGames, selectedGameIdsStore, targetPlayStatusStore],
     ([$processedGames, $selectedIds, $targetPlayStatus], set) => {
-        // $processedGames が CollectionElement[] であることを TypeScript に伝える
-        const games = ($processedGames as CollectionElement[]).map((game: CollectionElement) => { // ★ game に型注釈
+        const games = ($processedGames as CollectionElement[]).map((game: CollectionElement) => {
             if($selectedIds.has(game.id)) {
                 return {...game, playStatus: $targetPlayStatus };
             }
@@ -87,7 +92,6 @@
         set(games);
     }
   );
-
 
   const toggleGameSelection = (gameId: number) => {
     selectedGameIdsStore.update(currentSet => {
@@ -181,14 +185,28 @@
         {/each}
       </div>
     </div>
-    <Button
-      text={`選択中 (${$selectedGameIdsStore.size}) を設定`}
-      leftIcon="i-material-symbols-library-add-check-outline-rounded"
-      variant="accent"
-      disabled={$selectedGameIdsStore.size === 0 || isLoading}
-      on:click={handleBulkUpdate}
-      appendClass="px-3 py-1 text-sm whitespace-nowrap"
-    />
+    <div class="flex items-center gap-2">
+        <IconButton
+            icon="i-material-symbols-view-module-outline-rounded"
+            on:click={() => viewModeStore.set('masonry')}
+            tooltip={{content: "タイル表示"}}
+            appendClass={$viewModeStore === 'masonry' ? '!bg-[#C0C0C0]' : ''}
+        />
+        <IconButton
+            icon="i-material-symbols-view-list-outline-rounded"
+            on:click={() => viewModeStore.set('list')}
+            tooltip={{content: "リスト表示"}}
+            appendClass={$viewModeStore === 'list' ? '!bg-[#C0C0C0]' : ''}
+        />
+        <Button
+            text={`選択中 (${$selectedGameIdsStore.size}) を設定`}
+            leftIcon="i-material-symbols-library-add-check-outline-rounded"
+            variant="accent"
+            disabled={$selectedGameIdsStore.size === 0 || isLoading}
+            on:click={handleBulkUpdate}
+            appendClass="px-3 py-1 text-sm whitespace-nowrap"
+        />
+    </div>
   </div>
 
   {#if isLoading && $allGamesFromApi.length === 0}
@@ -197,31 +215,41 @@
     <div class="flex-1 flex items-center justify-center text-(lg text-primary)">登録されているゲームがありません。</div>
   {:else}
     <div class="flex-1 min-h-0 overflow-hidden">
-      <VirtualScroller
-        className="p-1"
-        let:setVirtualHeight
-        let:contentsWidth
-        let:contentsScrollY
-        let:containerHeight
-        let:contentsScrollTo
-      >
-        <MasonryLayoutForPlayStatus
+      {#if $viewModeStore === 'masonry'}
+        <VirtualScroller
+          className="p-4"
+          let:setVirtualHeight
+          let:contentsWidth
+          let:contentsScrollY
+          let:containerHeight
+          let:contentsScrollTo
+        >
+          <MasonryLayoutForPlayStatus
+            elementsStore={displayGamesWithPreview}
+            selectedIdsStore={selectedGameIdsStore}
+            previewTargetPlayStatus={$targetPlayStatusStore}
+            onToggleSelection={(id) => toggleGameSelection(id)}
+            {setVirtualHeight}
+            {contentsScrollY}
+            {contentsWidth}
+            {containerHeight}
+            {contentsScrollTo}
+            minItemWidth={216}
+            itemGap={12}
+            titleAreaHeight={70}
+            placeholderAspectRatio={3/4}
+            tileInternalPadding={8}
+          />
+        </VirtualScroller>
+      {:else if $viewModeStore === 'list'}
+        <GameListLayout
           elementsStore={displayGamesWithPreview}
           selectedIdsStore={selectedGameIdsStore}
           previewTargetPlayStatus={$targetPlayStatusStore}
-          onToggleSelection={(id) => toggleGameSelection(id)}
-          {setVirtualHeight}
-          {contentsScrollY}
-          {contentsWidth}
-          {containerHeight}
-          {contentsScrollTo}
-          minItemWidth={216}
-          itemGap={12}
-          titleAreaHeight={70}
-          placeholderAspectRatio={3/4}
-          tileInternalPadding={8}
+          onToggleSelection={toggleGameSelection}
+          itemHeight={72}
         />
-      </VirtualScroller>
+      {/if}
     </div>
   {/if}
 </div>
