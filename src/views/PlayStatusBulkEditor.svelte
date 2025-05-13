@@ -11,7 +11,7 @@
   import VirtualScroller from "@/components/UI/VirtualScroller.svelte";
   import MasonryLayoutForPlayStatus from "@/components/PlayStatusBulkEditor/MasonryLayoutForPlayStatus.svelte";
   import GameListLayout from "@/components/PlayStatusBulkEditor/GameListLayout.svelte";
-  import { localStorageWritable } from "@/lib/utils"; // ★ localStorageWritable をインポート
+  import { localStorageWritable } from "@/lib/utils";
 
   import { query as textQueryStore } from "@/store/query";
   import { currentSortOrder, currentAttributes } from "@/store/viewSettings";
@@ -23,10 +23,9 @@
 
   let allGamesFromApi = writable<CollectionElement[]>([]);
   let selectedGameIdsStore = writable(new Set<number>());
-  let targetPlayStatusStore = writable<PlayStatusType>(PlayStatus.Unplayed);
+  let targetPlayStatusStore = localStorageWritable<PlayStatusType>("bulkEditorTargetPlayStatus", PlayStatus.Unplayed);
   let isLoading = true;
   type ViewMode = "masonry" | "list";
-  // ★変更: viewModeStore を localStorageWritable で定義
   let viewModeStore = localStorageWritable<ViewMode>("playStatusEditorViewMode", "masonry");
 
   onMount(async () => {
