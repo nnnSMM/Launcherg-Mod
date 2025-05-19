@@ -69,6 +69,7 @@
       style="opacity: {isPlaceholder || isDragging || isAnyTabDragging ? 0 : ''};"
     >
       <button
+        draggable="false"
         class="group-hover:opacity-100 opacity-0 transition-all w-5 h-5 i-iconoir-cancel"
         class:color-text-secondary={(selected && !isPlaceholder && !isDragging)}
         class:color-text-tertiary={((!selected || isPlaceholder || isDragging))}
@@ -76,6 +77,7 @@
             if (isDragging || isPlaceholder || isAnyTabDragging) return;
             deleteTab(tab.id);
         }}
+        on:mousedown|stopPropagation
         tabindex={isPlaceholder || isDragging || isAnyTabDragging ? -1 : 0}
       />
     </div>
