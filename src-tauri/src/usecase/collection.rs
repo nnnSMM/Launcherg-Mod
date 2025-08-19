@@ -246,6 +246,16 @@ impl<R: RepositoriesExt> CollectionUseCase<R> {
             .await?;
         Ok(())
     }
+    pub async fn add_play_time_seconds(
+        &self,
+        id: &Id<CollectionElement>,
+        seconds: i32,
+    ) -> anyhow::Result<()> {
+        self.repositories
+            .collection_repository()
+            .add_play_time_seconds(id, seconds)
+            .await
+    }
     pub async fn delete_element(&self, id: &Id<CollectionElement>) -> anyhow::Result<()> {
         self.repositories
             .collection_repository()

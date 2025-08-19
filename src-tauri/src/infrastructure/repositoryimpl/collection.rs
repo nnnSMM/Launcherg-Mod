@@ -13,34 +13,40 @@ use crate::domain::{
 impl CollectionRepository for RepositoryImpl<CollectionElement> {
     async fn get_all_elements(&self) -> anyhow::Result<Vec<CollectionElement>> {
         let pool = self.pool.0.clone();
-        Ok(query_as::<_, CollectionElementTable>(
-            "select ce.*, cde.collection_element_id, cde.gamename_ruby, cde.sellday, cde.is_nukige, cde.brandname, cde.brandname_ruby from collection_elements ce inner join collection_element_details cde on cde.collection_element_id = ce.id",
+        let records = query_as::<_, CollectionElementTable>(
+            "SELECT 
+                c.id, c.gamename, c.exe_path, c.lnk_path, c.install_at, c.last_play_at, c.like_at, 
+                c.play_status, c.total_play_time_seconds, c.thumbnail_width, c.thumbnail_height, 
+                c.created_at, c.updated_at,
+                cd.gamename_ruby, cd.sellday, cd.is_nukige, cd.brandname, cd.brandname_ruby
+            FROM collection_elements as c
+            LEFT JOIN collection_element_details as cd
+            ON c.id = cd.collection_element_id",
         )
         .fetch_all(&*pool)
-        .await?
-        .into_iter()
-        .filter_map(|v| v.try_into().ok())
-        .collect())
+        .await?;
+        Ok(records.into_iter().flat_map(|v| v.try_into()).collect())
     }
     async fn get_element_by_element_id(
         &self,
         id: &Id<CollectionElement>,
     ) -> anyhow::Result<Option<CollectionElement>> {
         let pool = self.pool.0.clone();
-        let elements =
-            query_as::<_, CollectionElementTable>("select ce.*, cde.collection_element_id, cde.gamename_ruby, cde.sellday, cde.is_nukige, cde.brandname, cde.brandname_ruby from collection_elements ce inner join collection_element_details cde on cde.collection_element_id = ce.id where ce.id = ?")
-                .bind(id.value)
-                .fetch_all(&*pool)
-                .await?
-                .into_iter()
-                .filter_map(|v| v.try_into().ok())
-                .collect::<Vec<CollectionElement>>();
-        if elements.len() == 0 {
-            Ok(None)
-        } else {
-            let v = elements[0].clone();
-            Ok(Some(v))
-        }
+        let record = sqlx::query_as::<_, CollectionElementTable>(
+            "SELECT 
+                c.id, c.gamename, c.exe_path, c.lnk_path, c.install_at, c.last_play_at, c.like_at, 
+                c.play_status, c.total_play_time_seconds, c.thumbnail_width, c.thumbnail_height, 
+                c.created_at, c.updated_at,
+                cd.gamename_ruby, cd.sellday, cd.is_nukige, cd.brandname, cd.brandname_ruby
+            FROM collection_elements as c
+            LEFT JOIN collection_element_details as cd
+            ON c.id = cd.collection_element_id
+            WHERE c.id = ?",
+        )
+        .bind(id.value)
+        .fetch_optional(&*pool)
+        .await?;
+        Ok(record.and_then(|v| v.try_into().ok()))
     }
     async fn upsert_collection_element(&self, new: &NewCollectionElement) -> anyhow::Result<()> {
         let pool = self.pool.0.clone();
@@ -284,6 +290,21 @@ impl CollectionRepository for RepositoryImpl<CollectionElement> {
             .bind(id.value)
             .execute(&*pool)
             .await?;
+        Ok(())
+    }
+    async fn add_play_time_seconds(
+        &self,
+        id: &Id<CollectionElement>,
+        seconds: i32,
+    ) -> anyhow::Result<()> {
+        let pool = self.pool.0.clone();
+        query(
+            "UPDATE collection_elements SET total_play_time_seconds = total_play_time_seconds + ? WHERE id = ?",
+        )
+        .bind(seconds)
+        .bind(id.value)
+        .execute(&*pool)
+        .await?;
         Ok(())
     }
     async fn delete_element_by_id(&self, id: &Id<CollectionElement>) -> anyhow::Result<()> {

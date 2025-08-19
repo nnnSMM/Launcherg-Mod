@@ -4,8 +4,6 @@
   import { push } from "svelte-spa-router";
   import {
     commandDeleteCollectionElement,
-    commandGetCollectionElement,
-    commandGetPlayTomeMinutes,
     commandOpenFolder,
     commandPlayGame,
     commandUpdateElementLike,
@@ -13,7 +11,7 @@
     commandUpsertCollectionElement,
   } from "@/lib/command";
   import { showErrorToast } from "@/lib/toast";
-  import { localStorageWritable } from "@/lib/utils";
+  import { localStorageWritable, formatLastPlayed } from "@/lib/utils"; // 1. formatLastPlayedをインポート
   import ButtonIcon from "@/components/UI/ButtonIcon.svelte";
   import ButtonCancel from "@/components/UI/ButtonCancel.svelte";
   import { sidebarCollectionElements } from "@/store/sidebarCollectionElements";
@@ -22,6 +20,7 @@
   import ImportManually from "@/components/Sidebar/ImportManually.svelte";
   import { deleteTab, tabs, selected } from "@/store/tabs";
   import DeleteElement from "@/components/Work/DeleteElement.svelte";
+  import { formatPlayTime } from "@/lib/utils";
   import type { AllGameCacheOne, PlayStatus as PlayStatusType } from "@/lib/types";
   import { PlayStatus } from "@/lib/types";
   import OtherInformation from "@/components/Work/OtherInformation.svelte";
@@ -35,12 +34,21 @@
   export let id: number;
   export let seiyaUrl: string;
 
+  $: element = $sidebarCollectionElements.find((e) => e.id === id);
+
+  $: isLike = !!element?.likeAt;
+  $: currentPlayStatus = element?.playStatus ?? PlayStatus.Unplayed;
+  $: playTimeText = formatPlayTime(element?.totalPlayTimeSeconds || 0);
+  // 2. 最後にプレイした日時をフォーマットする
+  $: lastPlayedText = formatLastPlayed(element?.lastPlayAt);
+
   const isAdminRecord = localStorageWritable<Record<number, boolean>>(
     "play-admin-cache",
     {}
   );
 
   const play = async (isAdmin: boolean | undefined) => {
+    sidebarCollectionElements.refetch();
     if (isAdmin !== undefined) {
       isAdminRecord.update((v) => {
         v[id] = isAdmin;
@@ -67,13 +75,9 @@
     }
   };
 
-  let isLike = false;
-  let currentPlayStatus: PlayStatusType = PlayStatus.Unplayed;
-
   const toggleLike = async () => {
     await commandUpdateElementLike(id, !isLike);
-    isLike = !isLike;
-    sidebarCollectionElements.updateLike(id, isLike);
+    sidebarCollectionElements.updateLike(id, !isLike);
   };
 
   const handlePlayStatusSelect = (event: CustomEvent<{ value: string | number }>) => {
@@ -83,7 +87,6 @@
 
   const updatePlayStatus = async (newStatus: PlayStatusType) => {
     await commandUpdateElementPlayStatus(id, newStatus);
-    currentPlayStatus = newStatus;
     sidebarCollectionElements.updatePlayStatus(id, newStatus);
   };
 
@@ -92,7 +95,7 @@
     value: PlayStatusType;
     icon: string;
     activeStyleClasses: string;
-    activeIconTextColorClass: string; // アイコンとテキスト用の共通色クラス
+    activeIconTextColorClass: string;
   }[] = [
     {
       label: "未プレイ",
@@ -117,20 +120,8 @@
     },
   ];
 
-  // Selectコンポーネントのoptionsプロパティ用 (labelとvalueのみ)
   $: selectOptionsForDropdown = playStatusOptionsData.map(opt => ({ label: opt.label, value: opt.value }));
-
-  // 現在のプレイ状況に対応するスタイル情報を取得
   $: currentActiveStyleInfo = playStatusOptionsData.find(opt => opt.value === currentPlayStatus) || playStatusOptionsData[0];
-
-
-  $: playTimePromise = commandGetPlayTomeMinutes(id);
-  $: elementPromise = (async () => {
-    const element = await commandGetCollectionElement(id);
-    isLike = !!element.likeAt;
-    currentPlayStatus = element.playStatus;
-    return element;
-  })();
 
   let isOpenImportManually = false;
   const onChangeGame = async (arg: {
@@ -156,7 +147,7 @@
   let isOpenQrCode = false;
 </script>
 
-{#await elementPromise then element}
+{#if element}
   <div class="flex items-center gap-4 flex-wrap w-full min-w-0">
     <PlayButton on:play={(e) => play(e.detail.isAdmin)} />
     <Button
@@ -212,6 +203,21 @@
       </APopover>
     </div>
   </div>
+  <div class="flex items-center gap-4 text-text-tertiary pl-1 mt-2 flex-wrap">
+    {#if lastPlayedText}
+      <div class="flex items-center gap-1">
+        <div class="w-4 h-4 i-material-symbols-history-rounded" />
+        <div class="text-body2">最後にプレイ: {lastPlayedText}</div>
+      </div>
+    {/if}
+    {#if playTimeText}
+      <div class="flex items-center gap-1">
+        <div class="w-4 h-4 i-material-symbols-hourglass-outline-rounded" />
+        <div class="text-body2">プレイ時間: {playTimeText}</div>
+      </div>
+    {/if}
+  </div>
+
   <ImportManually
     bind:isOpen={isOpenImportManually}
     idInput={`${id}`}
@@ -222,4 +228,4 @@
   <DeleteElement bind:isOpen={isOpenDelete} {element} />
   <OtherInformation bind:isOpen={isOpenOtherInformation} {element} />
   <QrCode bind:isOpen={isOpenQrCode} {id} {seiyaUrl} />
-{/await}
+{/if}

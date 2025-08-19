@@ -26,7 +26,8 @@ pub struct CollectionElement {
     pub install_at: Option<String>,
     pub last_play_at: Option<String>,
     pub like_at: Option<String>,
-    pub play_status: i32, // 追加
+    pub play_status: i32,
+    pub total_play_time_seconds: i32,
     pub registered_at: String,
     pub thumbnail_width: Option<i32>,
     pub thumbnail_height: Option<i32>,
@@ -49,7 +50,8 @@ impl CollectionElement {
             st.install_at.and_then(|v| Some(v.to_rfc3339())),
             st.last_play_at.and_then(|v| Some(v.to_rfc3339())),
             st.like_at.and_then(|v| Some(v.to_rfc3339())),
-            st.play_status, // 追加
+            st.play_status,
+            st.total_play_time_seconds,
             st.updated_at.to_rfc3339(),
             st.thumbnail_width,
             st.thumbnail_height,

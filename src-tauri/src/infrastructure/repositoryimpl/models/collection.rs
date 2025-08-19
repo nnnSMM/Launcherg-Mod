@@ -18,7 +18,8 @@ pub struct CollectionElementTable {
     pub install_at: Option<NaiveDateTime>,
     pub last_play_at: Option<NaiveDateTime>,
     pub like_at: Option<NaiveDateTime>,
-    pub play_status: i32, // 追加
+    pub play_status: i32,
+    pub total_play_time_seconds: i32,
     pub thumbnail_width: Option<i32>,
     pub thumbnail_height: Option<i32>,
     pub created_at: NaiveDateTime,
@@ -44,7 +45,8 @@ impl TryFrom<CollectionElementTable> for CollectionElement {
                 .and_then(|v| Some(v.and_utc().with_timezone(&Local))),
             st.like_at
                 .and_then(|v| Some(v.and_utc().with_timezone(&Local))),
-            st.play_status, // 追加
+            st.play_status,
+            st.total_play_time_seconds,
             st.thumbnail_width,
             st.thumbnail_height,
             st.created_at.and_utc().with_timezone(&Local),

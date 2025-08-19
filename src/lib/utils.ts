@@ -69,3 +69,45 @@ export const isNotNullOrUndefined = <T>(
 };
 
 export const rand = (max = 100000) => Math.floor(Math.random() * max);
+
+export const formatPlayTime = (totalSeconds: number): string => {
+  // 2時間未満 (分で表示)
+  if (totalSeconds < 7200) {
+    const minutes = Math.floor(totalSeconds / 60);
+    return `${minutes}分`;
+  }
+
+  // 2時間以上 (時間で表示)
+  const hours = totalSeconds / 3600;
+  return `${Math.floor(hours * 10) / 10}時間`;
+};
+
+
+export const formatLastPlayed = (isoString: string | null | undefined): string => {
+  if (!isoString) {
+    return "";
+  }
+
+  const lastPlayedDate = new Date(isoString);
+  const now = new Date();
+
+  // 時間をリセットして日付のみで比較
+  lastPlayedDate.setHours(0, 0, 0, 0);
+  now.setHours(0, 0, 0, 0);
+
+  const diffTime = now.getTime() - lastPlayedDate.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) {
+    return "今日";
+  }
+  if (diffDays === 1) {
+    return "昨日";
+  }
+  if (diffDays <= 14) {
+    return `${diffDays}日前`;
+  }
+  
+  // 14日以上前なら年月日を表示
+  return new Date(isoString).toLocaleDateString("ja-JP");
+};

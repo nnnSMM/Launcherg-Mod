@@ -23,7 +23,8 @@ pub struct CollectionElement {
     pub install_at: Option<DateTime<Local>>,
     pub last_play_at: Option<DateTime<Local>>,
     pub like_at: Option<DateTime<Local>>,
-    pub play_status: i32, // 追加
+    pub play_status: i32,
+    pub total_play_time_seconds: i32,
     pub thumbnail_width: Option<i32>,
     pub thumbnail_height: Option<i32>,
     pub created_at: DateTime<Local>,
