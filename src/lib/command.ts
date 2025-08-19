@@ -60,7 +60,7 @@ export const commandPlayGame = async (
   isRunAsAdmin: boolean
 ) => {
   return await invoke<number | null>("play_game", {
-    collectionElementId,
+    elementId: collectionElementId,
     isRunAsAdmin,
   });
 };

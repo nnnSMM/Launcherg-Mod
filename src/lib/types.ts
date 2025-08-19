@@ -63,7 +63,8 @@ export type CollectionElement = {
   installAt: string | null;
   lastPlayAt: string | null;
   likeAt: string | null;
-  playStatus: PlayStatus; // 追加
+  playStatus: PlayStatus;
+  totalPlayTimeSeconds: number;
   registeredAt: string;
   exePath: string;
   lnkPath: string;

@@ -1,27 +1,25 @@
-use std::sync::Arc;
-use std::sync::Mutex;
-use tauri::AppHandle;
-use tauri::Emitter;
-use tauri::State;
-
-use super::models::all_game_cache::AllGameCacheOne;
-use super::models::collection::ProgressLivePayload;
 use super::{
     error::CommandError,
-    models::collection::CollectionElement,
+    models::{
+        all_game_cache::AllGameCacheOne,
+        collection::{CollectionElement, ProgressLivePayload, ProgressPayload},
+    },
     module::{Modules, ModulesExt},
 };
-use crate::domain::file::get_lnk_metadatas;
-use crate::interface::models::collection::ProgressPayload;
 use crate::{
     domain::{
         collection::NewCollectionElement,
         distance::get_comparable_distance,
-        file::{get_file_created_at_sync, normalize},
+        file::{get_file_created_at_sync, get_lnk_metadatas, normalize},
         Id,
     },
     usecase::models::collection::CreateCollectionElementDetail,
 };
+use std::sync::{Arc, Mutex};
+use sysinfo::{PidExt, ProcessExt, System, SystemExt};
+use tauri::{AppHandle, Emitter, State};
+use tokio::time::{interval, Duration, Instant};
+use chrono::Local;
 
 #[tauri::command]
 pub async fn create_elements_in_pc(
@@ -29,7 +27,7 @@ pub async fn create_elements_in_pc(
     handle: AppHandle,
     explore_dir_paths: Vec<String>,
     use_cache: bool,
-) -> anyhow::Result<Vec<String>, CommandError> {
+) -> Result<Vec<String>, CommandError> {
     let handle = Arc::new(handle);
     let emit_progress = Arc::new(|message| {
         if let Err(e) = handle.emit("progress", ProgressPayload::new(message)) {
@@ -104,10 +102,7 @@ pub async fn create_elements_in_pc(
         .upsert_collection_elements(&new_elements)
         .await?;
 
-    let new_element_ids = new_elements
-        .iter()
-        .map(|v| v.id.clone())
-        .collect::<Vec<Id<_>>>();
+    let new_element_ids = new_elements.iter().map(|v| v.id.clone()).collect::<Vec<Id<_>>>();
     modules
         .collection_use_case()
         .concurency_upsert_collection_element_thumbnail_size(&handle, new_element_ids)
@@ -125,7 +120,7 @@ pub async fn create_elements_in_pc(
 pub async fn get_nearest_key_and_distance(
     key: String,
     calculate_distance_kv: Vec<(String, String)>,
-) -> anyhow::Result<(String, f32), CommandError> {
+) -> Result<(String, f32), CommandError> {
     let key = normalize(&key);
     let normalized_kv = calculate_distance_kv
         .into_iter()
@@ -162,7 +157,7 @@ pub async fn upload_image(
     modules: State<'_, Arc<Modules>>,
     id: i32,
     base64_image: String,
-) -> anyhow::Result<String, CommandError> {
+) -> Result<String, CommandError> {
     Ok(modules
         .file_use_case()
         .upload_image(&Arc::new(handle), id, base64_image)
@@ -176,7 +171,7 @@ pub async fn upsert_collection_element(
     exe_path: Option<String>,
     lnk_path: Option<String>,
     game_cache: AllGameCacheOne,
-) -> anyhow::Result<(), CommandError> {
+) -> Result<(), CommandError> {
     let install_at;
     if let Some(path) = exe_path.clone() {
         install_at = get_file_created_at_sync(&path);
@@ -224,11 +219,8 @@ pub async fn update_collection_element_thumbnails(
     handle: AppHandle,
     modules: State<'_, Arc<Modules>>,
     ids: Vec<i32>,
-) -> anyhow::Result<(), CommandError> {
-    let all_game_cache = modules
-        .all_game_cache_use_case()
-        .get_by_ids(ids.clone())
-        .await?;
+) -> Result<(), CommandError> {
+    let all_game_cache = modules.all_game_cache_use_case().get_by_ids(ids.clone()).await?;
     let handle = Arc::new(handle);
     modules
         .collection_use_case()
@@ -255,7 +247,7 @@ pub async fn update_collection_element_icon(
     modules: State<'_, Arc<Modules>>,
     id: i32,
     path: String,
-) -> anyhow::Result<(), CommandError> {
+) -> Result<(), CommandError> {
     Ok(modules
         .collection_use_case()
         .update_collection_element_icon(&Arc::new(handle), &Id::new(id), path)
@@ -263,7 +255,7 @@ pub async fn update_collection_element_icon(
 }
 
 #[tauri::command]
-pub async fn get_default_import_dirs() -> anyhow::Result<Vec<String>, CommandError> {
+pub async fn get_default_import_dirs() -> Result<Vec<String>, CommandError> {
     let user_menu = dirs::home_dir()
         .ok_or(anyhow::anyhow!("cannot got home dir"))?
         .join("AppData")
@@ -280,24 +272,156 @@ pub async fn get_default_import_dirs() -> anyhow::Result<Vec<String>, CommandErr
     Ok(vec![user_menu, system_menu.to_string()])
 }
 
+use tauri_plugin_shell::ShellExt;
+
 #[tauri::command]
 pub async fn play_game(
+    handle: AppHandle,
     modules: State<'_, Arc<Modules>>,
-    collection_element_id: i32,
-    is_run_as_admin: bool,
-) -> anyhow::Result<Option<u32>, CommandError> {
+    element_id: i32,
+    _is_admin: Option<bool>,
+) -> Result<(), CommandError> {
     let element = modules
         .collection_use_case()
-        .get_element_by_element_id(&Id::new(collection_element_id))
+        .get_element_by_element_id(&Id::new(element_id))
         .await?;
-    let process_id = modules
-        .file_use_case()
-        .start_game(element, is_run_as_admin)?;
+
     modules
         .collection_use_case()
-        .update_element_last_play_at(&Id::new(collection_element_id))
+        .update_element_last_play_at(&Id::new(element_id))
         .await?;
-    Ok(process_id)
+
+    let path_str = match (element.exe_path, element.lnk_path) {
+        (Some(p), _) => p,
+        (None, Some(p)) => p,
+        (None, None) => {
+            return Err(CommandError::Anyhow(anyhow::anyhow!(
+                "実行ファイルまたはショートカットが見つかりません"
+            )))
+        }
+    };
+
+    let mut system_before = System::new_all();
+    system_before.refresh_processes();
+    let pids_before: std::collections::HashSet<_> = system_before.processes().keys().cloned().collect();
+
+    handle.shell().open(&path_str, None).map_err(anyhow::Error::from)?;
+    println!("[INFO] Opening path with shell: {}", &path_str);
+
+    let modules_clone = modules.inner().clone();
+    let game_name = element.gamename.clone();
+    let path_str_clone = path_str.clone();
+
+    tauri::async_runtime::spawn(async move {
+        // ランチャーがゲーム本体を起動するまで5秒待つ
+        tokio::time::sleep(Duration::from_secs(5)).await;
+        
+        let search_timeout = Duration::from_secs(45);
+        let search_start_time = Instant::now();
+        let mut target_pid: Option<sysinfo::Pid> = None;
+
+        println!("Searching for the new game process...");
+        
+        // ▼▼▼ 修正: 優先度付けを行う新しい特定ロジック ▼▼▼
+        loop {
+            if search_start_time.elapsed() > search_timeout {
+                println!("[WARN] Game process search timed out. Play time may not be recorded.");
+                break;
+            }
+            tokio::time::sleep(Duration::from_secs(2)).await;
+
+            let mut system_after = System::new_all();
+            system_after.refresh_processes();
+
+            let new_processes: Vec<_> = system_after
+                .processes()
+                .values()
+                .filter(|p| !pids_before.contains(&p.pid()))
+                .collect();
+
+            if new_processes.is_empty() {
+                continue;
+            }
+
+            let mut candidates: Vec<(&sysinfo::Process, i32)> = Vec::new();
+            let system_folders = ["c:\\windows"];
+            let game_folders = ["VisualNovel", "steamapps", "dmmgameplayer"];
+
+            for process in new_processes {
+                let exe_path = process.exe();
+                let path_lower = exe_path.to_string_lossy().to_lowercase();
+                
+                if system_folders.iter().any(|folder| path_lower.starts_with(folder)) {
+                    continue; // 除外
+                }
+                
+                // スコア付け
+                let mut score = 0;
+                // 最優先: 起動パスと完全一致
+                let final_exe_path_str = if path_str_clone.to_lowercase().ends_with(".lnk") {
+                    get_exe_path_by_lnk(path_str_clone.clone()).await.unwrap_or(path_str_clone.clone())
+                } else {
+                    path_str_clone.clone()
+                };
+                let final_exe_path = std::path::Path::new(&final_exe_path_str);
+                
+                if exe_path == final_exe_path {
+                    score = 3;
+                }
+                // 次点: 有名なゲームフォルダ
+                else if game_folders.iter().any(|folder| path_lower.contains(folder)) {
+                    score = 2;
+                }
+                // それ以外
+                else {
+                    score = 1;
+                }
+                candidates.push((process, score));
+            }
+
+            // 最もスコアの高い候補の中から、ゲーム名に一番近いものを探す
+            if !candidates.is_empty() {
+                let max_score = candidates.iter().map(|(_, score)| *score).max().unwrap_or(0);
+                if let Some(best_match) = candidates
+                    .iter()
+                    .filter(|(_, score)| *score == max_score)
+                    .min_by_key(|(p, _)| {
+                        // 編集距離の代わりに簡易的な文字数差で最終判断
+                        (p.name().len() as i32 - game_name.len() as i32).abs()
+                    })
+                {
+                    target_pid = Some(best_match.0.pid());
+                }
+            }
+            
+            if target_pid.is_some() {
+                println!("Game process identified (PID: {:?}).", target_pid.unwrap());
+                break;
+            }
+        }
+
+        if let Some(pid_to_monitor) = target_pid {
+            println!("Start monitoring process (PID: {}) for game {}", pid_to_monitor, game_name);
+            let start_time = Instant::now();
+            let mut interval = interval(Duration::from_secs(10));
+            let mut system = System::new_all();
+
+            loop {
+                interval.tick().await;
+                system.refresh_processes();
+                if system.process(pid_to_monitor).is_none() {
+                    let duration = start_time.elapsed().as_secs() as i32;
+                    if duration > 0 {
+                        println!("Game {} (PID: {}) finished. Play time: {} seconds.", game_name, pid_to_monitor, duration);
+                        let _ = modules_clone.collection_use_case().add_play_time_seconds(&Id::new(element_id), duration).await;
+                    }
+                    break;
+                }
+            }
+        }
+    });
+
+    Ok(())
 }
 
 #[tauri::command]
@@ -305,7 +429,7 @@ pub async fn get_play_time_minutes(
     handle: AppHandle,
     modules: State<'_, Arc<Modules>>,
     collection_element_id: i32,
-) -> anyhow::Result<f32, CommandError> {
+) -> Result<f32, CommandError> {
     Ok(modules
         .file_use_case()
         .get_play_time_minutes(&Arc::new(handle), &Id::new(collection_element_id))?)
@@ -316,7 +440,7 @@ pub async fn get_collection_element(
     handle: AppHandle,
     modules: State<'_, Arc<Modules>>,
     collection_element_id: i32,
-) -> anyhow::Result<CollectionElement, CommandError> {
+) -> Result<CollectionElement, CommandError> {
     Ok(modules
         .collection_use_case()
         .get_element_by_element_id(&Id::new(collection_element_id))
@@ -328,7 +452,7 @@ pub async fn get_collection_element(
 pub async fn delete_collection_element(
     modules: State<'_, Arc<Modules>>,
     collection_element_id: i32,
-) -> anyhow::Result<(), CommandError> {
+) -> Result<(), CommandError> {
     Ok(modules
         .collection_use_case()
         .delete_collection_element_by_id(&Id::new(collection_element_id))
@@ -338,7 +462,7 @@ pub async fn delete_collection_element(
 #[tauri::command]
 pub async fn get_not_registered_detail_element_ids(
     modules: State<'_, Arc<Modules>>,
-) -> anyhow::Result<Vec<i32>, CommandError> {
+) -> Result<Vec<i32>, CommandError> {
     Ok(modules
         .collection_use_case()
         .get_not_registered_detail_element_ids()
@@ -352,7 +476,7 @@ pub async fn get_not_registered_detail_element_ids(
 pub async fn create_element_details(
     modules: State<'_, Arc<Modules>>,
     details: Vec<CreateCollectionElementDetail>,
-) -> anyhow::Result<(), CommandError> {
+) -> Result<(), CommandError> {
     Ok(modules
         .collection_use_case()
         .create_element_details(details.into_iter().map(|v| v.into()).collect())
@@ -363,7 +487,7 @@ pub async fn create_element_details(
 pub async fn get_all_elements(
     handle: AppHandle,
     modules: State<'_, Arc<Modules>>,
-) -> anyhow::Result<Vec<CollectionElement>, CommandError> {
+) -> Result<Vec<CollectionElement>, CommandError> {
     let handle = &Arc::new(handle);
     Ok(modules
         .collection_use_case()
@@ -379,7 +503,7 @@ pub async fn update_element_like(
     modules: State<'_, Arc<Modules>>,
     id: i32,
     is_like: bool,
-) -> anyhow::Result<(), CommandError> {
+) -> Result<(), CommandError> {
     Ok(modules
         .collection_use_case()
         .update_element_like_at(&Id::new(id), is_like)
@@ -387,11 +511,11 @@ pub async fn update_element_like(
 }
 
 #[tauri::command]
-pub async fn update_element_play_status( // 追加
+pub async fn update_element_play_status(
     modules: State<'_, Arc<Modules>>,
     id: i32,
     play_status: i32,
-) -> anyhow::Result<(), CommandError> {
+) -> Result<(), CommandError> {
     Ok(modules
         .collection_use_case()
         .update_element_play_status(&Id::new(id), play_status)
@@ -399,7 +523,7 @@ pub async fn update_element_play_status( // 追加
 }
 
 #[tauri::command]
-pub fn open_folder(path: String) -> anyhow::Result<(), CommandError> {
+pub fn open_folder(path: String) -> Result<(), CommandError> {
     let p = std::path::Path::new(&path);
     let path = match p.is_file() {
         true => p
@@ -421,11 +545,8 @@ pub fn open_folder(path: String) -> anyhow::Result<(), CommandError> {
 #[tauri::command]
 pub async fn get_all_game_cache_last_updated(
     modules: State<'_, Arc<Modules>>,
-) -> anyhow::Result<(i32, String), CommandError> {
-    let last_updated = modules
-        .all_game_cache_use_case()
-        .get_cache_last_updated()
-        .await?;
+) -> Result<(i32, String), CommandError> {
+    let last_updated = modules.all_game_cache_use_case().get_cache_last_updated().await?;
     Ok((last_updated.0, last_updated.1.to_rfc3339()))
 }
 
@@ -433,7 +554,7 @@ pub async fn get_all_game_cache_last_updated(
 pub async fn update_all_game_cache(
     modules: State<'_, Arc<Modules>>,
     game_caches: Vec<AllGameCacheOne>,
-) -> anyhow::Result<(), CommandError> {
+) -> Result<(), CommandError> {
     modules
         .all_game_cache_use_case()
         .update_all_game_cache(game_caches.into_iter().map(|v| v.into()).collect())
@@ -445,11 +566,8 @@ pub async fn update_all_game_cache(
 pub async fn get_game_candidates(
     modules: State<'_, Arc<Modules>>,
     filepath: String,
-) -> anyhow::Result<Vec<(i32, String)>, CommandError> {
-    let all_game_cache = modules
-        .all_game_cache_use_case()
-        .get_all_game_cache()
-        .await?;
+) -> Result<Vec<(i32, String)>, CommandError> {
+    let all_game_cache = modules.all_game_cache_use_case().get_all_game_cache().await?;
 
     Ok(modules
         .file_use_case()
@@ -461,7 +579,7 @@ pub async fn get_game_candidates(
 }
 
 #[tauri::command]
-pub async fn get_exe_path_by_lnk(filepath: String) -> anyhow::Result<String, CommandError> {
+pub async fn get_exe_path_by_lnk(filepath: String) -> Result<String, CommandError> {
     if !filepath.to_lowercase().ends_with("lnk") {
         return Err(CommandError::Anyhow(anyhow::anyhow!(
             "filepath is not ends with lnk"
@@ -483,7 +601,7 @@ pub async fn get_exe_path_by_lnk(filepath: String) -> anyhow::Result<String, Com
 pub async fn get_game_cache_by_id(
     modules: State<'_, Arc<Modules>>,
     id: i32,
-) -> anyhow::Result<Option<AllGameCacheOne>, CommandError> {
+) -> Result<Option<AllGameCacheOne>, CommandError> {
     Ok(modules
         .all_game_cache_use_case()
         .get(id)
@@ -497,7 +615,7 @@ pub async fn save_screenshot_by_pid(
     modules: State<'_, Arc<Modules>>,
     work_id: i32,
     process_id: u32,
-) -> anyhow::Result<String, CommandError> {
+) -> Result<String, CommandError> {
     let upload_path = modules
         .file_use_case()
         .get_new_upload_image_path(&Arc::new(handle), work_id)?;

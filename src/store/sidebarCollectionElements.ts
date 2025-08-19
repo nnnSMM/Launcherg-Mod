@@ -12,8 +12,10 @@ function createSidebarCollectionElements() {
   >([]);
 
   const refetch = async () => {
-    set(await commandGetAllElements());
+    const freshElements = await commandGetAllElements();
+    set(freshElements);
   };
+  
   const updateLike = (id: number, isLike: boolean) => {
     const now = new Date();
     const likeAt = `${now.getFullYear()}-${
