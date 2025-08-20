@@ -32,7 +32,7 @@ pub async fn create_elements_in_pc(
 ) -> Result<Vec<String>, CommandError> {
     let handle = Arc::new(handle);
     let emit_progress = Arc::new(|message| {
-        if let Err(e) = handle.emit("progress", ProgressPayload::new(message)) {
+        if let Err(e) = handle.emit("progress", ProgressLivePayload::new(message)) {
             return Err(anyhow::anyhow!(e.to_string()));
         }
         Ok(())
@@ -681,10 +681,7 @@ pub async fn update_game_image(
     if image_type == "thumbnail" {
         let dest_path = get_thumbnail_path(&handle, id);
         let img = image::open(&new_image_path).map_err(anyhow::Error::from)?;
-        let resized = img.thumbnail(400, 400);
-        resized
-            .save(dest_path)
-            .map_err(anyhow::Error::from)?;
+        img.save(dest_path).map_err(anyhow::Error::from)?;
     } else if image_type == "icon" {
         let dest_path = get_icon_path(&handle, id);
         let img = image::open(&new_image_path).map_err(anyhow::Error::from)?;
