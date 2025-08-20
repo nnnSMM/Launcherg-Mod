@@ -32,7 +32,7 @@ pub async fn create_elements_in_pc(
 ) -> Result<Vec<String>, CommandError> {
     let handle = Arc::new(handle);
     let emit_progress = Arc::new(|message| {
-        if let Err(e) = handle.emit("progress", ProgressLivePayload::new(message)) {
+        if let Err(e) = handle.emit("progress", ProgressPayload::new(message)) {
             return Err(anyhow::anyhow!(e.to_string()));
         }
         Ok(())
