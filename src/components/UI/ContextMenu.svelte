@@ -37,7 +37,7 @@
     {#each options as option}
       <li>
         <button
-          class="w-full text-left px-4 py-1.5 text-sm text-text-primary bg-bg-tertiary hover:bg-bg-t_primary hover:text-text-b_tertiary transition-colors"
+          class="w-full text-left px-4 py-1.5 text-sm text-text-primary bg-bg-tertiary hover:bg-bg-t_secondary hover:text-text-b_tertiary transition-colors"
           on:click={() => {
             option.onSelect();
             closeMenu();
