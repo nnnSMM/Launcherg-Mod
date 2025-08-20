@@ -315,4 +315,14 @@ impl CollectionRepository for RepositoryImpl<CollectionElement> {
             .await?;
         Ok(())
     }
+
+    async fn touch(&self, id: &Id<CollectionElement>) -> anyhow::Result<()> {
+        let pool = self.pool.0.clone();
+        query("UPDATE collection_elements SET id = ? WHERE id = ?")
+            .bind(id.value)
+            .bind(id.value)
+            .execute(&*pool)
+            .await?;
+        Ok(())
+    }
 }

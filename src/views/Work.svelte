@@ -1,21 +1,22 @@
 <script lang="ts">
-  import { onMount } from "svelte"; // 1. onMount をインポート
-  import { works } from "@/store/works";
+  import { onMount } from "svelte";
   import Work from "@/components/Work/Work.svelte";
-  import { sidebarCollectionElements } from "@/store/sidebarCollectionElements"; // 2. sidebarCollectionElements をインポート
+  import { commandGetCollectionElement } from "@/lib/command";
+  import { createEventDispatcher } from "svelte";
 
   export let params: { id: string };
 
-  // 3. ページが表示された時に、全要素の最新情報を再取得する処理を追加
-  onMount(() => {
-    sidebarCollectionElements.refetch();
-  });
+  let elementPromise = commandGetCollectionElement(+params.id);
 
-  $: workPromise = works.get(+params.id);
+  // This function will be called by the child component to refetch data
+  const refetch = () => {
+    elementPromise = commandGetCollectionElement(+params.id);
+  };
 </script>
 
-{#await workPromise then work}
+{#await elementPromise then element}
   <div class="w-full h-full">
-    <Work {work} />
+    <!-- Pass the element and the refetch function to the child -->
+    <Work bind:work={element} on:update={refetch} />
   </div>
 {/await}
