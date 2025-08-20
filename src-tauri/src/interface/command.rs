@@ -10,19 +10,15 @@ use crate::{
     domain::{
         collection::NewCollectionElement,
         distance::get_comparable_distance,
-        file::{get_file_created_at_sync, get_icon_path, get_lnk_metadatas, get_thumbnail_path, normalize},
+        file::{
+            get_file_created_at_sync, get_icon_path, get_lnk_metadatas, get_thumbnail_path,
+            normalize,
+        },
         Id,
     },
     usecase::models::collection::CreateCollectionElementDetail,
 };
-use std::{
-    io::BufWriter,
-    num::NonZeroU32,
-    sync::{Arc, Mutex},
-};
-use image::{ColorType, ImageEncoder};
-use image::codecs::png::PngEncoder;
-use fast_image_resize as fr;
+use std::sync::{Arc, Mutex};
 use sysinfo::{PidExt, ProcessExt, System, SystemExt};
 use tauri::{AppHandle, Emitter, State};
 use tokio::time::{interval, Duration, Instant};
@@ -108,7 +104,10 @@ pub async fn create_elements_in_pc(
         .upsert_collection_elements(&new_elements)
         .await?;
 
-    let new_element_ids = new_elements.iter().map(|v| v.id.clone()).collect::<Vec<Id<_>>>();
+    let new_element_ids = new_elements
+        .iter()
+        .map(|v| v.id.clone())
+        .collect::<Vec<Id<_>>>();
     modules
         .collection_use_case()
         .concurency_upsert_collection_element_thumbnail_size(&handle, new_element_ids)
@@ -226,7 +225,10 @@ pub async fn update_collection_element_thumbnails(
     modules: State<'_, Arc<Modules>>,
     ids: Vec<i32>,
 ) -> Result<(), CommandError> {
-    let all_game_cache = modules.all_game_cache_use_case().get_by_ids(ids.clone()).await?;
+    let all_game_cache = modules
+        .all_game_cache_use_case()
+        .get_by_ids(ids.clone())
+        .await?;
     let handle = Arc::new(handle);
     modules
         .collection_use_case()
@@ -311,7 +313,10 @@ pub async fn play_game(
     system_before.refresh_processes();
     let pids_before: std::collections::HashSet<_> = system_before.processes().keys().cloned().collect();
 
-    handle.shell().open(&path_str, None).map_err(anyhow::Error::from)?;
+    handle
+        .shell()
+        .open(&path_str, None)
+        .map_err(anyhow::Error::from)?;
     println!("[INFO] Opening path with shell: {}", &path_str);
 
     let modules_clone = modules.inner().clone();
@@ -321,13 +326,13 @@ pub async fn play_game(
     tauri::async_runtime::spawn(async move {
         // ランチャーがゲーム本体を起動するまで5秒待つ
         tokio::time::sleep(Duration::from_secs(5)).await;
-        
+
         let search_timeout = Duration::from_secs(45);
         let search_start_time = Instant::now();
         let mut target_pid: Option<sysinfo::Pid> = None;
 
         println!("Searching for the new game process...");
-        
+
         // ▼▼▼ 修正: 優先度付けを行う新しい特定ロジック ▼▼▼
         loop {
             if search_start_time.elapsed() > search_timeout {
@@ -356,26 +361,34 @@ pub async fn play_game(
             for process in new_processes {
                 let exe_path = process.exe();
                 let path_lower = exe_path.to_string_lossy().to_lowercase();
-                
-                if system_folders.iter().any(|folder| path_lower.starts_with(folder)) {
+
+                if system_folders
+                    .iter()
+                    .any(|folder| path_lower.starts_with(folder))
+                {
                     continue; // 除外
                 }
-                
+
                 // スコア付け
                 let mut score = 0;
                 // 最優先: 起動パスと完全一致
                 let final_exe_path_str = if path_str_clone.to_lowercase().ends_with(".lnk") {
-                    get_exe_path_by_lnk(path_str_clone.clone()).await.unwrap_or(path_str_clone.clone())
+                    get_exe_path_by_lnk(path_str_clone.clone())
+                        .await
+                        .unwrap_or(path_str_clone.clone())
                 } else {
                     path_str_clone.clone()
                 };
                 let final_exe_path = std::path::Path::new(&final_exe_path_str);
-                
+
                 if exe_path == final_exe_path {
                     score = 3;
                 }
                 // 次点: 有名なゲームフォルダ
-                else if game_folders.iter().any(|folder| path_lower.contains(folder)) {
+                else if game_folders
+                    .iter()
+                    .any(|folder| path_lower.contains(folder))
+                {
                     score = 2;
                 }
                 // それ以外
@@ -399,7 +412,7 @@ pub async fn play_game(
                     target_pid = Some(best_match.0.pid());
                 }
             }
-            
+
             if target_pid.is_some() {
                 println!("Game process identified (PID: {:?}).", target_pid.unwrap());
                 break;
@@ -407,7 +420,10 @@ pub async fn play_game(
         }
 
         if let Some(pid_to_monitor) = target_pid {
-            println!("Start monitoring process (PID: {}) for game {}", pid_to_monitor, game_name);
+            println!(
+                "Start monitoring process (PID: {}) for game {}",
+                pid_to_monitor, game_name
+            );
             let start_time = Instant::now();
             let mut interval = interval(Duration::from_secs(10));
             let mut system = System::new_all();
@@ -418,10 +434,16 @@ pub async fn play_game(
                 if system.process(pid_to_monitor).is_none() {
                     let duration = start_time.elapsed().as_secs() as i32;
                     if duration > 0 {
-                        println!("Game {} (PID: {}) finished. Play time: {} seconds.", game_name, pid_to_monitor, duration);
-                        let _ = modules_clone.collection_use_case().add_play_time_seconds(&Id::new(element_id), duration).await;
+                        println!(
+                            "Game {} (PID: {}) finished. Play time: {} seconds.",
+                            game_name, pid_to_monitor, duration
+                        );
+                        let _ = modules_clone
+                            .collection_use_case()
+                            .add_play_time_seconds(&Id::new(element_id), duration)
+                            .await;
                     }
-                    
+
                     println!("Updating last_play_at to the session end time.");
                     let _ = modules_clone
                         .collection_use_case()
@@ -559,7 +581,10 @@ pub fn open_folder(path: String) -> Result<(), CommandError> {
 pub async fn get_all_game_cache_last_updated(
     modules: State<'_, Arc<Modules>>,
 ) -> Result<(i32, String), CommandError> {
-    let last_updated = modules.all_game_cache_use_case().get_cache_last_updated().await?;
+    let last_updated = modules
+        .all_game_cache_use_case()
+        .get_cache_last_updated()
+        .await?;
     Ok((last_updated.0, last_updated.1.to_rfc3339()))
 }
 
@@ -580,7 +605,10 @@ pub async fn get_game_candidates(
     modules: State<'_, Arc<Modules>>,
     filepath: String,
 ) -> Result<Vec<(i32, String)>, CommandError> {
-    let all_game_cache = modules.all_game_cache_use_case().get_all_game_cache().await?;
+    let all_game_cache = modules
+        .all_game_cache_use_case()
+        .get_all_game_cache()
+        .await?;
 
     Ok(modules
         .file_use_case()
@@ -653,43 +681,10 @@ pub async fn update_game_image(
     if image_type == "thumbnail" {
         let dest_path = get_thumbnail_path(&handle, id);
         let img = image::open(&new_image_path).map_err(anyhow::Error::from)?;
-
-        let width = NonZeroU32::new(img.width()).ok_or(anyhow::anyhow!("failed NonZeroU32::new"))?;
-        let height = NonZeroU32::new(img.height()).ok_or(anyhow::anyhow!("failed NonZeroU32::new"))?;
-        let mut src_image = fr::Image::from_vec_u8(
-            width,
-            height,
-            img.to_rgba8().into_raw(),
-            fr::PixelType::U8x4,
-        ).map_err(anyhow::Error::from)?;
-
-        let alpha_mul_div = fr::MulDiv::default();
-        alpha_mul_div.multiply_alpha_inplace(&mut src_image.view_mut()).map_err(anyhow::Error::from)?;
-
-        let dst_width_px = 400;
-        let dst_width =
-            NonZeroU32::new(dst_width_px).ok_or(anyhow::anyhow!("failed NonZeroU32::new"))?;
-        let dst_height =
-            NonZeroU32::new((height.get() as f32 / width.get() as f32 * dst_width_px as f32) as u32)
-                .ok_or(anyhow::anyhow!("failed NonZeroU32::new"))?;
-
-        let mut dst_image = fr::Image::new(dst_width, dst_height, src_image.pixel_type());
-
-        let mut dst_view = dst_image.view_mut();
-
-        let mut resizer = fr::Resizer::new(fr::ResizeAlg::Convolution(fr::FilterType::Box));
-        resizer.resize(&src_image.view(), &mut dst_view).map_err(anyhow::Error::from)?;
-
-        alpha_mul_div.divide_alpha_inplace(&mut dst_view).map_err(anyhow::Error::from)?;
-
-        let mut result_buf = BufWriter::new(std::fs::File::create(&dest_path).map_err(anyhow::Error::from)?);
-
-        PngEncoder::new(&mut result_buf).write_image(
-            dst_image.buffer(),
-            dst_width.get(),
-            dst_height.get(),
-            ColorType::Rgba8,
-        ).map_err(anyhow::Error::from)?;
+        let resized = img.thumbnail(400, 400);
+        resized
+            .save(dest_path)
+            .map_err(anyhow::Error::from)?;
     } else if image_type == "icon" {
         let dest_path = get_icon_path(&handle, id);
         let img = image::open(&new_image_path).map_err(anyhow::Error::from)?;
@@ -698,7 +693,9 @@ pub async fn update_game_image(
         let image = img.to_rgba8();
         let icon_image =
             ico::IconImage::from_rgba_data(image.width(), image.height(), image.into_raw());
-        icon_dir.add_entry(ico::IconDirEntry::encode(&icon_image).map_err(anyhow::Error::from)?);
+        icon_dir
+            .add_entry(ico::IconDirEntry::encode(&icon_image).map_err(anyhow::Error::from)?)
+            .map_err(anyhow::Error::from)?;
         let file = std::fs::File::create(dest_path).map_err(anyhow::Error::from)?;
         icon_dir.write(file).map_err(anyhow::Error::from)?;
     }
@@ -706,6 +703,11 @@ pub async fn update_game_image(
     modules
         .collection_use_case()
         .touch_element(id)
+        .await?;
+
+    modules
+        .collection_use_case()
+        .upsert_collection_element_thumbnail_size(&handle, id)
         .await?;
 
     Ok(())
