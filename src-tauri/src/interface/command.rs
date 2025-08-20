@@ -15,7 +15,14 @@ use crate::{
     },
     usecase::models::collection::CreateCollectionElementDetail,
 };
-use std::sync::{Arc, Mutex};
+use std::{
+    io::{BufWriter, Write},
+    num::NonZeroU32,
+    sync::{Arc, Mutex},
+};
+use image::{ColorType, ImageEncoder};
+use image::codecs::png::PngEncoder;
+use fast_image_resize as fr;
 use sysinfo::{PidExt, ProcessExt, System, SystemExt};
 use tauri::{AppHandle, Emitter, State};
 use tokio::time::{interval, Duration, Instant};
@@ -647,9 +654,43 @@ pub async fn update_game_image(
     if image_type == "thumbnail" {
         let dest_path = get_thumbnail_path(&handle, id);
         let img = image::open(&new_image_path).map_err(anyhow::Error::from)?;
-        // アスペクト比を維持してリサイズ
-        let resized = img.thumbnail(280, 280);
-        resized.save(dest_path).map_err(anyhow::Error::from)?;
+
+        let width = NonZeroU32::new(img.width()).ok_or(anyhow::anyhow!("failed NonZeroU32::new"))?;
+        let height = NonZeroU32::new(img.height()).ok_or(anyhow::anyhow!("failed NonZeroU32::new"))?;
+        let mut src_image = fr::Image::from_vec_u8(
+            width,
+            height,
+            img.to_rgba8().into_raw(),
+            fr::PixelType::U8x4,
+        )?;
+
+        let alpha_mul_div = fr::MulDiv::default();
+        alpha_mul_div.multiply_alpha_inplace(&mut src_image.view_mut())?;
+
+        let dst_width_px = 400;
+        let dst_width =
+            NonZeroU32::new(dst_width_px).ok_or(anyhow::anyhow!("failed NonZeroU32::new"))?;
+        let dst_height =
+            NonZeroU32::new((height.get() as f32 / width.get() as f32 * dst_width_px as f32) as u32)
+                .ok_or(anyhow::anyhow!("failed NonZeroU32::new"))?;
+
+        let mut dst_image = fr::Image::new(dst_width, dst_height, src_image.pixel_type());
+
+        let mut dst_view = dst_image.view_mut();
+
+        let mut resizer = fr::Resizer::new(fr::ResizeAlg::Convolution(fr::FilterType::Box));
+        resizer.resize(&src_image.view(), &mut dst_view)?;
+
+        alpha_mul_div.divide_alpha_inplace(&mut dst_view)?;
+
+        let mut result_buf = BufWriter::new(std::fs::File::create(&dest_path)?);
+
+        PngEncoder::new(&mut result_buf).write_image(
+            dst_image.buffer(),
+            dst_width.get(),
+            dst_height.get(),
+            ColorType::Rgba8,
+        )?;
     } else if image_type == "icon" {
         let dest_path = get_icon_path(&handle, id);
         let img = image::open(&new_image_path).map_err(anyhow::Error::from)?;
