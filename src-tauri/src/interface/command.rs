@@ -415,6 +415,13 @@ pub async fn play_game(
                         println!("Game {} (PID: {}) finished. Play time: {} seconds.", game_name, pid_to_monitor, duration);
                         let _ = modules_clone.collection_use_case().add_play_time_seconds(&Id::new(element_id), duration).await;
                     }
+                    
+                    println!("Updating last_play_at to the session end time.");
+                    let _ = modules_clone
+                        .collection_use_case()
+                        .update_element_last_play_at(&Id::new(element_id))
+                        .await;
+
                     break;
                 }
             }
