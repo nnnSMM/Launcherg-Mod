@@ -636,6 +636,7 @@ pub async fn save_screenshot_by_pid(
 #[tauri::command]
 pub async fn update_game_image(
     handle: AppHandle,
+    modules: State<'_, Arc<Modules>>,
     element_id: i32,
     image_type: String, // "icon" or "thumbnail"
     new_image_path: String,
@@ -646,8 +647,8 @@ pub async fn update_game_image(
     if image_type == "thumbnail" {
         let dest_path = get_thumbnail_path(&handle, id);
         let img = image::open(&new_image_path).map_err(anyhow::Error::from)?;
-        // 280x280ピクセルにリサイズして保存
-        let resized = img.resize_to_fill(280, 280, image::imageops::FilterType::Lanczos3);
+        // アスペクト比を維持してリサイズ
+        let resized = img.thumbnail(280, 280);
         resized.save(dest_path).map_err(anyhow::Error::from)?;
     } else if image_type == "icon" {
         let dest_path = get_icon_path(&handle, id);
@@ -661,6 +662,11 @@ pub async fn update_game_image(
         let file = std::fs::File::create(dest_path).map_err(anyhow::Error::from)?;
         icon_dir.write(file).map_err(anyhow::Error::from)?;
     }
+
+    modules
+        .collection_use_case()
+        .touch_element(id)
+        .await?;
 
     Ok(())
 }

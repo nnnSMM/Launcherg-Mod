@@ -3,13 +3,13 @@
   import { convertFileSrc } from "@tauri-apps/api/core";
   import { link } from "svelte-spa-router";
   import ContextMenu from "@/components/UI/ContextMenu.svelte";
-  import { writable } from "svelte/store";
   import { open } from "@tauri-apps/plugin-dialog";
   import { commandUpdateGameImage } from "@/lib/command";
+  import { createEventDispatcher } from "svelte";
 
   export let collectionElement: CollectionElement;
 
-  // --- Start of changes ---
+  const dispatcher = createEventDispatcher();
 
   let menu = {
     isOpen: false,
@@ -17,9 +17,9 @@
     y: 0,
   };
 
-  const imageVersion = writable(0);
-  // Re-compute the src with version whenever the original src or the version changes
-  $: iconSrc = `${convertFileSrc(collectionElement.icon)}?v=${$imageVersion}`;
+  $: iconSrc = `${convertFileSrc(collectionElement.icon)}?v=${
+    collectionElement.updatedAt
+  }`;
 
   const handleContextMenu = (e: MouseEvent) => {
     e.preventDefault();
@@ -40,12 +40,12 @@
         });
         if (typeof selected?.path === "string") {
           await commandUpdateGameImage(collectionElement.id, "icon", selected.path);
-          imageVersion.update((n) => n + 1); // Force reload
+          // Dispatch an event to notify parent to refetch data
+          dispatcher("update");
         }
       },
     },
   ];
-  // --- End of changes ---
 </script>
 
 <div

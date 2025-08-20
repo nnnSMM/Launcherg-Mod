@@ -2,11 +2,12 @@
   import { open } from "@tauri-apps/plugin-dialog";
   import { commandUpdateGameImage } from "@/lib/command";
   import ContextMenu from "@/components/UI/ContextMenu.svelte";
-  import { writable } from "svelte/store";
+  import type { CollectionElement } from "@/lib/types";
+  import { createEventDispatcher } from "svelte";
+  import { convertFileSrc } from "@tauri-apps/api/core";
 
-  export let name: string;
-  export let src: string;
-  export let elementId: number; // ゲームIDを親から受け取る
+  export let element: CollectionElement;
+  const dispatcher = createEventDispatcher();
 
   let menu = {
     isOpen: false,
@@ -14,9 +15,9 @@
     y: 0,
   };
 
-  // 画像のキャッシュを無効化するためのバージョン管理
-  const imageVersion = writable(0);
-  $: srcWithVersion = `${src}?v=${$imageVersion}`;
+  $: srcWithVersion = `${convertFileSrc(element.thumbnail)}?v=${
+    element.updatedAt
+  }`;
 
   const handleContextMenu = (e: MouseEvent) => {
     e.preventDefault();
@@ -36,8 +37,8 @@
           filters: [{ name: "Images", extensions: ["png", "jpg", "jpeg"] }],
         });
         if (typeof selected?.path === "string") {
-          await commandUpdateGameImage(elementId, "thumbnail", selected.path);
-          imageVersion.update(n => n + 1); // 画像を強制的にリロード
+          await commandUpdateGameImage(element.id, "thumbnail", selected.path);
+          dispatcher("update");
         }
       },
     },
@@ -45,7 +46,11 @@
 </script>
 
 <div class="relative" on:contextmenu={handleContextMenu}>
-  <img alt="{name}_icon" src={srcWithVersion} class="object-contain w-full" />
+  <img
+    alt="{element.gamename}_thumbnail"
+    src={srcWithVersion}
+    class="object-contain w-full"
+  />
 </div>
 
 {#if menu.isOpen}

@@ -72,6 +72,7 @@ export type CollectionElement = {
   thumbnail: string;
   thumbnailWidth: number | null;
   thumbnailHeight: number | null;
+  updatedAt: string;
 };
 
 export type CollectionElementsWithLabel = {

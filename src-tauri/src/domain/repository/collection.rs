@@ -65,4 +65,6 @@ pub trait CollectionRepository {
     ) -> Result<()>;
 
     async fn delete_element_by_id(&self, id: &Id<CollectionElement>) -> Result<()>;
+
+    async fn touch(&self, id: &Id<CollectionElement>) -> Result<()>;
 }

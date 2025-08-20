@@ -280,4 +280,8 @@ impl<R: RepositoriesExt> CollectionUseCase<R> {
             .get_all_elements()
             .await
     }
+
+    pub async fn touch_element(&self, id: &Id<CollectionElement>) -> anyhow::Result<()> {
+        self.repositories.collection_repository().touch(id).await
+    }
 }

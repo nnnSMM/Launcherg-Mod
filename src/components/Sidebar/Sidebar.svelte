@@ -65,7 +65,10 @@
           />
         </div>
         <div class="mt-1 min-h-0">
-          <CollectionElements collectionElement={$shown} />
+          <CollectionElements
+            collectionElement={$shown}
+            on:update={() => sidebarCollectionElements.refetch()}
+          />
         </div>
       </div>
     </div>
