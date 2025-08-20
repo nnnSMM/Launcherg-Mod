@@ -16,7 +16,7 @@ use crate::{
     usecase::models::collection::CreateCollectionElementDetail,
 };
 use std::{
-    io::{BufWriter, Write},
+    io::BufWriter,
     num::NonZeroU32,
     sync::{Arc, Mutex},
 };
@@ -26,7 +26,6 @@ use fast_image_resize as fr;
 use sysinfo::{PidExt, ProcessExt, System, SystemExt};
 use tauri::{AppHandle, Emitter, State};
 use tokio::time::{interval, Duration, Instant};
-use chrono::Local;
 
 #[tauri::command]
 pub async fn create_elements_in_pc(
@@ -662,10 +661,10 @@ pub async fn update_game_image(
             height,
             img.to_rgba8().into_raw(),
             fr::PixelType::U8x4,
-        )?;
+        ).map_err(anyhow::Error::from)?;
 
         let alpha_mul_div = fr::MulDiv::default();
-        alpha_mul_div.multiply_alpha_inplace(&mut src_image.view_mut())?;
+        alpha_mul_div.multiply_alpha_inplace(&mut src_image.view_mut()).map_err(anyhow::Error::from)?;
 
         let dst_width_px = 400;
         let dst_width =
@@ -679,18 +678,18 @@ pub async fn update_game_image(
         let mut dst_view = dst_image.view_mut();
 
         let mut resizer = fr::Resizer::new(fr::ResizeAlg::Convolution(fr::FilterType::Box));
-        resizer.resize(&src_image.view(), &mut dst_view)?;
+        resizer.resize(&src_image.view(), &mut dst_view).map_err(anyhow::Error::from)?;
 
-        alpha_mul_div.divide_alpha_inplace(&mut dst_view)?;
+        alpha_mul_div.divide_alpha_inplace(&mut dst_view).map_err(anyhow::Error::from)?;
 
-        let mut result_buf = BufWriter::new(std::fs::File::create(&dest_path)?);
+        let mut result_buf = BufWriter::new(std::fs::File::create(&dest_path).map_err(anyhow::Error::from)?);
 
         PngEncoder::new(&mut result_buf).write_image(
             dst_image.buffer(),
             dst_width.get(),
             dst_height.get(),
             ColorType::Rgba8,
-        )?;
+        ).map_err(anyhow::Error::from)?;
     } else if image_type == "icon" {
         let dest_path = get_icon_path(&handle, id);
         let img = image::open(&new_image_path).map_err(anyhow::Error::from)?;
