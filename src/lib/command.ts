@@ -167,3 +167,11 @@ export const commandUpdateCollectionElementThumbnails = async (
     ids,
   });
 };
+
+export const commandUpdateGameImage = async (
+  elementId: number,
+  imageType: "icon" | "thumbnail",
+  newImagePath: string
+) => {
+  await invoke("update_game_image", { elementId, imageType, newImagePath });
+};

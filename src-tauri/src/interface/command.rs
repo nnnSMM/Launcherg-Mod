@@ -10,7 +10,7 @@ use crate::{
     domain::{
         collection::NewCollectionElement,
         distance::get_comparable_distance,
-        file::{get_file_created_at_sync, get_lnk_metadatas, normalize},
+        file::{get_file_created_at_sync, get_icon_path, get_lnk_metadatas, get_thumbnail_path, normalize},
         Id,
     },
     usecase::models::collection::CreateCollectionElementDetail,
@@ -631,4 +631,37 @@ pub async fn save_screenshot_by_pid(
         .save_screenshot_by_pid(process_id, &upload_path)
         .await?;
     Ok(upload_path)
+}
+
+#[tauri::command]
+pub async fn update_game_image(
+    handle: AppHandle,
+    element_id: i32,
+    image_type: String, // "icon" or "thumbnail"
+    new_image_path: String,
+) -> Result<(), CommandError> {
+    let id = &Id::new(element_id);
+    let handle = Arc::new(handle);
+
+    if image_type == "thumbnail" {
+        let dest_path = get_thumbnail_path(&handle, id);
+        let img = image::open(&new_image_path).map_err(anyhow::Error::from)?;
+        // 280x280ピクセルにリサイズして保存
+        let resized = img.resize_to_fill(280, 280, image::imageops::FilterType::Lanczos3);
+        resized.save(dest_path).map_err(anyhow::Error::from)?;
+    } else if image_type == "icon" {
+        let dest_path = get_icon_path(&handle, id);
+        let img = image::open(&new_image_path).map_err(anyhow::Error::from)?;
+        let mut icon_dir = ico::IconDir::new(ico::ResourceType::Icon);
+        // RGBA8形式に変換
+        let image = img.to_rgba8();
+        let icon_image =
+            ico::IconImage::from_rgba_data(image.width(), image.height(), image.into_raw())
+                .map_err(anyhow::Error::from)?;
+        icon_dir.add_entry(ico::IconDirEntry::encode(&icon_image).map_err(anyhow::Error::from)?);
+        let file = std::fs::File::create(dest_path).map_err(anyhow::Error::from)?;
+        icon_dir.write(file).map_err(anyhow::Error::from)?;
+    }
+
+    Ok(())
 }
