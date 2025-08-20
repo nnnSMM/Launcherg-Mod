@@ -50,6 +50,9 @@ export default defineConfig({
         successDisabled: "rgba(35,134,54,0.6)",
         successHover: "#46954a",
         warning: "#37332a",
+        t_primary: "#adbac7",
+        t_secondary: "#CDD9E5",
+        t_tertiary: "#768390",
       },
       ui: { tertiary: "#636e7b" },
       border: {
@@ -67,6 +70,9 @@ export default defineConfig({
         white: "#FFFFFF",
         disabled: "#484f58",
         successDisabled: "rgba(255,255,255,0.5)",
+        b_primary: "#22272e",
+        b_secondary: "#2d333b",
+        b_tertiary: "#323942",
       },
     },
     fontSize: {
