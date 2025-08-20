@@ -32,7 +32,7 @@
 
   const menuOptions = [
     {
-      label: "アイコンを変更...",
+      label: "アイコンを変更",
       onSelect: async () => {
         const selected = await open({
           multiple: false,

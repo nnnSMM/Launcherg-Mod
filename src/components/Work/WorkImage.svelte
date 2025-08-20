@@ -30,7 +30,7 @@
 
   const menuOptions = [
     {
-      label: "サムネイルを変更...",
+      label: "サムネイルを変更",
       onSelect: async () => {
         const selected = await open({
           multiple: false,
