@@ -340,7 +340,7 @@ mod tests {
                 27123,
                 "pieces/渡り鳥のソムニウム".to_string(),
             )],
-            "W:\\others\\software\\Whirlpool\\pieces\\pieces.exe",
+            "W:/others/software/Whirlpool/pieces/pieces.exe",
             0.5,
             3,
         )
@@ -384,7 +384,7 @@ pub fn save_icon_to_png(
 pub fn save_default_icon(save_png_path: &str) -> anyhow::Result<JoinHandle<anyhow::Result<()>>> {
     let save_p = save_png_path.to_string();
     let handle = tauri::async_runtime::spawn(async move {
-        let default_icon = include_bytes!("..\\..\\icons\\notfound.png");
+        let default_icon = include_bytes!("../../icons/notfound.png");
         let mut file = std::fs::File::create(save_p)?;
         file.write_all(default_icon)?;
         return Ok(());
@@ -650,11 +650,11 @@ pub fn save_thumbnail(
     tauri::async_runtime::spawn(async move {
         let save_path = get_thumbnail_path(&handle_cloned, &collection_element_id);
         if !(std::path::Path::new(&save_path).exists()) && src_url != "" {
-            let orig_path =
-                get_origin_thumbnail_path(&handle_cloned, &collection_element_id, &src_url)?;
-            save_origin_thumbnail(&src_url, &orig_path).await?;
-
-            resize_image(&orig_path, &save_path, 400)?;
+            let client = reqwest::Client::new();
+            let response = client.get(src_url).send().await?;
+            let bytes = response.bytes().await?;
+            let img = image::load_from_memory(&bytes)?;
+            img.save(&save_path)?;
         }
         Ok(())
     })

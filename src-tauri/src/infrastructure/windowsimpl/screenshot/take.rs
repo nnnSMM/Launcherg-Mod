@@ -123,10 +123,13 @@ fn save_bits_to_file(bits: Vec<u8>, item_size: SizeInt32, filepath: &str) -> any
     let filepath = std::path::Path::new(filepath);
     let folder_path = filepath.parent().context("cannot get folder path")?;
     let file_name = filepath.file_name().context("cannot get file name")?;
-    let folder = StorageFolder::GetFolderFromPathAsync(&HSTRING::from(folder_path))?.get()?;
+    let folder = StorageFolder::GetFolderFromPathAsync(&HSTRING::from(
+        folder_path.to_str().context("cannot get folder str")?,
+    ))?
+    .get()?;
     let file = folder
         .CreateFileAsync(
-            &HSTRING::from(file_name),
+            &HSTRING::from(file_name.to_str().context("cannot get file name str")?),
             CreationCollisionOption::ReplaceExisting,
         )?
         .get()?;
