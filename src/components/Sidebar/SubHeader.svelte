@@ -20,11 +20,17 @@
   }) => {
     try {
       await commandUpsertCollectionElement(arg);
-      await registerCollectionElementDetails();
+
+      try {
+        await registerCollectionElementDetails();
+      } catch (e) {
+        console.error("Failed to fetch extended game details:", e);
+      }
+
       showInfoToast(`${arg.gameCache.gamename}を登録しました。`);
     } catch (e) {
-      console.error(e);
-      showErrorToast("ゲーム情報の取得に失敗しました。");
+      console.error("Failed to add game to collection:", e);
+      showErrorToast("ゲームの登録に失敗しました。");
     } finally {
       await sidebarCollectionElements.refetch();
       isOpenImportManually = false;
