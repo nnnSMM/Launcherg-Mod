@@ -40,8 +40,7 @@
         });
         if (typeof selected?.path === "string") {
           await commandUpdateGameImage(collectionElement.id, "icon", selected.path);
-          // Dispatch an event to notify parent to refetch data
-          dispatcher("update");
+          window.location.reload();
         }
       },
     },
