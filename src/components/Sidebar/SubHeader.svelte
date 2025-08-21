@@ -6,7 +6,7 @@
   import Button from "@/components/UI/Button.svelte";
   import { commandUpsertCollectionElement } from "@/lib/command";
   import { registerCollectionElementDetails } from "@/lib/registerCollectionElementDetails";
-  import { showInfoToast } from "@/lib/toast";
+  import { showErrorToast, showInfoToast } from "@/lib/toast";
   import type { AllGameCacheOne } from "@/lib/types";
   import { sidebarCollectionElements } from "@/store/sidebarCollectionElements";
 
@@ -18,11 +18,17 @@
     lnkPath: string | null;
     gameCache: AllGameCacheOne;
   }) => {
-    await commandUpsertCollectionElement(arg);
-    await registerCollectionElementDetails();
-    await sidebarCollectionElements.refetch();
-    isOpenImportManually = false;
-    showInfoToast(`${arg.gameCache.gamename}を登録しました。`);
+    try {
+      await commandUpsertCollectionElement(arg);
+      await registerCollectionElementDetails();
+      showInfoToast(`${arg.gameCache.gamename}を登録しました。`);
+    } catch (e) {
+      console.error(e);
+      showErrorToast("ゲーム情報の取得に失敗しました。");
+    } finally {
+      await sidebarCollectionElements.refetch();
+      isOpenImportManually = false;
+    }
   };
 </script>
 
