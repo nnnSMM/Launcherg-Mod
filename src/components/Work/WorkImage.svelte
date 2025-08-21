@@ -38,7 +38,7 @@
         });
         if (typeof selected?.path === "string") {
           await commandUpdateGameImage(element.id, "thumbnail", selected.path);
-          dispatcher("update");
+          window.location.reload();
         }
       },
     },
