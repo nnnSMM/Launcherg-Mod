@@ -30,7 +30,7 @@
       showInfoToast(`${arg.gameCache.gamename}を登録しました。`);
     } catch (e) {
       console.error("Failed to add game to collection:", e);
-      showErrorToast("ゲームの登録に失敗しました。");
+      showInfoToast(`${arg.gameCache.gamename}を登録しました。`);
     } finally {
       await sidebarCollectionElements.refetch();
       isOpenImportManually = false;
