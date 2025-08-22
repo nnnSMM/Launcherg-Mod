@@ -4,7 +4,7 @@ import { createLocalStorageCache } from "@/lib/utils";
 
 const createWorks = () => {
   const getter = createLocalStorageCache<number, Work>(
-    "works-cache-v2",
+    "works-cache",
     getWorkByScrape
   );
 
