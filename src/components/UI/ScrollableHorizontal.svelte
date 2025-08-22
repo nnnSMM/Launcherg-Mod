@@ -7,37 +7,43 @@
 
   let scrollEl: HTMLElement | null = null;
   let contentEl: HTMLElement | null = null;
+
   let showLeftButton = false;
-  let showRightButton = true; // Assume we can scroll right initially
+  let showRightButton = false;
 
   const simplebarAction = (node: HTMLElement) => {
     const simplebarInstance = new SimpleBar(node, {
-      scrollbarMinSize: 64,
+      // Disable the default vertical scrollbar to prevent any interference
+      autoHide: true,
     });
     scrollEl = simplebarInstance.getScrollElement();
 
     const checkScrollButtons = () => {
       if (!scrollEl || !contentEl) return;
-      const buffer = 2;
+      const buffer = 2; // Buffer for sub-pixel precision issues
       const { scrollLeft, clientWidth } = scrollEl;
-      const scrollWidth = contentEl.scrollWidth; // Use the content's scroll width
+      // Use the content element's width to get the true scrollable width
+      const scrollWidth = contentEl.scrollWidth;
       showLeftButton = scrollLeft > buffer;
       showRightButton = scrollLeft < scrollWidth - clientWidth - buffer;
     };
 
+    // Listen to scroll events on the SimpleBar element
     scrollEl?.addEventListener("scroll", checkScrollButtons);
 
+    // Use ResizeObserver to detect size changes of the container and content
     const observer = new ResizeObserver(checkScrollButtons);
     observer.observe(node);
     if(contentEl) observer.observe(contentEl);
 
+    // Initial check after mount to ensure layout is stable
     onMount(() => {
-      setTimeout(checkScrollButtons, 150);
+      setTimeout(checkScrollButtons, 200);
     });
 
     return {
       destroy: () => {
-        scrollEl?.removeEventListener("scroll", checkScrollButtons);
+        if(scrollEl) scrollEl.removeEventListener("scroll", checkScrollButtons);
         observer.disconnect();
       },
     };
@@ -56,18 +62,9 @@
   };
 </script>
 
-<div class="w-full min-w-0 relative group">
-  <div use:simplebarAction class="overflow-x-auto scroll-smooth">
-    <div bind:this={contentEl}>
-      <slot />
-    </div>
-  </div>
-
-  <!-- Scroll Buttons Container -->
-  <div
-    class="absolute right-2 -top-9 h-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none"
-  >
-    <div class="flex items-center space-x-1 bg-bg-primary rounded-full p-1 shadow pointer-events-auto">
+<div class="relative">
+  <!-- This div contains the buttons, positioned relative to the container -->
+  <div class="absolute right-0 -top-8 flex items-center space-x-1 z-10">
       <ButtonIcon
         icon="i-material-symbols-arrow-back-ios-new-rounded"
         on:click={handleScrollLeft}
@@ -82,6 +79,12 @@
         disabled={!showRightButton}
         class="disabled:opacity-25 disabled:cursor-not-allowed"
       />
+  </div>
+
+  <!-- The scrollable area -->
+  <div use:simplebarAction class="overflow-x-auto scroll-smooth">
+    <div bind:this={contentEl}>
+      <slot />
     </div>
   </div>
 </div>
