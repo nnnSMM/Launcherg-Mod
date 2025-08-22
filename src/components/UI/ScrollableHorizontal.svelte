@@ -1,54 +1,78 @@
 <script lang="ts">
   import SimpleBar from "simplebar";
-  import { onMount } from "svelte";
+  import { onMount, onDestroy } from "svelte";
 
   let scrollEl: HTMLElement | null = null;
   let isHovering = false;
 
+  // Inertial scroll state
+  let scrollVelocity = 0;
+  let animationFrameId: number | null = null;
+  const DAMPING_FACTOR = 0.92; // Friction
+  const MIN_VELOCITY = 0.1; // Stop when slow enough
+
   const simplebarAction = (node: HTMLElement) => {
-    // Initialize SimpleBar.
-    // The 'y' axis is disabled by setting a class that hides its scrollbar.
-    const simplebarInstance = new SimpleBar(node, {
-      classNames: {
-        scrollbar: 'simplebar-scrollbar-custom',
-        track: 'simplebar-track-custom'
-      }
-    });
+    const simplebarInstance = new SimpleBar(node, {});
     scrollEl = simplebarInstance.getScrollElement();
   };
 
+  const startAnimation = () => {
+    if (animationFrameId) return; // Already running
+    tick();
+  };
+
+  const stopAnimation = () => {
+    if (animationFrameId) {
+      cancelAnimationFrame(animationFrameId);
+      animationFrameId = null;
+    }
+  };
+
+  const tick = () => {
+    if (!scrollEl) return;
+
+    // Apply velocity
+    scrollEl.scrollLeft += scrollVelocity;
+
+    // Apply damping
+    scrollVelocity *= DAMPING_FACTOR;
+
+    // Stop animation if velocity is low
+    if (Math.abs(scrollVelocity) > MIN_VELOCITY) {
+      animationFrameId = requestAnimationFrame(tick);
+    } else {
+      stopAnimation();
+    }
+  };
+
   const onWheel = (e: WheelEvent) => {
-    // Only act if the mouse is over the component
     if (!isHovering || !scrollEl) return;
 
-    // If there is significant vertical scroll, use it to scroll horizontally
     if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
-      // Prevent the main page from scrolling vertically
       e.preventDefault();
-      // Scroll the element horizontally
-      scrollEl.scrollBy({ left: e.deltaY, behavior: 'smooth' });
+      // Accumulate velocity
+      scrollVelocity += e.deltaY * 0.5; // Multiplier to control sensitivity
+      startAnimation();
     }
   };
 
   onMount(() => {
-    // Add the wheel listener to the window to capture the event
-    // passive: false is required to be able to call e.preventDefault()
     window.addEventListener("wheel", onWheel, { passive: false });
+  });
 
-    return () => {
-      window.removeEventListener("wheel", onWheel);
-    };
+  onDestroy(() => {
+    window.removeEventListener("wheel", onWheel);
+    stopAnimation();
   });
 </script>
 
 <!-- Add a style block to control SimpleBar's appearance -->
 <style>
-  :global(.simplebar-track-custom.simplebar-vertical) {
+  :global(.simplebar-track.simplebar-vertical) {
     display: none !important;
   }
-  /* You can add styles here to make the horizontal scrollbar more prominent if needed */
-  :global(.simplebar-scrollbar-custom::before) {
-    background-color: #a0a0a0; /* Example color */
+  :global(.simplebar-scrollbar::before) {
+    background-color: rgba(160, 160, 160, 0.8);
   }
 </style>
 
