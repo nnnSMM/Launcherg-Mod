@@ -51,7 +51,7 @@
     if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
       e.preventDefault();
       // Accumulate velocity
-      scrollVelocity += e.deltaY * 0.5; // Multiplier to control sensitivity
+      scrollVelocity += e.deltaY * 0.25; // Multiplier to control sensitivity
       startAnimation();
     }
   };
