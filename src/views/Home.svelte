@@ -137,8 +137,8 @@
       <div class="space-y-4">
         <h3 class="text-(text-primary h3) font-medium">最近プレイしたゲーム</h3>
         <ScrollableHorizontal>
-          <!-- Add padding to prevent clipping: px-2 for left/right, py-4 for top/bottom -->
-          <div class="flex py-4 px-2 space-x-4">
+          <!-- Add generous padding to prevent clipping: px-4 for left/right, py-8 for top/bottom -->
+          <div class="flex py-8 px-4 space-x-4">
             {#each $recentlyPlayed as element (element.id)}
               <div class="w-80 flex-shrink-0">
                 <div class="aspect-ratio-4/3">
