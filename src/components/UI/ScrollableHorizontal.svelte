@@ -2,98 +2,86 @@
 
 <script lang="ts">
   import SimpleBar from "simplebar";
-  import { createEventDispatcher, onMount } from "svelte";
+  import { onMount } from "svelte";
   import ButtonIcon from "./ButtonIcon.svelte";
 
-  const dispatcher = createEventDispatcher<{ scroll: { event: Event } }>();
-
   let scrollEl: HTMLElement | null = null;
-  let simplebarInstance: SimpleBar | null = null;
+  let contentEl: HTMLElement | null = null;
   let showLeftButton = false;
-  let showRightButton = false;
+  let showRightButton = true; // Assume we can scroll right initially
 
   const simplebarAction = (node: HTMLElement) => {
-    simplebarInstance = new SimpleBar(node, {
+    const simplebarInstance = new SimpleBar(node, {
       scrollbarMinSize: 64,
     });
-
     scrollEl = simplebarInstance.getScrollElement();
 
     const checkScrollButtons = () => {
-      if (!scrollEl) return;
-      const { scrollLeft, scrollWidth, clientWidth } = scrollEl;
-      showLeftButton = scrollLeft > 0;
-      showRightButton = scrollLeft < scrollWidth - clientWidth - 1; // 1px buffer for precision issues
+      if (!scrollEl || !contentEl) return;
+      const buffer = 2;
+      const { scrollLeft, clientWidth } = scrollEl;
+      const scrollWidth = contentEl.scrollWidth; // Use the content's scroll width
+      showLeftButton = scrollLeft > buffer;
+      showRightButton = scrollLeft < scrollWidth - clientWidth - buffer;
     };
 
-    scrollEl?.addEventListener("scroll", (e) => {
-      dispatcher("scroll", { event: e });
-      checkScrollButtons();
-    });
-
-    // Initial check
-    onMount(() => {
-      // Use timeout to ensure DOM is fully rendered
-      setTimeout(checkScrollButtons, 100);
-    });
+    scrollEl?.addEventListener("scroll", checkScrollButtons);
 
     const observer = new ResizeObserver(checkScrollButtons);
     observer.observe(node);
+    if(contentEl) observer.observe(contentEl);
 
+    onMount(() => {
+      setTimeout(checkScrollButtons, 150);
+    });
 
     return {
       destroy: () => {
-        scrollEl?.removeEventListener("scroll", dispatcher);
+        scrollEl?.removeEventListener("scroll", checkScrollButtons);
         observer.disconnect();
       },
     };
   };
 
-  export let scrollBy = (options?: ScrollToOptions | undefined): void => {
-    scrollEl?.scrollBy(options);
-  };
-
   const handleScrollLeft = () => {
-    const amount = scrollEl ? scrollEl.clientWidth * 0.8 : 300;
-    scrollBy({ left: -amount, behavior: "smooth" });
+    if (!scrollEl) return;
+    const amount = scrollEl.clientWidth * 0.8;
+    scrollEl.scrollBy({ left: -amount, behavior: "smooth" });
   };
 
   const handleScrollRight = () => {
-    const amount = scrollEl ? scrollEl.clientWidth * 0.8 : 300;
-    scrollBy({ left: amount, behavior: "smooth" });
+    if (!scrollEl) return;
+    const amount = scrollEl.clientWidth * 0.8;
+    scrollEl.scrollBy({ left: amount, behavior: "smooth" });
   };
 </script>
 
 <div class="w-full min-w-0 relative group">
   <div use:simplebarAction class="overflow-x-auto scroll-smooth">
-    <slot />
+    <div bind:this={contentEl}>
+      <slot />
+    </div>
   </div>
 
-  <!-- Left Scroll Button -->
-  {#if showLeftButton}
-    <div
-      class="absolute left-0 top-0 h-full flex items-center justify-center bg-gradient-to-r from-bg-primary to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
-    >
+  <!-- Scroll Buttons Container -->
+  <div
+    class="absolute right-2 -top-9 h-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none"
+  >
+    <div class="flex items-center space-x-1 bg-bg-primary rounded-full p-1 shadow pointer-events-auto">
       <ButtonIcon
         icon="i-material-symbols-arrow-back-ios-new-rounded"
         on:click={handleScrollLeft}
-        class="ml-2"
         ariaLabel="Scroll Left"
+        disabled={!showLeftButton}
+        class="disabled:opacity-25 disabled:cursor-not-allowed"
       />
-    </div>
-  {/if}
-
-  <!-- Right Scroll Button -->
-  {#if showRightButton}
-    <div
-      class="absolute right-0 top-0 h-full flex items-center justify-center bg-gradient-to-l from-bg-primary to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
-    >
       <ButtonIcon
         icon="i-material-symbols-arrow-forward-ios-rounded"
         on:click={handleScrollRight}
-        class="mr-2"
         ariaLabel="Scroll Right"
+        disabled={!showRightButton}
+        class="disabled:opacity-25 disabled:cursor-not-allowed"
       />
     </div>
-  {/if}
+  </div>
 </div>

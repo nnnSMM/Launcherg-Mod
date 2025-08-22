@@ -15,7 +15,8 @@
   import { scrapeAllGameCacheOnes } from "@/lib/scrapeAllGame";
   import { showErrorToast, showInfoToast } from "@/lib/toast";
   import ScrollableHorizontal from "@/components/UI/ScrollableHorizontal.svelte";
-  import HorizontalGameItem from "@/components/Home/HorizontalGameItem.svelte";
+  import ZappingGameItem from "@/components/Home/ZappingGameItem.svelte";
+  import { formatLastPlayed } from "@/lib/utils";
 
   const memoRegex = /^smde_memo-(\d+)$/;
   const memoPromises = Promise.all(
@@ -36,7 +37,6 @@
     $flattenShown
       .filter((v) => v.lastPlayAt)
       .sort((a, b) => {
-        // a, b の lastPlayAt が null でないことは filter で保証されている
         const dateA = new Date(a.lastPlayAt!);
         const dateB = new Date(b.lastPlayAt!);
         return dateB.getTime() - dateA.getTime();
@@ -90,6 +90,32 @@
         </div>
       </div>
     {/if}
+
+    <!-- Recently Played Section -->
+    {#if $recentlyPlayed.length > 0}
+      <div class="space-y-4">
+        <h3 class="text-(text-primary h3) font-medium">最近プレイしたゲーム</h3>
+        <ScrollableHorizontal>
+          <div class="flex pb-2 space-x-4">
+            {#each $recentlyPlayed as element (element.id)}
+              <div class="w-80 flex-shrink-0 space-y-1">
+                <div class="aspect-ratio-4/3">
+                  <ZappingGameItem
+                    {collectionElement}
+                    objectFit="cover"
+                  >
+                    <div slot="info" class="text-sm text-text-secondary px-1 truncate mb-1">
+                      {formatLastPlayed(element.lastPlayAt)}
+                    </div>
+                  </ZappingGameItem>
+                </div>
+              </div>
+            {/each}
+          </div>
+        </ScrollableHorizontal>
+      </div>
+    {/if}
+
     <div class="space-y-2">
       <div class="text-(text-primary h3) font-medium">Help</div>
       <LinkText
@@ -130,20 +156,6 @@
         {/if}
       {/await}
     </div>
-
-    <!-- Recently Played Section -->
-    {#if $recentlyPlayed.length > 0}
-      <div class="space-y-2">
-        <h3 class="text-(text-primary h3) font-medium">最近プレイしたゲーム</h3>
-        <ScrollableHorizontal>
-          <div class="flex py-2 space-x-4">
-            {#each $recentlyPlayed as element (element.id)}
-              <HorizontalGameItem collectionElement={element} />
-            {/each}
-          </div>
-        </ScrollableHorizontal>
-      </div>
-    {/if}
 
     <div class="flex items-center gap-4 flex-wrap">
       <h3 class="text-(text-primary h3) font-medium mr-auto">登録したゲーム</h3>

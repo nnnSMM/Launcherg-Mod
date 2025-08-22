@@ -2,51 +2,39 @@
   import { link } from "svelte-spa-router";
   import type { CollectionElement } from "@/lib/types";
   import { convertFileSrc } from "@tauri-apps/api/core";
-  export let collectionElement: CollectionElement;
 
-  $: imgSrc = convertFileSrc(collectionElement.thumbnail);
+  export let collectionElement: CollectionElement;
+  export let objectFit: "contain" | "cover" = "contain";
+  export let containerClass = "";
 </script>
 
-<!--
-  - The container now scales on hover to 112.5%.
-  - It also has `group` to control child hover states.
--->
-<div
-  class="group hover:scale-[1.125] hover:shadow-md focus-within:scale-110 focus-within:shadow-md transition-all cursor-pointer w-full h-full relative hover:z-10"
->
-  <!-- The link needs to be relative to position the absolute overlay -->
-  <a
-    tabIndex={0}
-    href={`/works/${collectionElement.id}?gamename=${collectionElement.gamename}`}
-    use:link
-    class="w-full h-full block relative"
+<div class={`w-full h-full ${containerClass}`}>
+  <slot name="info" />
+  <div
+    class="group hover:scale-[1.025] hover:shadow-md focus-within:scale-110 focus-within:shadow-md transition-all cursor-pointer w-full h-full relative hover:z-10"
   >
-    {#if collectionElement.thumbnailWidth && collectionElement.thumbnailHeight}
-      <!-- Base image. This will be scaled with the parent div. -->
-      <img
-        decoding="async"
-        class="object-contain rounded w-full h-full"
-        src={imgSrc}
-        alt={`${collectionElement.gamename}のサムネイル`}
-      />
-      <!--
-        - Overlay image, using the same source.
-        - It is positioned directly on top of the base image.
-        - On hover, it fades in (`group-hover:opacity-100`).
-        - Since it's inside the scaling container, it will also be scaled up.
-      -->
-      <img
-        decoding="async"
-        class="absolute top-0 left-0 w-full h-full object-contain rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-        src={imgSrc}
-        alt={`${collectionElement.gamename}のサムネイル`}
-      />
-    {:else}
-      <div
-        class="text-(body text-primary) font-bold px-6 rounded border bg-bg-primary w-full h-full flex items-center justify-center"
-      >
-        {collectionElement.gamename}
-      </div>
-    {/if}
-  </a>
+    <a
+      tabIndex={0}
+      href={`/works/${collectionElement.id}?gamename=${collectionElement.gamename}`}
+      use:link
+      class="w-full h-full block relative"
+    >
+      {#if collectionElement.thumbnail}
+        <img
+          decoding="async"
+          class="rounded w-full h-full"
+          class:object-contain={objectFit === "contain"}
+          class:object-cover={objectFit === "cover"}
+          src={convertFileSrc(collectionElement.thumbnail)}
+          alt={`${collectionElement.gamename}のサムネイル`}
+        />
+      {:else}
+        <div
+          class="text-(body text-primary) font-bold px-6 rounded border bg-bg-primary w-full h-full flex items-center justify-center"
+        >
+          {collectionElement.gamename}
+        </div>
+      {/if}
+    </a>
+  </div>
 </div>
