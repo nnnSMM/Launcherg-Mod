@@ -47,6 +47,7 @@ a:hover {
 }
 
 .tippy-box[data-theme~='image-bg'] {
+  background-color: transparent;
   /* A semi-transparent dark color so the text is readable */
   color: #f0f0f0;
   text-shadow: 0px 0px 4px rgba(0, 0, 0, 0.8);
