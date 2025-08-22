@@ -10,14 +10,23 @@
       return;
     }
 
-    const tp = tippy(node, tooltip);
+    const tippyOptions: Partial<TippyOption> = {
+      placement: "right",
+      ...tooltip,
+    };
+
+    const tp = tippy(node, tippyOptions);
 
     return {
       update() {
         if (!tooltip) {
           return;
         }
-        tp.setProps(tooltip);
+        const tippyOptions: Partial<TippyOption> = {
+          placement: "right",
+          ...tooltip,
+        };
+        tp.setProps(tippyOptions);
       },
       destroy() {
         tp.destroy();
