@@ -11,13 +11,13 @@
 <div class={`w-full h-full ${containerClass}`}>
   <slot name="info" />
   <div
-    class="group hover:scale-[1.025] hover:shadow-md focus-within:scale-110 focus-within:shadow-md transition-all cursor-pointer w-full h-full relative hover:z-10"
+    class="hover:scale-[1.025] hover:shadow-md focus-within:scale-105 focus-within:shadow-md transition-all cursor-pointer w-full h-full relative hover:z-10"
   >
     <a
       tabIndex={0}
       href={`/works/${collectionElement.id}?gamename=${collectionElement.gamename}`}
       use:link
-      class="w-full h-full block relative"
+      class="w-full h-full block"
     >
       {#if collectionElement.thumbnail}
         <img
