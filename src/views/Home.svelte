@@ -28,6 +28,8 @@
       .map((v) => commandGetCollectionElement(v))
   );
 
+  let isOpenGettingStarted = true;
+
   const shown = sidebarCollectionElements.shown;
   const flattenShown = derived(shown, ($shown) =>
     $shown.flatMap((v) => v.elements)
@@ -81,7 +83,7 @@
       </div>
     </ADisclosure>
 
-    {#if $sidebarCollectionElements.length === 0}
+    {#if $sidebarCollectionElements.length === 0 && isOpenGettingStarted}
       <div
         class="space-y-2 p-4 border-(border-primary solid ~) rounded max-w-120"
       >
