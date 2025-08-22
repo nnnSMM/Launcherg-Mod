@@ -17,10 +17,10 @@
   // as tippy.js renders the tooltip outside the component.
   const tooltipContent = `
     <div class="p-2 space-y-1 text-left">
-      <div class="text-xs text-text-tertiary">${collectionElement.brandname}</div>
-      <div class="text-base text-text-primary font-bold">${collectionElement.gamename}</div>
-      ${lastPlayed ? `<div class="text-xs text-text-tertiary">最終プレイ: ${lastPlayed}</div>` : ""}
-      ${playTime ? `<div class="text-xs text-text-tertiary">プレイ時間: ${playTime}</div>` : ""}
+      <div class="text-sm text-text-secondary">${collectionElement.brandname}</div>
+      <div class="text-lg text-text-primary font-bold">${collectionElement.gamename}</div>
+      ${lastPlayed ? `<div class="text-sm text-text-secondary">最終プレイ: ${lastPlayed}</div>` : ""}
+      ${playTime ? `<div class="text-sm text-text-secondary">プレイ時間: ${playTime}</div>` : ""}
     </div>
   `;
 
@@ -29,9 +29,9 @@
     content: tooltipContent,
     allowHTML: true,
     delay: [1000, 0], // 1000ms to show, 0ms to hide
-    placement: "auto",
-    theme: "default", // Assuming a default theme is defined somewhere
-    arrow: true,
+    placement: "right", // Default to right, flip to left if needed
+    theme: "sharp", // Use our custom sharp-cornered theme
+    arrow: false, // Remove the speech bubble arrow
   };
 
   const tooltipAction = (node: HTMLElement) => {
