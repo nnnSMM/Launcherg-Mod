@@ -7,9 +7,7 @@
 
   const simplebarAction = (node: HTMLElement) => {
     const simplebarInstance = new SimpleBar(node, {
-      // Always show horizontal scrollbar, never show vertical
-      forceVisible: "x",
-      autoHide: false,
+      autoHide: true,
     });
     scrollEl = simplebarInstance.getScrollElement();
   };
