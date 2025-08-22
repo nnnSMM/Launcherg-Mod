@@ -7,7 +7,9 @@
 
   const simplebarAction = (node: HTMLElement) => {
     const simplebarInstance = new SimpleBar(node, {
-      autoHide: true,
+      // Always show horizontal scrollbar, never show vertical
+      forceVisible: "x",
+      autoHide: false,
     });
     scrollEl = simplebarInstance.getScrollElement();
   };
@@ -27,6 +29,7 @@
 
   onMount(() => {
     // Add the wheel listener to the window to capture the event
+    // passive: false is required to be able to call e.preventDefault()
     window.addEventListener("wheel", onWheel, { passive: false });
 
     return () => {
