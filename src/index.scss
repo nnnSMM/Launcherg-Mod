@@ -53,6 +53,7 @@ a:hover {
   text-shadow: 0px 0px 4px rgba(0, 0, 0, 0.8);
   position: relative;
   overflow: hidden; /* To contain the pseudo-element */
+  border-radius: 0px; /* Make corners sharp */
 }
 
 /* Pseudo-element for the blurred background */
@@ -71,12 +72,6 @@ a:hover {
   filter: blur(8px) brightness(0.7);
   /* Sit behind the content */
   z-index: -1;
-}
-
-.tippy-box[data-theme~='sharp'] {
-  border-radius: 0px;
-  background-color: #636e7b;
-  color: #c3cfdb;
 }
 
 .simplebar-vertical {
