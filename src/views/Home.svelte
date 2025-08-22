@@ -17,6 +17,7 @@
   import ScrollableHorizontal from "@/components/UI/ScrollableHorizontal.svelte";
   import ZappingGameItem from "@/components/Home/ZappingGameItem.svelte";
   import { formatLastPlayed } from "@/lib/utils";
+  import Card from "@/components/UI/Card.svelte";
 
   const memoRegex = /^smde_memo-(\d+)$/;
   const memoPromises = Promise.all(
@@ -79,69 +80,61 @@
       <div class="font-logo text-(8 text-primary)">Launcherg</div>
     </div>
 
-    {#if $sidebarCollectionElements.length === 0 && isOpenGettingStarted}
-      <div
-        class="space-y-2 p-4 border-(border-primary solid ~) rounded max-w-120"
-      >
-        <div class="flex items-center">
-          <div class="text-(text-primary h3) font-medium">Getting started</div>
-        </div>
-        <div class="text-(text-tertiary body)">
+    <div class="grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-4">
+      {#if $sidebarCollectionElements.length === 0 && isOpenGettingStarted}
+        <Card title="Getting started">
           持っているゲームをこのランチャーに登録してみましょう。左のサイドバーにある「Add」ボタンから自動で追加できます。
+        </Card>
+      {/if}
+
+      <Card title="Help">
+        <div class="flex-(~ col) gap-1">
+          <LinkText
+            href="https://youtu.be/GCTj6eRRgAM?si=WRFuBgNErwTJsNnk"
+            text="1分でわかる Launcherg"
+          />
+          <LinkText
+            href="https://ryoha000.hatenablog.com/entry/2023/09/24/003605"
+            text="よくある Q&A"
+          />
         </div>
-      </div>
-    {/if}
+      </Card>
 
-    <div class="space-y-2">
-      <div class="text-(text-primary h3) font-medium">Help</div>
-      <LinkText
-        href="https://youtu.be/GCTj6eRRgAM?si=WRFuBgNErwTJsNnk"
-        text="1分でわかる Launcherg"
-      />
-      <LinkText
-        href="https://ryoha000.hatenablog.com/entry/2023/09/24/003605"
-        text="よくある Q&A"
-      />
-    </div>
-
-    <div class="space-y-2">
-      <div class="text-(text-primary h3) font-medium">Memo</div>
-      {#await memoPromises then elements}
-        {#if elements.length === 0 && $sidebarCollectionElements.length !== 0}
-          <div
-            class="space-y-2 p-4 border-(border-primary solid ~) rounded max-w-120"
-          >
-            <div class="flex items-center">
-              <div class="text-(text-primary h3) font-medium">メモ機能</div>
-            </div>
+      <Card title="Memo">
+        {#await memoPromises then elements}
+          {#if elements.length === 0 && $sidebarCollectionElements.length !== 0}
             <div class="text-(text-tertiary body)">
               このアプリにはメモ機能があります。サイドバーからゲームを選択して「Memo」ボタンを押すことでそのゲームについてメモを取ることができます。
             </div>
-          </div>
-        {:else}
-          <div class="gap-1 flex-(~ col)">
-            {#each elements as element (element.id)}
-              <a
-                use:link
-                href="/memos/{element.id}?gamename={element.gamename}"
-                class="text-(text-link body2) hover:underline-(1px text-link)"
-              >
-                メモ - {element.gamename}
-              </a>
-            {/each}
-          </div>
-        {/if}
-      {/await}
+          {:else if elements.length === 0}
+            <div class="text-(text-tertiary body)">
+              メモはまだありません。
+            </div>
+          {:else}
+            <div class="gap-1 flex-(~ col)">
+              {#each elements as element (element.id)}
+                <a
+                  use:link
+                  href="/memos/{element.id}?gamename={element.gamename}"
+                  class="text-(text-link body2) hover:underline-(1px text-link)"
+                >
+                  メモ - {element.gamename}
+                </a>
+              {/each}
+            </div>
+          {/if}
+        {/await}
+      </Card>
     </div>
 
     <!-- Recently Played Section -->
     {#if $recentlyPlayed.length > 0}
-      <div class="space-y-4">
-        <h3 class="text-(text-primary h3) font-medium">最近プレイしたゲーム</h3>
+      <div class="space-y-2">
+        <h3 class="text-(text-primary h3) font-medium">Recently Played</h3>
         <ScrollableHorizontal>
-          <div class="flex py-8 px-4 space-x-4">
+          <div class="flex py-4 px-1 space-x-4">
             {#each $recentlyPlayed as element (element.id)}
-              <div class="w-80 flex-shrink-0">
+              <div class="w-60 flex-shrink-0">
                 <div class="aspect-ratio-4/3">
                   <ZappingGameItem
                     collectionElement={element}
