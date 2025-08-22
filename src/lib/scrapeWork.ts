@@ -99,8 +99,7 @@ export const getWorkByScrape = async (id: number) => {
     ),
     sellday: softTitle?.getElementsByTagName("a")[1].innerHTML ?? "2030-01-01",
     imgUrl:
-      doc.getElementById("main_image")?.getElementsByTagName("img")[0].src ??
-      "",
+      doc.getElementById("main_image")?.getElementsByTagName("a")[0].href ?? "",
     officialHomePage:
       gameTitle?.getElementsByTagName("a")[0].getAttribute("href") ?? "",
     statistics: {
