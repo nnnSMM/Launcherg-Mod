@@ -17,8 +17,6 @@
   import ScrollableHorizontal from "@/components/UI/ScrollableHorizontal.svelte";
   import ZappingGameItem from "@/components/Home/ZappingGameItem.svelte";
   import { formatLastPlayed } from "@/lib/utils";
-  import ADisclosure from "@/components/UI/ADisclosure.svelte";
-  import { disclosureStates } from "@/store/disclosureStates";
 
   const memoRegex = /^smde_memo-(\d+)$/;
   const memoPromises = Promise.all(
@@ -76,12 +74,10 @@
   let:contentsScrollTo
 >
   <div class="space-y-8 mb-2" slot="header">
-    <ADisclosure label="Launcherg" bind:open={$disclosureStates.launcherg}>
-      <div class="flex items-center gap-2 w-full pt-2 pl-4">
-        <img src={Icon} alt="launcherg icon" class="h-12" />
-        <div class="font-logo text-(8 text-primary)">Launcherg</div>
-      </div>
-    </ADisclosure>
+    <div class="flex items-center gap-2 w-full">
+      <img src={Icon} alt="launcherg icon" class="h-12" />
+      <div class="font-logo text-(8 text-primary)">Launcherg</div>
+    </div>
 
     {#if $sidebarCollectionElements.length === 0 && isOpenGettingStarted}
       <div
@@ -96,49 +92,47 @@
       </div>
     {/if}
 
-    <ADisclosure label="Help" bind:open={$disclosureStates.help}>
-      <div class="space-y-2 pt-2 pl-4">
-        <LinkText
-          href="https://youtu.be/GCTj6eRRgAM?si=WRFuBgNErwTJsNnk"
-          text="1分でわかる Launcherg"
-        />
-        <LinkText
-          href="https://ryoha000.hatenablog.com/entry/2023/09/24/003605"
-          text="よくある Q&A"
-        />
-      </div>
-    </ADisclosure>
+    <div class="space-y-2">
+      <div class="text-(text-primary h3) font-medium">Help</div>
+      <LinkText
+        href="https://youtu.be/GCTj6eRRgAM?si=WRFuBgNErwTJsNnk"
+        text="1分でわかる Launcherg"
+      />
+      <LinkText
+        href="https://ryoha000.hatenablog.com/entry/2023/09/24/003605"
+        text="よくある Q&A"
+      />
+    </div>
 
-    <ADisclosure label="Memo" bind:open={$disclosureStates.memo}>
-      <div class="pt-2 pl-4">
-        {#await memoPromises then elements}
-          {#if elements.length === 0 && $sidebarCollectionElements.length !== 0}
-            <div
-              class="space-y-2 p-4 border-(border-primary solid ~) rounded max-w-120"
-            >
-              <div class="flex items-center">
-                <div class="text-(text-primary h3) font-medium">メモ機能</div>
-              </div>
-              <div class="text-(text-tertiary body)">
-                このアプリにはメモ機能があります。サイドバーからゲームを選択して「Memo」ボタンを押すことでそのゲームについてメモを取ることができます。
-              </div>
+    <div class="space-y-2">
+      <div class="text-(text-primary h3) font-medium">Memo</div>
+      {#await memoPromises then elements}
+        {#if elements.length === 0 && $sidebarCollectionElements.length !== 0}
+          <div
+            class="space-y-2 p-4 border-(border-primary solid ~) rounded max-w-120"
+          >
+            <div class="flex items-center">
+              <div class="text-(text-primary h3) font-medium">メモ機能</div>
             </div>
-          {:else}
-            <div class="gap-1 flex-(~ col)">
-              {#each elements as element (element.id)}
-                <a
-                  use:link
-                  href="/memos/{element.id}?gamename={element.gamename}"
-                  class="text-(text-link body2) hover:underline-(1px text-link)"
-                >
-                  メモ - {element.gamename}
-                </a>
-              {/each}
+            <div class="text-(text-tertiary body)">
+              このアプリにはメモ機能があります。サイドバーからゲームを選択して「Memo」ボタンを押すことでそのゲームについてメモを取ることができます。
             </div>
-          {/if}
-        {/await}
-      </div>
-    </ADisclosure>
+          </div>
+        {:else}
+          <div class="gap-1 flex-(~ col)">
+            {#each elements as element (element.id)}
+              <a
+                use:link
+                href="/memos/{element.id}?gamename={element.gamename}"
+                class="text-(text-link body2) hover:underline-(1px text-link)"
+              >
+                メモ - {element.gamename}
+              </a>
+            {/each}
+          </div>
+        {/if}
+      {/await}
+    </div>
 
     <!-- Recently Played Section -->
     {#if $recentlyPlayed.length > 0}

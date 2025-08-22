@@ -8,10 +8,9 @@
 
   export let label: string;
   export let defaultOpen = false;
-  export let open = defaultOpen;
 </script>
 
-<Disclosure bind:open {defaultOpen}>
+<Disclosure let:open {defaultOpen}>
   <DisclosureButton
     class="bg-transparent rounded transition-all hover:bg-bg-button-hover w-full"
   >
@@ -23,9 +22,11 @@
       />
     </div>
   </DisclosureButton>
-  <DisclosurePanel static let:close>
-    <div transition:fly={{ y: -20, duration: 150, easing: quintOut }}>
-      <slot {close} />
+  {#if open}
+    <div transition:fly={{ y: -40, duration: 150 }}>
+      <DisclosurePanel static>
+        <slot />
+      </DisclosurePanel>
     </div>
-  </DisclosurePanel>
+  {/if}
 </Disclosure>
