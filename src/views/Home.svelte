@@ -14,6 +14,8 @@
   import Button from "@/components/UI/Button.svelte";
   import { scrapeAllGameCacheOnes } from "@/lib/scrapeAllGame";
   import { showErrorToast, showInfoToast } from "@/lib/toast";
+  import ScrollableHorizontal from "@/components/UI/ScrollableHorizontal.svelte";
+  import RecentlyPlayedGameItem from "@/components/Home/RecentlyPlayedGameItem.svelte";
 
   const memoRegex = /^smde_memo-(\d+)$/;
   const memoPromises = Promise.all(
@@ -28,6 +30,18 @@
   const shown = sidebarCollectionElements.shown;
   const flattenShown = derived(shown, ($shown) =>
     $shown.flatMap((v) => v.elements)
+  );
+
+  const recentlyPlayed = derived(flattenShown, ($flattenShown) =>
+    $flattenShown
+      .filter((v) => v.lastPlayAt)
+      .sort((a, b) => {
+        // a, b の lastPlayAt が null でないことは filter で保証されている
+        const dateA = new Date(a.lastPlayAt!);
+        const dateB = new Date(b.lastPlayAt!);
+        return dateB.getTime() - dateA.getTime();
+      })
+      .slice(0, 10)
   );
 
   let disabledRefetchThumbnail = false;
@@ -116,6 +130,21 @@
         {/if}
       {/await}
     </div>
+
+    <!-- Recently Played Section -->
+    {#if $recentlyPlayed.length > 0}
+      <div class="space-y-2">
+        <h3 class="text-(text-primary h3) font-medium">最近プレイしたゲーム</h3>
+        <ScrollableHorizontal>
+          <div class="flex py-2 space-x-4">
+            {#each $recentlyPlayed as element (element.id)}
+              <RecentlyPlayedGameItem collectionElement={element} />
+            {/each}
+          </div>
+        </ScrollableHorizontal>
+      </div>
+    {/if}
+
     <div class="flex items-center gap-4 flex-wrap">
       <h3 class="text-(text-primary h3) font-medium mr-auto">登録したゲーム</h3>
       <a href="/settings/play-status" use:link class="ml-auto md:ml-0">
