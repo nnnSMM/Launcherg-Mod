@@ -46,6 +46,12 @@ a:hover {
   color: #c3cfdb;
 }
 
+.tippy-box[data-theme~='sharp'] {
+  border-radius: 0px;
+  background-color: #636e7b;
+  color: #c3cfdb;
+}
+
 .simplebar-vertical {
   > .simplebar-scrollbar::before {
     background-color: #CDD9E5;
