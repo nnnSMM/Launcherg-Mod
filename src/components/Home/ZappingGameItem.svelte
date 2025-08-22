@@ -29,12 +29,11 @@
     content: tooltipContent,
     allowHTML: true,
     delay: [1000, 0],
-    placement: "right-start", // Align to the top-right
-    offset: [-20, 15], // [skidding, distance] - move up and away
-    theme: "image-bg", // Use a single, combined theme
+    placement: "right-start",
+    offset: [-20, 15],
+    theme: "image-bg",
     arrow: false,
     onShow(instance: Instance) {
-      // Set the CSS custom property on the tippy box to the current game's thumbnail
       const box = instance.popper.querySelector('.tippy-box');
       if (box instanceof HTMLElement) {
         box.style.setProperty('--tooltip-bg-image', `url("${imgSrc}")`);
