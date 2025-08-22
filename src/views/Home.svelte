@@ -101,7 +101,7 @@
               <div class="w-80 flex-shrink-0 space-y-1">
                 <div class="aspect-ratio-4/3">
                   <ZappingGameItem
-                    {collectionElement}
+                    collectionElement={element}
                     objectFit="cover"
                   >
                     <div slot="info" class="text-sm text-text-secondary px-1 truncate mb-1">
