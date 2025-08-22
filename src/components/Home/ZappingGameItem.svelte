@@ -31,7 +31,7 @@
     delay: [1000, 0],
     placement: "right",
     offset: [-40, 15], // [skidding, distance] - negative skidding moves it "up"
-    theme: "sharp image-bg", // Use two themes: one for shape, one for background
+    theme: "image-bg", // Use a single, combined theme
     arrow: false,
     onShow(instance: Instance) {
       // Set the CSS custom property on the tippy box to the current game's thumbnail
