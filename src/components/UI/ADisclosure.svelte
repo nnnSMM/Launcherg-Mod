@@ -8,9 +8,10 @@
 
   export let label: string;
   export let defaultOpen = false;
+  export let open = defaultOpen;
 </script>
 
-<Disclosure let:open {defaultOpen}>
+<Disclosure bind:open {defaultOpen}>
   <DisclosureButton
     class="bg-transparent rounded transition-all hover:bg-bg-button-hover w-full"
   >
