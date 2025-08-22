@@ -2,8 +2,7 @@
   import { link } from "svelte-spa-router";
   import type { CollectionElement } from "@/lib/types";
   import { convertFileSrc } from "@tauri-apps/api/core";
-  import { commandGetGameCacheById } from "@/lib/command";
-  import { onMount } from "svelte";
+  import { works } from "@/store/works";
 
   export let collectionElement: CollectionElement;
 
@@ -20,9 +19,9 @@
     }
     isHighResLoading = true;
     try {
-      const cache = await commandGetGameCacheById(collectionElement.id);
-      if (cache?.thumbnailUrl) {
-        highResImgSrc = cache.thumbnailUrl;
+      const work = await works.get(collectionElement.id);
+      if (work?.imgUrl) {
+        highResImgSrc = work.imgUrl;
       }
     } catch (e) {
       console.error(e);
