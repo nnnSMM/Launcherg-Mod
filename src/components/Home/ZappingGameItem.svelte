@@ -28,7 +28,7 @@
   const tooltipOptions: Partial<TippyOption> = {
     content: tooltipContent,
     allowHTML: true,
-    delay: [1000, 0],
+    delay: [500, 0], // 500ms to show, 0ms to hide
     placement: "right-start",
     offset: [-20, 15],
     theme: "image-bg",
