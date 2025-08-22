@@ -94,27 +94,26 @@
     <!-- Recently Played Section -->
     {#if $recentlyPlayed.length > 0}
       <div class="space-y-4">
-        <div class="relative">
-          <h3 class="text-(text-primary h3) font-medium">最近プレイしたゲーム</h3>
-          <ScrollableHorizontal>
-            <div class="flex pb-2 pt-10 space-x-4">
-              {#each $recentlyPlayed as element (element.id)}
-                <div class="w-80 flex-shrink-0">
-                  <div class="aspect-ratio-4/3">
-                    <ZappingGameItem
-                      collectionElement={element}
-                      objectFit="cover"
-                    >
-                      <div slot="info" class="text-sm text-text-secondary px-1 truncate mb-1">
-                        {formatLastPlayed(element.lastPlayAt)}
-                      </div>
-                    </ZappingGameItem>
-                  </div>
+        <h3 class="text-(text-primary h3) font-medium">最近プレイしたゲーム</h3>
+        <ScrollableHorizontal>
+          <!-- Added py-4 for vertical padding to prevent clipping on hover/scale -->
+          <div class="flex pb-4 pt-2 space-x-4">
+            {#each $recentlyPlayed as element (element.id)}
+              <div class="w-80 flex-shrink-0">
+                <div class="aspect-ratio-4/3">
+                  <ZappingGameItem
+                    collectionElement={element}
+                    objectFit="cover"
+                  >
+                    <div slot="info" class="text-sm text-text-secondary px-1 truncate mb-1">
+                      {formatLastPlayed(element.lastPlayAt)}
+                    </div>
+                  </ZappingGameItem>
                 </div>
-              {/each}
-            </div>
-          </ScrollableHorizontal>
-        </div>
+              </div>
+            {/each}
+          </div>
+        </ScrollableHorizontal>
       </div>
     {/if}
 
