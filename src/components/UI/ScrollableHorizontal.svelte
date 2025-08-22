@@ -25,8 +25,8 @@
     if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
       // Prevent the main page from scrolling vertically
       e.preventDefault();
-      // Scroll the element horizontally, with a multiplier for speed
-      scrollEl.scrollBy({ left: e.deltaY * 2, behavior: 'auto' });
+      // Scroll the element horizontally
+      scrollEl.scrollBy({ left: e.deltaY, behavior: 'smooth' });
     }
   };
 
