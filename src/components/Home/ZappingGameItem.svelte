@@ -12,7 +12,7 @@
   - It also has `group` to control child hover states.
 -->
 <div
-  class="group hover:scale-115 hover:shadow-md focus-within:scale-110 focus-within:shadow-md transition-all cursor-pointer w-full h-full relative hover:z-10"
+  class="group hover:scale-[1.125] hover:shadow-md focus-within:scale-110 focus-within:shadow-md transition-all cursor-pointer w-full h-full relative hover:z-10"
 >
   <!-- The link needs to be relative to position the absolute overlay -->
   <a
