@@ -15,7 +15,7 @@
   import { scrapeAllGameCacheOnes } from "@/lib/scrapeAllGame";
   import { showErrorToast, showInfoToast } from "@/lib/toast";
   import ScrollableHorizontal from "@/components/UI/ScrollableHorizontal.svelte";
-  import RecentlyPlayedGameItem from "@/components/Home/RecentlyPlayedGameItem.svelte";
+  import HorizontalGameItem from "@/components/Home/HorizontalGameItem.svelte";
 
   const memoRegex = /^smde_memo-(\d+)$/;
   const memoPromises = Promise.all(
@@ -138,7 +138,7 @@
         <ScrollableHorizontal>
           <div class="flex py-2 space-x-4">
             {#each $recentlyPlayed as element (element.id)}
-              <RecentlyPlayedGameItem collectionElement={element} />
+              <HorizontalGameItem collectionElement={element} />
             {/each}
           </div>
         </ScrollableHorizontal>
