@@ -66,21 +66,24 @@
   });
 </script>
 
-<!-- Add a style block to control SimpleBar's appearance -->
+<!-- Add a unique class to the root to scope the global styles -->
+<div class="horizontal-scroll-container">
+  <div
+    use:simplebarAction
+    class="overflow-x-auto"
+    on:mouseenter={() => (isHovering = true)}
+    on:mouseleave={() => (isHovering = false)}
+  >
+    <slot />
+  </div>
+</div>
+
+<!-- Scope the global styles to this component's unique class -->
 <style>
-  :global(.simplebar-track.simplebar-vertical) {
+  .horizontal-scroll-container :global(.simplebar-track.simplebar-vertical) {
     display: none !important;
   }
-  :global(.simplebar-scrollbar::before) {
+  .horizontal-scroll-container :global(.simplebar-scrollbar::before) {
     background-color: rgba(160, 160, 160, 0.8);
   }
 </style>
-
-<div
-  use:simplebarAction
-  class="overflow-x-auto"
-  on:mouseenter={() => (isHovering = true)}
-  on:mouseleave={() => (isHovering = false)}
->
-  <slot />
-</div>
