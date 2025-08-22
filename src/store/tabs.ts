@@ -163,13 +163,18 @@ const createTabs = () => {
 
 
   const initialize = () => {
+    if (window.location.pathname === "/") {
+      selected.set(-1);
+      return;
+    }
+
     const _tabs = getTabs();
     const index = getSelected();
 
     if (_tabs.length === 0) {
-        selected.set(-1);
-        if (window.location.pathname !== "/") push("/");
-        return;
+      selected.set(-1);
+      if (window.location.pathname !== "/") push("/");
+      return;
     }
     if (index < 0 || index >= _tabs.length) {
       const firstTab = _tabs[0];
