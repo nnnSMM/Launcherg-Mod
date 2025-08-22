@@ -46,6 +46,33 @@ a:hover {
   color: #c3cfdb;
 }
 
+.tippy-box[data-theme~='image-bg'] {
+  /* A semi-transparent dark color so the text is readable */
+  background-color: rgba(30, 30, 30, 0.85);
+  color: #f0f0f0;
+  text-shadow: 0px 0px 4px rgba(0, 0, 0, 0.8);
+  position: relative;
+  overflow: hidden; /* To contain the pseudo-element */
+}
+
+/* Pseudo-element for the blurred background */
+.tippy-box[data-theme~='image-bg']::before {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  right: -10px;
+  bottom: -10px;
+  /* Use the variable set by the JS */
+  background-image: var(--tooltip-bg-image);
+  background-size: cover;
+  background-position: center;
+  /* The blur/brightness effect */
+  filter: blur(8px) brightness(0.7);
+  /* Sit behind the content */
+  z-index: -1;
+}
+
 .tippy-box[data-theme~='sharp'] {
   border-radius: 0px;
   background-color: #636e7b;

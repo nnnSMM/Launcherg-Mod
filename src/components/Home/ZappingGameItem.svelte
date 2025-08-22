@@ -2,19 +2,19 @@
   import { link } from "svelte-spa-router";
   import type { CollectionElement } from "@/lib/types";
   import { convertFileSrc } from "@tauri-apps/api/core";
-  import tippy, { type Props as TippyOption } from "tippy.js";
+  import tippy, { type Instance, type Props as TippyOption } from "tippy.js";
   import { formatLastPlayed, formatPlayTime } from "@/lib/utils";
 
   export let collectionElement: CollectionElement;
   export let objectFit: "contain" | "cover" = "contain";
   export let containerClass = "";
 
+  const imgSrc = convertFileSrc(collectionElement.thumbnail);
+
   // Prepare content for the tooltip
   const lastPlayed = formatLastPlayed(collectionElement.lastPlayAt);
   const playTime = formatPlayTime(collectionElement.totalPlayTimeSeconds);
 
-  // Note: UnoCSS classes used here for styling must be available in the global scope
-  // as tippy.js renders the tooltip outside the component.
   const tooltipContent = `
     <div class="p-2 space-y-1 text-left">
       <div class="text-sm text-text-secondary">${collectionElement.brandname}</div>
@@ -28,10 +28,18 @@
   const tooltipOptions: Partial<TippyOption> = {
     content: tooltipContent,
     allowHTML: true,
-    delay: [1000, 0], // 1000ms to show, 0ms to hide
-    placement: "right", // Default to right, flip to left if needed
-    theme: "sharp", // Use our custom sharp-cornered theme
-    arrow: false, // Remove the speech bubble arrow
+    delay: [1000, 0],
+    placement: "right",
+    offset: [-40, 15], // [skidding, distance] - negative skidding moves it "up"
+    theme: "sharp image-bg", // Use two themes: one for shape, one for background
+    arrow: false,
+    onShow(instance: Instance) {
+      // Set the CSS custom property on the tippy box to the current game's thumbnail
+      const box = instance.popper.querySelector('.tippy-box');
+      if (box instanceof HTMLElement) {
+        box.style.setProperty('--tooltip-bg-image', `url("${imgSrc}")`);
+      }
+    },
   };
 
   const tooltipAction = (node: HTMLElement) => {
@@ -62,7 +70,7 @@
           class="rounded w-full h-full"
           class:object-contain={objectFit === "contain"}
           class:object-cover={objectFit === "cover"}
-          src={convertFileSrc(collectionElement.thumbnail)}
+          src={imgSrc}
           alt={`${collectionElement.gamename}のサムネイル`}
         />
       {:else}
