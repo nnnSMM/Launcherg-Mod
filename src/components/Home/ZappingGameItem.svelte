@@ -29,8 +29,8 @@
     content: tooltipContent,
     allowHTML: true,
     delay: [1000, 0],
-    placement: "right",
-    offset: [-40, 15], // [skidding, distance] - negative skidding moves it "up"
+    placement: "right-start", // Align to the top-right
+    offset: [-20, 15], // [skidding, distance] - move up and away
     theme: "image-bg", // Use a single, combined theme
     arrow: false,
     onShow(instance: Instance) {

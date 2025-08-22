@@ -23,11 +23,9 @@
       />
     </div>
   </DisclosureButton>
-  {#if open}
-    <div transition:fly={{ y: -40, duration: 150 }}>
-      <DisclosurePanel static>
-        <slot />
-      </DisclosurePanel>
+  <DisclosurePanel static let:close>
+    <div transition:fly={{ y: -20, duration: 150, easing: quintOut }}>
+      <slot {close} />
     </div>
-  {/if}
+  </DisclosurePanel>
 </Disclosure>
