@@ -135,10 +135,10 @@
           <div class="flex py-4 px-1 space-x-4">
             {#each $recentlyPlayed as element (element.id)}
               <div class="w-60 flex-shrink-0">
-                <div class="aspect-ratio-4/3">
+                <div class="h-36">
                   <ZappingGameItem
                     collectionElement={element}
-                    objectFit="cover"
+                    objectFit="contain"
                   >
                     <div slot="info" class="text-sm text-text-tertiary px-1 truncate mb-1">
                       {formatLastPlayed(element.lastPlayAt)}
