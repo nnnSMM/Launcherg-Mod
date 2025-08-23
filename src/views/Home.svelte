@@ -130,15 +130,15 @@
     <!-- Recently Played Section -->
     {#if $recentlyPlayed.length > 0}
       <div class="space-y-2">
-        <h3 class="text-(text-primary h3) font-medium">Recently Played</h3>
+        <h3 class="text-(text-primary h3) font-medium">最近プレイ</h3>
         <ScrollableHorizontal>
           <div class="flex py-4 px-1 space-x-4">
             {#each $recentlyPlayed as element (element.id)}
               {@const isPortrait = element.thumbnailHeight &&
                 element.thumbnailWidth &&
                 element.thumbnailHeight > element.thumbnailWidth}
-              {@const ar = isPortrait ? 3 / 4 : 4 / 3}
-              {@const heightRem = 12}
+              {@const ar = isPortrait ? 4 / 5 : 5 / 4}
+              {@const heightRem = 13}
               {@const widthRem = heightRem * ar}
               <div
                 class="flex-shrink-0"
