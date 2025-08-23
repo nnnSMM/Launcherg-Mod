@@ -134,21 +134,18 @@
         <ScrollableHorizontal>
           <div class="flex py-4 px-1 space-x-4">
             {#each $recentlyPlayed as element (element.id)}
-              {@const heightRem = 9}
-              {@const ar = element.thumbnailWidth && element.thumbnailHeight ? element.thumbnailWidth / element.thumbnailHeight : 4 / 3}
-              {@const widthRem = heightRem * ar}
-              <div
-                class="flex-shrink-0"
-                style="width: {widthRem}rem; height: {heightRem}rem;"
-              >
-                <ZappingGameItem
-                  collectionElement={element}
-                  objectFit="cover"
-                >
-                  <div slot="info" class="text-sm text-text-tertiary px-1 truncate mb-1">
-                    {formatLastPlayed(element.lastPlayAt)}
-                  </div>
-                </ZappingGameItem>
+              <div class="w-60 flex-shrink-0">
+                <div class="aspect-ratio-4/3">
+                  <ZappingGameItem
+                    collectionElement={element}
+                    objectFit="cover"
+                    objectPosition="top"
+                  >
+                    <div slot="info" class="text-sm text-text-tertiary px-1 truncate mb-1">
+                      {formatLastPlayed(element.lastPlayAt)}
+                    </div>
+                  </ZappingGameItem>
+                </div>
               </div>
             {/each}
           </div>
