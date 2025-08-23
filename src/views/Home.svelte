@@ -137,18 +137,22 @@
               {@const isPortrait = element.thumbnailHeight &&
                 element.thumbnailWidth &&
                 element.thumbnailHeight > element.thumbnailWidth}
-              <div class="w-60 flex-shrink-0">
-                <div style="aspect-ratio: {isPortrait ? '3/4' : '4/3'}">
-                  <ZappingGameItem
-                    collectionElement={element}
-                    objectFit="cover"
-                    objectPosition="top"
-                  >
-                    <div slot="info" class="text-sm text-text-tertiary px-1 truncate mb-1">
-                      {formatLastPlayed(element.lastPlayAt)}
-                    </div>
-                  </ZappingGameItem>
-                </div>
+              {@const ar = isPortrait ? 3 / 4 : 4 / 3}
+              {@const heightRem = 12}
+              {@const widthRem = heightRem * ar}
+              <div
+                class="flex-shrink-0"
+                style="width: {widthRem}rem; height: {heightRem}rem;"
+              >
+                <ZappingGameItem
+                  collectionElement={element}
+                  objectFit="cover"
+                  objectPosition="top"
+                >
+                  <div slot="info" class="text-sm text-text-tertiary px-1 truncate mb-1">
+                    {formatLastPlayed(element.lastPlayAt)}
+                  </div>
+                </ZappingGameItem>
               </div>
             {/each}
           </div>
