@@ -135,7 +135,10 @@
           <div class="flex py-4 px-1 space-x-4">
             {#each $recentlyPlayed as element (element.id)}
               <div class="w-60 flex-shrink-0">
-                <div class="aspect-ratio-4/3">
+                {@const isPortrait = element.thumbnailHeight &&
+                  element.thumbnailWidth &&
+                  element.thumbnailHeight > element.thumbnailWidth}
+                <div style="aspect-ratio: {isPortrait ? '3/4' : '4/3'}">
                   <ZappingGameItem
                     collectionElement={element}
                     objectFit="cover"
