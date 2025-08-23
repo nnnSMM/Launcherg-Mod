@@ -7,6 +7,7 @@
 
   export let collectionElement: CollectionElement;
   export let objectFit: "contain" | "cover" = "contain";
+  export let objectPosition: "center" | "top" = "center";
   export let containerClass = "";
 
   const imgSrc = convertFileSrc(collectionElement.thumbnail);
@@ -34,9 +35,12 @@
     theme: "image-bg",
     arrow: false,
     onShow(instance: Instance) {
-      const box = instance.popper.querySelector('.tippy-box');
+      const box = instance.popper.querySelector(".tippy-box");
       if (box instanceof HTMLElement) {
-        box.style.setProperty('--tooltip-bg-image', `url("${imgSrc}")`);
+        box.style.setProperty("--tooltip-bg-image", `url("${imgSrc}")`);
+        if (objectPosition === "top") {
+          box.style.backgroundPosition = "top";
+        }
       }
     },
   };
@@ -69,6 +73,7 @@
           class="rounded w-full h-full"
           class:object-contain={objectFit === "contain"}
           class:object-cover={objectFit === "cover"}
+          class:object-top={objectPosition === "top"}
           src={imgSrc}
           alt={`${collectionElement.gamename}のサムネイル`}
         />
