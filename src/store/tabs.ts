@@ -25,6 +25,7 @@ const createTabs = () => {
 
   const routeLoaded = (event: RouteLoadedEvent) => {
     const location = event.detail.location;
+    localStorage.setItem("last-path", location);
     const params = event.detail.params;
 
     if (location === "/") {
@@ -163,6 +164,17 @@ const createTabs = () => {
 
 
   const initialize = () => {
+    const lastPath = localStorage.getItem("last-path");
+    // If we have a last path, and the current path is the root
+    // (which is the default when reopening the app), then navigate.
+    if (lastPath && window.location.pathname === "/") {
+      push(lastPath);
+      return; // The push will trigger routeLoaded, which will handle the rest.
+    }
+
+    // For other cases (like a page reload), we don't need to push a URL.
+    // The browser is already at the correct URL.
+    // We just need to ensure our tab state is consistent.
     const _tabs = getTabs();
     const index = getSelected();
 
@@ -171,12 +183,12 @@ const createTabs = () => {
       return;
     }
     if (index < 0 || index >= _tabs.length) {
+      // The selected tab index is invalid.
+      // We can't know which tab should be active, so we set to none.
+      // The `routeLoaded` event will soon fire for the current URL
+      // and select the correct tab anyway.
       selected.set(-1);
     }
-    // On initial load, we trust the browser's URL.
-    // svelte-spa-router will load the correct component,
-    // and the routeLoaded event will sync the tab state.
-    // We don't need to force a navigation with push() here.
   };
 
   const getSelectedTab = (): Tab | undefined => {
