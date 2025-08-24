@@ -28,18 +28,15 @@
     <div class="i-material-symbols-label-outline-rounded w-6 h-6 color-text-primary" />
   </ButtonBase>
 
-  <ButtonBase
+  <div
+    class="ml-1 p-1 rounded cursor-pointer hover:bg-white/10"
     on:click={() => showSidebar.set(false)}
-    appendClass="ml-1 border-0px p-1 !bg-transparent"
-    tooltip={{
-      content: "サイドバーを閉じる",
-      placement: "bottom",
-      theme: "default",
-      delay: 1000,
-    }}
+    role="button"
+    tabindex="0"
+    on:keydown={(e) => e.key === "Enter" && showSidebar.set(false)}
   >
     <div
       class="i-material-symbols-left-panel-close-outline w-6 h-6 color-text-primary"
     />
-  </ButtonBase>
+  </div>
 </div>
