@@ -30,8 +30,7 @@
 
   <ButtonBase
     on:click={() => showSidebar.set(false)}
-    appendClass="ml-1 border-0px p-1"
-    style="background-color: transparent;"
+    appendClass="ml-1 border-0px p-1 !bg-transparent"
     tooltip={{
       content: "サイドバーを閉じる",
       placement: "bottom",

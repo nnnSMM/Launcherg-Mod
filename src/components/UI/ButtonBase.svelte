@@ -69,7 +69,6 @@
   {disabled}
   class={`rounded transition-all ${buttonVariantClass} ${appendClass}`}
   on:click
-  {...$$restProps}
 >
   <slot />
 </button>
