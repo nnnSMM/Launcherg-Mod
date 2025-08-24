@@ -6,7 +6,7 @@
   export const scrollBy = (options: ScrollToOptions) => {
     if (options.left) {
       // Add a 'push' to the velocity. The value is arbitrary and chosen for feel.
-      scrollVelocity += options.left > 0 ? 50 : -50;
+      scrollVelocity += options.left > 0 ? 35 : -35;
       startAnimation();
     }
   };
@@ -67,7 +67,7 @@
     }
   };
 
-  const MAX_SPEED = 50;
+  const MAX_SPEED = 35;
   const onWheel = (e: WheelEvent) => {
     if (!isHovering || !scrollEl) return;
 
