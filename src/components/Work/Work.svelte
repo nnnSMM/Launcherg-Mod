@@ -13,18 +13,20 @@
   };
 </script>
 
-<div
-  class="fixed top-0 left-0 w-screen h-screen z-[-1] bg-cover bg-center backdrop-blur-xl op-20"
-  style="background-image: url({work.imgUrl})"
-/>
-<div
-  class="h-full w-full overflow-x-hidden overflow-y-auto bg-bg-primary"
-  bind:this={scrollContainer}
-  on:scroll={handleScroll}
->
-  <div class="w-full min-h-0 flex justify-center">
-    {#key work.imgUrl}
-      <WorkLayout {work} {scrollY} />
-    {/key}
+<div class="relative w-full h-full">
+  <div
+    class="absolute inset-0 bg-cover bg-center blur-xl op-25"
+    style="background-image: url({work.imgUrl})"
+  />
+  <div
+    class="relative h-full w-full overflow-x-hidden overflow-y-auto bg-bg-primary/90"
+    bind:this={scrollContainer}
+    on:scroll={handleScroll}
+  >
+    <div class="w-full min-h-0 flex justify-center">
+      {#key work.imgUrl}
+        <WorkLayout {work} {scrollY} />
+      {/key}
+    </div>
   </div>
 </div>
