@@ -6,7 +6,7 @@
   export const scrollBy = (options: ScrollToOptions) => {
     if (options.left) {
       // Add a 'push' to the velocity. The value is arbitrary and chosen for feel.
-      scrollVelocity += options.left > 0 ? 25 : -25;
+      scrollVelocity += options.left > 0 ? 50 : -50;
       startAnimation();
     }
   };
