@@ -1,19 +1,12 @@
 <script lang="ts">
-  export let noBorder = false;
   export let label: string;
 </script>
 
 <div
-  class="p-4 border-(solid border-primary) whitespace-nowrap text-(body2 text-primary) {noBorder
-    ? 'border-0px'
-    : 'border-t-1px'}"
+  class="grid grid-cols-[min-content_1fr] border-b border-solid border-primary last:border-b-0"
 >
-  {label}
-</div>
-<div
-  class="p-4 border-(solid border-primary) text-(body2 text-link) {noBorder
-    ? 'border-0px'
-    : 'border-t-1px'}"
->
-  <slot />
+  <div class="p-4 whitespace-nowrap text-body2 text-primary">{label}</div>
+  <div class="p-4 text-body2 text-link">
+    <slot />
+  </div>
 </div>
