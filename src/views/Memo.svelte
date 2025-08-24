@@ -121,6 +121,16 @@
       easyMDE.codemirror.setCursor({ line: cursor.line + 2, ch: 0 });
     };
     const ele = document.querySelector(".EasyMDEContainer");
+    if (ele) {
+      const toolbar = ele.querySelector<HTMLElement>(".editor-toolbar");
+      if (toolbar) {
+        toolbar.style.backgroundColor = "rgba(45, 51, 59, 0.9)"; // bg-secondary/90
+      }
+      const codeMirror = ele.querySelector<HTMLElement>(".CodeMirror");
+      if (codeMirror) {
+        codeMirror.style.backgroundColor = "rgba(34, 39, 46, 0.9)"; // bg-primary/90
+      }
+    }
     ele?.addEventListener("paste", onPaste);
 
     const syncTimer = setInterval(() => {
