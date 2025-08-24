@@ -44,7 +44,7 @@
 </script>
 
 <div
-  class="min-h-0 relative border-(r-1px solid border-primary) transition-all bg-[#22272e]"
+  class="min-h-0 relative border-(r-1px solid border-primary) transition-all"
   class:w-80={$showSidebar}
   class:w-12={!$showSidebar}
 >
@@ -53,9 +53,9 @@
       <div
         class="min-h-0 relative w-full h-full grid-(~ rows-[min-content_min-content_min-content_1fr])"
       >
-        <Header />
-        <SubHeader />
-        <div class="w-full mt-2 px-2">
+        <div class="bg-bg-primary"><Header /></div>
+        <div class="bg-bg-primary"><SubHeader /></div>
+        <div class="w-full mt-2 px-2 bg-bg-primary">
           <Search
             bind:query={$query}
             bind:order={$currentSortOrder}
