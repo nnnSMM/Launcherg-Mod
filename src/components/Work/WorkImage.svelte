@@ -7,7 +7,6 @@
   import { convertFileSrc } from "@tauri-apps/api/core";
 
   export let element: CollectionElement;
-  export let scrollY: number;
   const dispatcher = createEventDispatcher();
 
   let menu = {
@@ -19,7 +18,6 @@
   $: srcWithVersion = `${convertFileSrc(element.thumbnail)}?v=${
     element.updatedAt
   }`;
-  $: parallaxStyle = `transform: translateY(${scrollY * 0.4}px);`;
 
   const handleContextMenu = (e: MouseEvent) => {
     e.preventDefault();
@@ -47,15 +45,11 @@
   ];
 </script>
 
-<div
-  class="relative aspect-16/9 overflow-hidden rounded-xl"
-  on:contextmenu={handleContextMenu}
->
+<div class="relative" on:contextmenu={handleContextMenu}>
   <img
     alt="{element.gamename}_thumbnail"
     src={srcWithVersion}
-    class="absolute w-full h-[140%] top-[-20%] object-cover"
-    style={parallaxStyle}
+    class="object-contain w-full"
   />
 </div>
 
