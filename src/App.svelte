@@ -22,7 +22,7 @@
   {#if $backgroundState.imageUrl}
     <div
       transition:fade={{ duration: 300 }}
-      class="absolute inset-0 bg-cover bg-center blur-xl"
+      class="absolute inset-0 bg-cover bg-top blur-xl"
       style="background-image: url({$backgroundState.imageUrl}); opacity: {$backgroundState.opacity};"
     />
   {/if}
