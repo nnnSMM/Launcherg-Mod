@@ -9,6 +9,15 @@
   export let work: Work;
   export let element: CollectionElement;
 
+  let scrollY = 0;
+  let scrollContainer: HTMLDivElement;
+
+  const handleScroll = () => {
+    if (scrollContainer) {
+      scrollY = scrollContainer.scrollTop;
+    }
+  };
+
   onMount(() => {
     backgroundState.set({
       imageUrl: element.thumbnail ? convertFileSrc(element.thumbnail) : null,
@@ -24,10 +33,14 @@
   });
 </script>
 
-<div class="h-full w-full overflow-x-hidden overflow-y-auto">
+<div
+  class="h-full w-full overflow-x-hidden overflow-y-auto"
+  bind:this={scrollContainer}
+  on:scroll={handleScroll}
+>
   <div class="w-full min-h-0 flex justify-center">
     {#key work.imgUrl}
-      <WorkLayout {work} {element} />
+      <WorkLayout {work} {element} {scrollY} />
     {/key}
   </div>
 </div>
