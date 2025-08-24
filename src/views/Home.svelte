@@ -14,7 +14,7 @@
   import Button from "@/components/UI/Button.svelte";
   import { scrapeAllGameCacheOnes } from "@/lib/scrapeAllGame";
   import { showErrorToast, showInfoToast } from "@/lib/toast";
-  import SimpleScrollableHorizontal from "@/components/UI/SimpleScrollableHorizontal.svelte";
+  import RecentlyPlayedScroller from "@/components/Home/RecentlyPlayedScroller.svelte";
   import ZappingGameItem from "@/components/Home/ZappingGameItem.svelte";
   import { formatLastPlayed } from "@/lib/utils";
   import Card from "@/components/UI/Card.svelte";
@@ -149,7 +149,7 @@
       <div class="space-y-2">
         <h3 class="text-(text-primary h3) font-medium">最近プレイ</h3>
         <div class="relative">
-          <SimpleScrollableHorizontal
+          <RecentlyPlayedScroller
             on:scroll={(e) => onScroll(e.detail.event)}
             bind:this={scrollable}
           >
@@ -180,7 +180,7 @@
                 </div>
               {/each}
             </div>
-          </SimpleScrollableHorizontal>
+          </RecentlyPlayedScroller>
           <SearchAttrributeControl
             appendClass="left-0"
             back
