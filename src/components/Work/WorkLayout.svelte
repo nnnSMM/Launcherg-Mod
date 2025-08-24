@@ -22,8 +22,8 @@
 {#await elementPromise then element}
   <!-- Determine orientation based on the local thumbnail's dimensions -->
   {#if element.thumbnailWidth && element.thumbnailHeight && element.thumbnailWidth > element.thumbnailHeight}
-    <div class="p-6 w-full min-h-0 max-w-192 space-y-6">
-      <div class="w-full space-y-6">
+    <div class="p-(x-8 y-8) w-full min-h-0 max-w-192 space-y-8">
+      <div class="w-full space-y-8">
         <!-- WorkImage uses the local `element` data -->
         <WorkImage {element} {scrollY} on:update={refetchElement} />
         <!-- WorkMain and Detail continue to use the scraped `work` data -->
@@ -32,9 +32,9 @@
       <Detail {work} />
     </div>
   {:else}
-    <div class="p-6 w-full min-h-0 max-w-256 space-y-6">
+    <div class="p-(x-8 y-8) w-full min-h-0 max-w-256 space-y-8">
       <div
-        class="grid grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] w-full gap-6"
+        class="grid grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] w-full gap-8"
       >
         <WorkImage {element} {scrollY} on:update={refetchElement} />
         <WorkMain {work} />
