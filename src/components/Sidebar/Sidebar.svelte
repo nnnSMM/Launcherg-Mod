@@ -53,9 +53,9 @@
       <div
         class="min-h-0 relative w-full h-full grid-(~ rows-[min-content_min-content_min-content_1fr])"
       >
-        <div class="bg-bg-primary"><Header /></div>
-        <div class="bg-bg-primary"><SubHeader /></div>
-        <div class="w-full mt-2 px-2 bg-bg-primary">
+        <Header />
+        <SubHeader />
+        <div class="w-full mt-2 px-2">
           <Search
             bind:query={$query}
             bind:order={$currentSortOrder}
