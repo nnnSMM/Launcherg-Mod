@@ -34,7 +34,7 @@ export default defineConfig({
     colors: {
       accent: {
         accent: "#487AF9",
-        success: "#347d39",
+        success: "rgba(52, 125, 57, 0.9)",
         edit: "#116329",
         warning: "#c69026",
         error: "#EA4E60",
@@ -48,7 +48,7 @@ export default defineConfig({
         buttonHover: "rgba(68, 76, 86, 0.9)",
         backdrop: "#1C2128",
         successDisabled: "rgba(35,134,54,0.6)",
-        successHover: "#46954a",
+        successHover: "rgba(70, 149, 74, 0.9)",
         warning: "#37332a",
         t_primary: "#adbac7",
         t_secondary: "#CDD9E5",

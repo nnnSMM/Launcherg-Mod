@@ -101,21 +101,21 @@
       label: "未プレイ",
       value: PlayStatus.Unplayed,
       icon: "i-material-symbols-play-circle-outline-rounded",
-      activeStyleClasses: "bg-gray-400 !hover:bg-gray-300 text-white border-gray-400",
+      activeStyleClasses: "bg-gray-400/90 !hover:bg-gray-300/90 text-white border-gray-400",
       activeIconTextColorClass: "text-white"
     },
     {
       label: "プレイ中",
       value: PlayStatus.Playing,
       icon: "i-material-symbols-pause-circle-outline-rounded",
-      activeStyleClasses: "bg-blue-500 !hover:bg-blue-400 text-white border-blue-500",
+      activeStyleClasses: "bg-blue-500/90 !hover:bg-blue-400/90 text-white border-blue-500",
       activeIconTextColorClass: "text-white"
     },
     {
       label: "クリア済み",
       value: PlayStatus.Cleared,
       icon: "i-material-symbols-check-circle-outline-rounded",
-      activeStyleClasses: "bg-green-700 !hover:bg-green-600 text-white border-green-700",
+      activeStyleClasses: "bg-green-700/90 !hover:bg-green-600/90 text-white border-green-700",
       activeIconTextColorClass: "text-white"
     },
   ];
