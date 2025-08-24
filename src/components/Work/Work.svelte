@@ -3,20 +3,15 @@
   import type { Work } from "@/lib/types";
   import { onMount, onDestroy } from "svelte";
   import { backgroundState } from "@/store/background";
+  import type { CollectionElement } from "@/lib/types";
+  import { convertFileSrc } from "@tauri-apps/api/core";
 
   export let work: Work;
-  let scrollY = 0;
-  let scrollContainer: HTMLDivElement;
-
-  const handleScroll = () => {
-    if (scrollContainer) {
-      scrollY = scrollContainer.scrollTop;
-    }
-  };
+  export let element: CollectionElement;
 
   onMount(() => {
     backgroundState.set({
-      imageUrl: work.imgUrl,
+      imageUrl: element.thumbnail ? convertFileSrc(element.thumbnail) : null,
       opacity: 0.2,
     });
   });
@@ -29,14 +24,10 @@
   });
 </script>
 
-<div
-  class="h-full w-full overflow-x-hidden overflow-y-auto"
-  bind:this={scrollContainer}
-  on:scroll={handleScroll}
->
+<div class="h-full w-full overflow-x-hidden overflow-y-auto">
   <div class="w-full min-h-0 flex justify-center">
     {#key work.imgUrl}
-      <WorkLayout {work} {scrollY} />
+      <WorkLayout {work} {element} />
     {/key}
   </div>
 </div>
