@@ -1,21 +1,33 @@
 <script lang="ts">
-  import { onMount } from "svelte"; // 1. onMount をインポート
+  import { onMount } from "svelte";
   import { works } from "@/store/works";
   import Work from "@/components/Work/Work.svelte";
-  import { sidebarCollectionElements } from "@/store/sidebarCollectionElements"; // 2. sidebarCollectionElements をインポート
+  import { sidebarCollectionElements } from "@/store/sidebarCollectionElements";
+  import { commandGetCollectionElement } from "@/lib/command";
+  import type { CollectionElement, Work as WorkType } from "@/lib/types";
 
   export let params: { id: string };
 
-  // 3. ページが表示された時に、全要素の最新情報を再取得する処理を追加
   onMount(() => {
     sidebarCollectionElements.refetch();
   });
 
-  $: workPromise = works.get(+params.id);
+  $: workAndElementPromise = (async () => {
+    const work = await works.get(+params.id);
+    if (!work) {
+      throw new Error("Work not found");
+    }
+    const element = await commandGetCollectionElement(work.id);
+    return { work, element };
+  })();
 </script>
 
-{#await workPromise then work}
+{#await workAndElementPromise then { work, element }}
   <div class="w-full h-full">
-    <Work {work} />
+    <Work {work} {element} />
+  </div>
+{:catch error}
+  <div class="p-4 text-text-error">
+    Error loading game data: {error.message}
   </div>
 {/await}
