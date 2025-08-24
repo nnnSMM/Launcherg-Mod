@@ -31,6 +31,7 @@
   {tooltip}
   {disabled}
   on:click
+  {...$$restProps}
 >
   {#if leftIcon}
     <div class={`${iconVarinatClass} ${iconSizeClass} ${leftIcon}`} />

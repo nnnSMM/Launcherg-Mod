@@ -101,22 +101,25 @@
       label: "未プレイ",
       value: PlayStatus.Unplayed,
       icon: "i-material-symbols-play-circle-outline-rounded",
-      activeStyleClasses: "bg-gray-400 !hover:bg-gray-300 text-white border-gray-400",
-      activeIconTextColorClass: "text-white"
+      activeStyleClasses:
+        "[background-color:rgba(156,163,175,0.9)] !hover:[background-color:rgba(209,213,219,0.9)] text-white border-gray-400",
+      activeIconTextColorClass: "text-white",
     },
     {
       label: "プレイ中",
       value: PlayStatus.Playing,
       icon: "i-material-symbols-pause-circle-outline-rounded",
-      activeStyleClasses: "bg-blue-500 !hover:bg-blue-400 text-white border-blue-500",
-      activeIconTextColorClass: "text-white"
+      activeStyleClasses:
+        "[background-color:rgba(59,130,246,0.9)] !hover:[background-color:rgba(96,165,250,0.9)] text-white border-blue-500",
+      activeIconTextColorClass: "text-white",
     },
     {
       label: "クリア済み",
       value: PlayStatus.Cleared,
       icon: "i-material-symbols-check-circle-outline-rounded",
-      activeStyleClasses: "bg-green-700 !hover:bg-green-600 text-white border-green-700",
-      activeIconTextColorClass: "text-white"
+      activeStyleClasses:
+        "[background-color:rgba(21,128,61,0.9)] !hover:[background-color:rgba(22,163,74,0.9)] text-white border-green-700",
+      activeIconTextColorClass: "text-white",
     },
   ];
 
@@ -154,6 +157,7 @@
       leftIcon="i-material-symbols-drive-file-rename-outline"
       text="Memo"
       on:click={() => push(`/memos/${id}?gamename=${name}`)}
+      style="background-color: rgba(55, 62, 71, 0.9)"
     />
     <div class="flex items-center gap-2 ml-auto">
       <Select
