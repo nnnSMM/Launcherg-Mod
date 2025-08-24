@@ -18,6 +18,23 @@
   import ZappingGameItem from "@/components/Home/ZappingGameItem.svelte";
   import { formatLastPlayed } from "@/lib/utils";
   import Card from "@/components/UI/Card.svelte";
+  import type { SvelteComponent } from "svelte";
+  import SearchAttrributeControl from "@/components/Sidebar/SearchAttrributeControl.svelte";
+
+  let scrollable: SvelteComponent;
+  let isShowBack = false;
+  let isShowForward = true;
+  const onScroll = (e: Event) => {
+    const element = e.target as HTMLElement;
+    const rect = element.getBoundingClientRect();
+    const width = element.scrollWidth;
+
+    const left = element.scrollLeft;
+    const right = width - rect.width - left;
+
+    isShowBack = left > 0;
+    isShowForward = right > 0;
+  };
 
   const memoRegex = /^smde_memo-(\d+)$/;
   const memoPromises = Promise.all(
@@ -131,32 +148,51 @@
     {#if $recentlyPlayed.length > 0}
       <div class="space-y-2">
         <h3 class="text-(text-primary h3) font-medium">最近プレイ</h3>
-        <ScrollableHorizontal>
-          <div class="flex py-4 px-1 space-x-4">
-            {#each $recentlyPlayed as element (element.id)}
-              {@const isPortrait = element.thumbnailHeight &&
-                element.thumbnailWidth &&
-                element.thumbnailHeight > element.thumbnailWidth}
-              {@const ar = isPortrait ? 4 / 5 : 5 / 4}
-              {@const heightRem = 13}
-              {@const widthRem = heightRem * ar}
-              <div
-                class="flex-shrink-0"
-                style="width: {widthRem}rem; height: {heightRem}rem;"
-              >
-                <ZappingGameItem
-                  collectionElement={element}
-                  objectFit="cover"
-                  objectPosition="top"
+        <div class="relative">
+          <ScrollableHorizontal
+            on:scroll={(e) => onScroll(e.detail.event)}
+            bind:this={scrollable}
+          >
+            <div class="flex py-4 px-1 space-x-4">
+              {#each $recentlyPlayed as element (element.id)}
+                {@const isPortrait = element.thumbnailHeight &&
+                  element.thumbnailWidth &&
+                  element.thumbnailHeight > element.thumbnailWidth}
+                {@const ar = isPortrait ? 4 / 5 : 5 / 4}
+                {@const heightRem = 13}
+                {@const widthRem = heightRem * ar}
+                <div
+                  class="flex-shrink-0"
+                  style="width: {widthRem}rem; height: {heightRem}rem;"
                 >
-                  <div slot="info" class="text-sm text-text-tertiary px-1 truncate mb-1">
-                    {formatLastPlayed(element.lastPlayAt)}
-                  </div>
-                </ZappingGameItem>
-              </div>
-            {/each}
-          </div>
-        </ScrollableHorizontal>
+                  <ZappingGameItem
+                    collectionElement={element}
+                    objectFit="cover"
+                    objectPosition="top"
+                  >
+                    <div
+                      slot="info"
+                      class="text-sm text-text-tertiary px-1 truncate mb-1"
+                    >
+                      {formatLastPlayed(element.lastPlayAt)}
+                    </div>
+                  </ZappingGameItem>
+                </div>
+              {/each}
+            </div>
+          </ScrollableHorizontal>
+          <SearchAttrributeControl
+            appendClass="left-0"
+            back
+            show={isShowBack}
+            on:click={() => scrollable.scrollBy({ left: -200, behavior: "smooth" })}
+          />
+          <SearchAttrributeControl
+            appendClass="right-0"
+            show={isShowForward}
+            on:click={() => scrollable.scrollBy({ left: 200, behavior: "smooth" })}
+          />
+        </div>
       </div>
     {/if}
 
