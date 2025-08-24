@@ -2,6 +2,7 @@
   import EasyMDE from "easymde";
   import { readImage } from "@tauri-apps/plugin-clipboard-manager";
   import {
+    commandGetCollectionElement,
     commandSaveScreenshotByPid,
     commandUploadImage,
   } from "@/lib/command";
@@ -11,11 +12,34 @@
   import { skyWay } from "@/store/skyway";
   import { startProcessMap } from "@/store/startProcessMap";
   import { showErrorToast } from "@/lib/toast";
+  import { onMount, onDestroy } from "svelte";
+  import { backgroundState } from "@/store/background";
 
   export let params: { id: string };
   $: id = +params.id;
 
   let height: number;
+
+  onMount(async () => {
+    try {
+      const element = await commandGetCollectionElement(id);
+      if (element && element.thumbnail) {
+        backgroundState.set({
+          imageUrl: convertFileSrc(element.thumbnail),
+          opacity: 0.2,
+        });
+      }
+    } catch (e) {
+      console.error("Failed to get element for background", e);
+    }
+  });
+
+  onDestroy(() => {
+    backgroundState.set({
+      imageUrl: null,
+      opacity: 0,
+    });
+  });
 
   const mde = (node: HTMLElement) => {
     const easyMDE = new EasyMDE({
