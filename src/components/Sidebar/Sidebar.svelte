@@ -44,7 +44,7 @@
 </script>
 
 <div
-  class="min-h-0 relative border-(r-1px solid border-primary) transition-all"
+  class="min-h-0 relative border-(r-1px solid border-primary) transition-all bg-[#22272e]"
   class:w-80={$showSidebar}
   class:w-12={!$showSidebar}
 >

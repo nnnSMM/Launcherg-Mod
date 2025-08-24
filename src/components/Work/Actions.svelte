@@ -154,7 +154,6 @@
       leftIcon="i-material-symbols-drive-file-rename-outline"
       text="Memo"
       on:click={() => push(`/memos/${id}?gamename=${name}`)}
-      appendClass="!bg-black/20"
     />
     <div class="flex items-center gap-2 ml-auto">
       <Select

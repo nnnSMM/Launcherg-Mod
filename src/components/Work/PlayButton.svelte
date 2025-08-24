@@ -12,7 +12,7 @@
 
 <div class="flex items-center min-w-0">
   <Button
-    appendClass="rounded-r-0 !bg-black/20 !border-transparent"
+    appendClass="rounded-r-0"
     leftIcon="i-material-symbols-power-rounded"
     text="Play"
     variant="success"
@@ -20,7 +20,7 @@
   />
   <APopover let:open let:close>
     <ButtonBase
-      appendClass="h-8 w-8 flex items-center justify-center rounded-l-0 !bg-black/20 !border-transparent"
+      appendClass="h-8 w-8 flex items-center justify-center rounded-l-0"
       tooltip={{
         content: "このゲームの設定",
         placement: "bottom",
