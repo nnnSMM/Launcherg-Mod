@@ -7,8 +7,8 @@
   }[];
 </script>
 
-<div class="border-(~ solid border-primary) rounded-xl">
-  <div class="bg-bg-secondary p-4 rounded-t-xl">
+<div class="border-(~ solid border-primary) rounded-xl bg-bg-tertiary/80">
+  <div class="bg-bg-secondary/90 p-4 rounded-t-xl">
     <div class="text-(body text-primary)">{title}</div>
   </div>
   <div class="grid-(~ cols-[min-content_1fr])">
