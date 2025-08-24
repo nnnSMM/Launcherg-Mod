@@ -67,6 +67,7 @@
     }
   };
 
+  const MAX_SPEED = 50;
   const onWheel = (e: WheelEvent) => {
     if (!isHovering || !scrollEl) return;
 
@@ -74,6 +75,7 @@
       e.preventDefault();
       // Accumulate velocity
       scrollVelocity += e.deltaY * 0.25; // Multiplier to control sensitivity
+      scrollVelocity = Math.max(-MAX_SPEED, Math.min(MAX_SPEED, scrollVelocity));
       startAnimation();
     }
   };
