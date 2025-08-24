@@ -19,7 +19,7 @@
   import { formatLastPlayed } from "@/lib/utils";
   import Card from "@/components/UI/Card.svelte";
   import type { SvelteComponent } from "svelte";
-  import SearchAttrributeControl from "@/components/Sidebar/SearchAttrributeControl.svelte";
+  import ArrowButton from "@/components/Home/ArrowButton.svelte";
 
   let scrollable: SvelteComponent;
   let isShowBack = false;
@@ -147,7 +147,20 @@
     <!-- Recently Played Section -->
     {#if $recentlyPlayed.length > 0}
       <div class="space-y-2">
-        <h3 class="text-(text-primary h3) font-medium">最近プレイ</h3>
+        <div class="flex items-center">
+          <h3 class="text-(text-primary h3) font-medium mr-auto">最近プレイ</h3>
+          <div class="flex items-center">
+            <ArrowButton
+              back
+              disabled={!isShowBack}
+              on:click={() => scrollable.scrollBy({ left: -200, behavior: "smooth" })}
+            />
+            <ArrowButton
+              disabled={!isShowForward}
+              on:click={() => scrollable.scrollBy({ left: 200, behavior: "smooth" })}
+            />
+          </div>
+        </div>
         <div class="relative">
           <RecentlyPlayedScroller
             on:scroll={(e) => onScroll(e.detail.event)}
@@ -181,17 +194,6 @@
               {/each}
             </div>
           </RecentlyPlayedScroller>
-          <SearchAttrributeControl
-            appendClass="left-0"
-            back
-            show={isShowBack}
-            on:click={() => scrollable.scrollBy({ left: -200, behavior: "smooth" })}
-          />
-          <SearchAttrributeControl
-            appendClass="right-0"
-            show={isShowForward}
-            on:click={() => scrollable.scrollBy({ left: 200, behavior: "smooth" })}
-          />
         </div>
       </div>
     {/if}
