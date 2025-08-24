@@ -17,12 +17,10 @@
     text="Play"
     variant="success"
     on:click={() => dispather("play", { isAdmin: undefined })}
-    style="background-color: rgba(52, 125, 57, 0.9); border-color: transparent;"
   />
   <APopover let:open let:close>
     <ButtonBase
       appendClass="h-8 w-8 flex items-center justify-center rounded-l-0"
-      style="background-color: rgba(52, 125, 57, 0.9); border-color: transparent;"
       tooltip={{
         content: "このゲームの設定",
         placement: "bottom",
