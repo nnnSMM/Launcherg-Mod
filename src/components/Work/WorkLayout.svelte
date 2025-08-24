@@ -7,6 +7,7 @@
 
   export let work: Work;
   export let element: CollectionElement;
+  export let scrollY: number;
 
   // When the image is updated in the child component, this function will be called to refetch the element data.
   const refetchElement = () => {
@@ -21,7 +22,7 @@
     <div class="p-(x-8 y-8) w-full min-h-0 max-w-192 space-y-8">
       <div class="w-full space-y-8">
         <!-- WorkImage uses the local `element` data -->
-        <WorkImage {element} on:update={refetchElement} />
+        <WorkImage {element} {scrollY} on:update={refetchElement} />
         <!-- WorkMain and Detail continue to use the scraped `work` data -->
         <WorkMain {work} />
       </div>
@@ -32,7 +33,7 @@
       <div
         class="grid grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] w-full gap-8"
       >
-        <WorkImage {element} on:update={refetchElement} />
+        <WorkImage {element} {scrollY} on:update={refetchElement} />
         <WorkMain {work} />
       </div>
       <Detail {work} />
