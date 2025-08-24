@@ -9,7 +9,6 @@
 {#if show}
   <div
     class="absolute p-(l-6 y-2) {appendClass} top--1 bottom--1 flex items-center"
-    style="background: linear-gradient(90deg, rgba(34,39,46,0) 0%, rgba(34,39,46,0.773546918767507) 15%, rgba(34,39,46,1) 30%, rgba(34,39,46,1) 100%);"
     class:rotate-180={back}
     transition:fly={{ x: 10, duration: 150 }}
   >
