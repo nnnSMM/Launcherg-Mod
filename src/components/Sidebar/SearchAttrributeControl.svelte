@@ -9,6 +9,7 @@
 {#if show}
   <div
     class="absolute p-(l-6 y-2) {appendClass} top--1 bottom--1 flex items-center"
+    style="background-color: rgba(34, 39, 46, 0.5);"
     class:rotate-180={back}
     transition:fly={{ x: 10, duration: 150 }}
   >
