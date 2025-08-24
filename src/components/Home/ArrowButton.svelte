@@ -5,7 +5,7 @@
 
 <div class:rotate-180={back} class:opacity-30={disabled}>
   <button
-    class="bg-transparent transition-all hover:bg-bg-button-hover rounded-full p-2"
+    class="bg-transparent transition-all rounded-full p-2"
     on:click|stopPropagation
     {disabled}
   >
