@@ -163,32 +163,20 @@ const createTabs = () => {
 
 
   const initialize = () => {
-    if (window.location.pathname === "/") {
-      selected.set(-1);
-      return;
-    }
-
     const _tabs = getTabs();
     const index = getSelected();
 
     if (_tabs.length === 0) {
       selected.set(-1);
-      if (window.location.pathname !== "/") push("/");
       return;
     }
     if (index < 0 || index >= _tabs.length) {
-      const firstTab = _tabs[0];
-      if (firstTab) {
-        selected.set(0);
-        push(firstTab.path); // path を使う
-      } else {
-        selected.set(-1);
-        push("/");
-      }
-      return;
+      selected.set(-1);
     }
-    const tab = _tabs[index];
-    push(tab.path); // path を使う
+    // On initial load, we trust the browser's URL.
+    // svelte-spa-router will load the correct component,
+    // and the routeLoaded event will sync the tab state.
+    // We don't need to force a navigation with push() here.
   };
 
   const getSelectedTab = (): Tab | undefined => {
