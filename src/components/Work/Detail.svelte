@@ -26,9 +26,9 @@
   };
 </script>
 
-<div class="border-(~ solid border-primary) rounded-xl">
-  <div class="grid-(~ cols-[min-content_1fr])">
-    <DetailRow label="シナリオ" noBorder>
+<div>
+  <div>
+    <DetailRow label="シナリオ">
       <div class="flex flex-wrap gap-4">
         {#each work.creators.writers as v (v.id)}
           <LinkText href={getCreatorUrl(v.id)} text={v.name} />
