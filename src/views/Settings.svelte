@@ -57,54 +57,57 @@
 
       await invoke("update_shortcut_registration");
 
-      alert("Settings saved successfully!");
+      alert("設定を保存しました！");
     } catch (error) {
       console.error("Error saving settings:", error);
-      alert(`Failed to save settings: ${error}`);
+      alert(`設定の保存に失敗しました: ${error}`);
     }
   }
 </script>
 
 <div class="p-4">
-  <h1 class="text-2xl font-bold mb-4">Shortcut Settings</h1>
+  <h1 class="text-2xl font-bold mb-4">ショートカット設定</h1>
 
   {#if isLoading}
-    <p>Loading settings...</p>
+    <p>設定を読み込み中...</p>
   {:else}
     <div class="space-y-4">
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">
-          Shortcut Game
+          ショートカットで起動するゲーム
         </label>
         <Select
           options={gameOptions}
           bind:value={selectedGameId}
-          title="Select a game"
+          title="ゲームを選択"
           enableFilter={true}
-          filterPlaceholder="Search games..."
-        />
-        <p class="mt-1 text-sm text-gray-500">Select a game to launch with the shortcut.</p>
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">
-          Shortcut Key
-        </label>
-        <Input
-          bind:value={shortcutKey}
-          placeholder="e.g., CommandOrControl+Shift+L"
+          filterPlaceholder="ゲームを検索..."
         />
         <p class="mt-1 text-sm text-gray-500">
-          Define the global shortcut. Use modifiers like CommandOrControl, Shift, Alt. See <a
-            href="https://tauri.app/v1/api/js/globalshortcut"
-            target="_blank"
-            class="text-blue-500 hover:underline">Tauri docs</a
-          > for valid accelerator strings.
+          ショートカットで起動するゲームを選択してください。
         </p>
       </div>
 
       <div>
-        <Button on:click={saveSettings}>Save Settings</Button>
+        <label class="block text-sm font-medium text-gray-700 mb-1">
+          ショートカットキー
+        </label>
+        <Input
+          bind:value={shortcutKey}
+          placeholder="例: CommandOrControl+Shift+L"
+        />
+        <p class="mt-1 text-sm text-gray-500">
+          グローバルショートカットを定義します。CommandOrControl, Shift,
+          Altなどの修飾キーが使えます。有効なアクセラレータ文字列については、<a
+            href="https://tauri.app/v1/api/js/globalshortcut"
+            target="_blank"
+            class="text-blue-500 hover:underline">Tauriのドキュメント</a
+          >を参照してください。
+        </p>
+      </div>
+
+      <div>
+        <Button on:click={saveSettings}>設定を保存</Button>
       </div>
     </div>
   {/if}

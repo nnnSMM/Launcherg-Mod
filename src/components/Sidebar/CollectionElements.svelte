@@ -13,9 +13,9 @@
   };
 </script>
 
-<div class="grid-(~ rows-[1fr]) h-full overflow-y-hidden">
+<div class="h-full">
   {#if collectionElement.length}
-    <div class="flex-1 mt-2 min-h-0">
+    <div class="flex-1 mt-2 min-h-0 h-full">
       <div use:simplebar class="h-full overflow-y-auto">
         <div class="w-full">
           {#each collectionElement as { label, elements } (label)}
