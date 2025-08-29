@@ -10,7 +10,7 @@ use std::sync::Arc;
 
 use infrastructure::util::get_save_root_abs_dir_with_ptr_handle;
 use interface::{command, module::Modules};
-use tauri::{async_runtime::block_on, Manager};
+use tauri::{async_runtime::block_on, GlobalShortcutManager, Manager};
 use tauri_plugin_log::{Target, TargetKind};
 
 fn main() {
@@ -50,6 +50,46 @@ fn main() {
             let modules = Arc::new(block_on(Modules::new(app.handle())));
             app.manage(modules);
 
+            let app_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                let modules = app_handle.state::<Arc<Modules>>();
+                if let Ok(Some(shortcut_key)) = modules
+                    .collection_use_case()
+                    .get_app_setting("shortcut_key".to_string())
+                    .await
+                {
+                    if !shortcut_key.is_empty() {
+                        let mut manager = app_handle.global_shortcut_manager();
+                        let handle_clone = app_handle.clone();
+                        let _ = manager.register(&shortcut_key, move || {
+                            let _ = handle_clone.emit_all("global-shortcut-launch-game", ());
+                        });
+                    }
+                }
+            });
+
+            let app_handle = app.handle().clone();
+            app.listen_global("global-shortcut-launch-game", move |_| {
+                println!("global-shortcut-launch-game event received");
+                let handle = app_handle.clone();
+                tauri::async_runtime::spawn(async move {
+                    let modules = handle.state::<Arc<Modules>>();
+                    if let Ok(Some(game_id_str)) = modules
+                        .collection_use_case()
+                        .get_app_setting("shortcut_game_id".to_string())
+                        .await
+                    {
+                        if let Ok(game_id) = game_id_str.parse::<i32>() {
+                            println!("Launching game with id: {}", game_id);
+                            let _ = modules
+                                .collection_use_case()
+                                .play_game_and_track(handle.into(), game_id)
+                                .await;
+                        }
+                    }
+                });
+            });
+
             Ok(())
         })
         .plugin(
@@ -86,6 +126,8 @@ fn main() {
             command::save_screenshot_by_pid,
             command::update_collection_element_thumbnails,
             command::update_game_image,
+            command::get_app_setting,
+            command::set_app_setting,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

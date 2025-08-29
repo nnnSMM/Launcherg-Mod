@@ -67,4 +67,7 @@ pub trait CollectionRepository {
     async fn delete_element_by_id(&self, id: &Id<CollectionElement>) -> Result<()>;
 
     async fn touch(&self, id: &Id<CollectionElement>) -> Result<()>;
+
+    async fn get_app_setting(&self, key: String) -> Result<Option<String>>;
+    async fn set_app_setting(&self, key: String, value: Option<String>) -> Result<()>;
 }

@@ -19,6 +19,10 @@ const PLAY_STATUS_EDITOR_TAB_ID = -100; // 固定IDは維持しても良いが�
 const PLAY_STATUS_EDITOR_PATH = "/settings/play-status";
 const PLAY_STATUS_EDITOR_TITLE = "プレイ状況一括編集";
 
+const SHORTCUT_SETTINGS_TAB_ID = -101;
+const SHORTCUT_SETTINGS_PATH = "/settings/shortcut";
+const SHORTCUT_SETTINGS_TITLE = "ショートカット設定";
+
 const createTabs = () => {
   const [tabs, getTabs] = createLocalStorageWritable<Tab[]>("tabs", []);
   const [selected, getSelected] = createLocalStorageWritable("tab-selected", -1);
@@ -57,6 +61,19 @@ const createTabs = () => {
                 scrollTo: 0,
                 title: PLAY_STATUS_EDITOR_TITLE,
                 path: PLAY_STATUS_EDITOR_PATH,
+            };
+            tabs.update(currentTabs => [...currentTabs, settingsTab]);
+            tabToSelectIndex = getTabs().length - 1;
+        }
+    } else if (location === SHORTCUT_SETTINGS_PATH && tabTypeSegment === "settings") {
+        tabToSelectIndex = getTabs().findIndex(t => t.id === SHORTCUT_SETTINGS_TAB_ID && t.type === "settings");
+        if (tabToSelectIndex === -1) {
+            const settingsTab: Tab = {
+                id: SHORTCUT_SETTINGS_TAB_ID,
+                type: "settings",
+                scrollTo: 0,
+                title: SHORTCUT_SETTINGS_TITLE,
+                path: SHORTCUT_SETTINGS_PATH,
             };
             tabs.update(currentTabs => [...currentTabs, settingsTab]);
             tabToSelectIndex = getTabs().length - 1;
@@ -246,6 +263,27 @@ const createTabs = () => {
     }
   };
 
+  const openShortcutSettingsTab = () => {
+    const currentOpenTabs = getTabs();
+    const settingsTabIndex = currentOpenTabs.findIndex(t => t.id === SHORTCUT_SETTINGS_TAB_ID);
+
+    if (settingsTabIndex !== -1) {
+      selected.set(settingsTabIndex);
+      push(SHORTCUT_SETTINGS_PATH);
+    } else {
+      const settingsTab: Tab = {
+        id: SHORTCUT_SETTINGS_TAB_ID,
+        type: "settings",
+        scrollTo: 0,
+        title: SHORTCUT_SETTINGS_TITLE,
+        path: SHORTCUT_SETTINGS_PATH,
+      };
+      tabs.update(v => [...v, settingsTab]);
+      selected.set(getTabs().length - 1);
+      push(SHORTCUT_SETTINGS_PATH);
+    }
+  };
+
   return {
     tabs,
     selected,
@@ -255,6 +293,7 @@ const createTabs = () => {
     initialize,
     reorderTabs,
     openSettingsTab,
+    openShortcutSettingsTab,
   };
 };
 
@@ -267,6 +306,7 @@ interface TabsStore {
   initialize: () => void;
   reorderTabs: (oldIndex: number, newIndex: number) => void;
   openSettingsTab: () => void;
+  openShortcutSettingsTab: () => void;
 }
 
 const createdTabs: TabsStore = createTabs();
@@ -280,4 +320,5 @@ export const {
   initialize,
   reorderTabs,
   openSettingsTab,
+  openShortcutSettingsTab,
 } = createdTabs;

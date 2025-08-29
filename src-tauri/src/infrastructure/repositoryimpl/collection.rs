@@ -325,4 +325,30 @@ impl CollectionRepository for RepositoryImpl<CollectionElement> {
             .await?;
         Ok(())
     }
+
+    async fn get_app_setting(&self, key: String) -> anyhow::Result<Option<String>> {
+        let pool = self.pool.0.clone();
+        let row = query("SELECT value FROM app_settings WHERE key = ?")
+            .bind(key)
+            .fetch_optional(&*pool)
+            .await?;
+        Ok(row.and_then(|r| r.get("value")))
+    }
+
+    async fn set_app_setting(&self, key: String, value: Option<String>) -> anyhow::Result<()> {
+        let pool = self.pool.0.clone();
+        if let Some(value) = value {
+            query("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)")
+                .bind(key)
+                .bind(value)
+                .execute(&*pool)
+                .await?;
+        } else {
+            query("DELETE FROM app_settings WHERE key = ?")
+                .bind(key)
+                .execute(&*pool)
+                .await?;
+        }
+        Ok(())
+    }
 }

@@ -11,17 +11,15 @@ use crate::{
         collection::NewCollectionElement,
         distance::get_comparable_distance,
         file::{
-            get_file_created_at_sync, get_icon_path, get_lnk_metadatas, get_thumbnail_path,
-            normalize,
+            get_exe_path_from_lnk, get_file_created_at_sync, get_icon_path, get_lnk_metadatas,
+            get_thumbnail_path, normalize,
         },
         Id,
     },
     usecase::models::collection::CreateCollectionElementDetail,
 };
 use std::sync::{Arc, Mutex};
-use sysinfo::{PidExt, ProcessExt, System, SystemExt};
 use tauri::{AppHandle, Emitter, State};
-use tokio::time::{interval, Duration, Instant};
 
 #[tauri::command]
 pub async fn create_elements_in_pc(
@@ -289,174 +287,53 @@ pub async fn play_game(
     element_id: i32,
     _is_admin: Option<bool>,
 ) -> Result<(), CommandError> {
-    let element = modules
+    Ok(modules
         .collection_use_case()
-        .get_element_by_element_id(&Id::new(element_id))
-        .await?;
+        .play_game_and_track(handle.into(), element_id)
+        .await?)
+}
 
-    modules
+#[tauri::command]
+pub async fn get_app_setting(
+    modules: State<'_, Arc<Modules>>,
+    key: String,
+) -> Result<Option<String>, CommandError> {
+    Ok(modules.collection_use_case().get_app_setting(key).await?)
+}
+
+#[tauri::command]
+pub async fn set_app_setting(
+    handle: AppHandle,
+    modules: State<'_, Arc<Modules>>,
+    key: String,
+    value: Option<String>,
+) -> Result<(), CommandError> {
+    if key == "shortcut_key" {
+        let manager = handle.global_shortcut_manager();
+        // Unregister old shortcut
+        if let Some(old_key) = modules
+            .collection_use_case()
+            .get_app_setting("shortcut_key".to_string())
+            .await?
+        {
+            if manager.is_registered(&old_key)? {
+                manager.unregister(&old_key)?;
+            }
+        }
+        // Register new shortcut
+        if let Some(new_key) = value.clone() {
+            if !new_key.is_empty() {
+                let handle_clone = handle.clone();
+                manager.register(&new_key, move || {
+                    let _ = handle_clone.emit_all("global-shortcut-launch-game", ());
+                })?;
+            }
+        }
+    }
+    Ok(modules
         .collection_use_case()
-        .update_element_last_play_at(&Id::new(element_id))
-        .await?;
-
-    let path_str = match (element.exe_path, element.lnk_path) {
-        (Some(p), _) => p,
-        (None, Some(p)) => p,
-        (None, None) => {
-            return Err(CommandError::Anyhow(anyhow::anyhow!(
-                "実行ファイルまたはショートカットが見つかりません"
-            )))
-        }
-    };
-
-    let mut system_before = System::new_all();
-    system_before.refresh_processes();
-    let pids_before: std::collections::HashSet<_> = system_before.processes().keys().cloned().collect();
-
-    handle
-        .shell()
-        .open(&path_str, None)
-        .map_err(anyhow::Error::from)?;
-    println!("[INFO] Opening path with shell: {}", &path_str);
-
-    let modules_clone = modules.inner().clone();
-    let game_name = element.gamename.clone();
-    let path_str_clone = path_str.clone();
-
-    tauri::async_runtime::spawn(async move {
-        // ランチャーがゲーム本体を起動するまで5秒待つ
-        tokio::time::sleep(Duration::from_secs(5)).await;
-
-        let search_timeout = Duration::from_secs(45);
-        let search_start_time = Instant::now();
-        let mut target_pid: Option<sysinfo::Pid> = None;
-
-        println!("Searching for the new game process...");
-
-        // ▼▼▼ 修正: 優先度付けを行う新しい特定ロジック ▼▼▼
-        loop {
-            if search_start_time.elapsed() > search_timeout {
-                println!("[WARN] Game process search timed out. Play time may not be recorded.");
-                break;
-            }
-            tokio::time::sleep(Duration::from_secs(2)).await;
-
-            let mut system_after = System::new_all();
-            system_after.refresh_processes();
-
-            let new_processes: Vec<_> = system_after
-                .processes()
-                .values()
-                .filter(|p| !pids_before.contains(&p.pid()))
-                .collect();
-
-            if new_processes.is_empty() {
-                continue;
-            }
-
-            let mut candidates: Vec<(&sysinfo::Process, i32)> = Vec::new();
-            let system_folders = ["c:\\windows"];
-            let game_folders = ["VisualNovel", "steamapps", "dmmgameplayer"];
-
-            for process in new_processes {
-                let exe_path = process.exe();
-                let path_lower = exe_path.to_string_lossy().to_lowercase();
-
-                if system_folders
-                    .iter()
-                    .any(|folder| path_lower.starts_with(folder))
-                {
-                    continue; // 除外
-                }
-
-                // スコア付け
-                let mut score = 0;
-                // 最優先: 起動パスと完全一致
-                let final_exe_path_str = if path_str_clone.to_lowercase().ends_with(".lnk") {
-                    get_exe_path_by_lnk(path_str_clone.clone())
-                        .await
-                        .unwrap_or(path_str_clone.clone())
-                } else {
-                    path_str_clone.clone()
-                };
-                let final_exe_path = std::path::Path::new(&final_exe_path_str);
-
-                if exe_path == final_exe_path {
-                    score = 3;
-                }
-                // 次点: 有名なゲームフォルダ
-                else if game_folders
-                    .iter()
-                    .any(|folder| path_lower.contains(folder))
-                {
-                    score = 2;
-                }
-                // それ以外
-                else {
-                    score = 1;
-                }
-                candidates.push((process, score));
-            }
-
-            // 最もスコアの高い候補の中から、ゲーム名に一番近いものを探す
-            if !candidates.is_empty() {
-                let max_score = candidates.iter().map(|(_, score)| *score).max().unwrap_or(0);
-                if let Some(best_match) = candidates
-                    .iter()
-                    .filter(|(_, score)| *score == max_score)
-                    .min_by_key(|(p, _)| {
-                        // 編集距離の代わりに簡易的な文字数差で最終判断
-                        (p.name().len() as i32 - game_name.len() as i32).abs()
-                    })
-                {
-                    target_pid = Some(best_match.0.pid());
-                }
-            }
-
-            if target_pid.is_some() {
-                println!("Game process identified (PID: {:?}).", target_pid.unwrap());
-                break;
-            }
-        }
-
-        if let Some(pid_to_monitor) = target_pid {
-            println!(
-                "Start monitoring process (PID: {}) for game {}",
-                pid_to_monitor, game_name
-            );
-            let start_time = Instant::now();
-            let mut interval = interval(Duration::from_secs(10));
-            let mut system = System::new_all();
-
-            loop {
-                interval.tick().await;
-                system.refresh_processes();
-                if system.process(pid_to_monitor).is_none() {
-                    let duration = start_time.elapsed().as_secs() as i32;
-                    if duration > 0 {
-                        println!(
-                            "Game {} (PID: {}) finished. Play time: {} seconds.",
-                            game_name, pid_to_monitor, duration
-                        );
-                        let _ = modules_clone
-                            .collection_use_case()
-                            .add_play_time_seconds(&Id::new(element_id), duration)
-                            .await;
-                    }
-
-                    println!("Updating last_play_at to the session end time.");
-                    let _ = modules_clone
-                        .collection_use_case()
-                        .update_element_last_play_at(&Id::new(element_id))
-                        .await;
-
-                    break;
-                }
-            }
-        }
-    });
-
-    Ok(())
+        .set_app_setting(key, value)
+        .await?)
 }
 
 #[tauri::command]
@@ -621,21 +498,7 @@ pub async fn get_game_candidates(
 
 #[tauri::command]
 pub async fn get_exe_path_by_lnk(filepath: String) -> Result<String, CommandError> {
-    if !filepath.to_lowercase().ends_with("lnk") {
-        return Err(CommandError::Anyhow(anyhow::anyhow!(
-            "filepath is not ends with lnk"
-        )));
-    }
-
-    let p: &str = &filepath;
-    let metadatas = get_lnk_metadatas(vec![p])?;
-    if let Some(meta) = metadatas.get(p) {
-        return Ok(meta.path.clone());
-    } else {
-        return Err(CommandError::Anyhow(anyhow::anyhow!(
-            "cannot get lnk metadata"
-        )));
-    }
+    Ok(get_exe_path_from_lnk(&filepath).await?)
 }
 
 #[tauri::command]
