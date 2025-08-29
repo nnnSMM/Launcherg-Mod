@@ -9,27 +9,12 @@
   import ImportDropFiles from "@/components/Home/ImportDropFiles.svelte";
   import { backgroundState } from "@/store/background";
   import { fade } from "svelte/transition";
-  import { invoke } from "@tauri-apps/api/core";
-  import { register, isRegistered } from "@tauri-apps/plugin-global-shortcut";
 
   $: setDetailPromise = registerCollectionElementDetails();
 
-  async function launchGame() {
-    await invoke("launch_shortcut_game");
-  }
-
-  onMount(async () => {
+  onMount(() => {
     initialize();
     initializeAllGameCache();
-
-    const savedShortcutKey = await invoke<string>("get_app_setting", {
-      key: "shortcut_key",
-    });
-    if (savedShortcutKey) {
-      if (!(await isRegistered(savedShortcutKey))) {
-        await register(savedShortcutKey, launchGame);
-      }
-    }
   });
 </script>
 
