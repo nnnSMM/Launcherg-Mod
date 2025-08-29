@@ -8,13 +8,56 @@ mod usecase;
 
 use std::sync::Arc;
 
-use interface::{command, module::Modules};
+use interface::{
+    command,
+    module::{Modules, ModulesExt},
+};
 use tauri::Manager;
+use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 use tauri_plugin_log::{Target, TargetKind};
 
 fn main() {
     tauri::Builder::default()
-        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
+        .plugin(
+            tauri_plugin_global_shortcut::Builder::new()
+                .with_handler(move |app, shortcut, event| {
+                    if event.state() != ShortcutState::Pressed {
+                        return;
+                    }
+                    let app_handle = app.clone();
+                    let shortcut = shortcut.clone();
+                    tauri::async_runtime::spawn(async move {
+                        let modules = app_handle.state::<Arc<Modules>>();
+                        if let Ok(Some(shortcut_key)) = modules
+                            .collection_use_case()
+                            .get_app_setting("shortcut_key".to_string())
+                            .await
+                        {
+                            if let Ok(shortcut_from_setting) = shortcut_key.parse::<Shortcut>() {
+                                if shortcut == shortcut_from_setting {
+                                    // launch_shortcut_game コマンドのロジックをここに直接展開
+                                    if let Ok(Some(game_id_str)) = modules
+                                        .collection_use_case()
+                                        .get_app_setting("shortcut_game_id".to_string())
+                                        .await
+                                    {
+                                        if let Ok(game_id) = game_id_str.parse::<i32>() {
+                                            if let Err(e) = modules
+                                                .collection_use_case()
+                                                .play_game_and_track(app_handle.into(), game_id)
+                                                .await
+                                            {
+                                                eprintln!("Error playing game: {}", e);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                })
+                .build(),
+        )
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
@@ -23,9 +66,30 @@ fn main() {
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .setup(|app| {
             let modules = Arc::new(tauri::async_runtime::block_on(Modules::new(
-                app.handle().clone(),
+                &app.handle(),
             )));
             app.manage(modules);
+
+            let handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                let modules = handle.state::<Arc<Modules>>();
+                if let Ok(Some(shortcut_key)) = modules
+                    .collection_use_case()
+                    .get_app_setting("shortcut_key".to_string())
+                    .await
+                {
+                    if !shortcut_key.is_empty() {
+                        if let Ok(shortcut) = shortcut_key.parse::<Shortcut>() {
+                            if !handle.global_shortcut().is_registered(&shortcut) {
+                                if let Err(e) = handle.global_shortcut().register(shortcut) {
+                                    eprintln!("Failed to register shortcut on startup: {}", e);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
             Ok(())
         })
         .plugin(
@@ -65,6 +129,7 @@ fn main() {
             command::get_app_setting,
             command::set_app_setting,
             command::launch_shortcut_game,
+            command::update_shortcut_registration
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

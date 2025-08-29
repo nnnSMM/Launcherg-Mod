@@ -19,7 +19,34 @@ use crate::{
     usecase::models::collection::CreateCollectionElementDetail,
 };
 use std::sync::{Arc, Mutex};
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, Emitter, Manager, State};
+use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut};
+
+#[tauri::command]
+pub async fn update_shortcut_registration(
+    handle: AppHandle,
+    modules: State<'_, Arc<Modules>>,
+) -> Result<(), CommandError> {
+    handle
+        .global_shortcut()
+        .unregister_all()
+        .map_err(anyhow::Error::from)?;
+    if let Ok(Some(shortcut_key)) = modules
+        .collection_use_case()
+        .get_app_setting("shortcut_key".to_string())
+        .await
+    {
+        if !shortcut_key.is_empty() {
+            if let Ok(shortcut) = shortcut_key.parse::<Shortcut>() {
+                handle
+                    .global_shortcut()
+                    .register(shortcut)
+                    .map_err(anyhow::Error::from)?;
+            }
+        }
+    }
+    Ok(())
+}
 
 #[tauri::command]
 pub async fn launch_shortcut_game(
