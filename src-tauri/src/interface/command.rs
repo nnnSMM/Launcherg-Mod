@@ -19,7 +19,7 @@ use crate::{
     usecase::models::collection::CreateCollectionElementDetail,
 };
 use std::sync::{Arc, Mutex};
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, Emitter, Manager, State};
 
 #[tauri::command]
 pub async fn create_elements_in_pc(
@@ -325,7 +325,7 @@ pub async fn set_app_setting(
             if !new_key.is_empty() {
                 let handle_clone = handle.clone();
                 manager.register(&new_key, move || {
-                    let _ = handle_clone.emit_all("global-shortcut-launch-game", ());
+                    let _ = handle_clone.emit("global-shortcut-launch-game", ());
                 })?;
             }
         }

@@ -12,7 +12,7 @@ use crate::{
     domain::{
         collection::{CollectionElement, NewCollectionElement, NewCollectionElementDetail},
         file::{
-            get_exe_path_by_lnk, get_icon_path, get_lnk_metadatas, get_thumbnail_path,
+            get_exe_path_from_lnk, get_icon_path, get_lnk_metadatas, get_thumbnail_path,
             save_icon_to_png, save_thumbnail,
         },
         repository::collection::CollectionRepository,
@@ -26,7 +26,7 @@ pub struct CollectionUseCase<R: RepositoriesExt> {
     repositories: Arc<R>,
 }
 
-impl<R: RepositoriesExt> CollectionUseCase<R> {
+impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
     pub async fn play_game_and_track(
         &self,
         handle: Arc<AppHandle>,
@@ -60,7 +60,7 @@ impl<R: RepositoriesExt> CollectionUseCase<R> {
 
         let game_name = element.gamename.clone();
         let path_str_clone = path_str.clone();
-        let collection_repo = self.repositories.collection_repository();
+        let repositories = self.repositories.clone();
 
         tauri::async_runtime::spawn(async move {
             // ランチャーがゲーム本体を起動するまで5秒待つ
@@ -112,7 +112,7 @@ impl<R: RepositoriesExt> CollectionUseCase<R> {
                     let mut score = 0;
                     // 最優先: 起動パスと完全一致
                     let final_exe_path_str = if path_str_clone.to_lowercase().ends_with(".lnk") {
-                        get_exe_path_by_lnk(path_str_clone.clone())
+                        get_exe_path_from_lnk(&path_str_clone)
                             .await
                             .unwrap_or(path_str_clone.clone())
                     } else {
@@ -177,13 +177,15 @@ impl<R: RepositoriesExt> CollectionUseCase<R> {
                                 "Game {} (PID: {}) finished. Play time: {} seconds.",
                                 game_name, pid_to_monitor, duration
                             );
-                            let _ = collection_repo
+                            let _ = repositories
+                                .collection_repository()
                                 .add_play_time_seconds(&Id::new(element_id), duration)
                                 .await;
                         }
 
                         println!("Updating last_play_at to the session end time.");
-                        let _ = collection_repo
+                        let _ = repositories
+                            .collection_repository()
                             .update_element_last_play_at_by_id(&Id::new(element_id), Local::now())
                             .await;
 
