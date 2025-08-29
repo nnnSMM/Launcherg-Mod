@@ -1,6 +1,11 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { invoke } from "@tauri-apps/api/core";
+  import {
+    register,
+    unregisterAll,
+    isRegistered,
+  } from "@tauri-apps/plugin-global-shortcut";
   import type { CollectionElement } from "../lib/types";
   import Button from "../components/UI/Button.svelte";
   import Select from "../components/UI/Select.svelte";
@@ -12,6 +17,11 @@
   let selectedGameId: number = 0;
   let shortcutKey: string = "";
   let isLoading = true;
+  let initialShortcutKey: string = "";
+
+  async function launchGame() {
+    await invoke("launch_shortcut_game");
+  }
 
   onMount(async () => {
     try {
@@ -30,6 +40,13 @@
       const savedShortcutKey = await invoke<string>("get_app_setting", { key: "shortcut_key" });
       if (savedShortcutKey) {
         shortcutKey = savedShortcutKey;
+        initialShortcutKey = savedShortcutKey;
+        if (
+          initialShortcutKey &&
+          !(await isRegistered(initialShortcutKey))
+        ) {
+          await register(initialShortcutKey, launchGame);
+        }
       }
     } catch (error) {
       console.error("Error loading settings:", error);
@@ -40,13 +57,30 @@
 
   async function saveSettings() {
     try {
+      // Unregister old shortcut if it exists and is different
+      if (
+        initialShortcutKey &&
+        initialShortcutKey !== shortcutKey &&
+        (await isRegistered(initialShortcutKey))
+      ) {
+        await unregisterAll(); // unregisterAll is safer if state is uncertain
+      }
+
+      // Save settings to backend
       const gameIdToSave = selectedGameId === 0 ? null : selectedGameId.toString();
       await invoke("set_app_setting", { key: "shortcut_game_id", value: gameIdToSave });
       await invoke("set_app_setting", { key: "shortcut_key", value: shortcutKey });
+
+      // Register new shortcut if provided
+      if (shortcutKey && !(await isRegistered(shortcutKey))) {
+        await register(shortcutKey, launchGame);
+      }
+      initialShortcutKey = shortcutKey; // Update initial key for next save
+
       alert("Settings saved successfully!");
     } catch (error) {
       console.error("Error saving settings:", error);
-      alert("Failed to save settings.");
+      alert(`Failed to save settings: ${error}`);
     }
   }
 </script>

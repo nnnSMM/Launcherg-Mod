@@ -58,11 +58,7 @@ pub trait CollectionRepository {
         id: &Id<CollectionElement>,
         play_status: i32,
     ) -> Result<()>;
-    async fn add_play_time_seconds(
-        &self,
-        id: &Id<CollectionElement>,
-        seconds: i32,
-    ) -> Result<()>;
+    async fn add_play_time_seconds(&self, id: &Id<CollectionElement>, seconds: i32) -> Result<()>;
 
     async fn delete_element_by_id(&self, id: &Id<CollectionElement>) -> Result<()>;
 

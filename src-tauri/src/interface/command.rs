@@ -19,7 +19,27 @@ use crate::{
     usecase::models::collection::CreateCollectionElementDetail,
 };
 use std::sync::{Arc, Mutex};
-use tauri::{AppHandle, Emitter, Manager, State};
+use tauri::{AppHandle, Emitter, State};
+
+#[tauri::command]
+pub async fn launch_shortcut_game(
+    handle: AppHandle,
+    modules: State<'_, Arc<Modules>>,
+) -> Result<(), CommandError> {
+    if let Ok(Some(game_id_str)) = modules
+        .collection_use_case()
+        .get_app_setting("shortcut_game_id".to_string())
+        .await
+    {
+        if let Ok(game_id) = game_id_str.parse::<i32>() {
+            modules
+                .collection_use_case()
+                .play_game_and_track(handle.into(), game_id)
+                .await?;
+        }
+    }
+    Ok(())
+}
 
 #[tauri::command]
 pub async fn create_elements_in_pc(
@@ -303,33 +323,10 @@ pub async fn get_app_setting(
 
 #[tauri::command]
 pub async fn set_app_setting(
-    handle: AppHandle,
     modules: State<'_, Arc<Modules>>,
     key: String,
     value: Option<String>,
 ) -> Result<(), CommandError> {
-    if key == "shortcut_key" {
-        let manager = handle.global_shortcut_manager();
-        // Unregister old shortcut
-        if let Some(old_key) = modules
-            .collection_use_case()
-            .get_app_setting("shortcut_key".to_string())
-            .await?
-        {
-            if manager.is_registered(&old_key)? {
-                manager.unregister(&old_key)?;
-            }
-        }
-        // Register new shortcut
-        if let Some(new_key) = value.clone() {
-            if !new_key.is_empty() {
-                let handle_clone = handle.clone();
-                manager.register(&new_key, move || {
-                    let _ = handle_clone.emit("global-shortcut-launch-game", ());
-                })?;
-            }
-        }
-    }
     Ok(modules
         .collection_use_case()
         .set_app_setting(key, value)
@@ -558,10 +555,7 @@ pub async fn update_game_image(
         icon_dir.write(file).map_err(anyhow::Error::from)?;
     }
 
-    modules
-        .collection_use_case()
-        .touch_element(id)
-        .await?;
+    modules.collection_use_case().touch_element(id).await?;
 
     modules
         .collection_use_case()

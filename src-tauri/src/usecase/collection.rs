@@ -75,7 +75,9 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
             // ▼▼▼ 修正: 優先度付けを行う新しい特定ロジック ▼▼▼
             loop {
                 if search_start_time.elapsed() > search_timeout {
-                    println!("[WARN] Game process search timed out. Play time may not be recorded.");
+                    println!(
+                        "[WARN] Game process search timed out. Play time may not be recorded."
+                    );
                     break;
                 }
                 tokio::time::sleep(Duration::from_secs(2)).await;
@@ -139,7 +141,11 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
 
                 // 最もスコアの高い候補の中から、ゲーム名に一番近いものを探す
                 if !candidates.is_empty() {
-                    let max_score = candidates.iter().map(|(_, score)| *score).max().unwrap_or(0);
+                    let max_score = candidates
+                        .iter()
+                        .map(|(_, score)| *score)
+                        .max()
+                        .unwrap_or(0);
                     if let Some(best_match) = candidates
                         .iter()
                         .filter(|(_, score)| *score == max_score)
@@ -409,7 +415,8 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
             .await?;
         Ok(())
     }
-    pub async fn update_element_play_status( // 追加
+    pub async fn update_element_play_status(
+        // 追加
         &self,
         id: &Id<CollectionElement>,
         play_status: i32,
@@ -466,11 +473,7 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
             .await
     }
 
-    pub async fn set_app_setting(
-        &self,
-        key: String,
-        value: Option<String>,
-    ) -> anyhow::Result<()> {
+    pub async fn set_app_setting(&self, key: String, value: Option<String>) -> anyhow::Result<()> {
         self.repositories
             .collection_repository()
             .set_app_setting(key, value)
