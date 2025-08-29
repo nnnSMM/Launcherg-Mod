@@ -14,7 +14,7 @@ use tauri_plugin_log::{Target, TargetKind};
 
 fn main() {
     tauri::Builder::default()
-        .plugin(tauri_plugin_global_shortcut::init())
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
