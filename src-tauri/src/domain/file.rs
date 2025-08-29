@@ -673,6 +673,18 @@ async fn save_origin_thumbnail(url: &str, save_path: &str) -> anyhow::Result<()>
     Ok(())
 }
 
+pub async fn get_exe_path_from_lnk(path: &str) -> anyhow::Result<String> {
+    if !path.to_lowercase().ends_with("lnk") {
+        return Err(anyhow::anyhow!("filepath is not ends with lnk"));
+    }
+    let metadatas = get_lnk_metadatas(vec![path])?;
+    if let Some(meta) = metadatas.get(path) {
+        return Ok(meta.path.clone());
+    } else {
+        return Err(anyhow::anyhow!("cannot get lnk metadata"));
+    }
+}
+
 fn resize_image(src: &str, dst: &str, dst_width_px: u32) -> anyhow::Result<()> {
     // Read source image from file
     let img = ImageReader::open(src)?.decode()?;

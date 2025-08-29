@@ -3,7 +3,7 @@
   import { link } from "svelte-spa-router";
   import { showSidebar } from "@/store/showSidebar";
   import ButtonBase from "@/components/UI/ButtonBase.svelte";
-  import { openSettingsTab } from "@/store/tabs";
+  import { openSettingsTab, openShortcutSettingsTab } from "@/store/tabs";
 
 </script>
 
@@ -14,6 +14,19 @@
       <div class="font-logo text-(h3 text-primary)">Launcherg</div>
     </div>
   </a>
+
+  <ButtonBase
+    on:click={openShortcutSettingsTab}
+    appendClass="p-1 bg-transparent border-0px"
+    tooltip={{
+      content: "ショートカット設定",
+      placement: "bottom",
+      theme: "default",
+      delay: 1000,
+    }}
+  >
+    <div class="i-material-symbols-keyboard-outline-rounded w-6 h-6 color-text-primary" />
+  </ButtonBase>
 
   <ButtonBase
     on:click={openSettingsTab}
