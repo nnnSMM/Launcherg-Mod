@@ -1,22 +1,31 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { invoke } from "@tauri-apps/api/tauri";
+  import { invoke } from "@tauri-apps/api/core";
   import type { CollectionElement } from "../lib/types";
   import Button from "../components/UI/Button.svelte";
   import Select from "../components/UI/Select.svelte";
   import Input from "../components/UI/Input.svelte";
+  import type { Option } from "@/lib/filter";
 
   let games: CollectionElement[] = [];
-  let selectedGameId: string = "";
+  let gameOptions: Option<number>[] = [];
+  let selectedGameId: number = 0;
   let shortcutKey: string = "";
   let isLoading = true;
 
   onMount(async () => {
     try {
       games = await invoke("get_all_elements");
-      const savedGameId = await invoke<string>("get_app_setting", { key: "shortcut_game_id" });
-      if (savedGameId) {
-        selectedGameId = savedGameId;
+      gameOptions = [
+        { label: "None", value: 0 },
+        ...games.map((g) => ({ label: g.gamename, value: g.id })),
+      ];
+
+      const savedGameIdStr = await invoke<string>("get_app_setting", { key: "shortcut_game_id" });
+      if (savedGameIdStr) {
+        selectedGameId = parseInt(savedGameIdStr, 10);
+      } else {
+        selectedGameId = 0;
       }
       const savedShortcutKey = await invoke<string>("get_app_setting", { key: "shortcut_key" });
       if (savedShortcutKey) {
@@ -31,7 +40,8 @@
 
   async function saveSettings() {
     try {
-      await invoke("set_app_setting", { key: "shortcut_game_id", value: selectedGameId });
+      const gameIdToSave = selectedGameId === 0 ? null : selectedGameId.toString();
+      await invoke("set_app_setting", { key: "shortcut_game_id", value: gameIdToSave });
       await invoke("set_app_setting", { key: "shortcut_key", value: shortcutKey });
       alert("Settings saved successfully!");
     } catch (error) {
@@ -49,27 +59,26 @@
   {:else}
     <div class="space-y-4">
       <div>
-        <label for="game-select" class="block text-sm font-medium text-gray-700">
+        <label class="block text-sm font-medium text-gray-700 mb-1">
           Shortcut Game
         </label>
-        <Select id="game-select" bind:value={selectedGameId} class="mt-1 block w-full">
-          <option value="">None</option>
-          {#each games as game (game.id)}
-            <option value={game.id}>{game.gamename}</option>
-          {/each}
-        </Select>
+        <Select
+          options={gameOptions}
+          bind:value={selectedGameId}
+          title="Select a game"
+          enableFilter={true}
+          filterPlaceholder="Search games..."
+        />
         <p class="mt-1 text-sm text-gray-500">Select a game to launch with the shortcut.</p>
       </div>
 
       <div>
-        <label for="shortcut-key" class="block text-sm font-medium text-gray-700">
+        <label class="block text-sm font-medium text-gray-700 mb-1">
           Shortcut Key
         </label>
         <Input
-          id="shortcut-key"
           bind:value={shortcutKey}
           placeholder="e.g., CommandOrControl+Shift+L"
-          class="mt-1 block w-full"
         />
         <p class="mt-1 text-sm text-gray-500">
           Define the global shortcut. Use modifiers like CommandOrControl, Shift, Alt. See <a

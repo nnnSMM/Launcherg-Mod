@@ -9,8 +9,11 @@ mod usecase;
 use std::sync::Arc;
 
 use infrastructure::util::get_save_root_abs_dir_with_ptr_handle;
-use interface::{command, module::Modules};
-use tauri::{async_runtime::block_on, GlobalShortcutManager, Manager};
+use interface::{
+    command,
+    module::{Modules, ModulesExt},
+};
+use tauri::{async_runtime::block_on, Emitter, Listener, Manager};
 use tauri_plugin_log::{Target, TargetKind};
 
 fn main() {
@@ -59,17 +62,17 @@ fn main() {
                     .await
                 {
                     if !shortcut_key.is_empty() {
-                        let mut manager = app_handle.global_shortcut_manager();
+                        let manager = app_handle.global_shortcut_manager();
                         let handle_clone = app_handle.clone();
                         let _ = manager.register(&shortcut_key, move || {
-                            let _ = handle_clone.emit_all("global-shortcut-launch-game", ());
+                            let _ = handle_clone.emit("global-shortcut-launch-game", ());
                         });
                     }
                 }
             });
 
             let app_handle = app.handle().clone();
-            app.listen_global("global-shortcut-launch-game", move |_| {
+            app_handle.listen("global-shortcut-launch-game", move |_| {
                 println!("global-shortcut-launch-game event received");
                 let handle = app_handle.clone();
                 tauri::async_runtime::spawn(async move {
