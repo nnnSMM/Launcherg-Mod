@@ -279,7 +279,8 @@ impl CollectionRepository for RepositoryImpl<CollectionElement> {
             .await?;
         Ok(())
     }
-    async fn update_element_play_status_by_id( // 追加
+    async fn update_element_play_status_by_id(
+        // 追加
         &self,
         id: &Id<CollectionElement>,
         play_status: i32,

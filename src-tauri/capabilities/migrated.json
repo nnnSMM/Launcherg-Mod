@@ -52,6 +52,7 @@
     "dialog:default",
     "shell:default",
     "http:default",
-    "shell:default"
+    "shell:default",
+    "global-shortcut:default"
   ]
 }

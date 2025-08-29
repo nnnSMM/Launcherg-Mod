@@ -9,21 +9,20 @@ mod usecase;
 use std::sync::Arc;
 
 use infrastructure::util::get_save_root_abs_dir_with_ptr_handle;
-use interface::{
-    command,
-    module::{Modules, ModulesExt},
-};
-use tauri::{async_runtime::block_on, Emitter, Listener, Manager};
+use interface::{command, module::Modules};
+use tauri::{async_runtime::block_on, Manager};
 use tauri_plugin_log::{Target, TargetKind};
 
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_window_state::Builder::default().build())
+        .plugin(tauri_plugin_global_shortcut::init())
         .setup(|app| {
             // folder の中身を移動して folder を削除する
             // C:\Users\ryoha\AppData\Roaming\launcherg -> C:\Users\ryoha\AppData\Roaming\ryoha.moe\launcherg
@@ -52,46 +51,6 @@ fn main() {
 
             let modules = Arc::new(block_on(Modules::new(app.handle())));
             app.manage(modules);
-
-            let app_handle = app.handle().clone();
-            tauri::async_runtime::spawn(async move {
-                let modules = app_handle.state::<Arc<Modules>>();
-                if let Ok(Some(shortcut_key)) = modules
-                    .collection_use_case()
-                    .get_app_setting("shortcut_key".to_string())
-                    .await
-                {
-                    if !shortcut_key.is_empty() {
-                        let manager = app_handle.global_shortcut_manager();
-                        let handle_clone = app_handle.clone();
-                        let _ = manager.register(&shortcut_key, move || {
-                            let _ = handle_clone.emit("global-shortcut-launch-game", ());
-                        });
-                    }
-                }
-            });
-
-            let app_handle = app.handle().clone();
-            app_handle.listen("global-shortcut-launch-game", move |_| {
-                println!("global-shortcut-launch-game event received");
-                let handle = app_handle.clone();
-                tauri::async_runtime::spawn(async move {
-                    let modules = handle.state::<Arc<Modules>>();
-                    if let Ok(Some(game_id_str)) = modules
-                        .collection_use_case()
-                        .get_app_setting("shortcut_game_id".to_string())
-                        .await
-                    {
-                        if let Ok(game_id) = game_id_str.parse::<i32>() {
-                            println!("Launching game with id: {}", game_id);
-                            let _ = modules
-                                .collection_use_case()
-                                .play_game_and_track(handle.into(), game_id)
-                                .await;
-                        }
-                    }
-                });
-            });
 
             Ok(())
         })
@@ -131,6 +90,7 @@ fn main() {
             command::update_game_image,
             command::get_app_setting,
             command::set_app_setting,
+            command::launch_shortcut_game,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
