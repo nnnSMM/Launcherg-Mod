@@ -23,6 +23,7 @@
 
   onMount(async () => {
     try {
+      await unregisterAll();
       games = await invoke("get_all_elements");
       gameOptions = [
         { label: "None", value: 0 },
@@ -42,6 +43,7 @@
       });
       if (savedShortcutKey) {
         shortcutKey = savedShortcutKey;
+        await register(shortcutKey, launchGame);
       }
     } catch (error) {
       console.error("Error loading settings:", error);
@@ -54,7 +56,6 @@
     try {
       await unregisterAll();
 
-      // Save settings to backend
       const gameIdToSave =
         selectedGameId === 0 ? null : selectedGameId.toString();
       await invoke("set_app_setting", {
@@ -66,7 +67,6 @@
         value: shortcutKey,
       });
 
-      // Register new shortcut if provided
       if (shortcutKey) {
         await register(shortcutKey, launchGame);
       }
