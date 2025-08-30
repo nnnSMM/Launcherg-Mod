@@ -57,7 +57,7 @@
 
       await invoke("update_shortcut_registration");
 
-      alert("設定を保存しました！");
+      alert("設定を保存しました");
     } catch (error) {
       console.error("Error saving settings:", error);
       alert(`設定の保存に失敗しました: ${error}`);

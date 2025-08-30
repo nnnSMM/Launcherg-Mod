@@ -44,7 +44,7 @@ fn main() {
                                         if let Ok(game_id) = game_id_str.parse::<i32>() {
                                             if let Err(e) = modules
                                                 .collection_use_case()
-                                                .play_game_and_track(app_handle.into(), game_id)
+                                                .play_game_and_track(app_handle.clone().into(), game_id)
                                                 .await
                                             {
                                                 eprintln!("Error playing game: {}", e);
@@ -80,7 +80,7 @@ fn main() {
                 {
                     if !shortcut_key.is_empty() {
                         if let Ok(shortcut) = shortcut_key.parse::<Shortcut>() {
-                            if !handle.global_shortcut().is_registered(&shortcut) {
+                            if !handle.global_shortcut().is_registered(shortcut.clone()) {
                                 if let Err(e) = handle.global_shortcut().register(shortcut) {
                                     eprintln!("Failed to register shortcut on startup: {}", e);
                                 }
