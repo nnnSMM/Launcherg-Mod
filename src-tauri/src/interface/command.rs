@@ -26,25 +26,44 @@ use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut};
 pub async fn update_shortcut_registration(
     handle: AppHandle,
     modules: State<'_, Arc<Modules>>,
+    new_shortcut_key: Option<String>,
 ) -> Result<(), CommandError> {
-    handle
-        .global_shortcut()
-        .unregister_all()
-        .map_err(anyhow::Error::from)?;
-    if let Ok(Some(shortcut_key)) = modules
+    // Get the old shortcut key from settings
+    if let Ok(Some(old_shortcut_key)) = modules
         .collection_use_case()
         .get_app_setting("shortcut_key".to_string())
         .await
     {
-        if !shortcut_key.is_empty() {
-            if let Ok(shortcut) = shortcut_key.parse::<Shortcut>() {
+        if !old_shortcut_key.is_empty() {
+            if let Ok(old_shortcut) = old_shortcut_key.parse::<Shortcut>() {
+                if handle.global_shortcut().is_registered(old_shortcut.clone()) {
+                    handle
+                        .global_shortcut()
+                        .unregister(old_shortcut)
+                        .map_err(anyhow::Error::from)?;
+                }
+            }
+        }
+    }
+
+    // Save the new shortcut key
+    modules
+        .collection_use_case()
+        .set_app_setting("shortcut_key".to_string(), new_shortcut_key.clone())
+        .await?;
+
+    // Register the new shortcut key
+    if let Some(new_key) = new_shortcut_key {
+        if !new_key.is_empty() {
+            if let Ok(new_shortcut) = new_key.parse::<Shortcut>() {
                 handle
                     .global_shortcut()
-                    .register(shortcut)
+                    .register(new_shortcut)
                     .map_err(anyhow::Error::from)?;
             }
         }
     }
+
     Ok(())
 }
 
