@@ -65,6 +65,7 @@
         on:click={() => {
           value = option.value;
           dispatcher("select", { value: option.value });
+          $localQuery = "";
           dispatcher("close");
         }}
       >
