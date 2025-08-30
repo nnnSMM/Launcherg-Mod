@@ -73,7 +73,7 @@
   {:else}
     <div class="space-y-4">
       <div>
-        <label class="block text-sm font-medium mb-1">
+        <label class="block text-sm font-medium text-text-primary mb-1">
           ショートカットで起動するゲーム
         </label>
         <Select
@@ -83,20 +83,20 @@
           enableFilter={true}
           filterPlaceholder="ゲームを検索..."
         />
-        <p class="mt-1 text-sm">
+        <p class="mt-1 text-sm text-text-primary">
           ショートカットで起動するゲームを選択してください。
         </p>
       </div>
 
       <div>
-        <label class="block text-sm font-medium mb-1">
+        <label class="block text-sm font-medium text-text-primary mb-1">
           ショートカットキー
         </label>
         <Input
           bind:value={shortcutKey}
           placeholder="例: CommandOrControl+Shift+L"
         />
-        <p class="mt-1 text-sm">
+        <p class="mt-1 text-sm text-text-primary">
           グローバルショートカットを定義します。CommandOrControl, Shift,
           Altなどの修飾キーが使えます。有効なアクセラレータ文字列については、<a
             href="https://tauri.app/v1/api/js/globalshortcut"
