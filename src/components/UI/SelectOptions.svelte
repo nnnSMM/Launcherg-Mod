@@ -3,7 +3,6 @@
   import { useFilter } from "@/lib/filter";
   import { type Option } from "@/lib/trieFilter";
   import { createWritable } from "@/lib/utils";
-  import SimpleBar from "simplebar";
   import { createEventDispatcher } from "svelte";
   import { writable } from "svelte/store";
 
@@ -28,10 +27,6 @@
     create: {};
     close: {};
   }>();
-
-  const simplebar = (node: HTMLElement) => {
-    new SimpleBar(node, { scrollbarMinSize: 64 });
-  };
 </script>
 
 <div class="max-h-80 overflow-hidden flex-(~ col)">
@@ -53,7 +48,7 @@
       />
     </div>
   {/if}
-  <div class="flex flex-(col) overflow-y-auto min-h-full" use:simplebar>
+  <div class="flex flex-(col) overflow-y-auto min-h-full">
     {#each $filtered as option, i (option)}
       <button
         class={`${value === option.value ? "bg-bg-tertiary" : "bg-transparent"}
