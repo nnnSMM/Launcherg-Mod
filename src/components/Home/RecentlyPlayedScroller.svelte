@@ -92,17 +92,17 @@
 
 <!-- Add a style block to control SimpleBar's appearance -->
 <style>
-  :global(.simplebar-track.simplebar-vertical) {
+  :global(.recently-played-scroller .simplebar-track.simplebar-vertical) {
     display: none !important;
   }
-  :global(.simplebar-scrollbar::before) {
+  :global(.recently-played-scroller .simplebar-scrollbar::before) {
     background-color: rgba(160, 160, 160, 0.8);
   }
 </style>
 
 <div
   use:simplebarAction
-  class="overflow-x-auto"
+  class="overflow-x-auto recently-played-scroller"
   on:mouseenter={() => (isHovering = true)}
   on:mouseleave={() => (isHovering = false)}
 >

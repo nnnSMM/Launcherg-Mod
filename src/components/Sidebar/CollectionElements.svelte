@@ -13,8 +13,8 @@
   };
 </script>
 
-{#if collectionElement.length}
-  <div use:simplebar class="h-full w-full overflow-y-auto">
+<div use:simplebar class="h-full overflow-y-auto">
+  {#if collectionElement.length}
     <div class="w-full pt-2">
       {#each collectionElement as { label, elements } (label)}
         <ADisclosure {label} defaultOpen={collectionElement.length === 1}>
@@ -27,5 +27,5 @@
         </ADisclosure>
       {/each}
     </div>
-  </div>
-{/if}
+  {/if}
+</div>
