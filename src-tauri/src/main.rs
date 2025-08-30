@@ -65,6 +65,11 @@ fn main() {
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .setup(|app| {
+            let handle = app.handle().clone();
+            if let Err(e) = handle.global_shortcut().unregister_all() {
+                eprintln!("Failed to unregister all shortcuts on startup: {}", e);
+            }
+
             let modules = Arc::new(tauri::async_runtime::block_on(Modules::new(
                 &app.handle(),
             )));
