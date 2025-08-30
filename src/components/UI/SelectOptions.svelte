@@ -3,9 +3,9 @@
   import { useFilter } from "@/lib/filter";
   import { type Option } from "@/lib/trieFilter";
   import { createWritable } from "@/lib/utils";
-  import { query } from "@/store/query";
   import SimpleBar from "simplebar";
   import { createEventDispatcher } from "svelte";
+  import { writable } from "svelte/store";
 
   export let options: Option<string | number>[];
   export let title: string | undefined = undefined;
@@ -20,7 +20,8 @@
     writableOptions.set(options);
   }
 
-  const { filtered } = useFilter(query, writableOptions, getOptions);
+  const localQuery = writable("");
+  const { filtered } = useFilter(localQuery, writableOptions, getOptions);
 
   const dispatcher = createEventDispatcher<{
     select: { value: string | number };
@@ -45,7 +46,11 @@
   {/if}
   {#if enableFilter}
     <div class="p-2 border-(b-1px border-primary solid)">
-      <Input bind:value={$query} placeholder={filterPlaceholder} autofocus />
+      <Input
+        bind:value={$localQuery}
+        placeholder={filterPlaceholder}
+        autofocus
+      />
     </div>
   {/if}
   <div class="flex flex-(col) overflow-y-auto min-h-full" use:simplebar>
