@@ -50,12 +50,11 @@
         key: "shortcut_game_id",
         value: gameIdToSave,
       });
-      await invoke("set_app_setting", {
-        key: "shortcut_key",
-        value: shortcutKey,
-      });
 
-      await invoke("update_shortcut_registration");
+      const keyToSave = shortcutKey === "" ? null : shortcutKey;
+      await invoke("update_shortcut_registration", {
+        newShortcutKey: keyToSave,
+      });
 
       alert("設定を保存しました");
     } catch (error) {
