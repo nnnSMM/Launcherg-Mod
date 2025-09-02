@@ -15,7 +15,7 @@ use interface::{
 use tauri::{
     menu::{IsMenuItem, Menu, MenuItem, Submenu},
     tray::{TrayIconBuilder, MouseButton, TrayIconEvent},
-    Emitter, Listener, Manager,
+    AppHandle, Emitter, Listener, Manager, Wry,
 };
 use tauri_plugin_autostart::{ManagerExt, MacosLauncher};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
@@ -101,76 +101,12 @@ fn main() {
             let modules = Arc::new(tauri::async_runtime::block_on(Modules::new(
                 &app.handle(),
             )));
-            app.manage(modules.clone());
+            app.manage(modules);
 
-            // トレイメニューの構築
-            let launch_shortcut_game_label = tauri::async_runtime::block_on(async {
-                if let Ok(Some(game_id_str)) = modules
-                    .collection_use_case()
-                    .get_app_setting("shortcut_game_id".to_string())
-                    .await
-                {
-                    if let Ok(game_id) = game_id_str.parse::<i32>() {
-                        if let Ok(game) = modules
-                            .collection_use_case()
-                            .get_element_by_element_id(&crate::domain::Id::new(game_id))
-                            .await
-                        {
-                            return format!("{} を起動", game.gamename);
-                        }
-                    }
-                }
-                "ショートカットのゲームを起動".to_string()
-            });
+            let menu =
+                tauri::async_runtime::block_on(build_tray_menu(app.handle())).unwrap();
 
-            let launch_shortcut_game_i = MenuItem::with_id(
-                app,
-                "launch_shortcut_game",
-                &launch_shortcut_game_label,
-                true,
-                None::<&str>,
-            )?;
-            let quit_i = MenuItem::with_id(app, "quit", "終了", true, None::<&str>)?;
-
-            // 最近プレイしたゲームのサブメニューを作成
-            let recent_games_submenu = {
-                let app_handle = Arc::new(app.handle().clone());
-                let modules = app.state::<Arc<Modules>>();
-                let mut all_games = tauri::async_runtime::block_on(
-                    modules.collection_use_case().get_all_elements(&app_handle),
-                )
-                .unwrap_or_default();
-
-                all_games.sort_by(|a, b| b.last_play_at.cmp(&a.last_play_at));
-                let recent_games = all_games
-                    .into_iter()
-                    .filter(|g| g.last_play_at.is_some())
-                    .take(10);
-
-                let mut recent_games_items = vec![];
-                for game in recent_games {
-                    let game_item = MenuItem::with_id(
-                        app,
-                        format!("play_game_{}", game.id.value),
-                        &game.gamename,
-                        true,
-                        None::<&str>,
-                    )?;
-                    recent_games_items.push(game_item);
-                }
-                let recent_item_refs: Vec<&dyn IsMenuItem<_>> = recent_games_items
-                    .iter()
-                    .map(|i| i as &dyn IsMenuItem<_>)
-                    .collect();
-                Submenu::with_items(app, "最近プレイしたゲーム", true, &recent_item_refs)?
-            };
-
-            let menu = Menu::with_items(
-                app,
-                &[&launch_shortcut_game_i, &recent_games_submenu, &quit_i],
-            )?;
-
-            let _tray = TrayIconBuilder::new()
+            let _tray = TrayIconBuilder::with_id("main-tray")
                 .icon(app.default_window_icon().unwrap().clone())
                 .menu(&menu)
                 .on_menu_event(move |app, event| {
@@ -232,6 +168,18 @@ fn main() {
                     }
                 })
                 .build(app)?;
+
+            let app_handle = app.handle().clone();
+            app.listen("shortcut-game-changed", move |_event| {
+                let app_handle = app_handle.clone();
+                tauri::async_runtime::spawn(async move {
+                    if let Ok(menu) = build_tray_menu(&app_handle).await {
+                        if let Some(tray) = app_handle.tray_by_id("main-tray") {
+                            let _ = tray.set_menu(Some(menu));
+                        }
+                    }
+                });
+            });
 
             let app_handle = app.handle().clone();
             app.listen("single-instance", move |_event| {
@@ -304,4 +252,86 @@ fn main() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+async fn build_tray_menu(app_handle: &AppHandle) -> anyhow::Result<Menu<Wry>> {
+    let modules: tauri::State<Arc<Modules>> = app_handle.state();
+
+    let launch_shortcut_game_label = {
+        if let Ok(Some(game_id_str)) = modules
+            .collection_use_case()
+            .get_app_setting("shortcut_game_id".to_string())
+            .await
+        {
+            if let Ok(game_id) = game_id_str.parse::<i32>() {
+                if let Ok(game) = modules
+                    .collection_use_case()
+                    .get_element_by_element_id(&crate::domain::Id::new(game_id))
+                    .await
+                {
+                    format!("{} を起動", game.gamename)
+                } else {
+                    "ショートカットのゲームを起動".to_string()
+                }
+            } else {
+                "ショートカットのゲームを起動".to_string()
+            }
+        } else {
+            "ショートカットのゲームを起動".to_string()
+        }
+    };
+
+    let launch_shortcut_game_i = MenuItem::with_id(
+        app_handle,
+        "launch_shortcut_game",
+        &launch_shortcut_game_label,
+        true,
+        None::<&str>,
+    )?;
+    let quit_i = MenuItem::with_id(app_handle, "quit", "終了", true, None::<&str>)?;
+
+    // 最近プレイしたゲームのサブメニューを作成
+    let recent_games_submenu = {
+        let handle_arc = Arc::new(app_handle.clone());
+        let mut all_games = modules
+            .collection_use_case()
+            .get_all_elements(&handle_arc)
+            .await
+            .unwrap_or_default();
+
+        all_games.sort_by(|a, b| b.last_play_at.cmp(&a.last_play_at));
+        let recent_games = all_games
+            .into_iter()
+            .filter(|g| g.last_play_at.is_some())
+            .take(10);
+
+        let mut recent_games_items = vec![];
+        for game in recent_games {
+            let game_item = MenuItem::with_id(
+                app_handle,
+                format!("play_game_{}", game.id.value),
+                &game.gamename,
+                true,
+                None::<&str>,
+            )?;
+            recent_games_items.push(game_item);
+        }
+        let recent_item_refs: Vec<&dyn IsMenuItem<_>> = recent_games_items
+            .iter()
+            .map(|i| i as &dyn IsMenuItem<_>)
+            .collect();
+        Submenu::with_items(
+            app_handle,
+            "最近プレイしたゲーム",
+            true,
+            &recent_item_refs,
+        )?
+    };
+
+    let menu = Menu::with_items(
+        app_handle,
+        &[&launch_shortcut_game_i, &recent_games_submenu, &quit_i],
+    )?;
+
+    Ok(menu)
 }
