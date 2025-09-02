@@ -93,7 +93,7 @@ fn main() {
                         app.exit(0);
                     }
                     "show_hide" => {
-                        let window = app.get_window("main").unwrap();
+                        let window = app.get_webview_window("main").unwrap();
                         if window.is_visible().unwrap() {
                             window.hide().unwrap();
                         } else {
@@ -104,6 +104,14 @@ fn main() {
                     _ => {}
                 })
                 .build(app)?;
+
+            if let Ok(matches) = app.get_cli_matches() {
+                if matches.args.contains_key("hidden") {
+                    if let Some(window) = app.get_webview_window("main") {
+                        let _ = window.hide();
+                    }
+                }
+            }
 
             let modules = Arc::new(tauri::async_runtime::block_on(Modules::new(
                 &app.handle(),
