@@ -13,8 +13,8 @@ use interface::{
     module::{Modules, ModulesExt},
 };
 use tauri::{
-    menu::{Menu, MenuItem, Submenu},
-    tray::TrayIconBuilder,
+    menu::{IsMenuItem, Menu, MenuItem, Submenu},
+    tray::{TrayIconBuilder, MouseButton, TrayIconEvent},
     Emitter, Listener, Manager,
 };
 use tauri_plugin_autostart::{ManagerExt, MacosLauncher};
@@ -110,7 +110,7 @@ fn main() {
 
             // 最近プレイしたゲームのサブメニューを作成
             let recent_games_submenu = {
-                let app_handle = app.handle().clone();
+                let app_handle = Arc::new(app.handle().clone());
                 let modules = app.state::<Arc<Modules>>();
                 let mut all_games = tauri::async_runtime::block_on(
                     modules.collection_use_case().get_all_elements(&app_handle),
@@ -127,14 +127,18 @@ fn main() {
                 for game in recent_games {
                     let game_item = MenuItem::with_id(
                         app,
-                        format!("play_game_{}", game.id.value()),
+                        format!("play_game_{}", game.id.value),
                         &game.gamename,
                         true,
                         None::<&str>,
                     )?;
                     recent_games_items.push(game_item);
                 }
-                Submenu::with_items(app, "最近プレイしたゲーム", true, &recent_games_items)?
+                let recent_item_refs: Vec<&dyn IsMenuItem<_>> = recent_games_items
+                    .iter()
+                    .map(|i| i as &dyn IsMenuItem<_>)
+                    .collect();
+                Submenu::with_items(app, "最近プレイしたゲーム", true, &recent_item_refs)?
             };
 
             let menu = Menu::with_items(
@@ -147,7 +151,7 @@ fn main() {
                 .menu(&menu)
                 .on_menu_event(move |app, event| {
                     let app_handle = app.clone();
-                    let event_id = event.id().to_string();
+                    let event_id = event.id().as_ref().to_string();
                     tauri::async_runtime::spawn(async move {
                         let modules = app_handle.state::<Arc<Modules>>();
                         match event_id.as_str() {
@@ -187,6 +191,21 @@ fn main() {
                             _ => {}
                         }
                     });
+                })
+                .menu_on_left_click(false)
+                .on_tray_icon_event(|tray, event| {
+                    if let TrayIconEvent::DoubleClick {
+                        button: MouseButton::Left,
+                        ..
+                    } = event
+                    {
+                        let app = tray.app_handle();
+                        let window = app.get_webview_window("main").unwrap();
+                        if !window.is_visible().unwrap() {
+                            window.show().unwrap();
+                            window.set_focus().unwrap();
+                        }
+                    }
                 })
                 .build(app)?;
 
