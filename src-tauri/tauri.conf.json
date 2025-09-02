@@ -47,6 +47,17 @@
         "width": 800,
         "height": 600,
         "visible": false
+      },
+      {
+        "label": "tray",
+        "url": "tray.html",
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "visible": false,
+        "skipTaskbar": true,
+        "width": 200,
+        "height": 150
       }
     ],
     "security": {
