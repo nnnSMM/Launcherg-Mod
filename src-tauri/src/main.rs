@@ -13,8 +13,8 @@ use interface::{
     module::{Modules, ModulesExt},
 };
 use tauri::{
-    menu::{Menu, MenuItem},
-    tray::{TrayIconBuilder, MouseButton, TrayIconEvent},
+    menu::{Menu, MenuItem, Submenu},
+    tray::TrayIconBuilder,
     Emitter, Listener, Manager,
 };
 use tauri_plugin_autostart::{ManagerExt, MacosLauncher};
@@ -97,41 +97,96 @@ fn main() {
                 eprintln!("Failed to unregister all shortcuts on startup: {}", e);
             }
 
-            let show_hide_i = MenuItem::with_id(app, "show_hide", "Show/Hide", true, None::<&str>)?;
-            let quit_i = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&show_hide_i, &quit_i])?;
+            // Modulesの初期化を先に行う
+            let modules = Arc::new(tauri::async_runtime::block_on(Modules::new(
+                &app.handle(),
+            )));
+            app.manage(modules);
+
+            // トレイメニューの構築
+            let launch_shortcut_game_i =
+                MenuItem::with_id(app, "launch_shortcut_game", "ショートカットのゲームを起動", true, None::<&str>)?;
+            let quit_i = MenuItem::with_id(app, "quit", "終了", true, None::<&str>)?;
+
+            // 最近プレイしたゲームのサブメニューを作成
+            let recent_games_submenu = {
+                let app_handle = app.handle().clone();
+                let modules = app.state::<Arc<Modules>>();
+                let mut all_games = tauri::async_runtime::block_on(
+                    modules.collection_use_case().get_all_elements(&app_handle),
+                )
+                .unwrap_or_default();
+
+                all_games.sort_by(|a, b| b.last_play_at.cmp(&a.last_play_at));
+                let recent_games = all_games
+                    .into_iter()
+                    .filter(|g| g.last_play_at.is_some())
+                    .take(10);
+
+                let mut recent_games_items = vec![];
+                for game in recent_games {
+                    let game_item = MenuItem::with_id(
+                        app,
+                        format!("play_game_{}", game.id.value()),
+                        &game.gamename,
+                        true,
+                        None::<&str>,
+                    )?;
+                    recent_games_items.push(game_item);
+                }
+                Submenu::with_items(app, "最近プレイしたゲーム", true, &recent_games_items)?
+            };
+
+            let menu = Menu::with_items(
+                app,
+                &[&launch_shortcut_game_i, &recent_games_submenu, &quit_i],
+            )?;
+
             let _tray = TrayIconBuilder::new()
                 .icon(app.default_window_icon().unwrap().clone())
                 .menu(&menu)
-                .on_menu_event(|app, event| match event.id.as_ref() {
-                    "quit" => {
-                        app.exit(0);
-                    }
-                    "show_hide" => {
-                        let window = app.get_webview_window("main").unwrap();
-                        if window.is_visible().unwrap() {
-                            window.hide().unwrap();
-                        } else {
-                            window.show().unwrap();
-                            window.set_focus().unwrap();
+                .on_menu_event(move |app, event| {
+                    let app_handle = app.clone();
+                    let event_id = event.id().to_string();
+                    tauri::async_runtime::spawn(async move {
+                        let modules = app_handle.state::<Arc<Modules>>();
+                        match event_id.as_str() {
+                            "quit" => {
+                                app_handle.exit(0);
+                            }
+                            "launch_shortcut_game" => {
+                                if let Ok(Some(game_id_str)) = modules
+                                    .collection_use_case()
+                                    .get_app_setting("shortcut_game_id".to_string())
+                                    .await
+                                {
+                                    if let Ok(game_id) = game_id_str.parse::<i32>() {
+                                        if let Err(e) = modules
+                                            .collection_use_case()
+                                            .play_game_and_track(app_handle.clone().into(), game_id)
+                                            .await
+                                        {
+                                            eprintln!("Error playing game: {}", e);
+                                        }
+                                    }
+                                }
+                            }
+                            _ if event_id.starts_with("play_game_") => {
+                                if let Some(id_str) = event_id.strip_prefix("play_game_") {
+                                    if let Ok(game_id) = id_str.parse::<i32>() {
+                                        if let Err(e) = modules
+                                            .collection_use_case()
+                                            .play_game_and_track(app_handle.clone().into(), game_id)
+                                            .await
+                                        {
+                                            eprintln!("Error playing game: {}", e);
+                                        }
+                                    }
+                                }
+                            }
+                            _ => {}
                         }
-                    }
-                    _ => {}
-                })
-                .menu_on_left_click(false)
-                .on_tray_icon_event(|tray, event| {
-                    if let TrayIconEvent::DoubleClick {
-                        button: MouseButton::Left,
-                        ..
-                    } = event
-                    {
-                        let app = tray.app_handle();
-                        let window = app.get_webview_window("main").unwrap();
-                        if !window.is_visible().unwrap() {
-                            window.show().unwrap();
-                            window.set_focus().unwrap();
-                        }
-                    }
+                    });
                 })
                 .build(app)?;
 
@@ -142,9 +197,6 @@ fn main() {
                     window.set_focus().unwrap();
                 }
             });
-
-            let modules = Arc::new(tauri::async_runtime::block_on(Modules::new(&app.handle())));
-            app.manage(modules);
 
             let handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
