@@ -369,14 +369,23 @@ pub async fn get_app_setting(
 
 #[tauri::command]
 pub async fn set_app_setting(
+    app_handle: AppHandle,
     modules: State<'_, Arc<Modules>>,
     key: String,
     value: Option<String>,
 ) -> Result<(), CommandError> {
-    Ok(modules
+    modules
         .collection_use_case()
-        .set_app_setting(key, value)
-        .await?)
+        .set_app_setting(key.clone(), value)
+        .await?;
+
+    if key == "shortcut_game_id" {
+        app_handle
+            .emit("shortcut-game-changed", ())
+            .map_err(anyhow::Error::from)?;
+    }
+
+    Ok(())
 }
 
 #[tauri::command]
