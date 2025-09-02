@@ -19,6 +19,7 @@ use tauri::{
 use tauri_plugin_autostart::{ManagerExt, MacosLauncher};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 use tauri_plugin_log::{Target, TargetKind};
+use tauri_plugin_window_state;
 
 fn main() {
     tauri::Builder::default()
@@ -74,7 +75,7 @@ fn main() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_clipboard_manager::init())
-        .plugin(tauri_plugin_window_state::Builder::default().with_label_ignores(&["tray"]).build())
+        .plugin(tauri_plugin_window_state::Builder::new().with_denylist(&["tray"]).build())
         .on_window_event(|window, event| match event {
             tauri::WindowEvent::CloseRequested { api, .. } => {
                 if window.label() == "main" {
@@ -121,8 +122,7 @@ fn main() {
                                     if window.is_visible().unwrap() {
                                         window.hide().unwrap();
                                     } else {
-                                        let scale_factor = window.scale_factor().unwrap_or(1.0);
-                                        let window_size = window.outer_size().unwrap().to_physical::<u32>(scale_factor);
+                                        let window_size = window.outer_size().unwrap();
                                         let physical_pos = PhysicalPosition {
                                             x: position.x as i32 - window_size.width as i32,
                                             y: position.y as i32 - window_size.height as i32,

@@ -3,7 +3,7 @@ use std::{fs, sync::Arc};
 use chrono::Local;
 use derive_new::new;
 use sysinfo::{PidExt, ProcessExt, System, SystemExt};
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle};
 use tauri_plugin_shell::ShellExt;
 use tokio::time::{interval, Duration, Instant};
 
