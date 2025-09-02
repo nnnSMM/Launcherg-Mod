@@ -14,16 +14,14 @@ use interface::{
 };
 use tauri::{
     tray::{TrayIconEvent, TrayIconBuilder},
-    AppHandle, Emitter, Listener, Manager, Wry,
+    AppHandle, Emitter, Listener, Manager, PhysicalPosition, Wry,
 };
 use tauri_plugin_autostart::{ManagerExt, MacosLauncher};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 use tauri_plugin_log::{Target, TargetKind};
-use tauri_plugin_positioner::{Position, WindowExt};
 
 fn main() {
     tauri::Builder::default()
-        .plugin(tauri_plugin_positioner::init())
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
         .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
             app.emit("single-instance", ()).unwrap();
@@ -76,7 +74,7 @@ fn main() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_clipboard_manager::init())
-        .plugin(tauri_plugin_window_state::Builder::default().build())
+        .plugin(tauri_plugin_window_state::Builder::default().with_label_ignores(&["tray"]).build())
         .on_window_event(|window, event| match event {
             tauri::WindowEvent::CloseRequested { api, .. } => {
                 if window.label() == "main" {
@@ -114,28 +112,36 @@ fn main() {
             let _tray = TrayIconBuilder::with_id("main-tray")
                 .icon(app.default_window_icon().unwrap().clone())
                 .tooltip("Launcherg")
-                .on_tray_icon_event(|tray, event| match event {
-                    TrayIconEvent::Click { button, .. } => {
-                        let app = tray.app_handle();
-                        if button == tauri::tray::MouseButton::Right {
-                            if let Some(window) = app.get_webview_window("tray") {
-                                let _ = window.move_window(Position::TrayBottomRight);
-                                if window.is_visible().unwrap() {
-                                    window.hide().unwrap();
-                                } else {
-                                    window.show().unwrap();
+                .on_tray_icon_event(|tray, event| {
+                    match event {
+                        TrayIconEvent::Click { button, position, .. } => {
+                            let app = tray.app_handle();
+                            if button == tauri::tray::MouseButton::Right {
+                                if let Some(window) = app.get_webview_window("tray") {
+                                    if window.is_visible().unwrap() {
+                                        window.hide().unwrap();
+                                    } else {
+                                        let scale_factor = window.scale_factor().unwrap_or(1.0);
+                                        let window_size = window.outer_size().unwrap().to_physical::<u32>(scale_factor);
+                                        let physical_pos = PhysicalPosition {
+                                            x: position.x as i32 - window_size.width as i32,
+                                            y: position.y as i32 - window_size.height as i32,
+                                        };
+                                        window.set_position(physical_pos).unwrap();
+                                        window.show().unwrap();
+                                    }
                                 }
-                            }
-                        } else if button == tauri::tray::MouseButton::Left {
-                            if let Some(window) = app.get_webview_window("main") {
-                                if !window.is_visible().unwrap() {
-                                    window.show().unwrap();
-                                    window.set_focus().unwrap();
+                            } else if button == tauri::tray::MouseButton::Left {
+                                if let Some(window) = app.get_webview_window("main") {
+                                    if !window.is_visible().unwrap() {
+                                        window.show().unwrap();
+                                        window.set_focus().unwrap();
+                                    }
                                 }
                             }
                         }
-                    }
                     _ => {}
+                }
                 })
                 .build(app)?;
 
