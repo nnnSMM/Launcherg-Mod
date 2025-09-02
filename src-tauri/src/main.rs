@@ -14,7 +14,7 @@ use interface::{
 };
 use tauri::{
     menu::{Menu, MenuItem},
-    tray::TrayIconBuilder,
+    tray::{TrayIconBuilder, MouseButton, TrayIconEvent},
     Emitter, Listener, Manager,
 };
 use tauri_plugin_autostart::{ManagerExt, MacosLauncher};
@@ -117,6 +117,23 @@ fn main() {
                         }
                     }
                     _ => {}
+                })
+                .menu_on_left_click(false)
+                .on_tray_icon_event(|tray, event| {
+                    if let TrayIconEvent::DoubleClick {
+                        button: MouseButton::Left,
+                        ..
+                    } = event
+                    {
+                        let app = tray.app_handle();
+                        let window = app.get_webview_window("main").unwrap();
+                        if window.is_visible().unwrap() {
+                            window.hide().unwrap();
+                        } else {
+                            window.show().unwrap();
+                            window.set_focus().unwrap();
+                        }
+                    }
                 })
                 .build(app)?;
 
