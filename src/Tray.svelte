@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { invoke } from "@tauri-apps/api/core";
+  import { appWindow } from "@tauri-apps/api/window";
 
   let recentlyPlayed: { id: { value: number }; gamename: string }[] = [];
 
@@ -47,6 +48,8 @@
     await invoke("quit_app");
   }
 </script>
+
+<svelte:window on:blur={() => appWindow.hide()} />
 
 <div class="tray-container">
   <div class="menu">
