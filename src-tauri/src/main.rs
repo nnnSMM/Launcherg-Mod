@@ -127,9 +127,7 @@ fn main() {
                     {
                         let app = tray.app_handle();
                         let window = app.get_webview_window("main").unwrap();
-                        if window.is_visible().unwrap() {
-                            window.hide().unwrap();
-                        } else {
+                        if !window.is_visible().unwrap() {
                             window.show().unwrap();
                             window.set_focus().unwrap();
                         }
