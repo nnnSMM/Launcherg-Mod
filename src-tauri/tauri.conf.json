@@ -58,7 +58,8 @@
         "width": 300,
         "height": 400,
         "alwaysOnTop": true,
-        "focus": false
+        "focus": false,
+        "shadow": false
       }
     ],
     "security": {

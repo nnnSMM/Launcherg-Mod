@@ -1,8 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { appWindow } from "@tauri-apps/api/window";
   import { invoke } from "@tauri-apps/api/core";
-  import { exit } from "@tauri-apps/api/process";
 
   let recentlyPlayed: { id: { value: number }; gamename: string }[] = [];
 
@@ -30,7 +28,7 @@
       await invoke("play_game", {
         id: gameId,
       });
-      await appWindow.hide();
+      await invoke("hide_tray_window");
     } catch (e) {
       console.error(`Failed to launch game ${gameId}:`, e);
     }
@@ -39,14 +37,14 @@
   async function launchShortcutGame() {
     try {
         await invoke("launch_shortcut_game");
-        await appWindow.hide();
+        await invoke("hide_tray_window");
     } catch(e) {
         console.error("Failed to launch shortcut game:", e);
     }
   }
 
   async function quitApp() {
-    await exit(0);
+    await invoke("quit_app");
   }
 </script>
 

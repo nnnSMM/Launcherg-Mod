@@ -13,7 +13,7 @@ use interface::{
     module::{Modules, ModulesExt},
 };
 use tauri::{
-    tray::{SystemTrayEvent, TrayIconBuilder},
+    tray::{TrayIconEvent, TrayIconBuilder},
     AppHandle, Emitter, Listener, Manager, Wry,
 };
 use tauri_plugin_autostart::{ManagerExt, MacosLauncher};
@@ -114,22 +114,25 @@ fn main() {
             let _tray = TrayIconBuilder::with_id("main-tray")
                 .icon(app.default_window_icon().unwrap().clone())
                 .tooltip("Launcherg")
-                .on_system_tray_event(|app, event| match event {
-                    SystemTrayEvent::LeftClick { .. } => {
-                        let window = app.get_webview_window("tray").unwrap();
-                        let _ = window.move_window(Position::TrayBottomRight);
-                        if window.is_visible().unwrap() {
-                            window.hide().unwrap();
-                        } else {
-                            window.show().unwrap();
-                            window.set_focus().unwrap();
-                        }
-                    }
-                    SystemTrayEvent::RightClick { .. } => {
-                        let window = app.get_webview_window("main").unwrap();
-                        if !window.is_visible().unwrap() {
-                            window.show().unwrap();
-                            window.set_focus().unwrap();
+                .on_tray_icon_event(|tray, event| match event {
+                    TrayIconEvent::Click { button, .. } => {
+                        let app = tray.app_handle();
+                        if button == tauri::tray::MouseButton::Right {
+                            if let Some(window) = app.get_webview_window("tray") {
+                                let _ = window.move_window(Position::TrayBottomRight);
+                                if window.is_visible().unwrap() {
+                                    window.hide().unwrap();
+                                } else {
+                                    window.show().unwrap();
+                                }
+                            }
+                        } else if button == tauri::tray::MouseButton::Left {
+                            if let Some(window) = app.get_webview_window("main") {
+                                if !window.is_visible().unwrap() {
+                                    window.show().unwrap();
+                                    window.set_focus().unwrap();
+                                }
+                            }
                         }
                     }
                     _ => {}
@@ -203,8 +206,24 @@ fn main() {
             command::get_app_setting,
             command::set_app_setting,
             command::launch_shortcut_game,
-            command::update_shortcut_registration
+            command::update_shortcut_registration,
+            quit_app,
+            hide_tray_window
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[tauri::command]
+async fn quit_app(app: AppHandle) -> Result<(), String> {
+    app.exit(0);
+    Ok(())
+}
+
+#[tauri::command]
+async fn hide_tray_window(app: AppHandle) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("tray") {
+        window.hide().unwrap();
+    }
+    Ok(())
 }
