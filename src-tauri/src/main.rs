@@ -101,11 +101,35 @@ fn main() {
             let modules = Arc::new(tauri::async_runtime::block_on(Modules::new(
                 &app.handle(),
             )));
-            app.manage(modules);
+            app.manage(modules.clone());
 
             // トレイメニューの構築
-            let launch_shortcut_game_i =
-                MenuItem::with_id(app, "launch_shortcut_game", "ショートカットのゲームを起動", true, None::<&str>)?;
+            let launch_shortcut_game_label = tauri::async_runtime::block_on(async {
+                if let Ok(Some(game_id_str)) = modules
+                    .collection_use_case()
+                    .get_app_setting("shortcut_game_id".to_string())
+                    .await
+                {
+                    if let Ok(game_id) = game_id_str.parse::<i32>() {
+                        if let Ok(game) = modules
+                            .collection_use_case()
+                            .get_element_by_element_id(&crate::domain::Id::new(game_id))
+                            .await
+                        {
+                            return format!("{} を起動", game.gamename);
+                        }
+                    }
+                }
+                "ショートカットのゲームを起動".to_string()
+            });
+
+            let launch_shortcut_game_i = MenuItem::with_id(
+                app,
+                "launch_shortcut_game",
+                &launch_shortcut_game_label,
+                true,
+                None::<&str>,
+            )?;
             let quit_i = MenuItem::with_id(app, "quit", "終了", true, None::<&str>)?;
 
             // 最近プレイしたゲームのサブメニューを作成
