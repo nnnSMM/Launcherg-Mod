@@ -15,13 +15,16 @@ use interface::{
 use tauri::{
     menu::{Menu, MenuItem},
     tray::TrayIconBuilder,
-    Manager,
+    Listener, Manager,
 };
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 use tauri_plugin_log::{Target, TargetKind};
 
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+            app.emit("single-instance", ()).unwrap();
+        }))
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(move |app, shortcut, event| {
@@ -105,13 +108,13 @@ fn main() {
                 })
                 .build(app)?;
 
-            if let Ok(matches) = app.get_cli_matches() {
-                if matches.args.contains_key("hidden") {
-                    if let Some(window) = app.get_webview_window("main") {
-                        let _ = window.hide();
-                    }
+            let app_handle = app.handle().clone();
+            app.listen("single-instance", move |_event| {
+                if let Some(window) = app_handle.get_webview_window("main") {
+                    window.show().unwrap();
+                    window.set_focus().unwrap();
                 }
-            }
+            });
 
             let modules = Arc::new(tauri::async_runtime::block_on(Modules::new(
                 &app.handle(),
