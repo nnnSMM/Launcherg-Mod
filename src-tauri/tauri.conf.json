@@ -46,9 +46,18 @@
         "title": "Launcherg",
         "width": 800,
         "height": 600,
-        "visible": false
+        "visible": true
       }
     ],
+    "cli": {
+      "args": [
+        {
+          "name": "hidden",
+          "short": "h",
+          "description": "Launch the application in a hidden state."
+        }
+      ]
+    },
     "security": {
       "assetProtocol": {
         "scope": [
