@@ -17,13 +17,13 @@ use tauri::{
     tray::TrayIconBuilder,
     Emitter, Listener, Manager,
 };
-use tauri_plugin_autostart::ManagerExt;
+use tauri_plugin_autostart::{ManagerExt, MacosLauncher};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 use tauri_plugin_log::{Target, TargetKind};
 
 fn main() {
     tauri::Builder::default()
-        .plugin(tauri_plugin_autostart::init())
+        .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
         .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
             app.emit("single-instance", ()).unwrap();
         }))
