@@ -12,12 +12,45 @@ use interface::{
     command,
     module::{Modules, ModulesExt},
 };
-use tauri::Manager;
+use tauri::{
+    Manager, SystemTray, SystemTrayEvent, SystemTrayMenu, SystemTrayMenuItem,
+};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 use tauri_plugin_log::{Target, TargetKind};
 
 fn main() {
+    let quit = SystemTrayMenuItem::new("quit".to_string(), "Quit");
+    let show_hide = SystemTrayMenuItem::new("show_hide".to_string(), "Show/Hide");
+    let tray_menu = SystemTrayMenu::new().add_item(show_hide).add_item(quit);
+    let system_tray = SystemTray::new().with_menu(tray_menu);
+
     tauri::Builder::default()
+        .system_tray(system_tray)
+        .on_system_tray_event(|app, event| match event {
+            SystemTrayEvent::MenuItemClick { id, .. } => match id.as_str() {
+                "quit" => {
+                    app.exit(0);
+                }
+                "show_hide" => {
+                    let window = app.get_window("main").unwrap();
+                    if window.is_visible().unwrap() {
+                        window.hide().unwrap();
+                    } else {
+                        window.show().unwrap();
+                        window.set_focus().unwrap();
+                    }
+                }
+                _ => {}
+            },
+            _ => {}
+        })
+        .on_window_event(|window, event| match event {
+            tauri::WindowEvent::CloseRequested { api, .. } => {
+                window.hide().unwrap();
+                api.prevent_close();
+            }
+            _ => {}
+        })
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(move |app, shortcut, event| {
