@@ -17,11 +17,13 @@ use tauri::{
     tray::TrayIconBuilder,
     Emitter, Listener, Manager,
 };
+use tauri_plugin_autostart::ManagerExt;
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 use tauri_plugin_log::{Target, TargetKind};
 
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_autostart::init())
         .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
             app.emit("single-instance", ()).unwrap();
         }))
@@ -51,7 +53,10 @@ fn main() {
                                         if let Ok(game_id) = game_id_str.parse::<i32>() {
                                             if let Err(e) = modules
                                                 .collection_use_case()
-                                                .play_game_and_track(app_handle.clone().into(), game_id)
+                                                .play_game_and_track(
+                                                    app_handle.clone().into(),
+                                                    game_id,
+                                                )
                                                 .await
                                             {
                                                 eprintln!("Error playing game: {}", e);
@@ -79,13 +84,20 @@ fn main() {
             _ => {}
         })
         .setup(|app| {
+            #[cfg(desktop)]
+            {
+                let autostart_manager = app.autolaunch();
+                if !autostart_manager.is_enabled().unwrap() {
+                    let _ = autostart_manager.enable();
+                }
+            }
+
             let handle = app.handle().clone();
             if let Err(e) = handle.global_shortcut().unregister_all() {
                 eprintln!("Failed to unregister all shortcuts on startup: {}", e);
             }
 
-            let show_hide_i =
-                MenuItem::with_id(app, "show_hide", "Show/Hide", true, None::<&str>)?;
+            let show_hide_i = MenuItem::with_id(app, "show_hide", "Show/Hide", true, None::<&str>)?;
             let quit_i = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&show_hide_i, &quit_i])?;
             let _tray = TrayIconBuilder::new()
@@ -116,9 +128,7 @@ fn main() {
                 }
             });
 
-            let modules = Arc::new(tauri::async_runtime::block_on(Modules::new(
-                &app.handle(),
-            )));
+            let modules = Arc::new(tauri::async_runtime::block_on(Modules::new(&app.handle())));
             app.manage(modules);
 
             let handle = app.handle().clone();
