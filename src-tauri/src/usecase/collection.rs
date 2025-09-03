@@ -10,7 +10,7 @@ use tokio::time::{interval, Duration, Instant};
 use super::error::UseCaseError;
 use crate::{
     domain::{
-        collection::{CollectionElement, NewCollectionElement, NewCollectionElementDetail},
+        collection::{CollectionElement, NewCollectionElement, NewCollectionElementInfo, ScannedGameElement},
         file::{
             get_exe_path_from_lnk, get_icon_path, get_lnk_metadatas, get_thumbnail_path,
             save_icon_to_png, save_thumbnail,
@@ -63,7 +63,6 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
         let repositories = self.repositories.clone();
 
         tauri::async_runtime::spawn(async move {
-            // ランチャーがゲーム本体を起動するまで5秒待つ
             tokio::time::sleep(Duration::from_secs(5)).await;
 
             let search_timeout = Duration::from_secs(45);
@@ -72,7 +71,6 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
 
             println!("Searching for the new game process...");
 
-            // ▼▼▼ 修正: 優先度付けを行う新しい特定ロジック ▼▼▼
             loop {
                 if search_start_time.elapsed() > search_timeout {
                     println!(
@@ -107,12 +105,10 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
                         .iter()
                         .any(|folder| path_lower.starts_with(folder))
                     {
-                        continue; // 除外
+                        continue;
                     }
 
-                    // スコア付け
                     let mut score = 0;
-                    // 最優先: 起動パスと完全一致
                     let final_exe_path_str = if path_str_clone.to_lowercase().ends_with(".lnk") {
                         get_exe_path_from_lnk(&path_str_clone)
                             .await
@@ -125,21 +121,18 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
                     if exe_path == final_exe_path {
                         score = 3;
                     }
-                    // 次点: 有名なゲームフォルダ
                     else if game_folders
                         .iter()
                         .any(|folder| path_lower.contains(folder))
                     {
                         score = 2;
                     }
-                    // それ以外
                     else {
                         score = 1;
                     }
                     candidates.push((process, score));
                 }
 
-                // 最もスコアの高い候補の中から、ゲーム名に一番近いものを探す
                 if !candidates.is_empty() {
                     let max_score = candidates
                         .iter()
@@ -150,7 +143,6 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
                         .iter()
                         .filter(|(_, score)| *score == max_score)
                         .min_by_key(|(p, _)| {
-                            // 編集距離の代わりに簡易的な文字数差で最終判断
                             (p.name().len() as i32 - game_name.len() as i32).abs()
                         })
                     {
@@ -203,6 +195,7 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
 
         Ok(())
     }
+
     pub async fn upsert_collection_element(
         &self,
         source: &NewCollectionElement,
@@ -211,6 +204,51 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
             .collection_repository()
             .upsert_collection_element(source)
             .await?;
+        Ok(())
+    }
+
+    pub async fn upsert_collection_element_info(
+        &self,
+        info: &crate::domain::collection::NewCollectionElementInfo,
+    ) -> anyhow::Result<()> {
+        self.repositories
+            .collection_repository()
+            .upsert_collection_element_info(info)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn create_collection_element(
+        &self,
+        element: &ScannedGameElement,
+    ) -> anyhow::Result<()> {
+        use crate::domain::collection::{
+            NewCollectionElement, NewCollectionElementInstall, NewCollectionElementPaths,
+        };
+
+        let new_element = NewCollectionElement::new(element.id.clone(), element.gamename.clone());
+        self.upsert_collection_element(&new_element).await?;
+
+        if element.exe_path.is_some() || element.lnk_path.is_some() {
+            let new_paths = NewCollectionElementPaths::new(
+                element.id.clone(),
+                element.exe_path.clone(),
+                element.lnk_path.clone(),
+            );
+            self.repositories
+                .collection_repository()
+                .upsert_collection_element_paths(&new_paths)
+                .await?;
+        }
+
+        if let Some(install_time) = element.install_at {
+            let new_install = NewCollectionElementInstall::new(element.id.clone(), install_time);
+            self.repositories
+                .collection_repository()
+                .upsert_collection_element_install(&new_install)
+                .await?;
+        }
+
         Ok(())
     }
     pub async fn upsert_collection_element_thumbnail_size(
@@ -264,15 +302,13 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
             .await;
         Ok(())
     }
+
     pub async fn upsert_collection_elements(
         &self,
-        source: &Vec<NewCollectionElement>,
+        source: &Vec<ScannedGameElement>,
     ) -> anyhow::Result<()> {
-        for v in source.into_iter() {
-            self.repositories
-                .collection_repository()
-                .upsert_collection_element(v)
-                .await?
+        for element in source.iter() {
+            self.create_collection_element(element).await?;
         }
         Ok(())
     }
@@ -306,24 +342,38 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
         element: &NewCollectionElement,
     ) -> anyhow::Result<()> {
         let id = &element.id;
-        let icon_path;
-        if let Some(lnk_path) = element.lnk_path.clone() {
-            let metadatas = get_lnk_metadatas(vec![lnk_path.as_str()])?;
-            let metadata = metadatas
-                .get(lnk_path.as_str())
-                .ok_or(anyhow::anyhow!("metadata cannot get"))?;
-            if metadata.icon.to_lowercase().ends_with("ico") {
-                println!("icon is ico");
-                icon_path = metadata.icon.clone();
+
+        let paths = self
+            .repositories
+            .collection_repository()
+            .get_element_paths_by_element_id(id)
+            .await?;
+
+        let icon_path = if let Some(paths) = paths {
+            if let Some(lnk_path) = paths.lnk_path {
+                use crate::domain::file::get_lnk_metadatas;
+                let metadatas = get_lnk_metadatas(vec![lnk_path.as_str()])?;
+                let metadata = metadatas
+                    .get(lnk_path.as_str())
+                    .ok_or(anyhow::anyhow!("metadata cannot get"))?;
+                if metadata.icon.to_lowercase().ends_with("ico") {
+                    println!("icon is ico");
+                    metadata.icon.clone()
+                } else {
+                    metadata.path.clone()
+                }
+            } else if let Some(exe_path) = paths.exe_path {
+                exe_path
             } else {
-                icon_path = metadata.path.clone();
+                eprintln!("lnk_path and exe_path are None");
+                return Ok(());
             }
-        } else if let Some(exe_path) = element.exe_path.clone() {
-            icon_path = exe_path;
         } else {
-            eprintln!("lnk_path and exe_path are None");
+            eprintln!("No paths found for element {}", id.value);
             return Ok(());
-        }
+        };
+
+        use crate::domain::file::save_icon_to_png;
         Ok(save_icon_to_png(handle, &icon_path, id)?.await??)
     }
 
@@ -380,17 +430,7 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
     ) -> anyhow::Result<Vec<Id<CollectionElement>>> {
         self.repositories
             .collection_repository()
-            .get_not_registered_detail_element_ids()
-            .await
-    }
-
-    pub async fn create_element_details(
-        &self,
-        details: Vec<NewCollectionElementDetail>,
-    ) -> anyhow::Result<()> {
-        self.repositories
-            .collection_repository()
-            .create_element_details(details)
+            .get_not_registered_info_element_ids()
             .await
     }
 
@@ -416,7 +456,6 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
         Ok(())
     }
     pub async fn update_element_play_status(
-        // 追加
         &self,
         id: &Id<CollectionElement>,
         play_status: i32,
@@ -440,7 +479,7 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
     pub async fn delete_element(&self, id: &Id<CollectionElement>) -> anyhow::Result<()> {
         self.repositories
             .collection_repository()
-            .delete_collection_element(id) // delete_element_by_id から delete_collection_element に変更
+            .delete_collection_element(id)
             .await?;
         Ok(())
     }

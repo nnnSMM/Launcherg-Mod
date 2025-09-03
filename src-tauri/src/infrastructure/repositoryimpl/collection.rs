@@ -4,7 +4,10 @@ use sqlx::{query, query_as, QueryBuilder, Row};
 
 use super::{models::collection::CollectionElementTable, repository::RepositoryImpl};
 use crate::domain::{
-    collection::{CollectionElement, NewCollectionElement, NewCollectionElementDetail},
+    collection::{
+        CollectionElement, NewCollectionElement, NewCollectionElementInfo,
+        NewCollectionElementInstall, NewCollectionElementPaths,
+    },
     repository::collection::CollectionRepository,
     Id,
 };
@@ -27,6 +30,7 @@ impl CollectionRepository for RepositoryImpl<CollectionElement> {
         .await?;
         Ok(records.into_iter().flat_map(|v| v.try_into()).collect())
     }
+
     async fn get_element_by_element_id(
         &self,
         id: &Id<CollectionElement>,
@@ -48,23 +52,65 @@ impl CollectionRepository for RepositoryImpl<CollectionElement> {
         .await?;
         Ok(record.and_then(|v| v.try_into().ok()))
     }
+
+    async fn get_element_paths_by_element_id(
+        &self,
+        id: &Id<CollectionElement>,
+    ) -> anyhow::Result<Option<NewCollectionElementPaths>> {
+        let pool = self.pool.0.clone();
+        let row = query("SELECT id, exe_path, lnk_path FROM collection_elements WHERE id = ?")
+            .bind(id.value)
+            .fetch_optional(&*pool)
+            .await?;
+
+        match row {
+            Some(r) => Ok(Some(NewCollectionElementPaths::new(
+                Id::new(r.try_get("id")?),
+                r.try_get("exe_path")?,
+                r.try_get("lnk_path")?,
+            ))),
+            None => Ok(None),
+        }
+    }
+
     async fn upsert_collection_element(&self, new: &NewCollectionElement) -> anyhow::Result<()> {
         let pool = self.pool.0.clone();
-        let _ = query("insert into collection_elements (id, gamename, exe_path, lnk_path, install_at) values (?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET gamename = ?, exe_path = ?, lnk_path = ?, install_at = ?, updated_at = ?")
+        query("INSERT INTO collection_elements (id, gamename) VALUES (?, ?) ON CONFLICT(id) DO UPDATE SET gamename = ?")
             .bind(new.id.value)
             .bind(new.gamename.clone())
-            .bind(new.exe_path.clone())
-            .bind(new.lnk_path.clone())
-            .bind(new.install_at.and_then(|v| Some(v.naive_utc())))
             .bind(new.gamename.clone())
-            .bind(new.exe_path.clone())
-            .bind(new.lnk_path.clone())
-            .bind(new.install_at.and_then(|v| Some(v.naive_utc())))
-            .bind(Local::now().naive_utc())
             .execute(&*pool)
             .await?;
         Ok(())
     }
+
+    async fn upsert_collection_element_paths(
+        &self,
+        new_paths: &NewCollectionElementPaths,
+    ) -> anyhow::Result<()> {
+        let pool = self.pool.0.clone();
+        query("UPDATE collection_elements SET exe_path = ?, lnk_path = ? WHERE id = ?")
+            .bind(new_paths.exe_path.clone())
+            .bind(new_paths.lnk_path.clone())
+            .bind(new_paths.collection_element_id.value)
+            .execute(&*pool)
+            .await?;
+        Ok(())
+    }
+
+    async fn upsert_collection_element_install(
+        &self,
+        new_install: &NewCollectionElementInstall,
+    ) -> anyhow::Result<()> {
+        let pool = self.pool.0.clone();
+        query("UPDATE collection_elements SET install_at = ? WHERE id = ?")
+            .bind(new_install.install_at.naive_utc())
+            .bind(new_install.collection_element_id.value)
+            .execute(&*pool)
+            .await?;
+        Ok(())
+    }
+
     async fn upsert_collection_element_thumbnail_size(
         &self,
         id: &Id<CollectionElement>,
@@ -129,7 +175,7 @@ impl CollectionRepository for RepositoryImpl<CollectionElement> {
         Ok(())
     }
 
-    async fn get_not_registered_detail_element_ids(
+    async fn get_not_registered_info_element_ids(
         &self,
     ) -> anyhow::Result<Vec<Id<CollectionElement>>> {
         let pool = self.pool.0.clone();
@@ -147,32 +193,20 @@ impl CollectionRepository for RepositoryImpl<CollectionElement> {
             .map(|v| Id::new(v.0))
             .collect())
     }
-    async fn create_element_details(
+    async fn upsert_collection_element_info(
         &self,
-        details: Vec<NewCollectionElementDetail>,
+        info: &NewCollectionElementInfo,
     ) -> anyhow::Result<()> {
-        if details.len() == 0 {
-            return Ok(());
-        }
-        let mut query_builder = QueryBuilder::new(
-            "INSERT INTO collection_element_details (collection_element_id, gamename_ruby, sellday, is_nukige, brandname, brandname_ruby) ",
-        );
-        query_builder.push_values(details, |mut b, new| {
-            let is_nukige = match new.is_nukige {
-                true => 1,
-                false => 0,
-            };
-            b.push_bind(new.collection_element_id.value)
-                .push_bind(new.gamename_ruby)
-                .push_bind(new.sellday)
-                .push_bind(is_nukige)
-                .push_bind(new.brandname)
-                .push_bind(new.brandname_ruby);
-        });
-
         let pool = self.pool.0.clone();
-        let query = query_builder.build();
-        query.execute(&*pool).await?;
+        query("INSERT OR REPLACE INTO collection_element_details (collection_element_id, gamename_ruby, sellday, is_nukige, brandname, brandname_ruby) VALUES (?, ?, ?, ?, ?, ?)")
+            .bind(info.collection_element_id.value)
+            .bind(info.gamename_ruby.clone())
+            .bind(info.sellday.clone())
+            .bind(info.is_nukige)
+            .bind(info.brandname.clone())
+            .bind(info.brandname_ruby.clone())
+            .execute(&*pool)
+            .await?;
         Ok(())
     }
     async fn get_brandname_and_rubies(&self) -> anyhow::Result<Vec<(String, String)>> {
@@ -280,7 +314,6 @@ impl CollectionRepository for RepositoryImpl<CollectionElement> {
         Ok(())
     }
     async fn update_element_play_status_by_id(
-        // 追加
         &self,
         id: &Id<CollectionElement>,
         play_status: i32,
@@ -310,7 +343,7 @@ impl CollectionRepository for RepositoryImpl<CollectionElement> {
     }
     async fn delete_element_by_id(&self, id: &Id<CollectionElement>) -> anyhow::Result<()> {
         let pool = self.pool.0.clone();
-        query("delete from collection_elements where id = ?") // collection_elements から削除
+        query("delete from collection_elements where id = ?")
             .bind(id.value)
             .execute(&*pool)
             .await?;

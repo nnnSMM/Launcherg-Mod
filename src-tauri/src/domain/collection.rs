@@ -35,14 +35,32 @@ pub struct CollectionElement {
 pub struct NewCollectionElement {
     pub id: Id<CollectionElement>,
     pub gamename: String,
+}
+
+#[derive(new, Debug)]
+pub struct ScannedGameElement {
+    pub id: Id<CollectionElement>,
+    pub gamename: String,
     pub exe_path: Option<String>,
     pub lnk_path: Option<String>,
     pub install_at: Option<DateTime<Local>>,
-    // play_status は初期登録時はデフォルト0とし、更新で対応するためここには含めない
+}
+
+#[derive(new, Debug)]
+pub struct NewCollectionElementPaths {
+    pub collection_element_id: Id<CollectionElement>,
+    pub exe_path: Option<String>,
+    pub lnk_path: Option<String>,
+}
+
+#[derive(new, Debug)]
+pub struct NewCollectionElementInstall {
+    pub collection_element_id: Id<CollectionElement>,
+    pub install_at: DateTime<Local>,
 }
 
 #[derive(new, Debug, Clone, Serialize, Deserialize)]
-pub struct NewCollectionElementDetail {
+pub struct NewCollectionElementInfo {
     pub collection_element_id: Id<CollectionElement>,
     pub gamename_ruby: String,
     pub brandname: String,

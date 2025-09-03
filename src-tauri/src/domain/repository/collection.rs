@@ -1,5 +1,8 @@
 use crate::domain::{
-    collection::{CollectionElement, NewCollectionElement, NewCollectionElementDetail},
+    collection::{
+        CollectionElement, NewCollectionElement, NewCollectionElementInfo,
+        NewCollectionElementInstall, NewCollectionElementPaths,
+    },
     Id,
 };
 use anyhow::Result;
@@ -13,7 +16,19 @@ pub trait CollectionRepository {
         &self,
         id: &Id<CollectionElement>,
     ) -> Result<Option<CollectionElement>>;
+    async fn get_element_paths_by_element_id(
+        &self,
+        id: &Id<CollectionElement>,
+    ) -> Result<Option<NewCollectionElementPaths>>;
     async fn upsert_collection_element(&self, new_elements: &NewCollectionElement) -> Result<()>;
+    async fn upsert_collection_element_paths(
+        &self,
+        new_paths: &NewCollectionElementPaths,
+    ) -> Result<()>;
+    async fn upsert_collection_element_install(
+        &self,
+        new_install: &NewCollectionElementInstall,
+    ) -> Result<()>;
     async fn upsert_collection_element_thumbnail_size(
         &self,
         id: &Id<CollectionElement>,
@@ -24,8 +39,11 @@ pub trait CollectionRepository {
     async fn remove_conflict_maps(&self) -> Result<()>;
     async fn delete_collection_element(&self, element_id: &Id<CollectionElement>) -> Result<()>;
 
-    async fn get_not_registered_detail_element_ids(&self) -> Result<Vec<Id<CollectionElement>>>;
-    async fn create_element_details(&self, details: Vec<NewCollectionElementDetail>) -> Result<()>;
+    async fn get_not_registered_info_element_ids(&self) -> Result<Vec<Id<CollectionElement>>>;
+    async fn upsert_collection_element_info(
+        &self,
+        info: &NewCollectionElementInfo,
+    ) -> Result<()>;
     async fn get_brandname_and_rubies(&self) -> Result<Vec<(String, String)>>;
 
     async fn get_element_ids_by_is_nukige(
