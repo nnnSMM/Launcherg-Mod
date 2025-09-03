@@ -2,7 +2,7 @@ use derive_new::new;
 use serde::{Deserialize, Serialize};
 
 use crate::domain::{
-    collection::{NewCollection, NewCollectionElementDetail},
+    collection::NewCollectionElementInfo,
     Id,
 };
 
@@ -17,9 +17,9 @@ pub struct CreateCollectionElementDetail {
     pub is_nukige: bool,
 }
 
-impl From<CreateCollectionElementDetail> for NewCollectionElementDetail {
+impl From<CreateCollectionElementDetail> for NewCollectionElementInfo {
     fn from(c: CreateCollectionElementDetail) -> Self {
-        NewCollectionElementDetail::new(
+        NewCollectionElementInfo::new(
             Id::new(c.collection_element_id),
             c.gamename_ruby,
             c.brandname,

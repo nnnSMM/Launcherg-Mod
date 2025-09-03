@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Local};
-use sqlx::{query, query_as, QueryBuilder, Row};
+use sqlx::{query, query_as, Row};
 
 use super::{models::collection::CollectionElementTable, repository::RepositoryImpl};
 use crate::domain::{

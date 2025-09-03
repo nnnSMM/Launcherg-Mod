@@ -19,7 +19,7 @@ use crate::{
     usecase::models::collection::CreateCollectionElementDetail,
 };
 use std::sync::{Arc, Mutex};
-use tauri::{AppHandle, Emitter, Manager, State};
+use tauri::{AppHandle, Emitter, State};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut};
 
 #[tauri::command]
@@ -28,7 +28,6 @@ pub async fn update_shortcut_registration(
     modules: State<'_, Arc<Modules>>,
     new_shortcut_key: Option<String>,
 ) -> Result<(), CommandError> {
-    // Get the old shortcut key from settings
     if let Ok(Some(old_shortcut_key)) = modules
         .collection_use_case()
         .get_app_setting("shortcut_key".to_string())
@@ -46,13 +45,11 @@ pub async fn update_shortcut_registration(
         }
     }
 
-    // Save the new shortcut key
     modules
         .collection_use_case()
         .set_app_setting("shortcut_key".to_string(), new_shortcut_key.clone())
         .await?;
 
-    // Register the new shortcut key
     if let Some(new_key) = new_shortcut_key {
         if !new_key.is_empty() {
             if let Ok(new_shortcut) = new_key.parse::<Shortcut>() {
@@ -96,7 +93,7 @@ pub async fn create_elements_in_pc(
 ) -> Result<Vec<String>, CommandError> {
     let handle = Arc::new(handle);
     let emit_progress = Arc::new(|message| {
-        if let Err(e) = handle.emit("progress", ProgressPayload::new(message)) {
+        if let Err(e) = handle.emit("progress", ProgressLivePayload::new(message)) {
             return Err(anyhow::anyhow!(e.to_string()));
         }
         Ok(())
@@ -142,7 +139,7 @@ pub async fn create_elements_in_pc(
         .filter_files_to_collection_elements(
             &handle,
             explore_files.clone(),
-            all_game_cache,
+            all_game_cache.clone(),
             emit_progress,
             process_each_game_file_callback,
         )
@@ -249,10 +246,6 @@ pub async fn upsert_collection_element(
         let metadata = metadatas
             .get(path.as_str())
             .ok_or(anyhow::anyhow!("metadata cannot get"))?;
-        println!(
-            "metadata.path: {}, metadata.icon: {}",
-            metadata.path, metadata.icon
-        );
         install_at = get_file_created_at_sync(&metadata.path);
     } else {
         install_at = None;
@@ -348,8 +341,6 @@ pub async fn get_default_import_dirs() -> Result<Vec<String>, CommandError> {
     Ok(vec![user_menu, system_menu.to_string()])
 }
 
-use tauri_plugin_shell::ShellExt;
-
 #[tauri::command]
 pub async fn play_game(
     handle: AppHandle,
@@ -433,7 +424,7 @@ pub async fn get_not_registered_detail_element_ids(
 ) -> Result<Vec<i32>, CommandError> {
     Ok(modules
         .collection_use_case()
-        .get_not_registered_detail_element_ids()
+        .get_not_registered_info_element_ids()
         .await?
         .into_iter()
         .map(|v| v.value)

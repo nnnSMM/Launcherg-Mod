@@ -2,15 +2,15 @@ use std::{fs, sync::Arc};
 
 use chrono::Local;
 use derive_new::new;
-use sysinfo::{PidExt, ProcessExt, System, SystemExt};
-use tauri::{AppHandle, Manager};
+use sysinfo::{ProcessExt, System, SystemExt};
+use tauri::AppHandle;
 use tauri_plugin_shell::ShellExt;
 use tokio::time::{interval, Duration, Instant};
 
 use super::error::UseCaseError;
 use crate::{
     domain::{
-        collection::{CollectionElement, NewCollectionElement, NewCollectionElementInfo, ScannedGameElement},
+        collection::{CollectionElement, NewCollectionElement, ScannedGameElement},
         file::{
             get_exe_path_from_lnk, get_icon_path, get_lnk_metadatas, get_thumbnail_path,
             save_icon_to_png, save_thumbnail,
@@ -207,6 +207,16 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
         Ok(())
     }
 
+    pub async fn create_element_details(
+        &self,
+        details: Vec<NewCollectionElementInfo>,
+    ) -> anyhow::Result<()> {
+        for v in details.into_iter() {
+            self.upsert_collection_element_info(&v).await?;
+        }
+        Ok(())
+    }
+
     pub async fn upsert_collection_element_info(
         &self,
         info: &crate::domain::collection::NewCollectionElementInfo,
@@ -342,6 +352,7 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
         element: &NewCollectionElement,
     ) -> anyhow::Result<()> {
         let id = &element.id;
+        let icon_path;
 
         let paths = self
             .repositories
@@ -425,7 +436,7 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
             .await
     }
 
-    pub async fn get_not_registered_detail_element_ids(
+    pub async fn get_not_registered_info_element_ids(
         &self,
     ) -> anyhow::Result<Vec<Id<CollectionElement>>> {
         self.repositories
