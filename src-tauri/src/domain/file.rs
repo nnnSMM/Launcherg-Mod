@@ -459,17 +459,26 @@ pub fn save_exe_file_png(
 
     let handle: JoinHandle<anyhow::Result<()>> = tauri::async_runtime::spawn(async move {
         while let Some(event) = rx.recv().await {
-            if let CommandEvent::Stdout(_) = event {
-                return save_default_icon(&save_png_path_cloned)?.await?;
-            }
-            if let CommandEvent::Stderr(_) = event {
-                return save_default_icon(&save_png_path_cloned)?.await?;
-            }
-            if let CommandEvent::Terminated(_) = event {
-                return Ok(());
+            match event {
+                CommandEvent::Stdout(line) => {
+                    println!("[extract-icon stdout]: {}", line);
+                }
+                CommandEvent::Stderr(line) => {
+                    eprintln!("[extract-icon stderr]: {}", line);
+                    return save_default_icon(&save_png_path_cloned)?.await?;
+                }
+                CommandEvent::Terminated(payload) => {
+                    if payload.code == Some(0) {
+                        return Ok(());
+                    } else {
+                        eprintln!("[extract-icon terminated with error]: {:?}", payload);
+                        return save_default_icon(&save_png_path_cloned)?.await?;
+                    }
+                }
+                _ => {}
             }
         }
-        Err(anyhow::anyhow!("extract-icon is not terminated"))
+        Err(anyhow::anyhow!("extract-icon did not terminate as expected"))
     });
 
     Ok(handle)
@@ -649,7 +658,7 @@ pub fn save_thumbnail(
     let handle_cloned = handle.clone();
     tauri::async_runtime::spawn(async move {
         let save_path = get_thumbnail_path(&handle_cloned, &collection_element_id);
-        if !(std::path::Path::new(&save_path).exists()) && src_url != "" {
+        if src_url != "" {
             let client = reqwest::Client::new();
             let response = client.get(src_url).send().await?;
             let bytes = response.bytes().await?;

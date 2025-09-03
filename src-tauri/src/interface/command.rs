@@ -600,14 +600,7 @@ pub async fn update_game_image(
     } else if image_type == "icon" {
         let dest_path = get_icon_path(&handle, id);
         let img = image::open(&new_image_path).map_err(anyhow::Error::from)?;
-        let mut icon_dir = ico::IconDir::new(ico::ResourceType::Icon);
-        // RGBA8形式に変換
-        let image = img.to_rgba8();
-        let icon_image =
-            ico::IconImage::from_rgba_data(image.width(), image.height(), image.into_raw());
-        icon_dir.add_entry(ico::IconDirEntry::encode(&icon_image).map_err(anyhow::Error::from)?);
-        let file = std::fs::File::create(dest_path).map_err(anyhow::Error::from)?;
-        icon_dir.write(file).map_err(anyhow::Error::from)?;
+        img.save(dest_path).map_err(anyhow::Error::from)?;
     }
 
     modules.collection_use_case().touch_element(id).await?;
