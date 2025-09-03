@@ -4,6 +4,7 @@ import sveltePreprocess from "svelte-preprocess";
 import UnoCSS from "unocss/vite";
 import extractorSvelte from "@unocss/extractor-svelte";
 import { fileURLToPath } from "node:url";
+import { resolve } from "path";
 
 // https://vitejs.dev/config/
 export default defineConfig(async () => ({
@@ -46,5 +47,11 @@ export default defineConfig(async () => ({
     minify: !process.env.TAURI_DEBUG ? "esbuild" : false,
     // produce sourcemaps for debug builds
     sourcemap: !!process.env.TAURI_DEBUG,
+    rollupOptions: {
+      input: {
+        main: resolve(__dirname, "index.html"),
+        tray: resolve(__dirname, "tray.html"),
+      },
+    },
   },
 }));
