@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { appWindow } from "@tauri-apps/api/window";
-  import { invoke } from "@tauri-apps/api/tauri";
+  import { invoke } from "@tauri-apps/api/core";
   import { exit } from "@tauri-apps/api/process";
   import type { CollectionElement } from "$lib/types";
 
