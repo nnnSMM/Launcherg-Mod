@@ -10,7 +10,9 @@ use tokio::time::{interval, Duration, Instant};
 use super::error::UseCaseError;
 use crate::{
     domain::{
-        collection::{CollectionElement, NewCollectionElement, ScannedGameElement},
+        collection::{
+            CollectionElement, NewCollectionElement, NewCollectionElementInfo, ScannedGameElement,
+        },
         file::{
             get_exe_path_from_lnk, get_icon_path, get_lnk_metadatas, get_thumbnail_path,
             save_icon_to_png, save_thumbnail,
@@ -108,7 +110,7 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
                         continue;
                     }
 
-                    let mut score = 0;
+                    let score;
                     let final_exe_path_str = if path_str_clone.to_lowercase().ends_with(".lnk") {
                         get_exe_path_from_lnk(&path_str_clone)
                             .await
@@ -355,7 +357,6 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
         element: &NewCollectionElement,
     ) -> anyhow::Result<()> {
         let id = &element.id;
-        let icon_path;
 
         let paths = self
             .repositories
@@ -363,15 +364,14 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
             .get_element_paths_by_element_id(id)
             .await?;
 
-        let icon_path = if let Some(paths) = paths {
-            if let Some(lnk_path) = paths.lnk_path {
+        if let Some(paths) = paths {
+            let icon_path = if let Some(lnk_path) = paths.lnk_path {
                 use crate::domain::file::get_lnk_metadatas;
                 let metadatas = get_lnk_metadatas(vec![lnk_path.as_str()])?;
                 let metadata = metadatas
                     .get(lnk_path.as_str())
                     .ok_or(anyhow::anyhow!("metadata cannot get"))?;
                 if metadata.icon.to_lowercase().ends_with("ico") {
-                    println!("icon is ico");
                     metadata.icon.clone()
                 } else {
                     metadata.path.clone()
@@ -381,14 +381,13 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
             } else {
                 eprintln!("lnk_path and exe_path are None");
                 return Ok(());
-            }
+            };
+            use crate::domain::file::save_icon_to_png;
+            save_icon_to_png(handle, &icon_path, id).await??;
         } else {
             eprintln!("No paths found for element {}", id.value);
-            return Ok(());
-        };
-
-        use crate::domain::file::save_icon_to_png;
-        Ok(save_icon_to_png(handle, &icon_path, id)?.await??)
+        }
+        Ok(())
     }
 
     pub async fn save_element_thumbnail(

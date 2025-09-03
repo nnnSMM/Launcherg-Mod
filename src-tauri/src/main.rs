@@ -15,7 +15,7 @@ use interface::{
 use tauri::{
     menu::{IsMenuItem, Menu, MenuItem, Submenu},
     tray::{TrayIconBuilder, MouseButton, TrayIconEvent},
-    AppHandle, Emitter, Listener, Manager, Wry,
+    AppHandle, Listener, Wry,
 };
 use tauri_plugin_autostart::{ManagerExt, MacosLauncher};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
@@ -153,7 +153,7 @@ fn main() {
                         }
                     });
                 })
-                .menu_on_left_click(false)
+                .show_menu_on_left_click(false)
                 .on_tray_icon_event(|tray, event| {
                     if let TrayIconEvent::DoubleClick {
                         button: MouseButton::Left,

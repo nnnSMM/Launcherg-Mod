@@ -92,8 +92,8 @@ pub async fn create_elements_in_pc(
     use_cache: bool,
 ) -> Result<Vec<String>, CommandError> {
     let handle = Arc::new(handle);
-    let emit_progress = Arc::new(|message| {
-        if let Err(e) = handle.emit("progress", ProgressLivePayload::new(message)) {
+    let emit_progress = Arc::new(|message: String| {
+        if let Err(e) = handle.emit("progress", ProgressPayload::new(message)) {
             return Err(anyhow::anyhow!(e.to_string()));
         }
         Ok(())
@@ -596,7 +596,6 @@ pub async fn update_game_image(
         let dest_path = get_icon_path(&handle, id);
         let img = image::open(&new_image_path).map_err(anyhow::Error::from)?;
         let mut icon_dir = ico::IconDir::new(ico::ResourceType::Icon);
-        // RGBA8形式に変換
         let image = img.to_rgba8();
         let icon_image =
             ico::IconImage::from_rgba_data(image.width(), image.height(), image.into_raw());
