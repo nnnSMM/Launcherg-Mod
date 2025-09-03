@@ -212,7 +212,8 @@ fn main() {
             command::get_app_setting,
             command::set_app_setting,
             command::launch_shortcut_game,
-            command::update_shortcut_registration
+            command::update_shortcut_registration,
+            command::exit_app
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

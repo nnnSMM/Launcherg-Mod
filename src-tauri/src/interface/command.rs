@@ -583,6 +583,12 @@ pub async fn save_screenshot_by_pid(
 }
 
 #[tauri::command]
+pub fn exit_app(handle: AppHandle) -> Result<(), CommandError> {
+    handle.exit(0);
+    Ok(())
+}
+
+#[tauri::command]
 pub async fn update_game_image(
     handle: AppHandle,
     modules: State<'_, Arc<Modules>>,

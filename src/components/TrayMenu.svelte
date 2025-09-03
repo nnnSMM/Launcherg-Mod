@@ -1,9 +1,10 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { appWindow } from "@tauri-apps/api/window";
+  import { Window } from "@tauri-apps/api/window";
   import { invoke } from "@tauri-apps/api/core";
-  import { exit } from "@tauri-apps/api/process";
-  import type { CollectionElement } from "$lib/types";
+  import type { CollectionElement } from "../lib/types";
+
+  const appWindow = Window.getCurrent();
 
   let recentGames: CollectionElement[] = [];
   let shortcutGameName: string | null = "ショートカットのゲームを起動";
@@ -62,7 +63,7 @@
   }
 
   async function quitApp() {
-    await exit(0);
+    await invoke("exit_app");
   }
 </script>
 
