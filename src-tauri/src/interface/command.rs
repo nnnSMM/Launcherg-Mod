@@ -241,6 +241,11 @@ pub async fn upsert_collection_element(
     lnk_path: Option<String>,
     game_cache: AllGameCacheOne,
 ) -> Result<(), CommandError> {
+    println!("[Launcherg] Debug: Received command upsert_collection_element");
+    println!("[Launcherg] Debug: exe_path: {:?}", exe_path);
+    println!("[Launcherg] Debug: lnk_path: {:?}", lnk_path);
+    println!("[Launcherg] Debug: game_cache: {:?}", game_cache);
+
     let install_at;
     if let Some(path) = exe_path.clone() {
         install_at = get_file_created_at_sync(&path);
