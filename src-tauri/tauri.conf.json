@@ -22,7 +22,7 @@
     ],
     "createUpdaterArtifacts": "v1Compatible",
     "externalBin": [
-      "bin/extract-icon.exe"
+      "bin/extract-icon"
     ]
   },
   "productName": "Launcherg",
