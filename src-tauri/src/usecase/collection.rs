@@ -267,6 +267,9 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
         id: &Id<CollectionElement>,
     ) -> anyhow::Result<()> {
         let thumbnail_path = get_thumbnail_path(handle, id);
+        if !std::path::Path::new(&thumbnail_path).exists() {
+            return Ok(());
+        }
         match image::image_dimensions(thumbnail_path) {
             Ok((width, height)) => {
                 self.repositories
