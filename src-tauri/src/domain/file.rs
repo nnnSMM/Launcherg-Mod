@@ -367,22 +367,16 @@ pub fn save_icon_to_png(
     file_path: &str,
     collection_element_id: &Id<CollectionElement>,
 ) -> anyhow::Result<JoinHandle<anyhow::Result<()>>> {
-    println!("[Launcherg] Debug: In save_icon_to_png");
-    println!("[Launcherg] Debug: file_path: {}", file_path);
     let save_png_path = get_icon_path(handle, collection_element_id);
-    println!("[Launcherg] Debug: save_png_path: {}", save_png_path);
 
     let is_ico = file_path.to_lowercase().ends_with("ico");
 
     if is_ico {
-        println!("[Launcherg] Debug: Handling as .ico file");
         return save_ico_to_png(file_path, &save_png_path);
     }
     if Path::new(file_path).exists() {
-        println!("[Launcherg] Debug: Handling as executable/sidecar file");
         return save_exe_file_png(handle, file_path, &save_png_path);
     }
-    println!("[Launcherg] Debug: Falling back to default icon");
     return save_default_icon(&save_png_path);
 }
 
@@ -653,19 +647,14 @@ pub fn save_thumbnail(
     let collection_element_id = collection_element_id.clone();
     let handle_cloned = handle.clone();
     tauri::async_runtime::spawn(async move {
-        println!("[Launcherg] Debug: In save_thumbnail");
         let save_path = get_thumbnail_path(&handle_cloned, &collection_element_id);
-        println!("[Launcherg] Debug: src_url: {}", src_url);
-        println!("[Launcherg] Debug: save_path: {}", save_path);
-        let should_download = !(std::path::Path::new(&save_path).exists()) && src_url != "";
-        println!("[Launcherg] Debug: Should download thumbnail? {}", should_download);
-        if should_download {
+        let is_valid_url = src_url != "" && !src_url.ends_with("/0.jpg");
+        if !(std::path::Path::new(&save_path).exists()) && is_valid_url {
             let client = reqwest::Client::new();
             let response = client.get(src_url).send().await?;
             let bytes = response.bytes().await?;
             let img = image::load_from_memory(&bytes)?;
             img.save(&save_path)?;
-            println!("[Launcherg] Debug: Thumbnail downloaded and saved.");
         }
         Ok(())
     })

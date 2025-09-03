@@ -19,7 +19,6 @@
     gameCache: AllGameCacheOne;
   }) => {
     try {
-      console.log("[Launcherg] Debug: Calling commandUpsertCollectionElement with arg:", arg);
       await commandUpsertCollectionElement(arg);
 
       try {

@@ -305,8 +305,6 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
         handle: &Arc<AppHandle>,
         element: &NewCollectionElement,
     ) -> anyhow::Result<()> {
-        println!("[Launcherg] Debug: In save_element_icon");
-        println!("[Launcherg] Debug: Element: {:?}", element);
         let id = &element.id;
         let icon_path;
         if let Some(lnk_path) = element.lnk_path.clone() {
@@ -326,7 +324,6 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
             eprintln!("lnk_path and exe_path are None");
             return Ok(());
         }
-        println!("[Launcherg] Debug: Chosen icon_path: {}", icon_path);
         Ok(save_icon_to_png(handle, &icon_path, id)?.await??)
     }
 
@@ -336,8 +333,6 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
         id: &Id<CollectionElement>,
         src_url: String,
     ) -> anyhow::Result<()> {
-        println!("[Launcherg] Debug: In save_element_thumbnail");
-        println!("[Launcherg] Debug: ID: {:?}, src_url: {}", id, src_url);
         Ok(save_thumbnail(handle, id, src_url).await??)
     }
 

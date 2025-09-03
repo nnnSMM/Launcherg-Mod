@@ -20,7 +20,10 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "createUpdaterArtifacts": "v1Compatible"
+    "createUpdaterArtifacts": "v1Compatible",
+    "externalBin": [
+      "bin/extract-icon.exe"
+    ]
   },
   "productName": "Launcherg",
   "version": "0.3.3",
