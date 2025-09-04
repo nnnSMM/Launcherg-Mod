@@ -648,8 +648,7 @@ pub fn save_thumbnail(
     let handle_cloned = handle.clone();
     tauri::async_runtime::spawn(async move {
         let save_path = get_thumbnail_path(&handle_cloned, &collection_element_id);
-        let is_valid_url = src_url != "" && !src_url.ends_with("/0.jpg");
-        if !(std::path::Path::new(&save_path).exists()) && is_valid_url {
+        if !(std::path::Path::new(&save_path).exists()) && src_url != "" {
             let client = reqwest::Client::new();
             let response = client.get(src_url).send().await?;
             let bytes = response.bytes().await?;
