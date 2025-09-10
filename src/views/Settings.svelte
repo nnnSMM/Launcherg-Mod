@@ -6,12 +6,15 @@
   import Select from "../components/UI/Select.svelte";
   import Input from "../components/UI/Input.svelte";
   import type { Option } from "@/lib/filter";
+  import Card from "@/components/UI/Card.svelte";
+  import { showErrorToast, showInfoToast } from "@/lib/toast";
 
   let games: CollectionElement[] = [];
   let gameOptions: Option<number>[] = [];
   let selectedGameId: number = 0;
   let shortcutKey: string = "";
   let isLoading = true;
+  let isSaving = false;
 
   onMount(async () => {
     try {
@@ -43,6 +46,10 @@
   });
 
   async function saveSettings() {
+    if (isSaving) {
+      return;
+    }
+    isSaving = true;
     try {
       const gameIdToSave =
         selectedGameId === 0 ? null : selectedGameId.toString();
@@ -56,25 +63,34 @@
         newShortcutKey: keyToSave,
       });
 
-      alert("設定を保存しました");
+      showInfoToast("設定を保存しました");
     } catch (error) {
       console.error("Error saving settings:", error);
-      alert(`設定の保存に失敗しました: ${error}`);
+      showErrorToast(`設定の保存に失敗しました: ${error}`);
+    } finally {
+      isSaving = false;
     }
   }
 </script>
 
-<div class="p-4 text-text-primary">
-  <h1 class="text-2xl font-bold mb-4">ショートカット設定</h1>
+<div class="p-4 text-text-primary space-y-4">
+  <div class="flex items-center gap-2">
+    <div class="i-material-symbols-settings-outline w-6 h-6" />
+    <h1 class="text-2xl font-bold">ショートカット設定</h1>
+  </div>
 
   {#if isLoading}
     <p>設定を読み込み中...</p>
   {:else}
-    <div class="space-y-4">
-      <div>
-        <label class="block text-sm font-medium mb-1">
-          ショートカットで起動するゲーム
-        </label>
+    <div class="space-y-6">
+      <Card>
+        <div class="flex items-center gap-2 mb-2">
+          <div class="i-material-symbols-sports-esports-outline w-5 h-5" />
+          <h2 class="text-lg font-medium">起動するゲーム</h2>
+        </div>
+        <p class="text-sm text-text-secondary mb-4">
+          ショートカットで起動するゲームを選択してください。「None」を選択すると、ショートカットは無効になります。
+        </p>
         <Select
           options={gameOptions}
           bind:value={selectedGameId}
@@ -82,31 +98,32 @@
           enableFilter={true}
           filterPlaceholder="ゲームを検索..."
         />
-        <p class="mt-1 text-sm">
-          ショートカットで起動するゲームを選択してください。
-        </p>
-      </div>
+      </Card>
 
-      <div>
-        <label class="block text-sm font-medium mb-1">
-          ショートカットキー
-        </label>
+      <Card>
+        <div class="flex items-center gap-2 mb-2">
+          <div class="i-material-symbols-keyboard-outline w-5 h-5" />
+          <h2 class="text-lg font-medium">ショートカットキー</h2>
+        </div>
+        <p class="text-sm text-text-secondary mb-4">
+          グローバルショートカットを定義します。有効なキーの組み合わせについては、<a
+            href="https://tauri.app/v1/api/js/globalshortcut"
+            target="_blank"
+            class="text-accent-accent hover:underline">Tauriのドキュメント</a
+          >を参照してください。
+        </p>
         <Input
           bind:value={shortcutKey}
           placeholder="例: CommandOrControl+Shift+L"
         />
-        <p class="mt-1 text-sm">
-          グローバルショートカットを定義します。CommandOrControl, Shift,
-          Altなどの修飾キーが使えます。有効なアクセラレータ文字列については、<a
-            href="https://tauri.app/v1/api/js/globalshortcut"
-            target="_blank"
-            class="text-blue-500 hover:underline">Tauriのドキュメント</a
-          >を参照してください。
-        </p>
-      </div>
+      </Card>
 
-      <div>
-        <Button on:click={saveSettings} text="設定を保存" />
+      <div class="flex justify-end">
+        <Button
+          on:click={saveSettings}
+          text={isSaving ? "保存中..." : "設定を保存"}
+          disabled={isSaving}
+        />
       </div>
     </div>
   {/if}
