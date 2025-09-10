@@ -114,8 +114,7 @@
         </p>
         <Input
           bind:value={shortcutKey}
-          isShortcut={true}
-          placeholder="クリックしてショートカットを記録"
+          placeholder="例: CommandOrControl+Shift+L"
         />
       </Card>
 
