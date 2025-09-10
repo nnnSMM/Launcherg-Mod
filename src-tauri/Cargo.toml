@@ -47,7 +47,7 @@ tauri-plugin-fs = "2.0.0-rc.0"
 tauri-plugin-dialog = "2.0.0-rc.0"
 tauri-plugin-shell = "2.0.0-rc.0"
 tauri-plugin-http = "2.0.0-rc.0"
-tauri-plugin-single-instance = "2.0.0"
+tauri-plugin-single-instance = "2.0.0-beta"
 
 [dependencies.windows]
 version = "0.51"
