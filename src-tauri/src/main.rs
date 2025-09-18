@@ -153,7 +153,7 @@ fn main() {
                         }
                     });
                 })
-                .menu_on_left_click(false)
+                .show_menu_on_left_click(false)
                 .on_tray_icon_event(|tray, event| {
                     if let TrayIconEvent::DoubleClick {
                         button: MouseButton::Left,
