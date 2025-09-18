@@ -2,8 +2,8 @@ use std::{fs, sync::Arc};
 
 use chrono::Local;
 use derive_new::new;
-use sysinfo::{PidExt, ProcessExt, System, SystemExt};
-use tauri::{AppHandle, Manager};
+use sysinfo::{ProcessExt, System, SystemExt};
+use tauri::AppHandle;
 use tauri_plugin_shell::ShellExt;
 use tokio::time::{interval, Duration, Instant};
 
@@ -312,19 +312,32 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
             let metadata = metadatas
                 .get(lnk_path.as_str())
                 .ok_or(anyhow::anyhow!("metadata cannot get"))?;
-            if metadata.icon.to_lowercase().ends_with("ico") {
-                println!("icon is ico");
-                icon_path = metadata.icon.clone();
+            if !metadata.icon_path.is_empty() {
+                if metadata.icon_path.to_lowercase().ends_with("ico") {
+                    println!("icon is ico");
+                    icon_path = metadata.icon_path.clone();
+                    Ok(save_icon_to_png(handle, &icon_path, id, None)?.await??)
+                } else {
+                    icon_path = metadata.icon_path.clone();
+                    Ok(save_icon_to_png(
+                        handle,
+                        &icon_path,
+                        id,
+                        Some(metadata.icon_index),
+                    )?
+                    .await??)
+                }
             } else {
                 icon_path = metadata.path.clone();
+                Ok(save_icon_to_png(handle, &icon_path, id, None)?.await??)
             }
         } else if let Some(exe_path) = element.exe_path.clone() {
             icon_path = exe_path;
+            Ok(save_icon_to_png(handle, &icon_path, id, None)?.await??)
         } else {
             eprintln!("lnk_path and exe_path are None");
             return Ok(());
         }
-        Ok(save_icon_to_png(handle, &icon_path, id)?.await??)
     }
 
     pub async fn save_element_thumbnail(
