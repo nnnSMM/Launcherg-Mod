@@ -2,7 +2,7 @@ use derive_new::new;
 use serde::{Deserialize, Serialize};
 
 use crate::domain::{
-    collection::{NewCollectionElementDetail},
+    collection::NewCollectionElementDetail,
     Id,
 };
 

@@ -312,32 +312,19 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
             let metadata = metadatas
                 .get(lnk_path.as_str())
                 .ok_or(anyhow::anyhow!("metadata cannot get"))?;
-            if !metadata.icon_path.is_empty() {
-                if metadata.icon_path.to_lowercase().ends_with("ico") {
-                    println!("icon is ico");
-                    icon_path = metadata.icon_path.clone();
-                    Ok(save_icon_to_png(handle, &icon_path, id, None)?.await??)
-                } else {
-                    icon_path = metadata.icon_path.clone();
-                    Ok(save_icon_to_png(
-                        handle,
-                        &icon_path,
-                        id,
-                        Some(metadata.icon_index),
-                    )?
-                    .await??)
-                }
+            if metadata.icon.to_lowercase().ends_with("ico") {
+                println!("icon is ico");
+                icon_path = metadata.icon.clone();
             } else {
                 icon_path = metadata.path.clone();
-                Ok(save_icon_to_png(handle, &icon_path, id, None)?.await??)
             }
         } else if let Some(exe_path) = element.exe_path.clone() {
             icon_path = exe_path;
-            Ok(save_icon_to_png(handle, &icon_path, id, None)?.await??)
         } else {
             eprintln!("lnk_path and exe_path are None");
             return Ok(());
         }
+        Ok(save_icon_to_png(handle, &icon_path, id)?.await??)
     }
 
     pub async fn save_element_thumbnail(

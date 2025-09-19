@@ -260,7 +260,7 @@ impl<R: ExplorersExt> FileUseCase<R> {
         let mut save_icon_tasks = vec![];
         for (id, exe_path) in exe_id_path_vec.into_iter() {
             // icon
-            let task = save_icon_to_png(handle, &exe_path, &Id::new(id), None)?;
+            let task = save_icon_to_png(handle, &exe_path, &Id::new(id))?;
             save_icon_tasks.push(task);
 
             // new collection element
@@ -281,19 +281,10 @@ impl<R: ExplorersExt> FileUseCase<R> {
             // icon
             if let Some(metadata) = lnk_metadatas.get(lnk_path.as_str()) {
                 let task;
-                if !metadata.icon_path.is_empty() {
-                    if metadata.icon_path.to_lowercase().ends_with("ico") {
-                        task = save_icon_to_png(handle, &metadata.icon_path, &id, None)?;
-                    } else {
-                        task = save_icon_to_png(
-                            handle,
-                            &metadata.icon_path,
-                            &id,
-                            Some(metadata.icon_index),
-                        )?;
-                    }
+                if metadata.icon.to_lowercase().ends_with("ico") {
+                    task = save_icon_to_png(handle, &metadata.icon, &id)?;
                 } else {
-                    task = save_icon_to_png(handle, &metadata.path, &id, None)?;
+                    task = save_icon_to_png(handle, &metadata.path, &id)?;
                 }
                 save_icon_tasks.push(task);
 

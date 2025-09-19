@@ -1,8 +1,7 @@
 pub struct File {}
 pub struct LnkMetadata {
     pub path: String,
-    pub icon_path: String,
-    pub icon_index: i32,
+    pub icon: String,
 }
 
 use std::{
@@ -197,6 +196,10 @@ pub fn get_lnk_metadatas(lnk_file_paths: Vec<&str>) -> anyhow::Result<HashMap<&s
     unsafe {
         CoInitialize(None)?;
 
+        let mut target_path_vec: Vec<u16> = vec![0; 261];
+        let target_path_slice =
+            std::slice::from_raw_parts_mut(target_path_vec.as_mut_ptr(), target_path_vec.len());
+
         for file_path in lnk_file_paths {
             if file_path.to_lowercase().ends_with("lnk") {
                 let shell_link: IShellLinkW =
@@ -208,35 +211,16 @@ pub fn get_lnk_metadatas(lnk_file_paths: Vec<&str>) -> anyhow::Result<HashMap<&s
                     STGM_READ,
                 )?;
 
-                let mut path_buffer: Vec<u16> = vec![0; 261];
-                shell_link.GetPath(
-                    path_buffer.as_mut_slice(),
-                    &mut WIN32_FIND_DATAW::default(),
-                    0,
-                )?;
-                let path = PCWSTR::from_raw(path_buffer.as_ptr()).to_string()?.clone();
-
-                let mut icon_path_buffer: Vec<u16> = vec![0; 261];
-                let mut icon_index = 0;
-                shell_link.GetIconLocation(
-                    icon_path_buffer.as_mut_slice(),
-                    &mut icon_index,
-                )?;
-                let icon_path_raw = PCWSTR::from_raw(icon_path_buffer.as_ptr())
+                shell_link.GetPath(target_path_slice, &mut WIN32_FIND_DATAW::default(), 0)?;
+                let path = PCWSTR::from_raw(target_path_vec.as_mut_ptr())
                     .to_string()?
                     .clone();
-                let icon_path = shellexpand::env(&icon_path_raw)
-                    .map(|s| s.into_owned())
-                    .unwrap_or(icon_path_raw);
+                shell_link.GetIconLocation(target_path_slice, &mut 0)?;
+                let icon = PCWSTR::from_raw(target_path_vec.as_mut_ptr())
+                    .to_string()?
+                    .clone();
 
-                metadatas.insert(
-                    file_path,
-                    LnkMetadata {
-                        path,
-                        icon_path,
-                        icon_index,
-                    },
-                );
+                metadatas.insert(file_path, LnkMetadata { path, icon });
             } else if file_path.to_lowercase().ends_with("url") {
                 let icon_file = get_url_file_icon_path(file_path)?;
 
@@ -244,8 +228,7 @@ pub fn get_lnk_metadatas(lnk_file_paths: Vec<&str>) -> anyhow::Result<HashMap<&s
                     file_path,
                     LnkMetadata {
                         path: file_path.to_string(),
-                        icon_path: icon_file.unwrap_or_default(),
-                        icon_index: 0,
+                        icon: icon_file.unwrap_or_default(),
                     },
                 );
             } else {
@@ -383,7 +366,6 @@ pub fn save_icon_to_png(
     handle: &Arc<AppHandle>,
     file_path: &str,
     collection_element_id: &Id<CollectionElement>,
-    icon_index: Option<i32>,
 ) -> anyhow::Result<JoinHandle<anyhow::Result<()>>> {
     let save_png_path = get_icon_path(handle, collection_element_id);
 
@@ -393,7 +375,7 @@ pub fn save_icon_to_png(
         return save_ico_to_png(file_path, &save_png_path);
     }
     if Path::new(file_path).exists() {
-        return save_exe_file_png(handle, file_path, &save_png_path, icon_index.unwrap_or(0));
+        return save_exe_file_png(handle, file_path, &save_png_path);
     }
     return save_default_icon(&save_png_path);
 }
@@ -466,18 +448,12 @@ pub fn save_exe_file_png(
     handle: &Arc<AppHandle>,
     file_path: &str,
     save_png_path: &str,
-    icon_index: i32,
 ) -> anyhow::Result<JoinHandle<anyhow::Result<()>>> {
     let save_png_path_cloned = save_png_path.to_string();
     let (mut rx, _) = handle
         .shell()
         .sidecar("extract-icon")?
-        .args(vec![
-            "48",
-            file_path,
-            save_png_path,
-            &icon_index.to_string(),
-        ])
+        .args(vec!["48", file_path, save_png_path])
         .spawn()?;
 
     let handle: JoinHandle<anyhow::Result<()>> = tauri::async_runtime::spawn(async move {
