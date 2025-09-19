@@ -222,9 +222,12 @@ pub fn get_lnk_metadatas(lnk_file_paths: Vec<&str>) -> anyhow::Result<HashMap<&s
                     icon_path_buffer.as_mut_slice(),
                     &mut icon_index,
                 )?;
-                let icon_path = PCWSTR::from_raw(icon_path_buffer.as_ptr())
+                let icon_path_raw = PCWSTR::from_raw(icon_path_buffer.as_ptr())
                     .to_string()?
                     .clone();
+                let icon_path = shellexpand::env(&icon_path_raw)
+                    .map(|s| s.into_owned())
+                    .unwrap_or(icon_path_raw);
 
                 metadatas.insert(
                     file_path,
