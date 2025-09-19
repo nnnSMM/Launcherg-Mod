@@ -251,7 +251,7 @@ pub async fn upsert_collection_element(
             .ok_or(anyhow::anyhow!("metadata cannot get"))?;
         println!(
             "metadata.path: {}, metadata.icon: {}",
-            metadata.path, metadata.icon_path
+            metadata.path, metadata.icon
         );
         install_at = get_file_created_at_sync(&metadata.path);
     } else {
