@@ -13,7 +13,6 @@ edition = "2021"
 tauri-build = { version = "2.0.0-beta", features = [] }
 
 [dependencies]
-shellexpand = "3.1.0"
 tauri = { version = "2.0.0-beta", features = ["protocol-asset", "tray-icon"] }
 tauri-plugin-window-state = "2.0.0-beta"
 serde = { version = "1.0", features = ["derive"] }
@@ -72,6 +71,7 @@ features = [
     "Graphics_Imaging",
     "Storage",
     "Storage_Streams",
+    "Win32_System_Environment",
 ]
 
 [dependencies.uuid]
