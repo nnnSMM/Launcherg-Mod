@@ -14,14 +14,19 @@
   let isDown = false;
   let startX: number;
   let scrollLeft: number;
+  let isDragging = false; // ドラッグ操作かを判定するフラグ
+  const DRAG_THRESHOLD = 5; // ドラッグと見なす最小移動ピクセル数
 
   const handleMouseDown = (e: MouseEvent) => {
     // テキスト選択や画像のドラッグなどのデフォルト動作を防止
     e.preventDefault();
     isDown = true;
-    scrollableElement.classList.add("active");
-    startX = e.pageX - scrollableElement.offsetLeft;
-    scrollLeft = scrollableElement.scrollLeft;
+    isDragging = false; // ドラッグ状態をリセット
+    if (scrollableElement) {
+      scrollableElement.classList.add("active");
+      startX = e.pageX - scrollableElement.offsetLeft;
+      scrollLeft = scrollableElement.scrollLeft;
+    }
 
     // マウスの動きをウィンドウ全体で捕捉するためのリスナーを追加
     window.addEventListener("mousemove", handleMouseMove);
@@ -36,14 +41,36 @@
     // グローバルリスナーをクリーンアップ
     window.removeEventListener("mousemove", handleMouseMove);
     window.removeEventListener("mouseup", handleMouseUp);
+
+    // clickイベントがisDraggingフラグを読んだ後にリセットするため、
+    // イベントキューの最後にこの処理をスケジュールする
+    setTimeout(() => {
+      isDragging = false;
+    }, 0);
   };
 
   const handleMouseMove = (e: MouseEvent) => {
-    if (!isDown) return;
+    if (!isDown || !scrollableElement) return;
     e.preventDefault();
+
     const x = e.pageX - scrollableElement.offsetLeft;
-    const walk = (x - startX) * 2; // スクロール速度の倍率
+    const walk = x - startX;
+
+    // DRAG_THRESHOLDを超えてマウスが動いたら、ドラッグ操作と見なす
+    if (!isDragging && Math.abs(walk) > DRAG_THRESHOLD) {
+      isDragging = true;
+    }
+
+    // 1:1の自然なスクロール速度
     scrollableElement.scrollLeft = scrollLeft - walk;
+  };
+
+  // ドラッグ操作だった場合、子要素のクリックイベントをキャンセルする
+  const handleClick = (e: MouseEvent) => {
+    if (isDragging) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
   };
 
   // 親コンポーネント(Home.svelte)のためにスクロールイベントをディスパッチ
@@ -52,7 +79,9 @@
   };
 
   onMount(() => {
-    scrollableElement.addEventListener('scroll', onScroll);
+    if (scrollableElement) {
+      scrollableElement.addEventListener('scroll', onScroll);
+    }
   });
 
   onDestroy(() => {
@@ -68,6 +97,7 @@
 <style>
   .scroller {
     overflow-x: auto;
+    overflow-y: hidden; /* 縦スクロールを完全に禁止 */
     cursor: grab;
     user-select: none; /* ドラッグ中のテキスト選択を防止 */
     /* デフォルトのスクロールバーを非表示にする */
@@ -86,6 +116,7 @@
   bind:this={scrollableElement}
   class="scroller"
   on:mousedown={handleMouseDown}
+  on:click|capture={handleClick}
 >
   <slot />
 </div>
