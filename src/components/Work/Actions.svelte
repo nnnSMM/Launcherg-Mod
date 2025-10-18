@@ -9,7 +9,6 @@
     commandUpdateElementLike,
     commandUpdateElementPlayStatus,
     commandUpsertCollectionElement,
-    commandGetAppSetting,
     commandSetAppSetting,
   } from "@/lib/command";
   import { showErrorToast } from "@/lib/toast";
@@ -31,7 +30,6 @@
   import { startProcessMap } from "@/store/startProcessMap";
   import Select from "@/components/UI/Select.svelte";
   import ButtonBase from "@/components/UI/ButtonBase.svelte";
-  import { onMount } from "svelte";
 
   export let name: string;
   export let id: number;
@@ -50,19 +48,9 @@
     {}
   );
 
-  let shortcutGameId: number | null = null;
-  onMount(async () => {
-    const gameIdStr = await commandGetAppSetting("shortcut_game_id");
-    if (gameIdStr) {
-      shortcutGameId = parseInt(gameIdStr, 10);
-    }
-  });
-  $: isShortcutGame = shortcutGameId === id;
-
   const setAsShortcutGame = async () => {
     try {
       await commandSetAppSetting("shortcut_game_id", id.toString());
-      shortcutGameId = id;
     } catch (e) {
       showErrorToast(e as string);
     }
@@ -176,14 +164,6 @@
       text="Memo"
       on:click={() => push(`/memos/${id}?gamename=${name}`)}
     />
-    <ButtonCancel
-      icon={isShortcutGame
-        ? "i-material-symbols-keyboard-command-key"
-        : "i-material-symbols-keyboard-command-key-outline"}
-      on:click={setAsShortcutGame}
-      tooltip={{ content: "このゲームをショートカットに設定", placement: "bottom" }}
-      disabled={isShortcutGame}
-    />
     <div class="flex items-center gap-2 ml-auto">
       <Select
         options={selectOptionsForDropdown}
@@ -228,6 +208,7 @@
           on:selectOpen={() =>
             commandOpenFolder(element.exePath ?? element.lnkPath)}
           on:selectOtherInfomation={() => (isOpenOtherInformation = true)}
+          on:selectShortcut={setAsShortcutGame}
         />
       </APopover>
     </div>
