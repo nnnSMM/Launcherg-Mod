@@ -161,7 +161,7 @@
             />
           </div>
         </div>
-        <div class="relative">
+        <div class="relative overflow-hidden">
           <RecentlyPlayedScroller
             on:scroll={(e) => onScroll(e.detail.event)}
             bind:this={scrollable}
