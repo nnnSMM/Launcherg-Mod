@@ -63,6 +63,7 @@
 <style>
   .scroller {
     cursor: grab;
+    overscroll-behavior-y: contain;
   }
   .scroller.active {
     cursor: grabbing;
