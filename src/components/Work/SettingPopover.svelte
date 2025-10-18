@@ -7,6 +7,7 @@
     selectDelete: {};
     selectOpen: {};
     selectOtherInfomation: {};
+    selectShortcut: {};
     close: {};
   }>();
 </script>
@@ -21,6 +22,13 @@
       class="ml-auto w-5 h-5 i-iconoir-cancel color-text-tertiary hover:color-text-primary transition-all"
     />
   </div>
+  <OptionButton
+    text="このゲームをショートカットに設定"
+    on:click={() => {
+      dispatcher("close");
+      dispatcher("selectShortcut");
+    }}
+  />
   <OptionButton
     text="ゲームのフォルダーを開く"
     on:click={() => {
