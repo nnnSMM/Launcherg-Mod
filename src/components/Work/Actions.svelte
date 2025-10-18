@@ -11,7 +11,7 @@
     commandUpsertCollectionElement,
     commandSetAppSetting,
   } from "@/lib/command";
-  import { showErrorToast } from "@/lib/toast";
+  import { showErrorToast, showInfoToast } from "@/lib/toast";
   import { localStorageWritable, formatLastPlayed } from "@/lib/utils"; // 1. formatLastPlayedをインポート
   import ButtonIcon from "@/components/UI/ButtonIcon.svelte";
   import ButtonCancel from "@/components/UI/ButtonCancel.svelte";
@@ -51,6 +51,7 @@
   const setAsShortcutGame = async () => {
     try {
       await commandSetAppSetting("shortcut_game_id", id.toString());
+      showInfoToast("ショートカットに設定しました。");
     } catch (e) {
       showErrorToast(e as string);
     }
