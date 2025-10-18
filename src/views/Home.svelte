@@ -153,11 +153,11 @@
             <ArrowButton
               back
               disabled={!isShowBack}
-              on:click={() => scrollable.scrollBy({ left: -200, behavior: "smooth" })}
+              on:click={() => scrollable.scrollBy({ left: -440, behavior: "smooth" })}
             />
             <ArrowButton
               disabled={!isShowForward}
-              on:click={() => scrollable.scrollBy({ left: 200, behavior: "smooth" })}
+              on:click={() => scrollable.scrollBy({ left: 440, behavior: "smooth" })}
             />
           </div>
         </div>
