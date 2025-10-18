@@ -175,3 +175,14 @@ export const commandUpdateGameImage = async (
 ) => {
   await invoke("update_game_image", { elementId, imageType, newImagePath });
 };
+
+export const commandGetAppSetting = async (key: string) => {
+  return await invoke<string | null>("get_app_setting", { key });
+};
+
+export const commandSetAppSetting = async (
+  key: string,
+  value: string | null
+) => {
+  return await invoke<void>("set_app_setting", { key, value });
+};
