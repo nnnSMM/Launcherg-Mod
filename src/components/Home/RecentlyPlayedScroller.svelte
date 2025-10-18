@@ -1,94 +1,90 @@
 <script lang="ts">
-  import { createEventDispatcher, onDestroy } from "svelte";
-  import SimpleBar from "simplebar";
+  import { createEventDispatcher, onDestroy, onMount } from "svelte";
 
+  let scrollableElement: HTMLDivElement;
+
+  // `Home.svelte` の矢印ボタンのために `scrollBy` をエクスポートします
   export const scrollBy = (options: ScrollToOptions) => {
-    scrollEl?.scrollBy(options);
+    scrollableElement?.scrollBy(options);
   };
 
   const dispatcher = createEventDispatcher<{ scroll: { event: Event } }>();
 
-  let scrollEl: HTMLElement | null = null;
-  let scrollerDiv: HTMLDivElement;
-
-  const simplebarAction = (node: HTMLElement) => {
-    const simplebarInstance = new SimpleBar(node, {});
-    scrollEl = simplebarInstance.getScrollElement();
-
-    const onScroll = (e: Event) => {
-      dispatcher("scroll", { event: e });
-    };
-    scrollEl?.addEventListener("scroll", onScroll);
-
-    return {
-      destroy: () => {
-        scrollEl?.removeEventListener("scroll", onScroll);
-      },
-    };
-  };
-
+  // ドラッグ＆スクロールの状態管理
   let isDown = false;
   let startX: number;
   let scrollLeft: number;
 
   const handleMouseDown = (e: MouseEvent) => {
-    if (!scrollEl) return;
+    // テキスト選択や画像のドラッグなどのデフォルト動作を防止
+    e.preventDefault();
     isDown = true;
-    scrollerDiv.classList.add("active");
-    startX = e.pageX - scrollEl.offsetLeft;
-    scrollLeft = scrollEl.scrollLeft;
+    scrollableElement.classList.add("active");
+    startX = e.pageX - scrollableElement.offsetLeft;
+    scrollLeft = scrollableElement.scrollLeft;
 
+    // マウスの動きをウィンドウ全体で捕捉するためのリスナーを追加
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mouseup", handleMouseUp);
   };
 
   const handleMouseUp = () => {
     isDown = false;
-    scrollerDiv.classList.remove("active");
-
+    if (scrollableElement) {
+      scrollableElement.classList.remove("active");
+    }
+    // グローバルリスナーをクリーンアップ
     window.removeEventListener("mousemove", handleMouseMove);
     window.removeEventListener("mouseup", handleMouseUp);
   };
 
   const handleMouseMove = (e: MouseEvent) => {
-    if (!isDown || !scrollEl) return;
+    if (!isDown) return;
     e.preventDefault();
-    const x = e.pageX - scrollEl.offsetLeft;
-    const walk = (x - startX) * 2; //scroll-fast
-    scrollEl.scrollLeft = scrollLeft - walk;
+    const x = e.pageX - scrollableElement.offsetLeft;
+    const walk = (x - startX) * 2; // スクロール速度の倍率
+    scrollableElement.scrollLeft = scrollLeft - walk;
   };
 
+  // 親コンポーネント(Home.svelte)のためにスクロールイベントをディスパッチ
+  const onScroll = (e: Event) => {
+    dispatcher("scroll", { event: e });
+  };
+
+  onMount(() => {
+    scrollableElement.addEventListener('scroll', onScroll);
+  });
+
   onDestroy(() => {
-    // Clean up global listeners if component is destroyed while dragging
+    // コンポーネント破棄時にリスナーを確実にクリーンアップ
+    if (scrollableElement) {
+        scrollableElement.removeEventListener('scroll', onScroll);
+    }
     window.removeEventListener("mousemove", handleMouseMove);
     window.removeEventListener("mouseup", handleMouseUp);
   });
 </script>
 
-<!-- Add a style block to control SimpleBar's appearance -->
 <style>
   .scroller {
+    overflow-x: auto;
     cursor: grab;
-    user-select: none; /* Prevent text selection during drag */
+    user-select: none; /* ドラッグ中のテキスト選択を防止 */
+    /* デフォルトのスクロールバーを非表示にする */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none;  /* Internet Explorer 10+ */
+  }
+  .scroller::-webkit-scrollbar { /* WebKit */
+    display: none;
   }
   .scroller.active {
     cursor: grabbing;
   }
-  :global(.recently-played-scroller .simplebar-content-wrapper) {
-    overscroll-behavior-y: contain;
-  }
-  :global(.recently-played-scroller .simplebar-track.simplebar-vertical) {
-    display: none !important;
-  }
-  :global(.recently-played-scroller .simplebar-scrollbar::before) {
-    background-color: rgba(160, 160, 160, 0.8);
-  }
 </style>
 
 <div
-  bind:this={scrollerDiv}
-  use:simplebarAction
-  class="overflow-x-auto recently-played-scroller scroller"
+  bind:this={scrollableElement}
+  class="scroller"
   on:mousedown={handleMouseDown}
 >
   <slot />
