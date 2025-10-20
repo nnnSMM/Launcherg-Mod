@@ -19,9 +19,15 @@
   export const scrollNext = () => emblaApi?.scrollNext();
 
   // Update button states when the carousel state changes
-  function onSelect(api: EmblaCarouselType) {
+  const onUpdate = (api: EmblaCarouselType) => {
+    if (!api) return;
     canScrollPrev = api.canScrollPrev();
     canScrollNext = api.canScrollNext();
+  }
+
+  const onInit = (event: CustomEvent<EmblaCarouselType>) => {
+    emblaApi = event.detail;
+    onUpdate(emblaApi);
   }
 </script>
 
@@ -41,10 +47,9 @@
 <div
   class="embla"
   use:emblaCarouselSvelte={{ options }}
-  bind:emblaApi
-  on:emblaSelect={() => onSelect(emblaApi)}
-  on:emblaInit={() => onSelect(emblaApi)}
-  on:emblaReInit={() => onSelect(emblaApi)}
+  on:emblaInit={onInit}
+  on:emblaSelect={() => onUpdate(emblaApi)}
+  on:emblaReInit={() => onUpdate(emblaApi)}
 >
   <div class="embla__container">
     <slot />
