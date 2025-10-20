@@ -17,7 +17,11 @@
   // Functions to control the carousel, to be called by the parent
   export const scrollPrev = () => emblaApi?.scrollPrev();
   export const scrollNext = () => emblaApi?.scrollNext();
-  export const reInit = () => emblaApi?.reInit();
+  export const reInit = () => {
+    if (!emblaApi) return;
+    emblaApi.reInit();
+    onUpdate(emblaApi);
+  };
 
   // Update button states when the carousel state changes
   const onUpdate = (api: EmblaCarouselType) => {
