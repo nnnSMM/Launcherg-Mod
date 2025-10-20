@@ -20,10 +20,17 @@
   import Card from "@/components/UI/Card.svelte";
   import type { SvelteComponent } from "svelte";
   import ArrowButton from "@/components/Home/ArrowButton.svelte";
+  import { tick } from "svelte";
 
-  let scrollable: SvelteComponent;
+  let scrollable: RecentlyPlayedScroller;
   let canScrollPrev = false;
   let canScrollNext = true;
+
+  $: if ($recentlyPlayed && scrollable) {
+    tick().then(() => {
+      scrollable.reInit();
+    });
+  }
 
   const memoRegex = /^smde_memo-(\d+)$/;
   const memoPromises = Promise.all(
