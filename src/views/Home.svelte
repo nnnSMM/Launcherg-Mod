@@ -22,19 +22,8 @@
   import ArrowButton from "@/components/Home/ArrowButton.svelte";
 
   let scrollable: SvelteComponent;
-  let isShowBack = false;
-  let isShowForward = true;
-  const onScroll = (e: Event) => {
-    const element = e.target as HTMLElement;
-    const rect = element.getBoundingClientRect();
-    const width = element.scrollWidth;
-
-    const left = element.scrollLeft;
-    const right = width - rect.width - left;
-
-    isShowBack = left > 0;
-    isShowForward = right > 0;
-  };
+  let canScrollPrev = false;
+  let canScrollNext = true;
 
   const memoRegex = /^smde_memo-(\d+)$/;
   const memoPromises = Promise.all(
@@ -152,32 +141,32 @@
           <div class="flex items-center">
             <ArrowButton
               back
-              disabled={!isShowBack}
-              on:click={() => scrollable.scrollBy({ left: -440, behavior: "smooth" })}
+              disabled={!canScrollPrev}
+              on:click={() => scrollable.scrollPrev()}
             />
             <ArrowButton
-              disabled={!isShowForward}
-              on:click={() => scrollable.scrollBy({ left: 440, behavior: "smooth" })}
+              disabled={!canScrollNext}
+              on:click={() => scrollable.scrollNext()}
             />
           </div>
         </div>
         <div class="relative">
           <RecentlyPlayedScroller
-            on:scroll={(e) => onScroll(e.detail.event)}
             bind:this={scrollable}
+            bind:canScrollPrev
+            bind:canScrollNext
           >
-            <div class="flex py-4 px-1 space-x-4">
-              {#each $recentlyPlayed as element (element.id)}
-                {@const isPortrait = element.thumbnailHeight &&
-                  element.thumbnailWidth &&
-                  element.thumbnailHeight > element.thumbnailWidth}
-                {@const ar = isPortrait ? 4 / 5 : 5 / 4}
-                {@const heightRem = 13}
-                {@const widthRem = heightRem * ar}
-                <div
-                  class="flex-shrink-0"
-                  style="width: {widthRem}rem; height: {heightRem}rem;"
-                >
+            {#each $recentlyPlayed as element (element.id)}
+              {@const isPortrait = element.thumbnailHeight &&
+                element.thumbnailWidth &&
+                element.thumbnailHeight > element.thumbnailWidth}
+              {@const ar = isPortrait ? 4 / 5 : 5 / 4}
+              {@const heightRem = 13}
+              {@const widthRem = heightRem * ar}
+              <div
+                class="embla__slide flex-shrink-0"
+                style="flex: 0 0 {widthRem}rem; height: {heightRem}rem; padding-left: 1rem;"
+              >
                   <ZappingGameItem
                     collectionElement={element}
                     objectFit="cover"
@@ -190,9 +179,8 @@
                       {formatLastPlayed(element.lastPlayAt)}
                     </div>
                   </ZappingGameItem>
-                </div>
-              {/each}
-            </div>
+              </div>
+            {/each}
           </RecentlyPlayedScroller>
         </div>
       </div>

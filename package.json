@@ -23,6 +23,7 @@
     "@tauri-apps/plugin-shell": "^2.0.0-rc.0",
     "@unocss/reset": "^0.52.5",
     "easymde": "^2.18.0",
+    "embla-carousel-svelte": "^8.6.0",
     "encoding-japanese": "^2.0.0",
     "qrious": "^4.0.2",
     "simplebar": "^6.2.5",
