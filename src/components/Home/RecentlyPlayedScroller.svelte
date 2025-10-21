@@ -6,7 +6,6 @@
     align: 'start',
     containScroll: 'trimSnaps',
     dragFree: true, // This provides the inertial effect
-    loop: true,
   };
 
   let emblaApi: EmblaCarouselType;
