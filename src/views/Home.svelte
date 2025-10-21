@@ -23,8 +23,6 @@
   import { tick } from "svelte";
 
   let scrollable: RecentlyPlayedScroller;
-  let canScrollPrev = false;
-  let canScrollNext = true;
 
   $: if ($recentlyPlayed && scrollable) {
     tick().then(() => {
@@ -146,23 +144,12 @@
         <div class="flex items-center">
           <h3 class="text-(text-primary h3) font-medium mr-auto">最近プレイ</h3>
           <div class="flex items-center">
-            <ArrowButton
-              back
-              disabled={!canScrollPrev}
-              on:click={() => scrollable.scrollPrev()}
-            />
-            <ArrowButton
-              disabled={!canScrollNext}
-              on:click={() => scrollable.scrollNext()}
-            />
+            <ArrowButton back on:click={() => scrollable.scrollPrev()} />
+            <ArrowButton on:click={() => scrollable.scrollNext()} />
           </div>
         </div>
         <div class="relative">
-          <RecentlyPlayedScroller
-            bind:this={scrollable}
-            bind:canScrollPrev
-            bind:canScrollNext
-          >
+          <RecentlyPlayedScroller bind:this={scrollable}>
             {#each $recentlyPlayed as element (element.id)}
               {@const isPortrait = element.thumbnailHeight &&
                 element.thumbnailWidth &&
