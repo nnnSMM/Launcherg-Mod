@@ -4,6 +4,8 @@ use chrono::Local;
 use derive_new::new;
 use sysinfo::{ProcessExt, System, SystemExt};
 use tauri::AppHandle;
+use std::process::Command;
+
 use tauri_plugin_shell::ShellExt;
 use tokio::time::{interval, Duration, Instant};
 
@@ -52,11 +54,16 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
         let pids_before: std::collections::HashSet<_> =
             system_before.processes().keys().cloned().collect();
 
-        handle
-            .shell()
-            .open(&path_str, None)
-            .map_err(anyhow::Error::from)?;
-        println!("[INFO] Opening path with shell: {}", &path_str);
+        let path = std::path::Path::new(&path_str);
+        if let Some(parent_dir) = path.parent() {
+            Command::new(path)
+                .current_dir(parent_dir)
+                .spawn()
+                .map_err(anyhow::Error::from)?;
+            println!("[INFO] Opening path with Command: {}", &path_str);
+        } else {
+            return Err(anyhow::anyhow!("親ディレクトリが見つかりません"));
+        }
 
         let game_name = element.gamename.clone();
         let path_str_clone = path_str.clone();
