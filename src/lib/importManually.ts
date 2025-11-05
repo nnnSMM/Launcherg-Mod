@@ -1,5 +1,4 @@
-import { commandGetExePathByLnk, commandGetGameCacheById } from "@/lib/command";
-import { scrapeSql } from "@/lib/scrapeSql";
+import { scrapeAllGameCacheOnes } from "./scrapeAllGame";
 import { showErrorToast } from "@/lib/toast";
 
 export const useImportManually = () => {
@@ -36,7 +35,7 @@ export const useImportManually = () => {
       return showErrorToast("ErogameScape の id として解釈できませんでした");
     }
 
-    const gameCache = await commandGetGameCacheById(id);
+    const gameCache = (await scrapeAllGameCacheOnes([id]))[0];
     if (!gameCache) {
       return showErrorToast(
         "存在しない id でした。ErogameScape を確認して存在していたらバグなので @ryoha000 に連絡していただけると幸いです。"
