@@ -26,6 +26,11 @@
 
   let scrollable: RecentlyPlayedScroller;
 
+  const reInitScroller = () => {
+    if (!scrollable) return;
+    scrollable.reInit();
+  };
+
   onMount(() => {
     backgroundState.set({
       imageUrl: null,
@@ -34,9 +39,7 @@
   });
 
   $: if ($recentlyPlayed && scrollable) {
-    tick().then(() => {
-      scrollable.reInit();
-    });
+    tick().then(reInitScroller);
   }
 
   import Skeleton from "@/components/UI/Skeleton.svelte";
@@ -88,6 +91,8 @@
     }
   };
 </script>
+
+<svelte:window on:resize={reInitScroller} />
 
 <VirtualScroller
   className="p-8"
