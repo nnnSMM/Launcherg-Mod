@@ -18,15 +18,15 @@
   });
 </script>
 
-<main class="relative h-full w-full bg-bg-primary font-sans">
+<main class="relative h-full w-full bg-bg-primary font-sans overflow-hidden">
   {#if $backgroundState.imageUrl}
     <div
       transition:fade={{ duration: 300 }}
-      class="absolute inset-0 bg-cover bg-top blur-xl"
-      style="background-image: url({$backgroundState.imageUrl}); opacity: {$backgroundState.opacity};"
+      class="absolute inset-0 bg-cover bg-center blur-2xl opacity-50 z-0"
+      style="background-image: url({$backgroundState.imageUrl});"
     />
   {/if}
-  <div class="relative h-full w-full">
+  <div class="relative h-full w-full z-10">
     {#await setDetailPromise then _}
       <Layout>
         <Router {routes} on:routeLoaded={routeLoaded} />

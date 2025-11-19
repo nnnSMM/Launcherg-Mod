@@ -1,6 +1,5 @@
 <script lang="ts">
   import SearchAttribute from "@/components/Sidebar/SearchAttribute.svelte";
-  import SearchAttrributeControl from "@/components/Sidebar/SearchAttrributeControl.svelte";
   import SearchInput from "@/components/Sidebar/SearchInput.svelte";
   import SortPopover from "@/components/Sidebar/SortPopover.svelte";
   import {
@@ -17,7 +16,7 @@
   export let order: SortOrder;
   // export let attributes: Attribute[]; // 変更: このプロパティは削除
   export let playStatusAttributes: Attribute[]; // 追加: プレイ状況属性リスト
-  export let otherAttributes: Attribute[];    // 追加: その他の属性リスト
+  export let otherAttributes: Attribute[]; // 追加: その他の属性リスト
 
   const dispatcher = createEventDispatcher<{
     toggleAttributeEnabled: { key: AttributeKey };
@@ -82,32 +81,34 @@
 
   <!-- その他の属性ボタンセクション -->
   {#if otherAttributes && otherAttributes.length > 0}
-    <div class="relative hide-scrollbar">
-      <ScrollableHorizontal
-        on:scroll={(e) => onScrollOther(e.detail.event)}
-        bind:this={scrollableOther}
+    <div class="relative">
+      <div
+        class="hide-scrollbar"
+        style="mask-image: linear-gradient(to right, {isShowBackOther
+          ? 'transparent, black 120px'
+          : 'black 0px'}, {isShowForwardOther
+          ? 'black calc(100% - 120px), transparent'
+          : 'black 100%'}); -webkit-mask-image: linear-gradient(to right, {isShowBackOther
+          ? 'transparent, black 120px'
+          : 'black 0px'}, {isShowForwardOther
+          ? 'black calc(100% - 120px), transparent'
+          : 'black 100%'});"
       >
-        <div class="flex items-center gap-2 pb-1">
-          {#each otherAttributes as attribute (attribute.key)}
-            <SearchAttribute
-              {attribute}
-              on:click={() =>
-                dispatcher("toggleAttributeEnabled", { key: attribute.key })}
-            />
-          {/each}
-        </div>
-      </ScrollableHorizontal>
-      <SearchAttrributeControl
-        appendClass="left-0"
-        back
-        show={isShowBackOther}
-        on:click={() => scrollableOther.scrollBy({ left: -100, behavior: "smooth" })}
-      />
-      <SearchAttrributeControl
-        appendClass="right-0"
-        show={isShowForwardOther}
-        on:click={() => scrollableOther.scrollBy({ left: 100, behavior: "smooth" })}
-      />
+        <ScrollableHorizontal
+          on:scroll={(e) => onScrollOther(e.detail.event)}
+          bind:this={scrollableOther}
+        >
+          <div class="flex items-center gap-2 pb-1">
+            {#each otherAttributes as attribute (attribute.key)}
+              <SearchAttribute
+                {attribute}
+                on:click={() =>
+                  dispatcher("toggleAttributeEnabled", { key: attribute.key })}
+              />
+            {/each}
+          </div>
+        </ScrollableHorizontal>
+      </div>
     </div>
   {/if}
 </div>

@@ -5,46 +5,66 @@
   import { sidebarCollectionElements } from "@/store/sidebarCollectionElements";
   import { createWritable } from "@/lib/utils";
   import type { SortOrder } from "@/components/Sidebar/sort";
-  import { type Option, collectionElementsToOptions, useFilter } from "@/lib/filter";
+  import {
+    type Option,
+    collectionElementsToOptions,
+    useFilter,
+  } from "@/lib/filter";
   import Search from "@/components/Sidebar/Search.svelte";
   import Header from "@/components/Sidebar/Header.svelte";
   import { showSidebar } from "@/store/showSidebar";
   import MinimalSidebar from "@/components/Sidebar/MinimalSidebar.svelte";
   import { fly } from "svelte/transition";
   import SubHeader from "@/components/Sidebar/SubHeader.svelte";
-  import { PLAY_STATUS_KEYS, type AttributeKey, type Attribute } from "@/components/Sidebar/searchAttributes";
+  import {
+    PLAY_STATUS_KEYS,
+    type AttributeKey,
+    type Attribute,
+  } from "@/components/Sidebar/searchAttributes";
   import { search } from "@/components/Sidebar/search";
   import { query } from "@/store/query";
-  import { currentSortOrder, currentAttributes, toggleAttribute } from "@/store/viewSettings";
+  import {
+    currentSortOrder,
+    currentAttributes,
+    toggleAttribute,
+  } from "@/store/viewSettings";
 
   onMount(async () => {
     await sidebarCollectionElements.refetch();
   });
 
   const [elementOptions, getElementOptions] = createWritable<Option<number>[]>(
-    []
+    [],
   );
   sidebarCollectionElements.subscribe((v) =>
-    elementOptions.set(collectionElementsToOptions(v))
+    elementOptions.set(collectionElementsToOptions(v)),
   );
 
   const { filtered } = useFilter(query, elementOptions, getElementOptions);
 
-  const playStatusAttributes = derived(currentAttributes, ($attributes: Attribute[]) =>
-    $attributes.filter((attr: Attribute) => PLAY_STATUS_KEYS.includes(attr.key as AttributeKey))
+  const playStatusAttributes = derived(
+    currentAttributes,
+    ($attributes: Attribute[]) =>
+      $attributes.filter((attr: Attribute) =>
+        PLAY_STATUS_KEYS.includes(attr.key as AttributeKey),
+      ),
   );
-  const otherAttributes = derived(currentAttributes, ($attributes: Attribute[]) =>
-    $attributes.filter((attr: Attribute) => !PLAY_STATUS_KEYS.includes(attr.key as AttributeKey))
+  const otherAttributes = derived(
+    currentAttributes,
+    ($attributes: Attribute[]) =>
+      $attributes.filter(
+        (attr: Attribute) =>
+          !PLAY_STATUS_KEYS.includes(attr.key as AttributeKey),
+      ),
   );
 
   const shown = sidebarCollectionElements.shown;
 
   $: shown.set(search($filtered, $currentAttributes, $currentSortOrder));
-
 </script>
 
 <div
-  class="h-full min-h-0 relative border-(r-1px solid border-primary) transition-all bg-bg-primary"
+  class="h-full min-h-0 relative border-(r-1px solid border-primary) transition-all glass"
   class:w-80={$showSidebar}
   class:w-12={!$showSidebar}
 >

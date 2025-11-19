@@ -83,7 +83,7 @@
     <p>設定を読み込み中...</p>
   {:else}
     <div class="space-y-6">
-      <Card>
+      <Card className="relative z-20">
         <div class="flex items-center gap-2 mb-2">
           <div class="i-material-symbols-sports-esports-outline w-5 h-5" />
           <h2 class="text-lg font-medium">起動するゲーム</h2>
@@ -100,7 +100,7 @@
         />
       </Card>
 
-      <Card>
+      <Card className="relative z-10">
         <div class="flex items-center gap-2 mb-2">
           <div class="i-material-symbols-keyboard-outline w-5 h-5" />
           <h2 class="text-lg font-medium">ショートカットキー</h2>

@@ -35,14 +35,14 @@
     Object.keys(localStorage)
       .map((v) => +(v.match(memoRegex)?.[1] ?? "0"))
       .filter((v) => v)
-      .map((v) => commandGetCollectionElement(v))
+      .map((v) => commandGetCollectionElement(v)),
   );
 
   let isOpenGettingStarted = true;
 
   const shown = sidebarCollectionElements.shown;
   const flattenShown = derived(shown, ($shown) =>
-    $shown.flatMap((v) => v.elements)
+    $shown.flatMap((v) => v.elements),
   );
 
   const recentlyPlayed = derived(flattenShown, ($flattenShown) =>
@@ -53,7 +53,7 @@
         const dateB = new Date(b.lastPlayAt!);
         return dateB.getTime() - dateA.getTime();
       })
-      .slice(0, 10)
+      .slice(0, 10),
   );
 
   let disabledRefetchThumbnail = false;
@@ -91,7 +91,7 @@
       <div class="font-logo text-(8 text-primary)">Launcherg</div>
     </div>
 
-    <div class="grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-4">
+    <div class="grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-6">
       {#if $sidebarCollectionElements.length === 0 && isOpenGettingStarted}
         <Card title="Getting started">
           持っているゲームをこのランチャーに登録してみましょう。左のサイドバーにある「Add」ボタンから自動で追加できます。
@@ -99,7 +99,7 @@
       {/if}
 
       <Card title="Help">
-        <div class="flex-(~ col) gap-1">
+        <div class="flex-(~ col) gap-2">
           <LinkText
             href="https://youtu.be/GCTj6eRRgAM?si=WRFuBgNErwTJsNnk"
             text="1分でわかる Launcherg"
@@ -118,9 +118,7 @@
               このアプリにはメモ機能があります。サイドバーからゲームを選択して「Memo」ボタンを押すことでそのゲームについてメモを取ることができます。
             </div>
           {:else if elements.length === 0}
-            <div class="text-(text-tertiary body)">
-              メモはまだありません。
-            </div>
+            <div class="text-(text-tertiary body)">メモはまだありません。</div>
           {:else}
             <div class="gap-1 flex-(~ col)">
               {#each elements as element (element.id)}
@@ -151,7 +149,8 @@
         <div class="relative">
           <RecentlyPlayedScroller bind:this={scrollable}>
             {#each $recentlyPlayed as element (element.id)}
-              {@const isPortrait = element.thumbnailHeight &&
+              {@const isPortrait =
+                element.thumbnailHeight &&
                 element.thumbnailWidth &&
                 element.thumbnailHeight > element.thumbnailWidth}
               {@const ar = isPortrait ? 4 / 5 : 5 / 4}
@@ -161,18 +160,18 @@
                 class="embla__slide flex-shrink-0"
                 style="flex: 0 0 {widthRem}rem; height: {heightRem}rem; padding-left: 1rem;"
               >
-                  <ZappingGameItem
-                    collectionElement={element}
-                    objectFit="cover"
-                    objectPosition="top"
+                <ZappingGameItem
+                  collectionElement={element}
+                  objectFit="cover"
+                  objectPosition="top"
+                >
+                  <div
+                    slot="info"
+                    class="text-sm text-text-tertiary px-1 truncate mb-1"
                   >
-                    <div
-                      slot="info"
-                      class="text-sm text-text-tertiary px-1 truncate mb-1"
-                    >
-                      {formatLastPlayed(element.lastPlayAt)}
-                    </div>
-                  </ZappingGameItem>
+                    {formatLastPlayed(element.lastPlayAt)}
+                  </div>
+                </ZappingGameItem>
               </div>
             {/each}
           </RecentlyPlayedScroller>
