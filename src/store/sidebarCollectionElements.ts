@@ -11,16 +11,22 @@ function createSidebarCollectionElements() {
     CollectionElement[]
   >([]);
 
+  const [loadingStore] = createWritable<boolean>(true); // Initial loading state
+
   const refetch = async () => {
-    const freshElements = await commandGetAllElements();
-    set(freshElements);
+    loadingStore.set(true);
+    try {
+      const freshElements = await commandGetAllElements();
+      set(freshElements);
+    } finally {
+      loadingStore.set(false);
+    }
   };
-  
+
   const updateLike = (id: number, isLike: boolean) => {
     const now = new Date();
-    const likeAt = `${now.getFullYear()}-${
-      now.getMonth() + 1
-    }-${now.getDate()}`;
+    const likeAt = `${now.getFullYear()}-${now.getMonth() + 1
+      }-${now.getDate()}`;
     update((elements) =>
       elements.map((v) =>
         v.id === id ? { ...v, likeAt: isLike ? likeAt : null } : { ...v }
@@ -28,7 +34,7 @@ function createSidebarCollectionElements() {
     );
   };
 
-  const updatePlayStatus = (id: number, playStatus: PlayStatus) => { // 追加
+  const updatePlayStatus = (id: number, playStatus: PlayStatus) => {
     update((elements) =>
       elements.map((v) =>
         v.id === id ? { ...v, playStatus } : { ...v }
@@ -43,8 +49,9 @@ function createSidebarCollectionElements() {
     value,
     refetch,
     updateLike,
-    updatePlayStatus, // 追加
+    updatePlayStatus,
     shown,
+    loading: loadingStore, // Expose loading store
   };
 }
 

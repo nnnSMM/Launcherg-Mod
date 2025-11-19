@@ -33,6 +33,7 @@ export default defineConfig({
   shortcuts: {
     glass: "bg-bg-primary/60 backdrop-blur-md border-white/10",
     "glass-hover": "hover:bg-bg-primary/70 transition-colors duration-200",
+    "focus-ring": "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary",
   },
   theme: {
     colors: {

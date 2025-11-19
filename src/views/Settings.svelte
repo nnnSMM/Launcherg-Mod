@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { invoke } from "@tauri-apps/api/core";
+  import { backgroundState } from "@/store/background";
   import type { CollectionElement } from "../lib/types";
   import Button from "../components/UI/Button.svelte";
   import Select from "../components/UI/Select.svelte";
@@ -17,6 +18,10 @@
   let isSaving = false;
 
   onMount(async () => {
+    backgroundState.set({
+      imageUrl: null,
+      opacity: 0,
+    });
     try {
       games = await invoke("get_all_elements");
       gameOptions = [

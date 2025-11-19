@@ -8,6 +8,7 @@
   import { initializeAllGameCache } from "@/lib/scrapeAllGame";
   import ImportDropFiles from "@/components/Home/ImportDropFiles.svelte";
   import { backgroundState } from "@/store/background";
+  import { location } from "svelte-spa-router";
   import { fade } from "svelte/transition";
 
   $: setDetailPromise = registerCollectionElementDetails();
@@ -29,7 +30,15 @@
   <div class="relative h-full w-full z-10">
     {#await setDetailPromise then _}
       <Layout>
-        <Router {routes} on:routeLoaded={routeLoaded} />
+        {#key $location}
+          <div
+            class="h-full w-full"
+            in:fade={{ duration: 200, delay: 200 }}
+            out:fade={{ duration: 200 }}
+          >
+            <Router {routes} on:routeLoaded={routeLoaded} />
+          </div>
+        {/key}
       </Layout>
     {/await}
     <ImportDropFiles />
