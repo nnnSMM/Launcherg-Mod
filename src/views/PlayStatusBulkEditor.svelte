@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { derived, writable } from "svelte/store";
+  import { backgroundState } from "@/store/background";
   import type {
     CollectionElement,
     PlayStatus as PlayStatusType,
@@ -43,6 +44,10 @@
   );
 
   onMount(async () => {
+    backgroundState.set({
+      imageUrl: null,
+      opacity: 0,
+    });
     isLoading = true;
     try {
       const games = await commandGetAllElements();

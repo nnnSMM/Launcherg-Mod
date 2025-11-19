@@ -56,6 +56,13 @@
           ? "bg-bg-success-disabled border-(~ solid border-success-disabled) text-text-success-disabled"
           : "bg-accent-success border-(~ solid accent-success) text-text-white hover:bg-bg-success-hover";
         break;
+      case "primary":
+        buttonVariantClass = "btn-primary border-none";
+        break;
+      case "glass":
+        buttonVariantClass =
+          "glass hover:bg-white/10 border-white/10 text-white";
+        break;
       default:
         const _: never = variant;
         break;

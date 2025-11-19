@@ -4,17 +4,24 @@ body {
   margin: 0;
   padding: 0;
   overflow: hidden;
+  background-color: #0f1115;
+  color: #f0f6fc;
+  font-family: 'Inter', 'Noto Sans JP', sans-serif;
 
   ::-webkit-scrollbar {
     width: 0.4rem;
     height: 0.3rem;
   }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
   ::-webkit-scrollbar-thumb {
-    background-color: #CDD9E5;
-    height: 3rem;
-    width: 5rem;
+    background-color: rgba(255, 255, 255, 0.1);
     border-radius: 999px;
     cursor: pointer;
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.2);
+    }
   }
 }
 

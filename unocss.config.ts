@@ -31,9 +31,11 @@ export default defineConfig({
   ],
   transformers: [transformerVariantGroup()],
   shortcuts: {
-    glass: "bg-bg-primary/60 backdrop-blur-md border-white/10",
-    "glass-hover": "hover:bg-bg-primary/70 transition-colors duration-200",
+    glass: "bg-bg-primary/40 backdrop-blur-xl border-t-1 border-white/10 shadow-lg",
+    "glass-card": "bg-bg-secondary/40 backdrop-blur-md border border-white/5 hover:bg-bg-secondary/60 transition-all duration-300 shadow-md hover:shadow-xl hover:-translate-y-1",
+    "glass-hover": "hover:bg-white/10 transition-colors duration-200",
     "focus-ring": "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary",
+    "btn-primary": "bg-gradient-to-r from-accent-accent to-accent-accent/80 text-white shadow-lg shadow-accent-accent/20 hover:shadow-accent-accent/40 hover:scale-105 active:scale-95 transition-all duration-200",
   },
   theme: {
     colors: {
@@ -45,12 +47,12 @@ export default defineConfig({
         error: "#EA4E60",
       },
       bg: {
-        primary: "#161b22", // Darker base for glass
-        secondary: "#21262d",
-        tertiary: "#30363d",
+        primary: "#0f1115", // Darker, deeper background
+        secondary: "#1a1d24",
+        tertiary: "#262a33",
         disabled: "#181818",
-        button: "#373e47",
-        buttonHover: "#444c56",
+        button: "rgba(255, 255, 255, 0.1)",
+        buttonHover: "rgba(255, 255, 255, 0.15)",
         backdrop: "#0d1117",
         successDisabled: "rgba(35,134,54,0.6)",
         successHover: "#46954a",
@@ -61,17 +63,17 @@ export default defineConfig({
       },
       ui: { tertiary: "#636e7b" },
       border: {
-        primary: "rgba(205, 217, 229, 0.1)", // More subtle border
-        button: "#CDD9E5",
-        buttonHover: "#768390",
+        primary: "rgba(255, 255, 255, 0.08)",
+        button: "rgba(255, 255, 255, 0.1)",
+        buttonHover: "rgba(255, 255, 255, 0.2)",
         warning: "#AE7C14",
         successDisabled: "rgba(35,134,54,0.6)",
       },
       text: {
-        primary: "#e6edf3", // Brighter text for better contrast
-        secondary: "#d0d7de",
+        primary: "#f0f6fc",
+        secondary: "#c9d1d9",
         tertiary: "#8b949e",
-        link: "#4493f8",
+        link: "#58a6ff",
         white: "#FFFFFF",
         disabled: "#484f58",
         successDisabled: "rgba(255,255,255,0.5)",
@@ -84,12 +86,15 @@ export default defineConfig({
       body: ["1rem", "160%"],
       body2: [".875rem", "160%"],
       body3: [".8rem", "160%"],
-      h1: ["1.75rem", "145%"],
-      h2: ["1.5rem", "145%"],
+      h1: ["2rem", "130%"], // Larger H1
+      h2: ["1.5rem", "140%"],
       h3: ["1.25rem", "145%"],
       h4: ["1.125rem", "145%"],
       caption: [".75rem", "142%"],
       input: [".875rem", "100%"],
     },
+    boxShadow: {
+      'glass': '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
+    }
   },
 });

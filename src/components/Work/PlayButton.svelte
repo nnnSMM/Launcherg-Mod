@@ -15,7 +15,7 @@
     appendClass="rounded-r-0"
     leftIcon="i-material-symbols-power-rounded"
     text="Play"
-    variant="success"
+    variant="primary"
     on:click={() => dispather("play", { isAdmin: undefined })}
   />
   <APopover let:open let:close>
@@ -27,7 +27,7 @@
         theme: "default",
         delay: 1000,
       }}
-      variant="success"
+      variant="primary"
       slot="button"
     >
       <div

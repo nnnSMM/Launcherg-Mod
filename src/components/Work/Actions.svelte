@@ -22,7 +22,10 @@
   import { deleteTab, tabs, selected } from "@/store/tabs";
   import DeleteElement from "@/components/Work/DeleteElement.svelte";
   import { formatPlayTime } from "@/lib/utils";
-  import type { AllGameCacheOne, PlayStatus as PlayStatusType } from "@/lib/types";
+  import type {
+    AllGameCacheOne,
+    PlayStatus as PlayStatusType,
+  } from "@/lib/types";
   import { PlayStatus } from "@/lib/types";
   import OtherInformation from "@/components/Work/OtherInformation.svelte";
   import { registerCollectionElementDetails } from "@/lib/registerCollectionElementDetails";
@@ -45,7 +48,7 @@
 
   const isAdminRecord = localStorageWritable<Record<number, boolean>>(
     "play-admin-cache",
-    {}
+    {},
   );
 
   const setAsShortcutGame = async () => {
@@ -90,7 +93,9 @@
     sidebarCollectionElements.updateLike(id, !isLike);
   };
 
-  const handlePlayStatusSelect = (event: CustomEvent<{ value: string | number }>) => {
+  const handlePlayStatusSelect = (
+    event: CustomEvent<{ value: string | number }>,
+  ) => {
     const newStatus = event.detail.value as PlayStatusType;
     updatePlayStatus(newStatus);
   };
@@ -111,27 +116,35 @@
       label: "未プレイ",
       value: PlayStatus.Unplayed,
       icon: "i-material-symbols-play-circle-outline-rounded",
-      activeStyleClasses: "bg-gray-400 !hover:bg-gray-300 text-white border-gray-400",
-      activeIconTextColorClass: "text-white"
+      activeStyleClasses:
+        "bg-gray-400 !hover:bg-gray-300 text-white border-gray-400",
+      activeIconTextColorClass: "text-white",
     },
     {
       label: "プレイ中",
       value: PlayStatus.Playing,
       icon: "i-material-symbols-pause-circle-outline-rounded",
-      activeStyleClasses: "bg-blue-500 !hover:bg-blue-400 text-white border-blue-500",
-      activeIconTextColorClass: "text-white"
+      activeStyleClasses:
+        "bg-blue-500 !hover:bg-blue-400 text-white border-blue-500",
+      activeIconTextColorClass: "text-white",
     },
     {
       label: "クリア済み",
       value: PlayStatus.Cleared,
       icon: "i-material-symbols-check-circle-outline-rounded",
-      activeStyleClasses: "bg-green-700 !hover:bg-green-600 text-white border-green-700",
-      activeIconTextColorClass: "text-white"
+      activeStyleClasses:
+        "bg-green-700 !hover:bg-green-600 text-white border-green-700",
+      activeIconTextColorClass: "text-white",
     },
   ];
 
-  $: selectOptionsForDropdown = playStatusOptionsData.map(opt => ({ label: opt.label, value: opt.value }));
-  $: currentActiveStyleInfo = playStatusOptionsData.find(opt => opt.value === currentPlayStatus) || playStatusOptionsData[0];
+  $: selectOptionsForDropdown = playStatusOptionsData.map((opt) => ({
+    label: opt.label,
+    value: opt.value,
+  }));
+  $: currentActiveStyleInfo =
+    playStatusOptionsData.find((opt) => opt.value === currentPlayStatus) ||
+    playStatusOptionsData[0];
 
   let isOpenImportManually = false;
   const onChangeGame = async (arg: {
@@ -163,6 +176,7 @@
     <Button
       leftIcon="i-material-symbols-drive-file-rename-outline"
       text="Memo"
+      variant="glass"
       on:click={() => push(`/memos/${id}?gamename=${name}`)}
     />
     <div class="flex items-center gap-2 ml-auto">
@@ -174,20 +188,27 @@
         title="プレイ状況を変更"
       >
         <ButtonBase
-            variant={"normal"}
-            appendClass={`h-8 px-3 flex items-center justify-between gap-1.5 min-w-32 text-sm transition-none ${currentActiveStyleInfo.activeStyleClasses}`}
-            tooltip={{
-              content: "プレイ状況: " + currentActiveStyleInfo.label,
-              placement: "bottom",
-              theme: "default",
-              delay: 1000,
-            }}
+          variant={"normal"}
+          appendClass={`h-8 px-3 flex items-center justify-between gap-1.5 min-w-32 text-sm transition-none ${currentActiveStyleInfo.activeStyleClasses}`}
+          tooltip={{
+            content: "プレイ状況: " + currentActiveStyleInfo.label,
+            placement: "bottom",
+            theme: "default",
+            delay: 1000,
+          }}
         >
-            <div class="flex items-center gap-1 overflow-hidden">
-                <div class="{currentActiveStyleInfo.icon} w-4 h-4 flex-shrink-0 {currentActiveStyleInfo.activeIconTextColorClass}" />
-                <span class="text-xs font-medium truncate {currentActiveStyleInfo.activeIconTextColorClass}">{currentActiveStyleInfo.label}</span>
-            </div>
-            <div class="i-material-symbols-arrow-drop-down w-4 h-4 flex-shrink-0 {currentActiveStyleInfo.activeIconTextColorClass}" />
+          <div class="flex items-center gap-1 overflow-hidden">
+            <div
+              class="{currentActiveStyleInfo.icon} w-4 h-4 flex-shrink-0 {currentActiveStyleInfo.activeIconTextColorClass}"
+            />
+            <span
+              class="text-xs font-medium truncate {currentActiveStyleInfo.activeIconTextColorClass}"
+              >{currentActiveStyleInfo.label}</span
+            >
+          </div>
+          <div
+            class="i-material-symbols-arrow-drop-down w-4 h-4 flex-shrink-0 {currentActiveStyleInfo.activeIconTextColorClass}"
+          />
         </ButtonBase>
       </Select>
       <ButtonCancel
