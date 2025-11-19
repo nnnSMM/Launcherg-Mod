@@ -20,15 +20,25 @@
   import Card from "@/components/UI/Card.svelte";
   import type { SvelteComponent } from "svelte";
   import ArrowButton from "@/components/Home/ArrowButton.svelte";
-  import { tick } from "svelte";
+  import { onMount, tick } from "svelte";
+  import { backgroundState } from "@/store/background";
 
   let scrollable: RecentlyPlayedScroller;
+
+  onMount(() => {
+    backgroundState.set({
+      imageUrl: null,
+      opacity: 0,
+    });
+  });
 
   $: if ($recentlyPlayed && scrollable) {
     tick().then(() => {
       scrollable.reInit();
     });
   }
+
+  import Skeleton from "@/components/UI/Skeleton.svelte";
 
   const memoRegex = /^smde_memo-(\d+)$/;
   const memoPromises = Promise.all(
@@ -40,6 +50,7 @@
 
   let isOpenGettingStarted = true;
 
+  const loading = sidebarCollectionElements.loading;
   const shown = sidebarCollectionElements.shown;
   const flattenShown = derived(shown, ($shown) =>
     $shown.flatMap((v) => v.elements),
@@ -92,52 +103,87 @@
     </div>
 
     <div class="grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-6">
-      {#if $sidebarCollectionElements.length === 0 && isOpenGettingStarted}
-        <Card title="Getting started">
-          持っているゲームをこのランチャーに登録してみましょう。左のサイドバーにある「Add」ボタンから自動で追加できます。
+      {#if $loading}
+        <div class="p-6 rounded-xl glass space-y-3">
+          <Skeleton width="40%" height="1.5rem" />
+          <div class="space-y-2">
+            <Skeleton width="100%" height="1rem" />
+            <Skeleton width="80%" height="1rem" />
+          </div>
+        </div>
+        <div class="p-6 rounded-xl glass space-y-3">
+          <Skeleton width="30%" height="1.5rem" />
+          <div class="space-y-2">
+            <Skeleton width="60%" height="1rem" />
+            <Skeleton width="50%" height="1rem" />
+          </div>
+        </div>
+      {:else}
+        {#if $sidebarCollectionElements.length === 0 && isOpenGettingStarted}
+          <Card title="Getting started">
+            持っているゲームをこのランチャーに登録してみましょう。左のサイドバーにある「Add」ボタンから自動で追加できます。
+          </Card>
+        {/if}
+
+        <Card title="Help">
+          <div class="flex-(~ col) gap-2">
+            <LinkText
+              href="https://youtu.be/GCTj6eRRgAM?si=WRFuBgNErwTJsNnk"
+              text="1分でわかる Launcherg"
+            />
+            <LinkText
+              href="https://ryoha000.hatenablog.com/entry/2023/09/24/003605"
+              text="よくある Q&A"
+            />
+          </div>
+        </Card>
+
+        <Card title="Memo">
+          {#await memoPromises then elements}
+            {#if elements.length === 0 && $sidebarCollectionElements.length !== 0}
+              <div class="text-(text-tertiary body)">
+                このアプリにはメモ機能があります。サイドバーからゲームを選択して「Memo」ボタンを押すことでそのゲームについてメモを取ることができます。
+              </div>
+            {:else if elements.length === 0}
+              <div class="text-(text-tertiary body)">
+                メモはまだありません。
+              </div>
+            {:else}
+              <div class="gap-1 flex-(~ col)">
+                {#each elements as element (element.id)}
+                  <a
+                    use:link
+                    href="/memos/{element.id}?gamename={element.gamename}"
+                    class="text-(text-link body2) hover:underline-(1px text-link)"
+                  >
+                    メモ - {element.gamename}
+                  </a>
+                {/each}
+              </div>
+            {/if}
+          {/await}
         </Card>
       {/if}
-
-      <Card title="Help">
-        <div class="flex-(~ col) gap-2">
-          <LinkText
-            href="https://youtu.be/GCTj6eRRgAM?si=WRFuBgNErwTJsNnk"
-            text="1分でわかる Launcherg"
-          />
-          <LinkText
-            href="https://ryoha000.hatenablog.com/entry/2023/09/24/003605"
-            text="よくある Q&A"
-          />
-        </div>
-      </Card>
-
-      <Card title="Memo">
-        {#await memoPromises then elements}
-          {#if elements.length === 0 && $sidebarCollectionElements.length !== 0}
-            <div class="text-(text-tertiary body)">
-              このアプリにはメモ機能があります。サイドバーからゲームを選択して「Memo」ボタンを押すことでそのゲームについてメモを取ることができます。
-            </div>
-          {:else if elements.length === 0}
-            <div class="text-(text-tertiary body)">メモはまだありません。</div>
-          {:else}
-            <div class="gap-1 flex-(~ col)">
-              {#each elements as element (element.id)}
-                <a
-                  use:link
-                  href="/memos/{element.id}?gamename={element.gamename}"
-                  class="text-(text-link body2) hover:underline-(1px text-link)"
-                >
-                  メモ - {element.gamename}
-                </a>
-              {/each}
-            </div>
-          {/if}
-        {/await}
-      </Card>
     </div>
 
     <!-- Recently Played Section -->
-    {#if $recentlyPlayed.length > 0}
+    {#if $loading}
+      <div class="space-y-2">
+        <div class="flex items-center">
+          <Skeleton width="150px" height="1.5rem" />
+        </div>
+        <div class="flex gap-4 overflow-hidden">
+          {#each Array(5) as _}
+            <div class="flex-shrink-0" style="width: 10rem;">
+              <div class="aspect-[4/5] rounded-lg overflow-hidden mb-1">
+                <Skeleton width="100%" height="100%" />
+              </div>
+              <Skeleton width="80%" height="0.8rem" />
+            </div>
+          {/each}
+        </div>
+      </div>
+    {:else if $recentlyPlayed.length > 0}
       <div class="space-y-2">
         <div class="flex items-center">
           <h3 class="text-(text-primary h3) font-medium mr-auto">最近プレイ</h3>
@@ -202,12 +248,26 @@
       />
     </div>
   </div>
-  <VirtualScrollerMasonry
-    elements={flattenShown}
-    {setVirtualHeight}
-    {contentsScrollY}
-    {contentsWidth}
-    {containerHeight}
-    {contentsScrollTo}
-  />
+
+  {#if $loading}
+    <div class="p-8 grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4">
+      {#each Array(12) as _}
+        <div class="space-y-2">
+          <div class="aspect-[4/5] rounded-lg overflow-hidden">
+            <Skeleton width="100%" height="100%" />
+          </div>
+          <Skeleton width="90%" height="1rem" />
+        </div>
+      {/each}
+    </div>
+  {:else}
+    <VirtualScrollerMasonry
+      elements={flattenShown}
+      {setVirtualHeight}
+      {contentsScrollY}
+      {contentsWidth}
+      {containerHeight}
+      {contentsScrollTo}
+    />
+  {/if}
 </VirtualScroller>

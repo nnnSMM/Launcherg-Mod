@@ -67,7 +67,7 @@
   use:tooltipAction
   {type}
   {disabled}
-  class={`rounded transition-all ${buttonVariantClass} ${appendClass}`}
+  class={`rounded transition-all ${buttonVariantClass} ${appendClass} focus-ring`}
   on:click
 >
   <slot />

@@ -1,7 +1,7 @@
 <script lang="ts">
   import WorkLayout from "@/components/Work/WorkLayout.svelte";
   import type { Work } from "@/lib/types";
-  import { onMount, onDestroy } from "svelte";
+  import { onMount } from "svelte";
   import { backgroundState } from "@/store/background";
   import type { CollectionElement } from "@/lib/types";
   import { convertFileSrc } from "@tauri-apps/api/core";
@@ -16,13 +16,6 @@
         opacity: 0.2,
       });
     }
-  });
-
-  onDestroy(() => {
-    backgroundState.set({
-      imageUrl: null,
-      opacity: 0,
-    });
   });
 </script>
 

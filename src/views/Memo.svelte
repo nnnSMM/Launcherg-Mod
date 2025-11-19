@@ -12,7 +12,7 @@
   import { skyWay } from "@/store/skyway";
   import { startProcessMap } from "@/store/startProcessMap";
   import { showErrorToast } from "@/lib/toast";
-  import { onMount, onDestroy } from "svelte";
+  import { onMount } from "svelte";
   import { backgroundState } from "@/store/background";
 
   export let params: { id: string };
@@ -32,13 +32,6 @@
     } catch (e) {
       console.error("Failed to get element for background", e);
     }
-  });
-
-  onDestroy(() => {
-    backgroundState.set({
-      imageUrl: null,
-      opacity: 0,
-    });
   });
 
   const mde = (node: HTMLElement) => {
@@ -78,7 +71,7 @@
             if (selected === null || Array.isArray(selected)) {
               return;
             }
-            insertImage(selected);
+            insertImage(selected.path);
           },
           className: "fa fa-picture-o",
           title: "Insert image",
@@ -90,7 +83,7 @@
             try {
               const screenshotPath = await commandSaveScreenshotByPid(
                 id,
-                startProcessId
+                startProcessId,
               );
               insertImage(screenshotPath);
             } catch (e) {
@@ -120,7 +113,7 @@
         const imageData = new ImageData(
           new Uint8ClampedArray(rgba),
           size.width,
-          size.height
+          size.height,
         );
         ctx.putImageData(imageData, 0, 0);
         const base64Image = canvas.toDataURL("image/png").split(",")[1];
@@ -168,8 +161,8 @@
             },
             [
               { workId: id, value: current, lastModified: "local" },
-            ] as typeof $memo
-          )
+            ] as typeof $memo,
+          ),
         );
         skyWay.syncMemo(id, current);
       }
