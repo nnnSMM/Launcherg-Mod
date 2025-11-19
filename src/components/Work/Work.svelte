@@ -5,6 +5,7 @@
   import { backgroundState } from "@/store/background";
   import type { CollectionElement } from "@/lib/types";
   import { convertFileSrc } from "@tauri-apps/api/core";
+  import SimpleBar from "simplebar";
 
   export let work: Work;
   export let element: CollectionElement;
@@ -17,9 +18,13 @@
       });
     }
   });
+
+  const simplebar = (node: HTMLElement) => {
+    new SimpleBar(node);
+  };
 </script>
 
-<div class="h-full w-full overflow-x-hidden overflow-y-auto">
+<div use:simplebar class="h-full w-full overflow-x-hidden overflow-y-auto">
   <div class="w-full min-h-0 flex justify-center">
     {#key work.imgUrl}
       <WorkLayout {work} {element} />
