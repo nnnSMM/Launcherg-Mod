@@ -1,12 +1,17 @@
 <script lang="ts">
   export let title: string | undefined = undefined;
+  export let className: string = "";
 </script>
 
-<div class="p-4 border-(border-primary solid ~) rounded space-y-2">
+<div class="p-6 rounded-xl glass glass-hover space-y-3 group {className}">
   {#if title}
-    <div class="text-(text-primary h3) font-medium">{title}</div>
+    <div
+      class="text-(text-primary h3) font-bold tracking-tight group-hover:text-accent-accent transition-colors duration-200"
+    >
+      {title}
+    </div>
   {/if}
-  <div class="text-(text-tertiary body)">
+  <div class="text-(text-secondary body) leading-relaxed">
     <slot />
   </div>
 </div>
