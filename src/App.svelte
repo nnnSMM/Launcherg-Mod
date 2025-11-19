@@ -19,7 +19,7 @@
   });
 </script>
 
-<main class="relative h-full w-full bg-bg-primary font-sans overflow-hidden">
+<main class="relative h-full w-full bg-bg-primary font-sans">
   {#if $backgroundState.imageUrl}
     <div
       transition:fade={{ duration: 300 }}
