@@ -64,7 +64,7 @@
 </script>
 
 <div
-  class="h-full min-h-0 relative border-(r-1px solid border-primary) transition-all glass"
+  class="h-full min-h-0 relative border-(r-1px solid border-primary) transition-all glass !bg-bg-primary/40"
   class:w-80={$showSidebar}
   class:w-12={!$showSidebar}
 >

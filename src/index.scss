@@ -9,8 +9,9 @@ body {
     width: 0.4rem;
     height: 0.3rem;
   }
+
   ::-webkit-scrollbar-thumb {
-    background-color: #CDD9E5;
+    background-color: #55606d;
     height: 3rem;
     width: 5rem;
     border-radius: 999px;
@@ -39,9 +40,10 @@ a:hover {
 }
 
 .tippy-box[data-theme~='default'] {
-  > .tippy-arrow {
+  >.tippy-arrow {
     color: #636e7b;
   }
+
   background-color: #636e7b;
   color: #c3cfdb;
 }
@@ -72,15 +74,16 @@ a:hover {
 }
 
 .simplebar-vertical {
-  > .simplebar-scrollbar::before {
-    background-color: #CDD9E5;
+  >.simplebar-scrollbar::before {
+    background-color: #636e7b;
   }
 }
 
 .simplebar-horizontal {
   height: 0.25rem !important;
-  > .simplebar-scrollbar::before {
-    background-color: #CDD9E5;
+
+  >.simplebar-scrollbar::before {
+    background-color: #636e7b;
     bottom: 0;
   }
 }
@@ -101,56 +104,71 @@ a:hover {
     width: 100%;
   }
 }
-.EasyMDEContainer > .editor-toolbar {
+
+.EasyMDEContainer>.editor-toolbar {
   border-color: transparent;
   border-bottom-width: 1px;
   border-bottom-color: #444c56;
+
   * {
     color: #adbac7;
   }
+
   i.separator {
     border-left: 1px solid #444c56;
     border-right: 1px solid #444c56;
   }
+
   button:hover {
     background-color: #2d333b;
     border-color: #444c56;
   }
+
   button.active {
     background-color: #2d333b;
     border-color: #444c56;
   }
 }
-.EasyMDEContainer > .cm-s-easymde {
+
+.EasyMDEContainer>.cm-s-easymde {
   .cm-header {
-    line-height:  160%;
+    line-height: 160%;
   }
+
   .cm-header-1 {
     font-size: 1.75rem;
   }
+
   .cm-header-2 {
     font-size: 1.5rem;
   }
+
   .cm-header-3 {
     font-size: 1.25rem;
   }
+
   .cm-header-4 {
     font-size: 1.125rem;
   }
+
   .cm-header-5 {
     font-size: 1.08rem;
   }
+
   .cm-header-6 {
     font-size: 1.04rem;
   }
+
   .cm-image {
     font-size: 0.5rem;
   }
+
   .cm-url {
     font-size: 0.5rem;
-    line-height:  120%;
+    line-height: 120%;
   }
 }
+
 .CodeMirror.cm-s-easymde.CodeMirror-wrap {
   color: #adbac7;
   border-width: 0;
@@ -158,6 +176,7 @@ a:hover {
   background-color: transparent;
   flex: 1;
 }
+
 .EasyMDEContainer .cm-s-easymde .CodeMirror-cursor {
   border-color: #adbac7;
 }

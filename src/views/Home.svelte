@@ -4,8 +4,9 @@
     commandUpdateAllGameCache,
     commandUpdateCollectionElementThumbnails,
   } from "@/lib/command";
+  import { convertFileSrc } from "@tauri-apps/api/core";
   import Icon from "/icon.png";
-  import { link } from "svelte-spa-router";
+  import { link, push } from "svelte-spa-router";
   import LinkText from "@/components/UI/LinkText.svelte";
   import { sidebarCollectionElements } from "@/store/sidebarCollectionElements";
   import VirtualScroller from "@/components/UI/VirtualScroller.svelte";
@@ -15,7 +16,7 @@
   import { scrapeAllGameCacheOnes } from "@/lib/scrapeAllGame";
   import { showErrorToast, showInfoToast } from "@/lib/toast";
   import RecentlyPlayedScroller from "@/components/Home/RecentlyPlayedScroller.svelte";
-  import ZappingGameItem from "@/components/Home/ZappingGameItem.svelte";
+  import GameCard from "@/components/UI/GameCard.svelte";
   import { formatLastPlayed } from "@/lib/utils";
   import Card from "@/components/UI/Card.svelte";
   import type { SvelteComponent } from "svelte";
@@ -184,45 +185,128 @@
         </div>
       </div>
     {:else if $recentlyPlayed.length > 0}
-      <div class="space-y-2">
-        <div class="flex items-center">
-          <h3 class="text-(text-primary h3) font-medium mr-auto">最近プレイ</h3>
-          <div class="flex items-center">
-            <ArrowButton back on:click={() => scrollable.scrollPrev()} />
-            <ArrowButton on:click={() => scrollable.scrollNext()} />
+      {@const mostRecent = $recentlyPlayed[0]}
+      {@const recentHistory = $recentlyPlayed.slice(1)}
+      {@const TARGET_AREA = 100000}
+      {@const imageWidth = (() => {
+        if (mostRecent.thumbnailWidth && mostRecent.thumbnailHeight) {
+          const ratio = mostRecent.thumbnailWidth / mostRecent.thumbnailHeight;
+          return Math.sqrt(TARGET_AREA * ratio);
+        }
+        return 192; // Default width (w-48)
+      })()}
+
+      <!-- Hero Section for Most Recent Game -->
+      <div
+        role="button"
+        tabindex="0"
+        on:click={() =>
+          push(`/works/${mostRecent.id}?gamename=${mostRecent.gamename}`)}
+        on:keydown={(e) =>
+          e.key === "Enter" &&
+          push(`/works/${mostRecent.id}?gamename=${mostRecent.gamename}`)}
+        class="relative w-full h-[400px] rounded-2xl overflow-hidden group mb-8 block cursor-pointer"
+      >
+        <!-- Background Image -->
+        <div class="absolute inset-0 z-0">
+          {#if mostRecent.thumbnail}
+            <img
+              src={`${convertFileSrc(mostRecent.thumbnail)}?v=${mostRecent.updatedAt}`}
+              alt={mostRecent.gamename}
+              class="w-full h-full object-cover opacity-60 blur-md scale-105 transition-transform duration-700 group-hover:scale-110"
+            />
+          {:else}
+            <div class="w-full h-full bg-bg-secondary/50" />
+          {/if}
+          <div
+            class="absolute inset-0 bg-gradient-to-t from-bg-primary via-bg-primary/50 to-transparent"
+          />
+          <div
+            class="absolute inset-0 bg-gradient-to-r from-bg-primary/80 via-transparent to-transparent"
+          />
+        </div>
+
+        <!-- Content -->
+        <div class="relative z-10 h-full flex items-end p-8 gap-8">
+          <!-- Cover Art -->
+
+          <div
+            class="shrink-0 rounded-lg overflow-hidden shadow-2xl transform transition-transform duration-300 group-hover:-translate-y-2"
+            style="width: {imageWidth}px;"
+          >
+            <img
+              src={mostRecent.thumbnail
+                ? `${convertFileSrc(mostRecent.thumbnail)}?v=${mostRecent.updatedAt}`
+                : ""}
+              alt="Cover"
+              class="w-full h-auto"
+            />
+          </div>
+
+          <!-- Info -->
+          <div class="flex-1 mb-2">
+            <div class="flex items-center gap-3 mb-2">
+              <span class="text-text-tertiary text-sm">
+                Last played: {formatLastPlayed(mostRecent.lastPlayAt)}
+              </span>
+            </div>
+
+            <h2
+              class="text-4xl font-bold text-white mb-6 drop-shadow-lg line-clamp-2"
+            >
+              {mostRecent.gamename}
+            </h2>
+
+            <div class="flex gap-4">
+              <Button
+                text="Play Now"
+                leftIcon="i-material-symbols-play-arrow-rounded"
+                variant="accent"
+                appendClass="!px-8 !py-3 !text-lg shadow-lg shadow-accent-accent/20"
+              />
+            </div>
           </div>
         </div>
-        <div class="relative">
-          <RecentlyPlayedScroller bind:this={scrollable}>
-            {#each $recentlyPlayed as element (element.id)}
-              {@const isPortrait =
-                element.thumbnailHeight &&
-                element.thumbnailWidth &&
-                element.thumbnailHeight > element.thumbnailWidth}
-              {@const ar = isPortrait ? 4 / 5 : 5 / 4}
-              {@const heightRem = 13}
-              {@const widthRem = heightRem * ar}
-              <div
-                class="embla__slide flex-shrink-0"
-                style="flex: 0 0 {widthRem}rem; height: {heightRem}rem; padding-left: 1rem;"
-              >
-                <ZappingGameItem
-                  collectionElement={element}
-                  objectFit="cover"
-                  objectPosition="top"
+      </div>
+
+      <!-- Recent History Scroller -->
+      {#if recentHistory.length > 0}
+        <div class="space-y-2">
+          <div class="flex items-center">
+            <h3 class="text-(text-primary h3) font-medium mr-auto">
+              最近の履歴
+            </h3>
+            <div class="flex items-center">
+              <ArrowButton back on:click={() => scrollable.scrollPrev()} />
+              <ArrowButton on:click={() => scrollable.scrollNext()} />
+            </div>
+          </div>
+          <div class="relative">
+            <RecentlyPlayedScroller bind:this={scrollable}>
+              {#each recentHistory as element (element.id)}
+                {@const isPortrait =
+                  element.thumbnailHeight &&
+                  element.thumbnailWidth &&
+                  element.thumbnailHeight > element.thumbnailWidth}
+                {@const ar = isPortrait ? 4 / 5 : 5 / 4}
+                {@const heightRem = 13}
+                {@const widthRem = heightRem * ar}
+                <div
+                  class="embla__slide flex-shrink-0"
+                  style="flex: 0 0 {widthRem}rem; padding-left: 1rem;"
                 >
-                  <div
-                    slot="info"
-                    class="text-sm text-text-tertiary px-1 truncate mb-1"
-                  >
+                  <div class="text-sm text-text-tertiary px-1 truncate mb-1">
                     {formatLastPlayed(element.lastPlayAt)}
                   </div>
-                </ZappingGameItem>
-              </div>
-            {/each}
-          </RecentlyPlayedScroller>
+                  <div style="height: {heightRem}rem;" class="w-full">
+                    <GameCard collectionElement={element} />
+                  </div>
+                </div>
+              {/each}
+            </RecentlyPlayedScroller>
+          </div>
         </div>
-      </div>
+      {/if}
     {/if}
 
     <div class="flex items-center gap-4 flex-wrap">

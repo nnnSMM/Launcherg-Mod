@@ -46,7 +46,7 @@
     <Button
       text="Add"
       leftIcon="i-material-symbols-computer-outline-rounded"
-      appendClass="ml-auto"
+      appendClass="ml-auto !bg-transparent !border-white/10 hover:!bg-white/10"
       slot="button"
     />
     <ImportPopover

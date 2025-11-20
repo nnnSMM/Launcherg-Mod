@@ -17,12 +17,21 @@
       });
     }
   });
+  let scrollY = 0;
+
+  const handleScroll = (e: UIEvent) => {
+    const target = e.target as HTMLElement;
+    scrollY = target.scrollTop;
+  };
 </script>
 
-<div class="h-full w-full overflow-x-hidden overflow-y-auto">
+<div
+  class="h-full w-full overflow-x-hidden overflow-y-auto"
+  on:scroll={handleScroll}
+>
   <div class="w-full min-h-0 flex justify-center">
     {#key work.imgUrl}
-      <WorkLayout {work} {element} />
+      <WorkLayout {work} {element} {scrollY} />
     {/key}
   </div>
 </div>
