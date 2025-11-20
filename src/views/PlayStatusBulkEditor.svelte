@@ -18,6 +18,7 @@
   import MasonryLayoutForPlayStatus from "@/components/PlayStatusBulkEditor/MasonryLayoutForPlayStatus.svelte";
   import GameListLayout from "@/components/PlayStatusBulkEditor/GameListLayout.svelte";
   import { localStorageWritable } from "@/lib/utils";
+  import { backgroundState } from "@/store/background";
 
   import { query as textQueryStore } from "@/store/query";
   import { currentSortOrder, currentAttributes } from "@/store/viewSettings";
@@ -43,6 +44,12 @@
   );
 
   onMount(async () => {
+    // Clear background image
+    backgroundState.set({
+      imageUrl: null,
+      opacity: 0,
+    });
+
     isLoading = true;
     try {
       const games = await commandGetAllElements();

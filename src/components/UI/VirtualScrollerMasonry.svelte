@@ -1,5 +1,5 @@
 <script lang="ts">
-  import ZappingGameItem from "@/components/Home/ZappingGameItem.svelte";
+  import GameCard from "@/components/UI/GameCard.svelte";
   import { useVirtualScrollerMasonry } from "@/components/UI/virtualScrollerMasonry";
   import type { CollectionElement } from "@/lib/types";
   import { onDestroy, onMount } from "svelte";
@@ -17,13 +17,13 @@
     setVirtualHeight,
     contentsWidth,
     contentsScrollY,
-    containerHeight
+    containerHeight,
   );
 
   const LAST_CONTENTS_SCROLL_Y_KEY = "lastContentsScrollY";
   onMount(() => {
     const lastContentsScrollY = localStorage.getItem(
-      LAST_CONTENTS_SCROLL_Y_KEY
+      LAST_CONTENTS_SCROLL_Y_KEY,
     );
     if (lastContentsScrollY) {
       contentsScrollTo(+lastContentsScrollY);
@@ -40,7 +40,7 @@
       class="absolute"
       style="left: {left}px; top: {top}px; width: {width}px; height: {height}px;"
     >
-      <ZappingGameItem collectionElement={element} />
+      <GameCard collectionElement={element} />
     </div>
   {/each}
 </div>
