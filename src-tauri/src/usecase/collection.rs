@@ -73,6 +73,9 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
         let pause_manager = self.pause_manager.clone();
 
         tauri::async_runtime::spawn(async move {
+            // Set tracking state to true when starting to track
+            pause_manager.set_tracking(true);
+
             // ランチャーがゲーム本体を起動するまで5秒待つ
             tokio::time::sleep(Duration::from_secs(5)).await;
 
@@ -216,6 +219,9 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
                             .collection_repository()
                             .update_element_last_play_at_by_id(&Id::new(element_id), Local::now())
                             .await;
+
+                        // Set tracking state to false when tracking ends
+                        pause_manager.set_tracking(false);
 
                         break;
                     }

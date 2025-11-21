@@ -670,7 +670,10 @@ pub async fn toggle_pause_tracking(
     handle: AppHandle,
     modules: State<'_, Arc<Modules>>,
 ) -> Result<bool, CommandError> {
-    let is_paused = modules.pause_manager().toggle();
+    let is_paused = modules
+        .pause_manager()
+        .toggle()
+        .map_err(|e| CommandError::Anyhow(anyhow::anyhow!(e)))?;
 
     // Overlay window control
     if let Some(window) = handle.get_webview_window("overlay") {

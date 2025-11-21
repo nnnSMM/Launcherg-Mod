@@ -78,16 +78,20 @@ fn main() {
                         {
                             if let Ok(pause_shortcut) = pause_shortcut_key.parse::<Shortcut>() {
                                 if shortcut == pause_shortcut {
-                                    let is_paused = modules.pause_manager().toggle();
-                                    if let Some(window) = app_handle.get_webview_window("overlay") {
-                                        if is_paused {
-                                            let _ = window.show();
-                                            let _ = window.set_focus();
-                                        } else {
-                                            let _ = window.hide();
+                                    // Check if tracking before allowing pause
+                                    if let Ok(is_paused) = modules.pause_manager().toggle() {
+                                        if let Some(window) =
+                                            app_handle.get_webview_window("overlay")
+                                        {
+                                            if is_paused {
+                                                let _ = window.show();
+                                                let _ = window.set_focus();
+                                            } else {
+                                                let _ = window.hide();
+                                            }
                                         }
+                                        let _ = app_handle.emit("pause-toggled", is_paused);
                                     }
-                                    let _ = app_handle.emit("pause-toggled", is_paused);
                                 }
                             }
                         }
