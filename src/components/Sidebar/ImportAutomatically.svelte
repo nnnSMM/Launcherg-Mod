@@ -63,7 +63,7 @@
     isLoading = true;
     const res = await commandCreateElementsInPc(
       getPaths().map((v) => v.path),
-      useCache
+      useCache,
     );
     await registerCollectionElementDetails();
     await sidebarCollectionElements.refetch();
@@ -111,7 +111,7 @@
         } else {
           processedFileNums = processedFileNums + 1;
         }
-      }
+      },
     );
     return () => {
       // unlistenProgress();
@@ -188,7 +188,7 @@
           <Checkbox bind:value={useCache} />
           <div>
             <div class="text-(text-primary body) font-medium">
-              前回から追加されたファイルのみを対象にする
+              前回のスキャン以降に追加されたファイルのみを対象にする
             </div>
             <div class="text-(text-tertiary body2)">
               自動追加が初回の場合このオプションは意味を持ちません。このオプションがオフの場合、自動追加は2分程度かかる場合があります。

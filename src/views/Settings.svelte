@@ -121,10 +121,10 @@
       <Card className="relative z-10">
         <div class="flex items-center gap-2 mb-2">
           <div class="i-material-symbols-keyboard-outline w-5 h-5" />
-          <h2 class="text-lg font-medium">ショートカットキー</h2>
+          <h2 class="text-lg font-medium">ゲーム起動用ショートカットキー</h2>
         </div>
         <p class="text-sm text-text-secondary mb-4">
-          グローバルショートカットを定義します。有効なキーの組み合わせについては、<a
+          ゲームを起動するためのショートカットキーを定義します。有効なキーの組み合わせについては、<a
             href="https://tauri.app/v1/api/js/globalshortcut"
             target="_blank"
             class="text-accent-accent hover:underline">Tauriのドキュメント</a
@@ -142,7 +142,11 @@
           <h2 class="text-lg font-medium">Pause用ショートカットキー</h2>
         </div>
         <p class="text-sm text-text-secondary mb-4">
-          ゲームプレイ時間を一時停止するためのショートカットキーを定義します。
+          ゲームプレイ時間の計測を一時停止するためのショートカットキーを定義します。ゲームを起動中でも、休憩や離席などで実際にプレイしていない時間がある場合、このショートカットキーで計測を一時停止できます。一時停止すると画面上にオーバーレイが表示され、再開するには画面をクリックするか、再度同じキーを押してください。有効なキーの組み合わせについては、<a
+            href="https://tauri.app/v1/api/js/globalshortcut"
+            target="_blank"
+            class="text-accent-accent hover:underline">Tauriのドキュメント</a
+          >を参照してください。
         </p>
         <Input
           bind:value={pauseShortcutKey}

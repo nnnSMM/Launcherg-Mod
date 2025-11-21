@@ -60,7 +60,7 @@
     {#if withInputPath}
       <InputFilePath
         {path}
-        label="EXEファイル or ショットカットファイル のパス"
+        label="EXEファイル または ショートカットファイル のパス"
         placeholder="C:\game\Monkeys!!\Monkeys!!.exe"
         on:update={(e) => (path = e.detail.value)}
       />
