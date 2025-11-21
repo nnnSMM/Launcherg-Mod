@@ -48,8 +48,10 @@
         "fullscreen": false,
         "resizable": true,
         "title": "Launcherg",
-        "width": 800,
-        "height": 600,
+        "width": 1024,
+        "height": 576,
+        "minWidth": 1024,
+        "minHeight": 576,
         "visible": false
       },
       {

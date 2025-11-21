@@ -3,6 +3,7 @@
     commandGetCollectionElement,
     commandUpdateAllGameCache,
     commandUpdateCollectionElementThumbnails,
+    commandPlayGame,
   } from "@/lib/command";
   import { convertFileSrc } from "@tauri-apps/api/core";
   import Icon from "/icon.png";
@@ -17,12 +18,13 @@
   import { showErrorToast, showInfoToast } from "@/lib/toast";
   import RecentlyPlayedScroller from "@/components/Home/RecentlyPlayedScroller.svelte";
   import GameCard from "@/components/UI/GameCard.svelte";
-  import { formatLastPlayed } from "@/lib/utils";
+  import { formatLastPlayed, localStorageWritable } from "@/lib/utils";
   import Card from "@/components/UI/Card.svelte";
   import type { SvelteComponent } from "svelte";
   import ArrowButton from "@/components/Home/ArrowButton.svelte";
   import { onMount, tick } from "svelte";
   import { backgroundState } from "@/store/background";
+  import { startProcessMap } from "@/store/startProcessMap";
 
   let scrollable: RecentlyPlayedScroller;
 
@@ -89,6 +91,30 @@
   };
 
   let innerWidth = 0;
+
+  const isAdminRecord = localStorageWritable<Record<number, boolean>>(
+    "play-admin-cache",
+    {},
+  );
+
+  const handlePlay = async (id: number) => {
+    let _isAdmin = false;
+    const cache = $isAdminRecord[id];
+    if (cache) {
+      _isAdmin = cache;
+    }
+    try {
+      const processId = await commandPlayGame(id, _isAdmin);
+      startProcessMap.update((v) => {
+        if (processId) {
+          v[id] = processId;
+        }
+        return v;
+      });
+    } catch (e) {
+      showErrorToast(e as string);
+    }
+  };
 </script>
 
 <svelte:window bind:innerWidth />
@@ -268,6 +294,10 @@
                 leftIcon="i-material-symbols-play-arrow-rounded"
                 variant="accent"
                 appendClass="!px-8 !py-3 !text-lg shadow-lg shadow-accent-accent/20"
+                on:click={(e) => {
+                  e.stopPropagation();
+                  handlePlay(mostRecent.id);
+                }}
               />
             </div>
           </div>
