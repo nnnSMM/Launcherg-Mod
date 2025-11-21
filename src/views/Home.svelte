@@ -87,7 +87,11 @@
       disabledRefetchThumbnail = false;
     }
   };
+
+  let innerWidth = 0;
 </script>
+
+<svelte:window bind:innerWidth />
 
 <VirtualScroller
   className="p-8"
@@ -187,7 +191,8 @@
     {:else if $recentlyPlayed.length > 0}
       {@const mostRecent = $recentlyPlayed[0]}
       {@const recentHistory = $recentlyPlayed.slice(1)}
-      {@const TARGET_AREA = 100000}
+      {@const TARGET_AREA =
+        innerWidth < 768 ? 50000 : innerWidth < 1280 ? 70000 : 100000}
       {@const imageWidth = (() => {
         if (mostRecent.thumbnailWidth && mostRecent.thumbnailHeight) {
           const ratio = mostRecent.thumbnailWidth / mostRecent.thumbnailHeight;
