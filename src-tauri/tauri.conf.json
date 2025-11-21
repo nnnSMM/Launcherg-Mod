@@ -35,9 +35,10 @@
       ],
       "windows": {
         "installMode": "passive",
-        "installerArgs": []
+        "installerArgs": [],
+        "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDg3RDI3NjI1MjM0MkI0NDMKUldWRHRFSWpKWGJTaCtEM1JHNEhPZGlIdzhnSWdMc1I0Unp2SXZ1NEl2Q0FmeU9QOFUxaUZuU3AK"
       },
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDg3RDI3NjI1MjM0MkI0NDMKUldSRHRFSWpKWGJTaCtEM1JHNEhPZGlIdzhnSWdMc1I0Unp2SXZ1NEl2Q0FmeU9QOFUxaUZuU3AK"
+      "enable": true
     }
   },
   "app": {
@@ -50,6 +51,18 @@
         "width": 800,
         "height": 600,
         "visible": false
+      },
+      {
+        "label": "overlay",
+        "fullscreen": true,
+        "resizable": false,
+        "title": "Overlay",
+        "transparent": true,
+        "alwaysOnTop": true,
+        "decorations": false,
+        "skipTaskbar": true,
+        "visible": false,
+        "url": "/#/overlay"
       }
     ],
     "security": {

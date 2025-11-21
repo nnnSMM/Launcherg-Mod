@@ -14,7 +14,7 @@ use crate::{
     usecase::{
         all_game_cache::AllGameCacheUseCase, collection::CollectionUseCase,
         explored_cache::ExploredCacheUseCase, file::FileUseCase, network::NetworkUseCase,
-        process::ProcessUseCase,
+        pause_manager::PauseManager, process::ProcessUseCase,
     },
 };
 
@@ -25,6 +25,7 @@ pub struct Modules {
     file_use_case: FileUseCase<Explorers>,
     all_game_cache_use_case: AllGameCacheUseCase<Repositories>,
     process_use_case: ProcessUseCase<Windows>,
+    pause_manager: PauseManager,
 }
 pub trait ModulesExt {
     type Repositories: RepositoriesExt;
@@ -37,6 +38,7 @@ pub trait ModulesExt {
     fn network_use_case(&self) -> &NetworkUseCase<Self::Explorers>;
     fn file_use_case(&self) -> &FileUseCase<Self::Explorers>;
     fn process_use_case(&self) -> &ProcessUseCase<Self::Windows>;
+    fn pause_manager(&self) -> &PauseManager;
 }
 
 impl ModulesExt for Modules {
@@ -62,6 +64,9 @@ impl ModulesExt for Modules {
     fn process_use_case(&self) -> &ProcessUseCase<Self::Windows> {
         &self.process_use_case
     }
+    fn pause_manager(&self) -> &PauseManager {
+        &self.pause_manager
+    }
 }
 
 impl Modules {
@@ -72,7 +77,6 @@ impl Modules {
         let explorers = Arc::new(Explorers::new());
         let windows = Arc::new(Windows::new());
 
-        let collection_use_case = CollectionUseCase::new(repositories.clone());
         let explored_cache_use_case = ExploredCacheUseCase::new(repositories.clone());
         let all_game_cache_use_case: AllGameCacheUseCase<Repositories> =
             AllGameCacheUseCase::new(repositories.clone());
@@ -81,6 +85,10 @@ impl Modules {
         let file_use_case: FileUseCase<Explorers> = FileUseCase::new(explorers.clone());
 
         let process_use_case: ProcessUseCase<Windows> = ProcessUseCase::new(windows.clone());
+        let pause_manager = PauseManager::new();
+
+        let collection_use_case =
+            CollectionUseCase::new(repositories.clone(), Arc::new(pause_manager.clone()));
 
         Self {
             collection_use_case,
@@ -89,6 +97,7 @@ impl Modules {
             network_use_case,
             file_use_case,
             process_use_case,
+            pause_manager,
         }
     }
 }

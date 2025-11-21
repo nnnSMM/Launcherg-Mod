@@ -19,7 +19,7 @@ use crate::{
     usecase::models::collection::CreateCollectionElementDetail,
 };
 use std::sync::{Arc, Mutex};
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut};
 
 #[tauri::command]
@@ -50,6 +50,51 @@ pub async fn update_shortcut_registration(
     modules
         .collection_use_case()
         .set_app_setting("shortcut_key".to_string(), new_shortcut_key.clone())
+        .await?;
+
+    // Register the new shortcut key
+    if let Some(new_key) = new_shortcut_key {
+        if !new_key.is_empty() {
+            if let Ok(new_shortcut) = new_key.parse::<Shortcut>() {
+                handle
+                    .global_shortcut()
+                    .register(new_shortcut)
+                    .map_err(anyhow::Error::from)?;
+            }
+        }
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn update_pause_shortcut_registration(
+    handle: AppHandle,
+    modules: State<'_, Arc<Modules>>,
+    new_shortcut_key: Option<String>,
+) -> Result<(), CommandError> {
+    // Get the old shortcut key from settings
+    if let Ok(Some(old_shortcut_key)) = modules
+        .collection_use_case()
+        .get_app_setting("pause_shortcut_key".to_string())
+        .await
+    {
+        if !old_shortcut_key.is_empty() {
+            if let Ok(old_shortcut) = old_shortcut_key.parse::<Shortcut>() {
+                if handle.global_shortcut().is_registered(old_shortcut.clone()) {
+                    handle
+                        .global_shortcut()
+                        .unregister(old_shortcut)
+                        .map_err(anyhow::Error::from)?;
+                }
+            }
+        }
+    }
+
+    // Save the new shortcut key
+    modules
+        .collection_use_case()
+        .set_app_setting("pause_shortcut_key".to_string(), new_shortcut_key.clone())
         .await?;
 
     // Register the new shortcut key
@@ -618,4 +663,32 @@ pub async fn update_game_image(
         .await?;
 
     Ok(())
+}
+
+#[tauri::command]
+pub async fn toggle_pause_tracking(
+    handle: AppHandle,
+    modules: State<'_, Arc<Modules>>,
+) -> Result<bool, CommandError> {
+    let is_paused = modules.pause_manager().toggle();
+
+    // Overlay window control
+    if let Some(window) = handle.get_webview_window("overlay") {
+        if is_paused {
+            window.show().map_err(anyhow::Error::from)?;
+            window.set_focus().map_err(anyhow::Error::from)?;
+        } else {
+            window.hide().map_err(anyhow::Error::from)?;
+        }
+    }
+
+    handle
+        .emit("pause-toggled", is_paused)
+        .map_err(anyhow::Error::from)?;
+    Ok(is_paused)
+}
+
+#[tauri::command]
+pub async fn get_pause_state(modules: State<'_, Arc<Modules>>) -> Result<bool, CommandError> {
+    Ok(modules.pause_manager().is_paused())
 }

@@ -186,3 +186,11 @@ export const commandSetAppSetting = async (
 ) => {
   return await invoke<void>("set_app_setting", { key, value });
 };
+
+export const commandTogglePauseTracking = async () => {
+  return await invoke<boolean>("toggle_pause_tracking");
+};
+
+export const commandGetPauseState = async () => {
+  return await invoke<boolean>("get_pause_state");
+};

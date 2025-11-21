@@ -14,16 +14,19 @@ use interface::{
 };
 use tauri::{
     menu::{IsMenuItem, Menu, MenuItem, Submenu},
-    tray::{TrayIconBuilder, MouseButton, TrayIconEvent},
+    tray::{MouseButton, TrayIconBuilder, TrayIconEvent},
     AppHandle, Emitter, Listener, Manager, Wry,
 };
-use tauri_plugin_autostart::{ManagerExt, MacosLauncher};
+use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 use tauri_plugin_log::{Target, TargetKind};
 
 fn main() {
     tauri::Builder::default()
-        .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
+        .plugin(tauri_plugin_autostart::init(
+            MacosLauncher::LaunchAgent,
+            None,
+        ))
         .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
             app.emit("single-instance", ()).unwrap();
         }))
@@ -66,6 +69,28 @@ fn main() {
                                 }
                             }
                         }
+
+                        // Pause shortcut handling
+                        if let Ok(Some(pause_shortcut_key)) = modules
+                            .collection_use_case()
+                            .get_app_setting("pause_shortcut_key".to_string())
+                            .await
+                        {
+                            if let Ok(pause_shortcut) = pause_shortcut_key.parse::<Shortcut>() {
+                                if shortcut == pause_shortcut {
+                                    let is_paused = modules.pause_manager().toggle();
+                                    if let Some(window) = app_handle.get_webview_window("overlay") {
+                                        if is_paused {
+                                            let _ = window.show();
+                                            let _ = window.set_focus();
+                                        } else {
+                                            let _ = window.hide();
+                                        }
+                                    }
+                                    let _ = app_handle.emit("pause-toggled", is_paused);
+                                }
+                            }
+                        }
                     });
                 })
                 .build(),
@@ -97,14 +122,16 @@ fn main() {
                 eprintln!("Failed to unregister all shortcuts on startup: {}", e);
             }
 
+            // Ensure overlay is hidden on startup
+            if let Some(window) = handle.get_webview_window("overlay") {
+                let _ = window.hide();
+            }
+
             // Modulesの初期化を先に行う
-            let modules = Arc::new(tauri::async_runtime::block_on(Modules::new(
-                &app.handle(),
-            )));
+            let modules = Arc::new(tauri::async_runtime::block_on(Modules::new(&app.handle())));
             app.manage(modules);
 
-            let menu =
-                tauri::async_runtime::block_on(build_tray_menu(app.handle())).unwrap();
+            let menu = tauri::async_runtime::block_on(build_tray_menu(app.handle())).unwrap();
 
             let _tray = TrayIconBuilder::with_id("main-tray")
                 .icon(app.default_window_icon().unwrap().clone())
@@ -249,7 +276,10 @@ fn main() {
             command::get_app_setting,
             command::set_app_setting,
             command::launch_shortcut_game,
-            command::update_shortcut_registration
+            command::update_shortcut_registration,
+            command::update_pause_shortcut_registration,
+            command::toggle_pause_tracking,
+            command::get_pause_state
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -321,12 +351,7 @@ async fn build_tray_menu(app_handle: &AppHandle) -> anyhow::Result<Menu<Wry>> {
             .iter()
             .map(|i| i as &dyn IsMenuItem<_>)
             .collect();
-        Submenu::with_items(
-            app_handle,
-            "最近プレイしたゲーム",
-            true,
-            &recent_item_refs,
-        )?
+        Submenu::with_items(app_handle, "最近プレイしたゲーム", true, &recent_item_refs)?
     };
 
     let menu = Menu::with_items(
