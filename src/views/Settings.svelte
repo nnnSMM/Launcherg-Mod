@@ -14,6 +14,7 @@
   let gameOptions: Option<number>[] = [];
   let selectedGameId: number = 0;
   let shortcutKey: string = "";
+  let pauseShortcutKey: string = "";
   let isLoading = true;
   let isSaving = false;
 
@@ -43,6 +44,13 @@
       if (savedShortcutKey) {
         shortcutKey = savedShortcutKey;
       }
+
+      const savedPauseShortcutKey = await invoke<string>("get_app_setting", {
+        key: "pause_shortcut_key",
+      });
+      if (savedPauseShortcutKey) {
+        pauseShortcutKey = savedPauseShortcutKey;
+      }
     } catch (error) {
       console.error("Error loading settings:", error);
     } finally {
@@ -66,6 +74,11 @@
       const keyToSave = shortcutKey === "" ? null : shortcutKey;
       await invoke("update_shortcut_registration", {
         newShortcutKey: keyToSave,
+      });
+
+      const pauseKeyToSave = pauseShortcutKey === "" ? null : pauseShortcutKey;
+      await invoke("update_pause_shortcut_registration", {
+        newShortcutKey: pauseKeyToSave,
       });
 
       showInfoToast("設定を保存しました");
@@ -120,6 +133,20 @@
         <Input
           bind:value={shortcutKey}
           placeholder="例: CommandOrControl+Shift+L"
+        />
+      </Card>
+
+      <Card className="relative z-0">
+        <div class="flex items-center gap-2 mb-2">
+          <div class="i-material-symbols-pause-circle-outline w-5 h-5" />
+          <h2 class="text-lg font-medium">Pause用ショートカットキー</h2>
+        </div>
+        <p class="text-sm text-text-secondary mb-4">
+          ゲームプレイ時間を一時停止するためのショートカットキーを定義します。
+        </p>
+        <Input
+          bind:value={pauseShortcutKey}
+          placeholder="例: CommandOrControl+Shift+P"
         />
       </Card>
 

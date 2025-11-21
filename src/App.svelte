@@ -11,36 +11,47 @@
   import { location } from "svelte-spa-router";
   import { fade } from "svelte/transition";
 
+  import { getCurrentWindow } from "@tauri-apps/api/window";
+  import { push } from "svelte-spa-router";
+
+  import Overlay from "@/views/Overlay.svelte";
+
+  const windowLabel = getCurrentWindow().label;
+
   $: setDetailPromise = registerCollectionElementDetails();
 
-  onMount(() => {
+  onMount(async () => {
     initialize();
     initializeAllGameCache();
   });
 </script>
 
-<main class="relative h-full w-full bg-bg-primary font-sans overflow-hidden">
-  {#if $backgroundState.imageUrl}
-    <div
-      transition:fade={{ duration: 300 }}
-      class="absolute inset-0 bg-cover bg-center blur-2xl opacity-50 z-0"
-      style="background-image: url({$backgroundState.imageUrl});"
-    />
-  {/if}
-  <div class="relative h-full w-full z-10">
-    {#await setDetailPromise then _}
-      <Layout>
-        {#key $location}
-          <div
-            class="h-full w-full"
-            in:fade={{ duration: 200, delay: 200 }}
-            out:fade={{ duration: 200 }}
-          >
-            <Router {routes} on:routeLoaded={routeLoaded} />
-          </div>
-        {/key}
-      </Layout>
-    {/await}
-    <ImportDropFiles />
-  </div>
-</main>
+{#if windowLabel === "overlay"}
+  <Overlay />
+{:else}
+  <main class="relative h-full w-full bg-bg-primary font-sans overflow-hidden">
+    {#if $backgroundState.imageUrl}
+      <div
+        transition:fade={{ duration: 300 }}
+        class="absolute inset-0 bg-cover bg-center blur-2xl opacity-50 z-0"
+        style="background-image: url({$backgroundState.imageUrl});"
+      />
+    {/if}
+    <div class="relative h-full w-full z-10">
+      {#await setDetailPromise then _}
+        <Layout>
+          {#key $location}
+            <div
+              class="h-full w-full"
+              in:fade={{ duration: 200, delay: 200 }}
+              out:fade={{ duration: 200 }}
+            >
+              <Router {routes} on:routeLoaded={routeLoaded} />
+            </div>
+          {/key}
+        </Layout>
+      {/await}
+      <ImportDropFiles />
+    </div>
+  </main>
+{/if}

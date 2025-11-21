@@ -2,14 +2,15 @@ use std::{fs, sync::Arc};
 
 use chrono::Local;
 use derive_new::new;
+use std::process::Command;
 use sysinfo::{ProcessExt, System, SystemExt};
 use tauri::AppHandle;
-use std::process::Command;
 
 use tauri_plugin_shell::ShellExt;
 use tokio::time::{interval, Duration, Instant};
 
 use super::error::UseCaseError;
+use super::pause_manager::PauseManager;
 use crate::{
     domain::{
         collection::{CollectionElement, NewCollectionElement, NewCollectionElementDetail},
@@ -26,6 +27,7 @@ use crate::{
 #[derive(new)]
 pub struct CollectionUseCase<R: RepositoriesExt> {
     repositories: Arc<R>,
+    pause_manager: Arc<PauseManager>,
 }
 
 impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
@@ -68,6 +70,7 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
         let game_name = element.gamename.clone();
         let path_str_clone = path_str.clone();
         let repositories = self.repositories.clone();
+        let pause_manager = self.pause_manager.clone();
 
         tauri::async_runtime::spawn(async move {
             // ランチャーがゲーム本体を起動するまで5秒待つ
@@ -179,12 +182,24 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
                 let start_time = Instant::now();
                 let mut interval = interval(Duration::from_secs(10));
                 let mut system = System::new_all();
+                let mut elapsed_time_accumulator = 0;
+                let mut last_check_time = Instant::now();
 
                 loop {
                     interval.tick().await;
                     system.refresh_processes();
+
+                    if !pause_manager.is_paused() {
+                        let now = Instant::now();
+                        elapsed_time_accumulator +=
+                            now.duration_since(last_check_time).as_secs() as i32;
+                        last_check_time = now;
+                    } else {
+                        last_check_time = Instant::now();
+                    }
+
                     if system.process(pid_to_monitor).is_none() {
-                        let duration = start_time.elapsed().as_secs() as i32;
+                        let duration = elapsed_time_accumulator;
                         if duration > 0 {
                             println!(
                                 "Game {} (PID: {}) finished. Play time: {} seconds.",
