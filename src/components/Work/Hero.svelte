@@ -71,10 +71,11 @@
     };
 
     let showFullscreenImage = false;
+    let innerWidth = 0;
 
     // Target area for the cover image (width * height)
     // Adjust this value to change the overall size of the image while maintaining area consistency
-    const TARGET_AREA = 130000;
+    $: TARGET_AREA = innerWidth < 1280 ? 90000 : 130000;
 
     $: imageWidth = (() => {
         if (element.thumbnailWidth && element.thumbnailHeight) {
@@ -84,6 +85,8 @@
         }
     })();
 </script>
+
+<svelte:window bind:innerWidth />
 
 <div class="relative w-full min-h-[60vh] min-h-[300px] group flex flex-col">
     <!-- Background Image -->
