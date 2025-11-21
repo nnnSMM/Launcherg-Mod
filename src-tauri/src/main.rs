@@ -224,6 +224,8 @@ fn main() {
             let handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 let modules = handle.state::<Arc<Modules>>();
+
+                // Register launch shortcut
                 if let Ok(Some(shortcut_key)) = modules
                     .collection_use_case()
                     .get_app_setting("shortcut_key".to_string())
@@ -234,6 +236,26 @@ fn main() {
                             if !handle.global_shortcut().is_registered(shortcut.clone()) {
                                 if let Err(e) = handle.global_shortcut().register(shortcut) {
                                     eprintln!("Failed to register shortcut on startup: {}", e);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Register pause shortcut
+                if let Ok(Some(pause_shortcut_key)) = modules
+                    .collection_use_case()
+                    .get_app_setting("pause_shortcut_key".to_string())
+                    .await
+                {
+                    if !pause_shortcut_key.is_empty() {
+                        if let Ok(shortcut) = pause_shortcut_key.parse::<Shortcut>() {
+                            if !handle.global_shortcut().is_registered(shortcut.clone()) {
+                                if let Err(e) = handle.global_shortcut().register(shortcut) {
+                                    eprintln!(
+                                        "Failed to register pause shortcut on startup: {}",
+                                        e
+                                    );
                                 }
                             }
                         }
