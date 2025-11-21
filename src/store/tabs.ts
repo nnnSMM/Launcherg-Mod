@@ -27,6 +27,19 @@ const createTabs = () => {
   const [tabs, getTabs] = createLocalStorageWritable<Tab[]>("tabs", []);
   const [selected, getSelected] = createLocalStorageWritable("tab-selected", -1);
 
+  const insertNewTab = (newTab: Tab): number => {
+    const currentIndex = getSelected();
+    const currentTabs = getTabs();
+    const insertIndex = currentIndex === -1 ? currentTabs.length : currentIndex + 1;
+
+    tabs.update(v => {
+      const newV = [...v];
+      newV.splice(insertIndex, 0, newTab);
+      return newV;
+    });
+    return insertIndex;
+  };
+
   const routeLoaded = (event: RouteLoadedEvent) => {
     const location = event.detail.location;
     localStorage.setItem("last-path", location);
@@ -41,7 +54,7 @@ const createTabs = () => {
     const tabTypeSegment = pathSegments[0];
     let entityId: number | undefined = undefined;
     if (pathSegments[1] && (tabTypeSegment === "works" || tabTypeSegment === "memos")) {
-        entityId = +pathSegments[1];
+      entityId = +pathSegments[1];
     }
 
     if (!isValidTabType(tabTypeSegment)) {
@@ -53,98 +66,94 @@ const createTabs = () => {
     let tabToSelectIndex = -1;
 
     if (location === PLAY_STATUS_EDITOR_PATH && tabTypeSegment === "settings") { // ★ 設定タブのパスで判定
-        tabToSelectIndex = getTabs().findIndex(t => t.id === PLAY_STATUS_EDITOR_TAB_ID && t.type === "settings");
-        if (tabToSelectIndex === -1) {
-            const settingsTab: Tab = {
-                id: PLAY_STATUS_EDITOR_TAB_ID,
-                type: "settings",
-                scrollTo: 0,
-                title: PLAY_STATUS_EDITOR_TITLE,
-                path: PLAY_STATUS_EDITOR_PATH,
-            };
-            tabs.update(currentTabs => [...currentTabs, settingsTab]);
-            tabToSelectIndex = getTabs().length - 1;
-        }
+      tabToSelectIndex = getTabs().findIndex(t => t.id === PLAY_STATUS_EDITOR_TAB_ID && t.type === "settings");
+      if (tabToSelectIndex === -1) {
+        const settingsTab: Tab = {
+          id: PLAY_STATUS_EDITOR_TAB_ID,
+          type: "settings",
+          scrollTo: 0,
+          title: PLAY_STATUS_EDITOR_TITLE,
+          path: PLAY_STATUS_EDITOR_PATH,
+        };
+        tabToSelectIndex = insertNewTab(settingsTab);
+      }
     } else if (location === SHORTCUT_SETTINGS_PATH && tabTypeSegment === "settings") {
-        tabToSelectIndex = getTabs().findIndex(t => t.id === SHORTCUT_SETTINGS_TAB_ID && t.type === "settings");
-        if (tabToSelectIndex === -1) {
-            const settingsTab: Tab = {
-                id: SHORTCUT_SETTINGS_TAB_ID,
-                type: "settings",
-                scrollTo: 0,
-                title: SHORTCUT_SETTINGS_TITLE,
-                path: SHORTCUT_SETTINGS_PATH,
-            };
-            tabs.update(currentTabs => [...currentTabs, settingsTab]);
-            tabToSelectIndex = getTabs().length - 1;
-        }
+      tabToSelectIndex = getTabs().findIndex(t => t.id === SHORTCUT_SETTINGS_TAB_ID && t.type === "settings");
+      if (tabToSelectIndex === -1) {
+        const settingsTab: Tab = {
+          id: SHORTCUT_SETTINGS_TAB_ID,
+          type: "settings",
+          scrollTo: 0,
+          title: SHORTCUT_SETTINGS_TITLE,
+          path: SHORTCUT_SETTINGS_PATH,
+        };
+        tabToSelectIndex = insertNewTab(settingsTab);
+      }
     } else if (tabTypeSegment === "works" || tabTypeSegment === "memos") {
-        if (!entityId || isNaN(entityId)) {
-            console.error("Missing or invalid entityId for works/memos tab at location:", location);
-            // entityId がない場合は、新しいタブを開くのではなく、既存のタブを探すだけにするか、
-            // あるいはエラーとしてホームに戻す。ここでは既存のタブを探す試みは維持。
-            // もし対応する workId のタブがなければ、何もしないか、ホームに戻る。
-            const existingTabIndex = getTabs().findIndex(t => t.workId === entityId && t.type === tabTypeSegment);
-            if (existingTabIndex !== -1) {
-                tabToSelectIndex = existingTabIndex;
-            } else {
-                // gamename がないとタイトルが作れないので、新しいタブは開かない
-                const searchParams = new URLSearchParams(event.detail.querystring);
-                const gamename = searchParams.get("gamename");
-                if (gamename) {
-                    let title = gamename;
-                    if (tabTypeSegment === "memos") {
-                        title = `メモ - ${title}`;
-                    }
-                    const newTab: Tab = {
-                        id: new Date().getTime(),
-                        workId: entityId,
-                        type: tabTypeSegment,
-                        scrollTo: 0,
-                        title,
-                        path: `/${tabTypeSegment}/${entityId}${event.detail.querystring ? `?${event.detail.querystring}` : ''}`,
-                    };
-                    tabs.update(v => [...v, newTab]);
-                    tabToSelectIndex = getTabs().length - 1;
-                } else {
-                    console.warn(`Cannot open new ${tabTypeSegment} tab for ${entityId} without gamename.`);
-                    // push("/"); // 必要ならホームに戻す
-                }
-            }
+      if (!entityId || isNaN(entityId)) {
+        console.error("Missing or invalid entityId for works/memos tab at location:", location);
+        // entityId がない場合は、新しいタブを開くのではなく、既存のタブを探すだけにするか、
+        // あるいはエラーとしてホームに戻す。ここでは既存のタブを探す試みは維持。
+        // もし対応する workId のタブがなければ、何もしないか、ホームに戻る。
+        const existingTabIndex = getTabs().findIndex(t => t.workId === entityId && t.type === tabTypeSegment);
+        if (existingTabIndex !== -1) {
+          tabToSelectIndex = existingTabIndex;
         } else {
-            tabToSelectIndex = getTabs().findIndex(t => t.workId === entityId && t.type === tabTypeSegment);
-            if (tabToSelectIndex === -1) {
-                const searchParams = new URLSearchParams(event.detail.querystring);
-                const gamename = searchParams.get("gamename");
-                if (!gamename) {
-                    console.error(`Gamename query param missing for new ${tabTypeSegment} tab for workId ${entityId}`);
-                }
-                let title = gamename || `ID: ${entityId}`;
-                if (tabTypeSegment === "memos") {
-                    title = `メモ - ${title}`;
-                }
-                const newTab: Tab = {
-                    id: new Date().getTime(),
-                    workId: entityId,
-                    type: tabTypeSegment,
-                    scrollTo: 0,
-                    title,
-                    path: `/${tabTypeSegment}/${entityId}${event.detail.querystring ? `?${event.detail.querystring}` : ''}`,
-                };
-                tabs.update(v => [...v, newTab]);
-                tabToSelectIndex = getTabs().length - 1;
+          // gamename がないとタイトルが作れないので、新しいタブは開かない
+          const searchParams = new URLSearchParams(event.detail.querystring);
+          const gamename = searchParams.get("gamename");
+          if (gamename) {
+            let title = gamename;
+            if (tabTypeSegment === "memos") {
+              title = `メモ - ${title}`;
             }
+            const newTab: Tab = {
+              id: new Date().getTime(),
+              workId: entityId,
+              type: tabTypeSegment,
+              scrollTo: 0,
+              title,
+              path: `/${tabTypeSegment}/${entityId}${event.detail.querystring ? `?${event.detail.querystring}` : ''}`,
+            };
+            tabToSelectIndex = insertNewTab(newTab);
+          } else {
+            console.warn(`Cannot open new ${tabTypeSegment} tab for ${entityId} without gamename.`);
+            // push("/"); // 必要ならホームに戻す
+          }
         }
+      } else {
+        tabToSelectIndex = getTabs().findIndex(t => t.workId === entityId && t.type === tabTypeSegment);
+        if (tabToSelectIndex === -1) {
+          const searchParams = new URLSearchParams(event.detail.querystring);
+          const gamename = searchParams.get("gamename");
+          if (!gamename) {
+            console.error(`Gamename query param missing for new ${tabTypeSegment} tab for workId ${entityId}`);
+          }
+          let title = gamename || `ID: ${entityId}`;
+          if (tabTypeSegment === "memos") {
+            title = `メモ - ${title}`;
+          }
+          const newTab: Tab = {
+            id: new Date().getTime(),
+            workId: entityId,
+            type: tabTypeSegment,
+            scrollTo: 0,
+            title,
+            path: `/${tabTypeSegment}/${entityId}${event.detail.querystring ? `?${event.detail.querystring}` : ''}`,
+          };
+          tabToSelectIndex = insertNewTab(newTab);
+        }
+      }
     }
 
 
     if (tabToSelectIndex !== -1) {
-        selected.set(tabToSelectIndex);
+      selected.set(tabToSelectIndex);
     } else if (location !== "/" && location !== PLAY_STATUS_EDITOR_PATH) { // ★設定タブ以外で適切なタブが見つからなければ
-        // 既に適切なURLにいるがタブリストにない場合（例：URL直打ちでquerystringなし）
-        // この状態を許容するか、ホームに戻すか。
-        // console.warn("No tab found for current route, staying or pushing home:", location);
-        // push("/");
+      // 既に適切なURLにいるがタブリストにない場合（例：URL直打ちでquerystringなし）
+      // この状態を許容するか、ホームに戻すか。
+      // console.warn("No tab found for current route, staying or pushing home:", location);
+      // push("/");
     }
   };
 
@@ -212,7 +221,7 @@ const createTabs = () => {
     const selIndex = getSelected();
     const currentTabs = getTabs();
     if (selIndex >= 0 && selIndex < currentTabs.length) {
-        return currentTabs[selIndex];
+      return currentTabs[selIndex];
     }
     return undefined;
   };
@@ -257,8 +266,8 @@ const createTabs = () => {
         title: PLAY_STATUS_EDITOR_TITLE,
         path: PLAY_STATUS_EDITOR_PATH,
       };
-      tabs.update(v => [...v, settingsTab]);
-      selected.set(getTabs().length - 1);
+      const newIndex = insertNewTab(settingsTab);
+      selected.set(newIndex);
       push(PLAY_STATUS_EDITOR_PATH);
     }
   };
@@ -278,8 +287,8 @@ const createTabs = () => {
         title: SHORTCUT_SETTINGS_TITLE,
         path: SHORTCUT_SETTINGS_PATH,
       };
-      tabs.update(v => [...v, settingsTab]);
-      selected.set(getTabs().length - 1);
+      const newIndex = insertNewTab(settingsTab);
+      selected.set(newIndex);
       push(SHORTCUT_SETTINGS_PATH);
     }
   };

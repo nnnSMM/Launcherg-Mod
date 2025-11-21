@@ -1,7 +1,13 @@
 <script lang="ts">
   import ATab from "@/components/Tab/ATab.svelte";
   import ScrollableHorizontal from "@/components/UI/ScrollableHorizontal.svelte";
-  import { selected, tabs, reorderTabs, type Tab as TabType, getSelectedTab } from "@/store/tabs";
+  import {
+    selected,
+    tabs,
+    reorderTabs,
+    type Tab as TabType,
+    getSelectedTab,
+  } from "@/store/tabs";
   import { onDestroy, onMount, tick } from "svelte";
   import { push } from "svelte-spa-router";
 
@@ -23,7 +29,11 @@
 
   $: isAnyTabDragging = draggingTabId !== null && isActuallyDragging;
 
-  const handleMouseDown = (event: MouseEvent & { currentTarget: EventTarget & HTMLDivElement }, tabData: TabType, index: number) => {
+  const handleMouseDown = (
+    event: MouseEvent & { currentTarget: EventTarget & HTMLDivElement },
+    tabData: TabType,
+    index: number,
+  ) => {
     isActuallyDragging = false;
 
     const currentSelectedTab = getSelectedTab();
@@ -43,18 +53,27 @@
     ghostTabWidth = originalTabRect.width;
     ghostTabHeight = originalTabRect.height;
 
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
   };
 
   const handleMouseMove = async (event: MouseEvent) => {
-    if (draggingTabId === null || draggingTabIndex === null || !originalTabRect || !ghostTabContent) return;
+    if (
+      draggingTabId === null ||
+      draggingTabIndex === null ||
+      !originalTabRect ||
+      !ghostTabContent
+    )
+      return;
     event.preventDefault();
 
     if (!isActuallyDragging) {
       const deltaXFromInitialRect = event.clientX - originalTabRect.left;
       const deltaYFromInitialRect = event.clientY - originalTabRect.top;
-      if (Math.sqrt(deltaXFromInitialRect**2 + deltaYFromInitialRect**2) > DRAG_START_THRESHOLD) {
+      if (
+        Math.sqrt(deltaXFromInitialRect ** 2 + deltaYFromInitialRect ** 2) >
+        DRAG_START_THRESHOLD
+      ) {
         isActuallyDragging = true;
         showGhostTab = true;
       } else {
@@ -67,14 +86,14 @@
 
     const currentTabs = $tabs;
     if (currentTabs.length === 0 && draggingTabIndex !== 0) {
-        placeholderIndex = 0;
-        await tick();
-        return;
+      placeholderIndex = 0;
+      await tick();
+      return;
     }
-    if (currentTabs.length === 0 && draggingTabIndex === 0){
-        placeholderIndex = 0;
-        await tick();
-        return;
+    if (currentTabs.length === 0 && draggingTabIndex === 0) {
+      placeholderIndex = 0;
+      await tick();
+      return;
     }
 
     let newPlaceholderIndex = draggingTabIndex;
@@ -90,11 +109,14 @@
       }
       newPlaceholderIndex = i + 1;
     }
-    newPlaceholderIndex = Math.max(0, Math.min(currentTabs.length, newPlaceholderIndex));
+    newPlaceholderIndex = Math.max(
+      0,
+      Math.min(currentTabs.length, newPlaceholderIndex),
+    );
 
     if (placeholderIndex !== newPlaceholderIndex) {
-        placeholderIndex = newPlaceholderIndex;
-        await tick();
+      placeholderIndex = newPlaceholderIndex;
+      await tick();
     }
   };
 
@@ -106,24 +128,24 @@
     isActuallyDragging = false;
     showGhostTab = false;
     ghostTabContent = null;
-    window.removeEventListener('mousemove', handleMouseMove);
-    window.removeEventListener('mouseup', handleMouseUp);
-  }
+    window.removeEventListener("mousemove", handleMouseMove);
+    window.removeEventListener("mouseup", handleMouseUp);
+  };
 
   const handleMouseUp = () => {
     if (draggingTabId === null || draggingTabIndex === null) {
-        resetDragState();
-        return;
+      resetDragState();
+      return;
     }
 
     if (isActuallyDragging && placeholderIndex !== null) {
-        let finalNewIndex = placeholderIndex;
-        if (draggingTabIndex < finalNewIndex) {
-            finalNewIndex--;
-        }
-        if (draggingTabIndex !== finalNewIndex) {
-            reorderTabs(draggingTabIndex, finalNewIndex);
-        }
+      let finalNewIndex = placeholderIndex;
+      if (draggingTabIndex < finalNewIndex) {
+        finalNewIndex--;
+      }
+      if (draggingTabIndex !== finalNewIndex) {
+        reorderTabs(draggingTabIndex, finalNewIndex);
+      }
     }
     resetDragState();
   };
@@ -134,6 +156,14 @@
     };
   });
 
+  $: if ($selected !== -1) {
+    tick().then(() => {
+      const el = tabElements[$selected];
+      if (el) {
+        el.scrollIntoView({ behavior: "instant", inline: "nearest" });
+      }
+    });
+  }
 </script>
 
 <ScrollableHorizontal>
@@ -143,29 +173,40 @@
         <div
           bind:this={tabElements[i]}
           class="tab-wrapper"
-          class:is-drag-placeholder={draggingTabId === tab.id && isActuallyDragging}
+          class:is-drag-placeholder={draggingTabId === tab.id &&
+            isActuallyDragging}
           style="order: {i};"
           on:mousedown={(e) => handleMouseDown(e, tab, i)}
         >
-          <ATab {tab} selected={$selected === i}
-                isDragging={false}
-                isPlaceholder={draggingTabId === tab.id && isActuallyDragging}
-                isAnyTabDragging={isAnyTabDragging}
+          <ATab
+            {tab}
+            selected={$selected === i}
+            isDragging={false}
+            isPlaceholder={draggingTabId === tab.id && isActuallyDragging}
+            {isAnyTabDragging}
           />
         </div>
       {/each}
 
       {#if isActuallyDragging && placeholderIndex !== null}
         {#if placeholderIndex === $tabs.length}
-          {@const lastTabElement = $tabs.length > 0 ? tabElements[$tabs.length - 1] : null}
+          {@const lastTabElement =
+            $tabs.length > 0 ? tabElements[$tabs.length - 1] : null}
           {#if lastTabElement}
-            <div class="drop-indicator" style="left: {lastTabElement.offsetLeft + lastTabElement.offsetWidth}px;"></div>
-          {:else if $tabs.length === 0 || ($tabs.length === 1 && draggingTabIndex === 0) }
+            <div
+              class="drop-indicator"
+              style="left: {lastTabElement.offsetLeft +
+                lastTabElement.offsetWidth}px;"
+            ></div>
+          {:else if $tabs.length === 0 || ($tabs.length === 1 && draggingTabIndex === 0)}
             <div class="drop-indicator" style="left: 0px;"></div>
           {/if}
         {:else if tabElements[placeholderIndex]}
           {@const targetElement = tabElements[placeholderIndex]}
-          <div class="drop-indicator" style="left: {targetElement.offsetLeft}px;"></div>
+          <div
+            class="drop-indicator"
+            style="left: {targetElement.offsetLeft}px;"
+          ></div>
         {/if}
       {/if}
     </div>
