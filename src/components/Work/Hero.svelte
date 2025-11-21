@@ -85,7 +85,7 @@
     })();
 </script>
 
-<div class="relative w-full h-[60vh] min-h-[500px] group">
+<div class="relative w-full min-h-[60vh] min-h-[300px] group flex flex-col">
     <!-- Background Image -->
     <!-- Background Image with Parallax -->
     <div class="absolute inset-0 z-0 overflow-hidden rounded-b-xl">
@@ -106,7 +106,7 @@
     </div>
 
     <!-- Content -->
-    <div class="relative z-10 h-full flex flex-col justify-between p-12">
+    <div class="relative z-10 flex-1 flex flex-col justify-between p-12">
         <!-- Top: Title Section -->
         <div class="flex items-start justify-between gap-12">
             <div class="flex-1"></div>
@@ -140,7 +140,11 @@
                 </div>
             {/if}
             <h1
-                class="text-5xl font-bold text-white leading-tight drop-shadow-lg max-w-4xl"
+                class="{element.gamename.length > 40
+                    ? 'text-3xl'
+                    : element.gamename.length > 20
+                      ? 'text-4xl'
+                      : 'text-5xl'} font-bold text-white leading-tight drop-shadow-lg max-w-4xl"
             >
                 {element.gamename}
             </h1>
