@@ -245,7 +245,7 @@
                 on:click={handleImport}
                 class="flex items-center gap-2 px-4 py-2 bg-accent-accent text-white rounded hover:bg-accent-accent/80 transition-colors"
             >
-                <div class="i-material-symbols-add text-xl" />
+                <div class="i-material-symbols-upload text-xl" />
                 Import
             </button>
         </div>
