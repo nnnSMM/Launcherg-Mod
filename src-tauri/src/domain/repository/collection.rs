@@ -21,22 +21,31 @@ pub trait CollectionRepository {
         height: i32,
     ) -> Result<()>;
     async fn get_null_thumbnail_size_element_ids(&self) -> Result<Vec<Id<CollectionElement>>>;
+    #[allow(dead_code)]
     async fn remove_conflict_maps(&self) -> Result<()>;
+    #[allow(dead_code)]
     async fn delete_collection_element(&self, element_id: &Id<CollectionElement>) -> Result<()>;
 
+    #[allow(dead_code)]
     async fn get_not_registered_detail_element_ids(&self) -> Result<Vec<Id<CollectionElement>>>;
+    #[allow(dead_code)]
     async fn create_element_details(&self, details: Vec<NewCollectionElementDetail>) -> Result<()>;
+    #[allow(dead_code)]
     async fn get_brandname_and_rubies(&self) -> Result<Vec<(String, String)>>;
 
+    #[allow(dead_code)]
     async fn get_element_ids_by_is_nukige(
         &self,
         is_nukige: bool,
     ) -> Result<Vec<Id<CollectionElement>>>;
+    #[allow(dead_code)]
     async fn get_element_ids_by_install_at_not_null(&self) -> Result<Vec<Id<CollectionElement>>>;
+    #[allow(dead_code)]
     async fn get_element_ids_by_brandnames(
         &self,
         brandnames: &Vec<String>,
     ) -> Result<Vec<Id<CollectionElement>>>;
+    #[allow(dead_code)]
     async fn get_element_ids_by_sellday(
         &self,
         since: &str,
@@ -60,6 +69,7 @@ pub trait CollectionRepository {
     ) -> Result<()>;
     async fn add_play_time_seconds(&self, id: &Id<CollectionElement>, seconds: i32) -> Result<()>;
 
+    #[allow(dead_code)]
     async fn delete_element_by_id(&self, id: &Id<CollectionElement>) -> Result<()>;
 
     async fn touch(&self, id: &Id<CollectionElement>) -> Result<()>;

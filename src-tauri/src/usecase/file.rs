@@ -17,7 +17,7 @@ use crate::{
         explorer::file::FileExplorer,
         file::{
             get_file_paths_by_exts, get_lnk_metadatas, get_most_probable_game_candidate,
-            get_play_history_path, normalize, save_icon_to_png, start_process,
+            get_play_history_path, normalize, save_icon_to_png,
         },
         Id,
     },
@@ -81,7 +81,7 @@ fn emit_progress_with_time(
 }
 
 impl<R: ExplorersExt> FileUseCase<R> {
-    pub async fn concurency_get_file_paths(
+    pub async fn concurrency_get_file_paths(
         &self,
         explore_dir_paths: Vec<String>,
     ) -> anyhow::Result<Vec<String>> {
@@ -155,7 +155,7 @@ impl<R: ExplorersExt> FileUseCase<R> {
         }
         res
     }
-    pub async fn concurency_get_path_game_map<F: Fn() -> anyhow::Result<()> + Send + 'static>(
+    pub async fn concurrency_get_path_game_map<F: Fn() -> anyhow::Result<()> + Send + 'static>(
         &self,
         normalized_all_games: Arc<AllGameCache>,
         files: Vec<String>,
@@ -230,7 +230,7 @@ impl<R: ExplorersExt> FileUseCase<R> {
             .collect();
 
         let (exe_id_path_vec, lnk_id_path_vec): (Vec<(i32, String)>, Vec<(i32, String)>) = self
-            .concurency_get_path_game_map(
+            .concurrency_get_path_game_map(
                 normalized_all_games,
                 files,
                 process_each_game_file_callback,
@@ -336,17 +336,7 @@ impl<R: ExplorersExt> FileUseCase<R> {
             .save_base64_image(&path, base64_image)?;
         Ok(path)
     }
-    pub fn start_game(
-        &self,
-        collection_element: CollectionElement,
-        is_run_as_admin: bool,
-    ) -> anyhow::Result<Option<u32>> {
-        start_process(
-            is_run_as_admin,
-            collection_element.exe_path,
-            collection_element.lnk_path,
-        )
-    }
+
     pub fn get_play_time_minutes(
         &self,
         handle: &Arc<AppHandle>,

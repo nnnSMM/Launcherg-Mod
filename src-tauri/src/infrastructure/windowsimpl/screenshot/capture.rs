@@ -74,7 +74,7 @@ fn find_capturable_window_by_pid(pid: u32) -> anyhow::Result<HWND> {
                     .map(|rect| {
                         let width = rect.right - rect.left;
                         let height = rect.bottom - rect.top;
-                        println!("process_id: {}, width: {}, height: {}", pid, width, height);
+
                         if width > 400 && height > 200 {
                             true
                         } else {
@@ -91,13 +91,11 @@ pub fn find_capture_hwnd(started_process_id: u32) -> anyhow::Result<HWND> {
     let process_id_candidates = find_candidate_process_ids_by_started(started_process_id);
     if let Some(process_id) = process_id_candidates.started {
         if let Ok(hwnd) = find_capturable_window_by_pid(process_id) {
-            println!("Found capture window by started pid: {}", process_id);
             return Ok(hwnd);
         }
     }
     for process_id in process_id_candidates.children {
         if let Ok(hwnd) = find_capturable_window_by_pid(process_id) {
-            println!("Found capture window by pid: {}", process_id);
             return Ok(hwnd);
         }
     }

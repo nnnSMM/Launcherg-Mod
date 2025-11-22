@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use chrono::{Local, NaiveDateTime};
 use sqlx::{query, Row};
 use std::sync::Arc;
 
@@ -43,15 +44,25 @@ impl ScreenshotRepository for ScreenshotRepositoryImpl {
             .into_iter()
             .map(|row| {
                 use sqlx::Row;
-                let created_at: String = row
+                let created_at_str: String = row
                     .get::<Option<String>, _>("created_at")
                     .unwrap_or_default();
+
+                // Convert UTC timestamp to JST
+                let created_at_jst = if let Ok(naive_dt) =
+                    NaiveDateTime::parse_from_str(&created_at_str, "%Y-%m-%d %H:%M:%S")
+                {
+                    naive_dt.and_utc().with_timezone(&Local).to_rfc3339()
+                } else {
+                    created_at_str.replace(" ", "T")
+                };
+
                 Screenshot {
                     id: row.get::<i64, _>("id") as i32,
                     game_id: row.get::<i64, _>("game_id") as i32,
                     filename: row.get("filename"),
                     order_index: row.get::<i64, _>("order_index") as i32,
-                    created_at: created_at.replace(" ", "T"),
+                    created_at: created_at_jst,
                 }
             })
             .collect())
@@ -72,15 +83,25 @@ impl ScreenshotRepository for ScreenshotRepositoryImpl {
 
         Ok(screenshot.map(|row| {
             use sqlx::Row;
-            let created_at: String = row
+            let created_at_str: String = row
                 .get::<Option<String>, _>("created_at")
                 .unwrap_or_default();
+
+            // Convert UTC timestamp to JST
+            let created_at_jst = if let Ok(naive_dt) =
+                NaiveDateTime::parse_from_str(&created_at_str, "%Y-%m-%d %H:%M:%S")
+            {
+                naive_dt.and_utc().with_timezone(&Local).to_rfc3339()
+            } else {
+                created_at_str.replace(" ", "T")
+            };
+
             Screenshot {
                 id: row.get::<i64, _>("id") as i32,
                 game_id: row.get::<i64, _>("game_id") as i32,
                 filename: row.get("filename"),
                 order_index: row.get::<i64, _>("order_index") as i32,
-                created_at: created_at.replace(" ", "T"),
+                created_at: created_at_jst,
             }
         }))
     }

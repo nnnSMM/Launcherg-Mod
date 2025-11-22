@@ -13,15 +13,15 @@ use crate::{
     },
     usecase::{
         all_game_cache::AllGameCacheUseCase, collection::CollectionUseCase,
-        explored_cache::ExploredCacheUseCase, file::FileUseCase, network::NetworkUseCase,
-        pause_manager::PauseManager, process::ProcessUseCase,
+        explored_cache::ExploredCacheUseCase, file::FileUseCase, pause_manager::PauseManager,
+        process::ProcessUseCase,
     },
 };
 
 pub struct Modules {
     collection_use_case: CollectionUseCase<Repositories>,
     explored_cache_use_case: ExploredCacheUseCase<Repositories>,
-    network_use_case: NetworkUseCase<Explorers>,
+
     file_use_case: FileUseCase<Explorers>,
     all_game_cache_use_case: AllGameCacheUseCase<Repositories>,
     process_use_case: ProcessUseCase<Windows>,
@@ -35,7 +35,7 @@ pub trait ModulesExt {
     fn collection_use_case(&self) -> &CollectionUseCase<Self::Repositories>;
     fn explored_cache_use_case(&self) -> &ExploredCacheUseCase<Self::Repositories>;
     fn all_game_cache_use_case(&self) -> &AllGameCacheUseCase<Self::Repositories>;
-    fn network_use_case(&self) -> &NetworkUseCase<Self::Explorers>;
+
     fn file_use_case(&self) -> &FileUseCase<Self::Explorers>;
     fn process_use_case(&self) -> &ProcessUseCase<Self::Windows>;
     fn pause_manager(&self) -> &PauseManager;
@@ -55,9 +55,7 @@ impl ModulesExt for Modules {
     fn all_game_cache_use_case(&self) -> &AllGameCacheUseCase<Self::Repositories> {
         &self.all_game_cache_use_case
     }
-    fn network_use_case(&self) -> &NetworkUseCase<Self::Explorers> {
-        &self.network_use_case
-    }
+
     fn file_use_case(&self) -> &FileUseCase<Self::Explorers> {
         &self.file_use_case
     }
@@ -81,7 +79,6 @@ impl Modules {
         let all_game_cache_use_case: AllGameCacheUseCase<Repositories> =
             AllGameCacheUseCase::new(repositories.clone());
 
-        let network_use_case: NetworkUseCase<Explorers> = NetworkUseCase::new(explorers.clone());
         let file_use_case: FileUseCase<Explorers> = FileUseCase::new(explorers.clone());
 
         let process_use_case: ProcessUseCase<Windows> = ProcessUseCase::new(windows.clone());
@@ -101,7 +98,7 @@ impl Modules {
             collection_use_case,
             explored_cache_use_case,
             all_game_cache_use_case,
-            network_use_case,
+
             file_use_case,
             process_use_case,
             pause_manager,

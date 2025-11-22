@@ -6,7 +6,6 @@ use std::process::Command;
 use sysinfo::{ProcessExt, System, SystemExt};
 use tauri::AppHandle;
 
-use tauri_plugin_shell::ShellExt;
 use tokio::time::{interval, Duration, Instant};
 
 use super::error::UseCaseError;
@@ -58,15 +57,28 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
         let pids_before: std::collections::HashSet<_> =
             system_before.processes().keys().cloned().collect();
 
+        // Use Windows cmd /c start to launch the game, which handles both .exe and .lnk
         let path = std::path::Path::new(&path_str);
-        if let Some(parent_dir) = path.parent() {
-            Command::new(path)
-                .current_dir(parent_dir)
+
+        // For .lnk files or .exe files, use cmd /c start which properly handles shortcuts
+        let is_lnk = path_str.to_lowercase().ends_with(".lnk");
+
+        if is_lnk {
+            // For .lnk files, use cmd /c start with the full path
+            Command::new("cmd")
+                .args(&["/c", "start", "", &path_str])
                 .spawn()
-                .map_err(anyhow::Error::from)?;
-            println!("[INFO] Opening path with Command: {}", &path_str);
+                .map_err(|e| anyhow::anyhow!("Failed to launch game: {}", e))?;
         } else {
-            return Err(anyhow::anyhow!("親ディレクトリが見つかりません"));
+            // For .exe files, launch directly with working directory set
+            if let Some(parent_dir) = path.parent() {
+                Command::new(path)
+                    .current_dir(parent_dir)
+                    .spawn()
+                    .map_err(|e| anyhow::anyhow!("Failed to launch game: {}", e))?;
+            } else {
+                return Err(anyhow::anyhow!("親ディレクトリが見つかりません"));
+            }
         }
 
         let game_name = element.gamename.clone();
@@ -85,8 +97,6 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
             let search_timeout = Duration::from_secs(45);
             let search_start_time = Instant::now();
             let mut target_pid: Option<sysinfo::Pid> = None;
-
-            println!("Searching for the new game process...");
 
             // ▼▼▼ 修正: 優先度付けを行う新しい特定ロジック ▼▼▼
             loop {
@@ -127,7 +137,7 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
                     }
 
                     // スコア付け
-                    let mut score = 0;
+                    let score;
                     // 最優先: 起動パスと完全一致
                     let final_exe_path_str = if path_str_clone.to_lowercase().ends_with(".lnk") {
                         get_exe_path_from_lnk(&path_str_clone)
@@ -175,7 +185,6 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
                 }
 
                 if target_pid.is_some() {
-                    println!("Game process identified (PID: {:?}).", target_pid.unwrap());
                     break;
                 }
             }
@@ -188,14 +197,10 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
 
                 // Start screenshot watcher
                 match screenshot_watcher.start_watching(handle.clone(), element_id) {
-                    Ok(_) => println!(
-                        "Screenshot watcher started successfully for game {}",
-                        element_id
-                    ),
+                    Ok(_) => {}
                     Err(e) => eprintln!("Failed to start screenshot watcher: {}", e),
                 }
 
-                let start_time = Instant::now();
                 let mut interval = interval(Duration::from_secs(10));
                 let mut system = System::new_all();
                 let mut elapsed_time_accumulator = 0;
@@ -220,17 +225,12 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
 
                         let duration = elapsed_time_accumulator;
                         if duration > 0 {
-                            println!(
-                                "Game {} (PID: {}) finished. Play time: {} seconds.",
-                                game_name, pid_to_monitor, duration
-                            );
                             let _ = repositories
                                 .collection_repository()
                                 .add_play_time_seconds(&Id::new(element_id), duration)
                                 .await;
                         }
 
-                        println!("Updating last_play_at to the session end time.");
                         let _ = repositories
                             .collection_repository()
                             .update_element_last_play_at_by_id(&Id::new(element_id), Local::now())
@@ -240,7 +240,6 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
                         pause_manager.set_tracking(false);
 
                         // Stop screenshot watcher
-                        println!("Stopping screenshot watcher for game {}", element_id);
                         screenshot_watcher.stop_watching();
 
                         break;
@@ -283,7 +282,7 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
         }
         Ok(())
     }
-    pub async fn concurency_upsert_collection_element_thumbnail_size(
+    pub async fn concurrency_upsert_collection_element_thumbnail_size(
         &self,
         handle: &Arc<AppHandle>,
         ids: Vec<Id<CollectionElement>>,
@@ -361,7 +360,6 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
                 .get(lnk_path.as_str())
                 .ok_or(anyhow::anyhow!("metadata cannot get"))?;
             if metadata.icon.to_lowercase().ends_with("ico") {
-                println!("icon is ico");
                 icon_path = metadata.icon.clone();
             } else {
                 icon_path = metadata.path.clone();
@@ -384,7 +382,7 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
         Ok(save_thumbnail(handle, id, src_url).await??)
     }
 
-    pub async fn concurency_save_thumbnails(
+    pub async fn concurrency_save_thumbnails(
         &self,
         handle: &Arc<AppHandle>,
         args: Vec<(Id<CollectionElement>, String)>,
@@ -475,23 +473,7 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
             .await?;
         Ok(())
     }
-    pub async fn add_play_time_seconds(
-        &self,
-        id: &Id<CollectionElement>,
-        seconds: i32,
-    ) -> anyhow::Result<()> {
-        self.repositories
-            .collection_repository()
-            .add_play_time_seconds(id, seconds)
-            .await
-    }
-    pub async fn delete_element(&self, id: &Id<CollectionElement>) -> anyhow::Result<()> {
-        self.repositories
-            .collection_repository()
-            .delete_collection_element(id) // delete_element_by_id から delete_collection_element に変更
-            .await?;
-        Ok(())
-    }
+
     pub async fn get_all_elements(
         &self,
         handle: &Arc<AppHandle>,
@@ -501,7 +483,7 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
             .collection_repository()
             .get_null_thumbnail_size_element_ids()
             .await?;
-        self.concurency_upsert_collection_element_thumbnail_size(handle, null_size_ids)
+        self.concurrency_upsert_collection_element_thumbnail_size(handle, null_size_ids)
             .await?;
 
         self.repositories
@@ -543,15 +525,10 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
         let game_dir = std::path::Path::new(&root_dir)
             .join("game-memos")
             .join(game_id.to_string());
-
-        println!("[get_game_screenshots] Root dir: {}", root_dir);
-        println!("[get_game_screenshots] Game dir: {:?}", game_dir);
-
         Ok(screenshots
             .into_iter()
             .map(|mut s| {
                 s.filename = game_dir.join(&s.filename).to_string_lossy().to_string();
-                println!("[get_game_screenshots] Mapped filename: {}", s.filename);
                 s
             })
             .collect())
@@ -583,18 +560,12 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
         }
 
         let dest_path = dest_dir.join(&filename);
-        println!(
-            "[import_screenshot] Importing: {} -> {:?}",
-            file_path, dest_path
-        );
         std::fs::copy(path, &dest_path)?;
 
         self.repositories
             .screenshot_repository()
             .insert(&Id::new(game_id), &filename)
             .await?;
-
-        println!("[import_screenshot] Successfully imported and inserted into DB");
 
         Ok(())
     }

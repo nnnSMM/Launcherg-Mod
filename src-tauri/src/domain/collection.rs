@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use super::Id;
 
+#[allow(dead_code)]
 #[derive(new, Debug)]
 pub struct NewCollection {
     pub name: String,
