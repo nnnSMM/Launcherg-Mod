@@ -16,10 +16,18 @@ fn get_abs_dir(root: Option<PathBuf>) -> String {
         }
         None => {
             fs::create_dir_all(ROOT_DIR).unwrap();
-            return fs::canonicalize(ROOT_DIR)
+            let path_str = fs::canonicalize(ROOT_DIR)
                 .unwrap()
                 .to_string_lossy()
                 .to_string();
+            // Remove \\?\ prefix on Windows if present
+            #[cfg(target_os = "windows")]
+            let path_str = if path_str.starts_with(r"\\?\") {
+                path_str[4..].to_string()
+            } else {
+                path_str
+            };
+            return path_str;
         }
     }
 }

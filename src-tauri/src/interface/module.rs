@@ -86,9 +86,16 @@ impl Modules {
 
         let process_use_case: ProcessUseCase<Windows> = ProcessUseCase::new(windows.clone());
         let pause_manager = PauseManager::new();
+        let screenshot_watcher = crate::usecase::screenshot_watcher::ScreenshotWatcher::new(
+            repositories.clone(),
+            Arc::new(std::sync::Mutex::new(None)),
+        );
 
-        let collection_use_case =
-            CollectionUseCase::new(repositories.clone(), Arc::new(pause_manager.clone()));
+        let collection_use_case = CollectionUseCase::new(
+            repositories.clone(),
+            Arc::new(pause_manager.clone()),
+            Arc::new(screenshot_watcher.clone()),
+        );
 
         Self {
             collection_use_case,

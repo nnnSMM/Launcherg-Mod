@@ -13,4 +13,5 @@ pub trait FileExplorer {
         name: &str,
     ) -> anyhow::Result<String>;
     fn get_md_path(&self, handle: &Arc<AppHandle>, id: i32) -> anyhow::Result<String>;
+    fn delete_file(&self, path: &str) -> anyhow::Result<()>;
 }

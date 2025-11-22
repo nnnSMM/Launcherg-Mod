@@ -1,5 +1,6 @@
 use derive_new::new;
 use std::marker::PhantomData;
+use std::sync::Arc;
 
 use crate::domain::{
     all_game_cache::AllGameCache,
@@ -7,37 +8,43 @@ use crate::domain::{
     explored_cache::ExploredCache,
     repository::{
         all_game_cache::AllGameCacheRepository, collection::CollectionRepository,
-        explored_cache::ExploredCacheRepository,
+        explored_cache::ExploredCacheRepository, screenshot::ScreenshotRepository,
     },
 };
 
 use super::driver::Db;
+use super::screenshot::ScreenshotRepositoryImpl;
 
-#[derive(new)]
+#[derive(new, Clone)]
 pub struct RepositoryImpl<T> {
     pub pool: Db,
     _marker: PhantomData<T>,
 }
 
+#[derive(Clone)]
 pub struct Repositories {
     collection_repository: RepositoryImpl<CollectionElement>,
     explored_cache_repository: RepositoryImpl<ExploredCache>,
     all_game_cache_repository: RepositoryImpl<AllGameCache>,
+    screenshot_repository: ScreenshotRepositoryImpl,
 }
 pub trait RepositoriesExt {
     type CollectionRepo: CollectionRepository;
     type ExploredCacheRepo: ExploredCacheRepository;
     type AllGameCacheRepo: AllGameCacheRepository;
+    type ScreenshotRepo: ScreenshotRepository;
 
     fn collection_repository(&self) -> &Self::CollectionRepo;
     fn explored_cache_repository(&self) -> &Self::ExploredCacheRepo;
     fn all_game_cache_repository(&self) -> &Self::AllGameCacheRepo;
+    fn screenshot_repository(&self) -> &Self::ScreenshotRepo;
 }
 
 impl RepositoriesExt for Repositories {
     type CollectionRepo = RepositoryImpl<CollectionElement>;
     type ExploredCacheRepo = RepositoryImpl<ExploredCache>;
     type AllGameCacheRepo = RepositoryImpl<AllGameCache>;
+    type ScreenshotRepo = ScreenshotRepositoryImpl;
 
     fn collection_repository(&self) -> &Self::CollectionRepo {
         &self.collection_repository
@@ -48,6 +55,9 @@ impl RepositoriesExt for Repositories {
     fn all_game_cache_repository(&self) -> &Self::AllGameCacheRepo {
         &self.all_game_cache_repository
     }
+    fn screenshot_repository(&self) -> &Self::ScreenshotRepo {
+        &self.screenshot_repository
+    }
 }
 
 impl Repositories {
@@ -55,11 +65,13 @@ impl Repositories {
         let collection_repository = RepositoryImpl::new(db.clone());
         let explored_cache_repository = RepositoryImpl::new(db.clone());
         let all_game_cache_repository = RepositoryImpl::new(db.clone());
+        let screenshot_repository = ScreenshotRepositoryImpl::new(Arc::new(db.clone()));
 
         Self {
             collection_repository,
             explored_cache_repository,
             all_game_cache_repository,
+            screenshot_repository,
         }
     }
 }

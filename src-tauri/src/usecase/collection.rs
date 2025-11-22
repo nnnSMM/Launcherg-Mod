@@ -19,15 +19,17 @@ use crate::{
             save_icon_to_png, save_thumbnail,
         },
         repository::collection::CollectionRepository,
+        repository::screenshot::{Screenshot, ScreenshotRepository},
         Id,
     },
-    infrastructure::repositoryimpl::repository::RepositoriesExt,
+    infrastructure::{repositoryimpl::repository::RepositoriesExt, util::get_save_root_abs_dir},
 };
 
 #[derive(new)]
 pub struct CollectionUseCase<R: RepositoriesExt> {
     repositories: Arc<R>,
     pause_manager: Arc<PauseManager>,
+    screenshot_watcher: Arc<crate::usecase::screenshot_watcher::ScreenshotWatcher<R>>,
 }
 
 impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
@@ -71,6 +73,7 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
         let path_str_clone = path_str.clone();
         let repositories = self.repositories.clone();
         let pause_manager = self.pause_manager.clone();
+        let screenshot_watcher = self.screenshot_watcher.clone();
 
         tauri::async_runtime::spawn(async move {
             // Set tracking state to true when starting to track
@@ -182,6 +185,16 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
                     "Start monitoring process (PID: {}) for game {}",
                     pid_to_monitor, game_name
                 );
+
+                // Start screenshot watcher
+                match screenshot_watcher.start_watching(handle.clone(), element_id) {
+                    Ok(_) => println!(
+                        "Screenshot watcher started successfully for game {}",
+                        element_id
+                    ),
+                    Err(e) => eprintln!("Failed to start screenshot watcher: {}", e),
+                }
+
                 let start_time = Instant::now();
                 let mut interval = interval(Duration::from_secs(10));
                 let mut system = System::new_all();
@@ -202,6 +215,9 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
                     }
 
                     if system.process(pid_to_monitor).is_none() {
+                        // Stop screenshot watcher
+                        screenshot_watcher.stop_watching();
+
                         let duration = elapsed_time_accumulator;
                         if duration > 0 {
                             println!(
@@ -222,6 +238,10 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
 
                         // Set tracking state to false when tracking ends
                         pause_manager.set_tracking(false);
+
+                        // Stop screenshot watcher
+                        println!("Stopping screenshot watcher for game {}", element_id);
+                        screenshot_watcher.stop_watching();
 
                         break;
                     }
@@ -506,5 +526,121 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
             .collection_repository()
             .set_app_setting(key, value)
             .await
+    }
+
+    pub async fn get_game_screenshots(
+        &self,
+        handle: &Arc<AppHandle>,
+        game_id: i32,
+    ) -> anyhow::Result<Vec<Screenshot>> {
+        let screenshots = self
+            .repositories
+            .screenshot_repository()
+            .get_by_game_id(&Id::new(game_id))
+            .await?;
+
+        let root_dir = get_save_root_abs_dir(handle);
+        let game_dir = std::path::Path::new(&root_dir)
+            .join("game-memos")
+            .join(game_id.to_string());
+
+        println!("[get_game_screenshots] Root dir: {}", root_dir);
+        println!("[get_game_screenshots] Game dir: {:?}", game_dir);
+
+        Ok(screenshots
+            .into_iter()
+            .map(|mut s| {
+                s.filename = game_dir.join(&s.filename).to_string_lossy().to_string();
+                println!("[get_game_screenshots] Mapped filename: {}", s.filename);
+                s
+            })
+            .collect())
+    }
+
+    pub async fn import_screenshot(
+        &self,
+        handle: &Arc<AppHandle>,
+        game_id: i32,
+        file_path: String,
+    ) -> anyhow::Result<()> {
+        let path = std::path::Path::new(&file_path);
+        if !path.exists() {
+            return Err(anyhow::anyhow!("File not found"));
+        }
+
+        let filename = path
+            .file_name()
+            .ok_or(anyhow::anyhow!("Invalid filename"))?
+            .to_string_lossy()
+            .to_string();
+
+        let dest_dir = std::path::Path::new(&get_save_root_abs_dir(handle))
+            .join("game-memos")
+            .join(game_id.to_string());
+
+        if !dest_dir.exists() {
+            std::fs::create_dir_all(&dest_dir)?;
+        }
+
+        let dest_path = dest_dir.join(&filename);
+        println!(
+            "[import_screenshot] Importing: {} -> {:?}",
+            file_path, dest_path
+        );
+        std::fs::copy(path, &dest_path)?;
+
+        self.repositories
+            .screenshot_repository()
+            .insert(&Id::new(game_id), &filename)
+            .await?;
+
+        println!("[import_screenshot] Successfully imported and inserted into DB");
+
+        Ok(())
+    }
+
+    pub async fn delete_screenshot(
+        &self,
+        handle: &Arc<AppHandle>,
+        screenshot_id: i32,
+    ) -> anyhow::Result<()> {
+        // Get screenshot details
+        let screenshot = self
+            .repositories
+            .screenshot_repository()
+            .get_by_id(screenshot_id)
+            .await?
+            .ok_or(anyhow::anyhow!("Screenshot not found"))?;
+
+        // Delete from DB
+        self.repositories
+            .screenshot_repository()
+            .delete(screenshot_id)
+            .await?;
+
+        // Delete file
+        let file_path = std::path::Path::new(&get_save_root_abs_dir(handle))
+            .join("game-memos")
+            .join(screenshot.game_id.to_string())
+            .join(screenshot.filename);
+
+        if file_path.exists() {
+            std::fs::remove_file(file_path)?;
+        }
+
+        Ok(())
+    }
+
+    pub async fn update_screenshots_order(
+        &self,
+        updates: Vec<(i32, i32)>, // Vec<(id, order_index)>
+    ) -> anyhow::Result<()> {
+        for (id, order_index) in updates {
+            self.repositories
+                .screenshot_repository()
+                .update_order(id, order_index)
+                .await?;
+        }
+        Ok(())
     }
 }

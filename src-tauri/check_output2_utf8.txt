@@ -1,0 +1,107 @@
+﻿cargo :     Checking launcherg v0.0.0 (E:\Launcherg-Mod\src-t
+auri)
+発生場所 行:1 文字:1
++ cargo check --bin launcherg > check_output2.txt 2>&1
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (    Checking la 
+   ...-Mod\src-tauri):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+warning: unused imports: `explorer::file::FileExplorer`, `get
+_icon_path`, `get_thumbnail_path`, and `infrastructure::explo
+rerimpl::explorer::ExplorersExt`
+  --> src\interface\command.rs:13:9
+   |
+13 |         explorer::file::FileExplorer,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+14 |         file::{
+15 |             get_exe_path_from_lnk, get_file_created_at_s
+ync, get_icon_path, get_lnk_metadatas,
+   |                                                         
+     ^^^^^^^^^^^^^
+16 |             get_thumbnail_path, normalize,
+   |             ^^^^^^^^^^^^^^^^^^
+...
+20 |     infrastructure::explorerimpl::explorer::ExplorersExt
+,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `tauri_plugin_shell::ShellExt`
+   --> src\interface\command.rs:394:5
+    |
+394 | use tauri_plugin_shell::ShellExt;
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `tauri_plugin_shell::ShellExt`
+ --> src\usecase\collection.rs:9:5
+  |
+9 | use tauri_plugin_shell::ShellExt;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused variable: `handle`
+  --> src\usecase\collection.rs:36:9
+   |
+36 |         handle: Arc<AppHandle>,
+   |         ^^^^^^ help: if this is intentional, prefix it w
+ith an underscore: `_handle`
+   |
+   = note: `#[warn(unused_variables)]` on by default
+
+warning: value assigned to `score` is never read
+   --> src\usecase\collection.rs:127:29
+    |
+127 |                     let mut score = 0;
+    |                             ^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+    = note: `#[warn(unused_assignments)]` on by default
+
+warning: unused variable: `start_time`
+   --> src\usecase\collection.rs:185:21
+    |
+185 |                 let start_time = Instant::now();
+    |                     ^^^^^^^^^^ help: if this is intenti
+onal, prefix it with an underscore: `_start_time`
+
+warning: unused import: `Manager`
+  --> src\interface\command.rs:24:33
+   |
+24 | use tauri::{AppHandle, Emitter, Manager, State};
+   |                                 ^^^^^^^
+
+error[E0597]: `app_handle` does not live long enough
+   --> src\main.rs:43:39
+    |
+40  |                       let app_handle = app.clone();
+    |                           ---------- binding `app_handl
+e` declared here
+...
+43  |                           let modules = app_handle.stat
+e::<Arc<Modules>>();
+    |                                         ^^^^^^^^^^ borr
+owed value does not live long enough
+...
+132 | /                                     tauri::async_runt
+ime::spawn(async move {
+133 | |                                         use tauri_plu
+gin_clipboard_manager::ClipboardExt;
+134 | |                                         use tokio::ti
+me::{sleep, Duration};
+...   |
+195 | |                                         modules_clone
+.screenshot_manager().clear_pending_game_id();
+196 | |                                     });
+    | |______________________________________- argument requi
+res that `app_handle` is borrowed for `'static`
+...
+200 |                       });
+    |                       - `app_handle` dropped here while
+ still borrowed
+
+For more information about this error, try `rustc --explain E
+0597`.
+warning: `launcherg` (bin "launcherg") generated 7 warnings
+error: could not compile `launcherg` (bin "launcherg") due to
+ 1 previous error; 7 warnings emitted
