@@ -157,7 +157,7 @@ pub async fn create_elements_in_pc(
     let explored_caches = modules.explored_cache_use_case().get_cache().await?;
     let explore_files: Vec<String> = modules
         .file_use_case()
-        .concurency_get_file_paths(explore_dir_paths)
+        .concurrency_get_file_paths(explore_dir_paths)
         .await?
         .into_iter()
         .filter_map(|v| match use_cache && explored_caches.contains(&v) {
@@ -199,7 +199,7 @@ pub async fn create_elements_in_pc(
         .await?;
     modules
         .collection_use_case()
-        .concurency_save_thumbnails(
+        .concurrency_save_thumbnails(
             &handle,
             new_elements_game_caches
                 .into_iter()
@@ -219,7 +219,7 @@ pub async fn create_elements_in_pc(
         .collect::<Vec<Id<_>>>();
     modules
         .collection_use_case()
-        .concurency_upsert_collection_element_thumbnail_size(&handle, new_element_ids)
+        .concurrency_upsert_collection_element_thumbnail_size(&handle, new_element_ids)
         .await?;
 
     modules
@@ -294,10 +294,7 @@ pub async fn upsert_collection_element(
         let metadata = metadatas
             .get(path.as_str())
             .ok_or(anyhow::anyhow!("metadata cannot get"))?;
-        println!(
-            "metadata.path: {}, metadata.icon: {}",
-            metadata.path, metadata.icon
-        );
+
         install_at = get_file_created_at_sync(&metadata.path);
     } else {
         install_at = None;
@@ -341,7 +338,7 @@ pub async fn update_collection_element_thumbnails(
     let handle = Arc::new(handle);
     modules
         .collection_use_case()
-        .concurency_save_thumbnails(
+        .concurrency_save_thumbnails(
             &handle,
             all_game_cache
                 .into_iter()
@@ -351,7 +348,7 @@ pub async fn update_collection_element_thumbnails(
         .await?;
     Ok(modules
         .collection_use_case()
-        .concurency_upsert_collection_element_thumbnail_size(
+        .concurrency_upsert_collection_element_thumbnail_size(
             &handle,
             ids.into_iter().map(|v| Id::new(v)).collect(),
         )
@@ -388,8 +385,6 @@ pub async fn get_default_import_dirs() -> Result<Vec<String>, CommandError> {
 
     Ok(vec![user_menu, system_menu.to_string()])
 }
-
-use tauri_plugin_shell::ShellExt;
 
 #[tauri::command]
 pub async fn play_game(

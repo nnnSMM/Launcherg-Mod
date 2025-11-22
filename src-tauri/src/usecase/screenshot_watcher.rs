@@ -20,7 +20,7 @@ impl<R: RepositoriesExt + Send + Sync + 'static> ScreenshotWatcher<R> {
     pub fn start_watching(&self, handle: Arc<AppHandle>, game_id: i32) -> anyhow::Result<()> {
         let repositories = self.repositories.clone();
         let handle = handle.clone();
-        let game_id = Id::new(game_id);
+        let game_id: Id<crate::domain::collection::CollectionElement> = Id::new(game_id);
 
         let (tx, rx) = std::sync::mpsc::channel();
 
@@ -94,18 +94,18 @@ impl<R: RepositoriesExt + Send + Sync + 'static> ScreenshotWatcher<R> {
                                         tokio::time::sleep(Duration::from_secs(1)).await;
 
                                         // Copy to game folder
-                                        if let Err(e) =
+                                        if let Err(_) =
                                             copy_screenshot(&handle, &repositories, &game_id, &path)
                                                 .await
                                         {
-                                            eprintln!("[screenshot_watcher] Failed to copy screenshot: {}", e);
+                                            // Ignore error
                                         }
                                     }
                                 }
                             }
                         }
                     }
-                    Err(e) => eprintln!("[screenshot_watcher] watch error: {:?}", e),
+                    Err(_) => {}
                 }
             }
         });

@@ -5,7 +5,7 @@ pub mod explored_cache;
 pub mod file;
 mod file_test;
 pub mod models;
-pub mod network;
+
 pub mod pause_manager;
 pub mod process;
 pub mod screenshot_watcher;

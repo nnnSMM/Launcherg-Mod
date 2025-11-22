@@ -4,14 +4,7 @@ pub struct LnkMetadata {
     pub icon: String,
 }
 
-use std::{
-    collections::HashMap,
-    fs,
-    io::{BufWriter, Write},
-    num::NonZeroU32,
-    path::Path,
-    sync::Arc,
-};
+use std::{collections::HashMap, fs, io::Write, path::Path, sync::Arc};
 
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
@@ -38,29 +31,14 @@ use super::{
     Id,
 };
 
-use image::codecs::png::PngEncoder;
-use image::io::Reader as ImageReader;
-use image::{ColorType, ImageEncoder};
-
-use fast_image_resize as fr;
-
 trait WString {
-    fn to_wide(&self) -> Vec<u16>;
     fn to_wide_null_terminated(&self) -> Vec<u16>;
 }
 
 impl WString for &str {
-    fn to_wide(&self) -> Vec<u16> {
-        self.encode_utf16().collect()
-    }
-
     fn to_wide_null_terminated(&self) -> Vec<u16> {
         self.encode_utf16().chain(std::iter::once(0)).collect()
     }
-}
-
-fn to_pcwstr(str: &str) -> PCWSTR {
-    PCWSTR::from_raw(str.to_wide_null_terminated().as_ptr())
 }
 
 const NOT_GAME_EQUALLY_WORD: [&str; 1] = ["bgi"];
@@ -505,100 +483,6 @@ pub struct PlayHistory {
     pub start_date: String,
 }
 
-fn get_lnk_start_process_script(is_run_as_admin: bool, lnk_path: &str) -> String {
-    let verb = if is_run_as_admin { "-Verb RunAs" } else { "" };
-    format!(
-        "
-    chcp 65001 | Out-Null
-    filter Get-Shortcut()
-    {{
-        $shl  = new-object -comobject WScript.Shell
-        return $shl.CreateShortcut($_)
-    }}
-    $shortcut_info = (\"{}\" | Get-Shortcut)
-
-    $params = @{{
-        'FilePath' = $shortcut_info.TargetPath
-    }}
-
-    # Check if WorkingDirectory exists and is not empty
-    if ($null -ne $shortcut_info.WorkingDirectory -and $shortcut_info.WorkingDirectory -ne '') {{
-        $params['WorkingDirectory'] = $shortcut_info.WorkingDirectory
-    }}
-
-    # Check if Arguments exists and is not empty
-    if ($null -ne $shortcut_info.Arguments -and $shortcut_info.Arguments -ne '') {{
-        $params['ArgumentList'] = $shortcut_info.Arguments
-    }}
-
-    $process = Start-Process @params {} -PassThru
-    echo $process.Id
-    ",
-        lnk_path, verb
-    )
-}
-
-fn get_exe_start_process_script(is_run_as_admin: bool, exe_path: &str) -> String {
-    let verb = if is_run_as_admin { "-Verb RunAs" } else { "" };
-    let exe_dir = std::path::Path::new(exe_path)
-        .parent()
-        .map(|v| v.to_string_lossy().to_string())
-        .unwrap_or_default();
-    format!(
-        "
-    chcp 65001 | Out-Null
-    Set-Location \"{}\" | Out-Null
-    $process = Start-Process \"{}\" {} -PassThru
-    echo $process.Id
-    ",
-        exe_dir, exe_path, verb
-    )
-}
-
-pub fn start_process(
-    is_run_as_admin: bool,
-    exe_path: Option<String>,
-    lnk_path: Option<String>,
-) -> anyhow::Result<Option<u32>> {
-    if exe_path.is_some() && lnk_path.is_some() {
-        return Err(anyhow::anyhow!(
-            "Both exe_path and lnk_path are provided. Only one should be provided.",
-        ));
-    }
-
-    let script: String;
-    if let Some(path) = exe_path {
-        script = get_exe_start_process_script(is_run_as_admin, &path);
-    } else if let Some(path) = lnk_path {
-        script = get_lnk_start_process_script(is_run_as_admin, &path);
-    } else {
-        return Err(anyhow::anyhow!(
-            "Neither exe_path nor lnk_path are provided."
-        ));
-    }
-
-    println!("[INFO] [start processs] script: {}", script);
-
-    // PowerShellでスクリプトを実行
-    let output = std::process::Command::new("powershell")
-        .arg("-ExecutionPolicy")
-        .arg("Bypass")
-        .arg("-Command")
-        .arg(&script)
-        .output()?;
-
-    if !output.status.success() {
-        return Err(anyhow::anyhow!(
-            "PowerShell script failed with error: {}",
-            String::from_utf8_lossy(&output.stderr)
-        ));
-    }
-    let process_id = String::from_utf8_lossy(&output.stdout);
-    let process_id = process_id.trim().parse::<u32>().ok();
-
-    Ok(process_id)
-}
-
 pub fn get_file_created_at_sync(path: &str) -> Option<DateTime<Local>> {
     let metadata = fs::metadata(path).ok();
     metadata.and_then(|meta| {
@@ -620,25 +504,7 @@ pub fn get_thumbnail_path(
         .to_string_lossy()
         .to_string()
 }
-pub fn get_origin_thumbnail_path(
-    handle: &Arc<AppHandle>,
-    collection_element_id: &Id<CollectionElement>,
-    src_url: &str,
-) -> anyhow::Result<String> {
-    let dir = Path::new(&get_save_root_abs_dir(handle)).join(THUMBNAILS_ROOT_DIR);
-    let url = url::Url::parse(src_url)?;
 
-    let filename = url
-        .path_segments()
-        .and_then(|segments| segments.last())
-        .ok_or(anyhow::anyhow!("Failed to extract filename from URL"))?;
-
-    fs::create_dir_all(&dir).unwrap();
-    Ok(Path::new(&dir)
-        .join(format!("{}-{}", collection_element_id.value, filename))
-        .to_string_lossy()
-        .to_string())
-}
 pub fn save_thumbnail(
     handle: &Arc<AppHandle>,
     collection_element_id: &Id<CollectionElement>,
@@ -659,19 +525,6 @@ pub fn save_thumbnail(
     })
 }
 
-async fn save_origin_thumbnail(url: &str, save_path: &str) -> anyhow::Result<()> {
-    let client = reqwest::Client::new();
-
-    let response = client.get(url).send().await?;
-
-    let mut output_file = std::fs::File::create(save_path)?;
-    let bytes = response.bytes().await?;
-
-    output_file.write_all(&bytes)?;
-
-    Ok(())
-}
-
 pub async fn get_exe_path_from_lnk(path: &str) -> anyhow::Result<String> {
     if !path.to_lowercase().ends_with("lnk") {
         return Err(anyhow::anyhow!("filepath is not ends with lnk"));
@@ -682,55 +535,4 @@ pub async fn get_exe_path_from_lnk(path: &str) -> anyhow::Result<String> {
     } else {
         return Err(anyhow::anyhow!("cannot get lnk metadata"));
     }
-}
-
-fn resize_image(src: &str, dst: &str, dst_width_px: u32) -> anyhow::Result<()> {
-    // Read source image from file
-    let img = ImageReader::open(src)?.decode()?;
-
-    let width = NonZeroU32::new(img.width()).ok_or(anyhow::anyhow!("failed NonZeroU32::new"))?;
-    let height = NonZeroU32::new(img.height()).ok_or(anyhow::anyhow!("failed NonZeroU32::new"))?;
-    let mut src_image = fr::Image::from_vec_u8(
-        width,
-        height,
-        img.to_rgba8().into_raw(),
-        fr::PixelType::U8x4,
-    )?;
-
-    // Multiple RGB channels of source image by alpha channel
-    // (not required for the Nearest algorithm)
-    let alpha_mul_div = fr::MulDiv::default();
-    alpha_mul_div.multiply_alpha_inplace(&mut src_image.view_mut())?;
-
-    // Create container for data of destination image
-    let dst_width =
-        NonZeroU32::new(dst_width_px).ok_or(anyhow::anyhow!("failed NonZeroU32::new"))?;
-    let dst_height =
-        NonZeroU32::new((height.get() as f32 / width.get() as f32 * dst_width_px as f32) as u32)
-            .ok_or(anyhow::anyhow!("failed NonZeroU32::new"))?;
-
-    let mut dst_image = fr::Image::new(dst_width, dst_height, src_image.pixel_type());
-
-    // Get mutable view of destination image data
-    let mut dst_view = dst_image.view_mut();
-
-    // Create Resizer instance and resize source image
-    // into buffer of destination image
-    let mut resizer = fr::Resizer::new(fr::ResizeAlg::Convolution(fr::FilterType::Box));
-    resizer.resize(&src_image.view(), &mut dst_view)?;
-
-    // Divide RGB channels of destination image by alpha
-    alpha_mul_div.divide_alpha_inplace(&mut dst_view)?;
-
-    let mut result_buf = BufWriter::new(fs::File::create(&dst)?);
-
-    // Write destination image as PNG-file
-    PngEncoder::new(&mut result_buf).write_image(
-        dst_image.buffer(),
-        dst_width.get(),
-        dst_height.get(),
-        ColorType::Rgba8,
-    )?;
-
-    Ok(())
 }
