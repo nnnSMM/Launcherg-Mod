@@ -3,6 +3,7 @@ import type {
   CollectionElement,
   CollectionElementDetail,
   PlayStatus,
+  Screenshot,
 } from "@/lib/types";
 import { invoke } from "@tauri-apps/api/core";
 
@@ -193,4 +194,25 @@ export const commandTogglePauseTracking = async () => {
 
 export const commandGetPauseState = async () => {
   return await invoke<boolean>("get_pause_state");
+};
+
+export const commandGetGameScreenshots = async (gameId: number) => {
+  return await invoke<Screenshot[]>("get_game_screenshots", { gameId });
+};
+
+export const commandImportScreenshot = async (
+  gameId: number,
+  filePath: string
+) => {
+  return await invoke<void>("import_screenshot", { gameId, filePath });
+};
+
+export const commandDeleteScreenshot = async (screenshotId: number) => {
+  return await invoke<void>("delete_screenshot", { screenshotId });
+};
+
+export const commandUpdateScreenshotsOrder = async (
+  updates: Array<{ id: number; orderIndex: number }>
+) => {
+  return await invoke<void>("update_screenshots_order", { updates });
 };

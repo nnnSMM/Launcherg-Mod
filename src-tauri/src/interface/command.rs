@@ -695,3 +695,61 @@ pub async fn toggle_pause_tracking(
 pub async fn get_pause_state(modules: State<'_, Arc<Modules>>) -> Result<bool, CommandError> {
     Ok(modules.pause_manager().is_paused())
 }
+use crate::domain::repository::screenshot::Screenshot;
+
+#[tauri::command]
+pub async fn get_game_screenshots(
+    modules: State<'_, Arc<Modules>>,
+    app_handle: tauri::AppHandle,
+    game_id: i32,
+) -> Result<Vec<Screenshot>, CommandError> {
+    Ok(modules
+        .collection_use_case()
+        .get_game_screenshots(&Arc::new(app_handle), game_id)
+        .await?)
+}
+
+#[tauri::command]
+pub async fn import_screenshot(
+    handle: AppHandle,
+    modules: State<'_, Arc<Modules>>,
+    game_id: i32,
+    file_path: String,
+) -> Result<(), CommandError> {
+    Ok(modules
+        .collection_use_case()
+        .import_screenshot(&Arc::new(handle), game_id, file_path)
+        .await?)
+}
+
+#[tauri::command]
+pub async fn delete_screenshot(
+    handle: AppHandle,
+    modules: State<'_, Arc<Modules>>,
+    screenshot_id: i32,
+) -> Result<(), CommandError> {
+    Ok(modules
+        .collection_use_case()
+        .delete_screenshot(&Arc::new(handle), screenshot_id)
+        .await?)
+}
+
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ScreenshotOrderUpdate {
+    pub id: i32,
+    pub order_index: i32,
+}
+
+#[tauri::command]
+pub async fn update_screenshots_order(
+    modules: State<'_, Arc<Modules>>,
+    updates: Vec<ScreenshotOrderUpdate>,
+) -> Result<(), CommandError> {
+    let updates_vec: Vec<(i32, i32)> = updates.into_iter().map(|u| (u.id, u.order_index)).collect();
+
+    Ok(modules
+        .collection_use_case()
+        .update_screenshots_order(updates_vec)
+        .await?)
+}

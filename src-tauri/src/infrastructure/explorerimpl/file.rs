@@ -59,4 +59,8 @@ impl FileExplorer for ExplorerImpl<File> {
             .to_string_lossy()
             .to_string())
     }
+    fn delete_file(&self, path: &str) -> anyhow::Result<()> {
+        fs::remove_file(path)?;
+        Ok(())
+    }
 }

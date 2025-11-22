@@ -96,3 +96,11 @@ export type AllGameCacheOne = {
   gamename: string;
   thumbnailUrl: string;
 };
+
+export type Screenshot = {
+  id: number;
+  gameId: number;
+  filename: string;
+  orderIndex: number;
+  createdAt: string;
+};

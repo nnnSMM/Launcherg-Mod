@@ -27,6 +27,7 @@
     "encoding-japanese": "^2.0.0",
     "qrious": "^4.0.2",
     "simplebar": "^6.2.5",
+    "sqlite3": "^5.1.7",
     "svelte-spa-router": "^3.3.0",
     "tippy.js": "^6.3.7",
     "toastify-js": "^1.12.0",

@@ -1,0 +1,90 @@
+﻿cargo :     Checking launcherg v0.0.0 (E:\Launcherg-Mod\src-t
+auri)
+発生場所 行:1 文字:1
++ cargo check --bin launcherg > check_output.txt 2>&1
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (    Checking la 
+   ...-Mod\src-tauri):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+warning: unused imports: `explorer::file::FileExplorer`, `get
+_icon_path`, `get_thumbnail_path`, and `infrastructure::explo
+rerimpl::explorer::ExplorersExt`
+  --> src\interface\command.rs:13:9
+   |
+13 |         explorer::file::FileExplorer,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+14 |         file::{
+15 |             get_exe_path_from_lnk, get_file_created_at_s
+ync, get_icon_path, get_lnk_metadatas,
+   |                                                         
+     ^^^^^^^^^^^^^
+16 |             get_thumbnail_path, normalize,
+   |             ^^^^^^^^^^^^^^^^^^
+...
+20 |     infrastructure::explorerimpl::explorer::ExplorersExt
+,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `tauri_plugin_shell::ShellExt`
+   --> src\interface\command.rs:394:5
+    |
+394 | use tauri_plugin_shell::ShellExt;
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `tauri_plugin_shell::ShellExt`
+ --> src\usecase\collection.rs:9:5
+  |
+9 | use tauri_plugin_shell::ShellExt;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0599]: no method named `rgba` found for struct `ImageB
+uffer<image::Rgba<u8>, Vec<u8>>` in the current scope
+   --> src\interface\command.rs:670:57
+    |
+670 |         let clip_image = tauri::image::Image::new(image
+.rgba(), image.width(), image.height());
+    |                                                        
+ ^^^^ method not found in `ImageBuffer<Rgba<u8>, Vec<u8>>`
+
+error[E0599]: no method named `rgba` found for struct `ImageB
+uffer<image::Rgba<u8>, Vec<u8>>` in the current scope
+   --> src\interface\command.rs:720:57
+    |
+720 |         let clip_image = tauri::image::Image::new(image
+.rgba(), image.width(), image.height());
+    |                                                        
+ ^^^^ method not found in `ImageBuffer<Rgba<u8>, Vec<u8>>`
+
+warning: unused variable: `handle`
+  --> src\usecase\collection.rs:36:9
+   |
+36 |         handle: Arc<AppHandle>,
+   |         ^^^^^^ help: if this is intentional, prefix it w
+ith an underscore: `_handle`
+   |
+   = note: `#[warn(unused_variables)]` on by default
+
+warning: value assigned to `score` is never read
+   --> src\usecase\collection.rs:127:29
+    |
+127 |                     let mut score = 0;
+    |                             ^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+    = note: `#[warn(unused_assignments)]` on by default
+
+warning: unused variable: `start_time`
+   --> src\usecase\collection.rs:185:21
+    |
+185 |                 let start_time = Instant::now();
+    |                     ^^^^^^^^^^ help: if this is intenti
+onal, prefix it with an underscore: `_start_time`
+
+For more information about this error, try `rustc --explain E
+0599`.
+warning: `launcherg` (bin "launcherg") generated 6 warnings
+error: could not compile `launcherg` (bin "launcherg") due to
+ 2 previous errors; 6 warnings emitted

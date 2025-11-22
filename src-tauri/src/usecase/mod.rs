@@ -8,3 +8,4 @@ pub mod models;
 pub mod network;
 pub mod pause_manager;
 pub mod process;
+pub mod screenshot_watcher;

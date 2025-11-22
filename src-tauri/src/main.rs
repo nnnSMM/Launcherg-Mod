@@ -305,7 +305,11 @@ fn main() {
             command::update_shortcut_registration,
             command::update_pause_shortcut_registration,
             command::toggle_pause_tracking,
-            command::get_pause_state
+            command::get_pause_state,
+            command::get_game_screenshots,
+            command::import_screenshot,
+            command::delete_screenshot,
+            command::update_screenshots_order
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
