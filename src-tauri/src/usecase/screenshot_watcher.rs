@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -29,29 +29,30 @@ impl<R: RepositoriesExt + Send + Sync + 'static> ScreenshotWatcher<R> {
         let user_profile = std::env::var("USERPROFILE")?;
 
         // Try multiple possible screenshot directories
-        let screenshot_paths: Vec<PathBuf> = vec![
-            // OneDrive paths (Japanese)
-            Path::new(&user_profile)
-                .join("OneDrive")
-                .join("画像")
-                .join("スクリーンショット"),
-            // OneDrive paths (English)
-            Path::new(&user_profile)
-                .join("OneDrive")
-                .join("Pictures")
-                .join("Screenshots"),
-            // Standard Windows paths (Japanese)
-            Path::new(&user_profile)
-                .join("ピクチャ")
-                .join("スクリーンショット"),
-            Path::new(&user_profile)
-                .join("画像")
-                .join("スクリーンショット"),
-            // Standard Windows paths (English)
-            Path::new(&user_profile)
-                .join("Pictures")
-                .join("Screenshots"),
+        // Try multiple possible screenshot directories
+        let mut screenshot_paths = Vec::new();
+
+        let roots = vec![
+            Path::new(&user_profile).to_path_buf(),
+            Path::new(&user_profile).join("OneDrive"),
         ];
+
+        let picture_dirs = vec!["Pictures", "My Pictures", "画像", "ピクチャ"];
+
+        let screenshot_dirs = vec![
+            "Screenshots",
+            "ScreenShots",
+            "screenshots",
+            "スクリーンショット",
+        ];
+
+        for root in roots {
+            for pic_dir in &picture_dirs {
+                for screen_dir in &screenshot_dirs {
+                    screenshot_paths.push(root.join(pic_dir).join(screen_dir));
+                }
+            }
+        }
 
         let mut screenshots_dir = None;
         for path in screenshot_paths {
