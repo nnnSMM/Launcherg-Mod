@@ -107,7 +107,9 @@
             class="max-w-full max-h-[80vh] object-contain shadow-2xl rounded-lg"
         />
 
-        <div class="mt-4 w-full flex items-center justify-between text-white">
+        <div
+            class="mt-4 w-full flex items-center justify-between text-white relative z-50"
+        >
             <div class="text-sm opacity-70">
                 {new Date(currentScreenshot.createdAt).toLocaleString()}
             </div>
