@@ -186,26 +186,6 @@ fn main() {
                         }
                     }
                 }
-
-                // Register pause shortcut
-                if let Ok(Some(pause_shortcut_key)) = modules
-                    .collection_use_case()
-                    .get_app_setting("pause_shortcut_key".to_string())
-                    .await
-                {
-                    if !pause_shortcut_key.is_empty() {
-                        if let Ok(shortcut) = pause_shortcut_key.parse::<Shortcut>() {
-                            if !handle.global_shortcut().is_registered(shortcut.clone()) {
-                                if let Err(e) = handle.global_shortcut().register(shortcut) {
-                                    eprintln!(
-                                        "Failed to register pause shortcut on startup: {}",
-                                        e
-                                    );
-                                }
-                            }
-                        }
-                    }
-                }
             });
 
             Ok(())

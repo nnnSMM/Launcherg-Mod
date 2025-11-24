@@ -23,6 +23,7 @@ use crate::{
     },
     infrastructure::{repositoryimpl::repository::RepositoriesExt, util::get_save_root_abs_dir},
 };
+use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut};
 
 #[derive(new)]
 pub struct CollectionUseCase<R: RepositoriesExt> {
@@ -90,6 +91,24 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
         tauri::async_runtime::spawn(async move {
             // Set tracking state to true when starting to track
             pause_manager.set_tracking(true);
+
+            // Register pause shortcut
+            let mut registered_shortcut: Option<Shortcut> = None;
+            if let Ok(Some(pause_shortcut_key)) = repositories
+                .collection_repository()
+                .get_app_setting("pause_shortcut_key".to_string())
+                .await
+            {
+                if !pause_shortcut_key.is_empty() {
+                    if let Ok(shortcut) = pause_shortcut_key.parse::<Shortcut>() {
+                        if !handle.global_shortcut().is_registered(shortcut.clone()) {
+                            if let Ok(_) = handle.global_shortcut().register(shortcut.clone()) {
+                                registered_shortcut = Some(shortcut);
+                            }
+                        }
+                    }
+                }
+            }
 
             // ランチャーがゲーム本体を起動するまで5秒待つ
             tokio::time::sleep(Duration::from_secs(5)).await;
@@ -238,6 +257,11 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
 
                         // Set tracking state to false when tracking ends
                         pause_manager.set_tracking(false);
+
+                        // Unregister pause shortcut
+                        if let Some(shortcut) = registered_shortcut {
+                            let _ = handle.global_shortcut().unregister(shortcut);
+                        }
 
                         // Stop screenshot watcher
                         screenshot_watcher.stop_watching();
