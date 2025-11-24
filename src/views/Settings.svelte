@@ -58,6 +58,29 @@
     }
   });
 
+  function toggleModifier(
+    currentValue: string,
+    modifier: "Ctrl" | "Alt" | "Shift",
+  ): string {
+    let parts = currentValue.split("+").map((p) => p.trim());
+    parts = parts.filter((p) => p !== "");
+
+    if (parts.includes(modifier)) {
+      parts = parts.filter((p) => p !== modifier);
+    } else {
+      parts.push(modifier);
+    }
+
+    const order: Record<string, number> = { Ctrl: 0, Alt: 1, Shift: 2 };
+    parts.sort((a, b) => {
+      const orderA = order[a] ?? 3;
+      const orderB = order[b] ?? 3;
+      return orderA - orderB;
+    });
+
+    return parts.join("+");
+  }
+
   async function saveSettings() {
     if (isSaving) {
       return;
@@ -130,10 +153,21 @@
             class="text-accent-accent hover:underline">Tauriのドキュメント</a
           >を参照してください。
         </p>
-        <Input
-          bind:value={shortcutKey}
-          placeholder="例: CommandOrControl+Shift+L"
-        />
+        <Input bind:value={shortcutKey} placeholder="例: Ctrl+Shift+L" />
+        <div class="flex gap-2 mt-2">
+          <Button
+            text="Ctrl"
+            on:click={() => (shortcutKey = toggleModifier(shortcutKey, "Ctrl"))}
+          />
+          <Button
+            text="Alt"
+            on:click={() => (shortcutKey = toggleModifier(shortcutKey, "Alt"))}
+          />
+          <Button
+            text="Shift"
+            on:click={() => (shortcutKey = toggleModifier(shortcutKey, "Shift"))}
+          />
+        </div>
       </Card>
 
       <Card className="relative z-0">
@@ -148,10 +182,21 @@
             class="text-accent-accent hover:underline">Tauriのドキュメント</a
           >を参照してください。
         </p>
-        <Input
-          bind:value={pauseShortcutKey}
-          placeholder="例: CommandOrControl+Shift+P"
-        />
+        <Input bind:value={pauseShortcutKey} placeholder="例: Ctrl+Shift+P" />
+        <div class="flex gap-2 mt-2">
+          <Button
+            text="Ctrl"
+            on:click={() => (pauseShortcutKey = toggleModifier(pauseShortcutKey, "Ctrl"))}
+          />
+          <Button
+            text="Alt"
+            on:click={() => (pauseShortcutKey = toggleModifier(pauseShortcutKey, "Alt"))}
+          />
+          <Button
+            text="Shift"
+            on:click={() => (pauseShortcutKey = toggleModifier(pauseShortcutKey, "Shift"))}
+          />
+        </div>
       </Card>
 
       <div class="flex justify-end">

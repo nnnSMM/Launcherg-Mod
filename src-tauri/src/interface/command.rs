@@ -98,13 +98,16 @@ pub async fn update_pause_shortcut_registration(
         .await?;
 
     // Register the new shortcut key
-    if let Some(new_key) = new_shortcut_key {
-        if !new_key.is_empty() {
-            if let Ok(new_shortcut) = new_key.parse::<Shortcut>() {
-                handle
-                    .global_shortcut()
-                    .register(new_shortcut)
-                    .map_err(anyhow::Error::from)?;
+    // Register the new shortcut key only if tracking is active
+    if modules.pause_manager().is_tracking() {
+        if let Some(new_key) = new_shortcut_key {
+            if !new_key.is_empty() {
+                if let Ok(new_shortcut) = new_key.parse::<Shortcut>() {
+                    handle
+                        .global_shortcut()
+                        .register(new_shortcut)
+                        .map_err(anyhow::Error::from)?;
+                }
             }
         }
     }
