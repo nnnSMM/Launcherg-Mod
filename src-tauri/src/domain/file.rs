@@ -347,6 +347,11 @@ pub fn save_icon_to_png(
 ) -> anyhow::Result<JoinHandle<anyhow::Result<()>>> {
     let save_png_path = get_icon_path(handle, collection_element_id);
 
+    // If icon already exists, do not overwrite it.
+    if Path::new(&save_png_path).exists() {
+        return Ok(tauri::async_runtime::spawn(async { Ok(()) }));
+    }
+
     let is_ico = file_path.to_lowercase().ends_with("ico");
 
     if is_ico {
@@ -380,7 +385,12 @@ pub fn save_ico_to_png(
     let save_p = save_png_path.to_string();
     let handle = tauri::async_runtime::spawn(async move {
         match save_ico_to_png_sync(&p, &save_p) {
-            Err(_) => save_default_icon(&save_p)?.await?,
+            Err(_) => {
+                if std::path::Path::new(&save_p).exists() {
+                    return Ok(());
+                }
+                save_default_icon(&save_p)?.await?
+            }
             _ => Ok(()),
         }
     });
@@ -437,9 +447,15 @@ pub fn save_exe_file_png(
     let handle: JoinHandle<anyhow::Result<()>> = tauri::async_runtime::spawn(async move {
         while let Some(event) = rx.recv().await {
             if let CommandEvent::Stdout(_) = event {
+                if std::path::Path::new(&save_png_path_cloned).exists() {
+                    return Ok(());
+                }
                 return save_default_icon(&save_png_path_cloned)?.await?;
             }
             if let CommandEvent::Stderr(_) = event {
+                if std::path::Path::new(&save_png_path_cloned).exists() {
+                    return Ok(());
+                }
                 return save_default_icon(&save_png_path_cloned)?.await?;
             }
             if let CommandEvent::Terminated(_) = event {
