@@ -352,4 +352,20 @@ impl CollectionRepository for RepositoryImpl<CollectionElement> {
         }
         Ok(())
     }
+
+    async fn update_collection_element_path(
+        &self,
+        id: &Id<CollectionElement>,
+        exe_path: Option<String>,
+        lnk_path: Option<String>,
+    ) -> anyhow::Result<()> {
+        let pool = self.pool.0.clone();
+        query("UPDATE collection_elements SET exe_path = ?, lnk_path = ? WHERE id = ?")
+            .bind(exe_path)
+            .bind(lnk_path)
+            .bind(id.value)
+            .execute(&*pool)
+            .await?;
+        Ok(())
+    }
 }

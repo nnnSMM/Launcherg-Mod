@@ -234,7 +234,9 @@ fn main() {
             command::get_game_screenshots,
             command::import_screenshot,
             command::delete_screenshot,
-            command::update_screenshots_order
+            command::update_screenshots_order,
+            command::update_collection_element_path,
+            command::delete_collection_element_logical
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -56,6 +56,15 @@
           ? "bg-bg-success-disabled border-(~ solid border-success-disabled) text-text-success-disabled"
           : "bg-accent-success border-(~ solid accent-success) text-text-white hover:bg-bg-success-hover";
         break;
+      case "warning":
+        buttonVariantClass =
+          "bg-bg-button border-(~ border-button opacity-10 solid) text-accent-warning hover:(border-accent-warning bg-accent-warning text-text-secondary)";
+        break;
+      case "primary":
+        buttonVariantClass = disabled
+          ? "bg-bg-button border-(~ solid border-button) text-text-tertiary"
+          : "bg-accent-primary border-(~ solid accent-primary) text-text-white hover:bg-accent-primary-hover";
+        break;
       default:
         const _: never = variant;
         break;

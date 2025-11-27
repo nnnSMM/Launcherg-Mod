@@ -5,6 +5,15 @@
   import PlayPopover from "@/components/Work/PlayPopover.svelte";
   import { createEventDispatcher } from "svelte";
 
+  export let text: string = "Play";
+  export let icon: string = "i-material-symbols-power-rounded";
+  export let variant:
+    | "success"
+    | "primary"
+    | "secondary"
+    | "warning"
+    | "error" = "success";
+
   const dispather = createEventDispatcher<{
     play: { isAdmin: boolean | undefined };
   }>();
@@ -13,9 +22,9 @@
 <div class="flex items-center min-w-0">
   <Button
     appendClass="rounded-r-0"
-    leftIcon="i-material-symbols-power-rounded"
-    text="Play"
-    variant="success"
+    leftIcon={icon}
+    {text}
+    {variant}
     on:click={() => dispather("play", { isAdmin: undefined })}
   />
   <APopover let:open let:close>
@@ -27,7 +36,7 @@
         theme: "default",
         delay: 1000,
       }}
-      variant="success"
+      {variant}
       slot="button"
     >
       <div

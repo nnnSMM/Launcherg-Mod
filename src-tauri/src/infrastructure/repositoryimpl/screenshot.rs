@@ -152,6 +152,20 @@ impl ScreenshotRepository for ScreenshotRepositoryImpl {
         Ok(())
     }
 
+    async fn delete_by_game_id(&self, game_id: &Id<CollectionElement>) -> anyhow::Result<()> {
+        let pool = self.db.0.clone();
+        query(
+            r#"
+            DELETE FROM screenshots
+            WHERE game_id = ?
+            "#,
+        )
+        .bind(game_id.value)
+        .execute(&*pool)
+        .await?;
+        Ok(())
+    }
+
     async fn update_order(&self, id: i32, order_index: i32) -> anyhow::Result<()> {
         let pool = self.db.0.clone();
         query(

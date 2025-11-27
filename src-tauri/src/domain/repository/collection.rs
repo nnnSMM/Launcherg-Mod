@@ -76,4 +76,11 @@ pub trait CollectionRepository {
 
     async fn get_app_setting(&self, key: String) -> Result<Option<String>>;
     async fn set_app_setting(&self, key: String, value: Option<String>) -> Result<()>;
+
+    async fn update_collection_element_path(
+        &self,
+        id: &Id<CollectionElement>,
+        exe_path: Option<String>,
+        lnk_path: Option<String>,
+    ) -> Result<()>;
 }

@@ -429,6 +429,7 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
 
     pub async fn delete_collection_element_by_id(
         &self,
+        handle: &Arc<AppHandle>,
         id: &Id<CollectionElement>,
     ) -> anyhow::Result<()> {
         let existed = self
@@ -439,6 +440,40 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
         if existed.is_none() {
             return Err(UseCaseError::CollectionElementIsNotFound.into());
         }
+
+        // Delete icon
+        let icon_path = get_icon_path(handle, id);
+        if std::path::Path::new(&icon_path).exists() {
+            let _ = std::fs::remove_file(icon_path);
+        }
+
+        // Delete thumbnail
+        let thumbnail_path = get_thumbnail_path(handle, id);
+        if std::path::Path::new(&thumbnail_path).exists() {
+            let _ = std::fs::remove_file(thumbnail_path);
+        }
+
+        // Delete play history
+        let play_history_path = crate::domain::file::get_play_history_path(handle, id);
+        if std::path::Path::new(&play_history_path).exists() {
+            let _ = std::fs::remove_file(play_history_path);
+        }
+
+        // Delete screenshots directory
+        let root_dir = get_save_root_abs_dir(handle);
+        let game_screenshot_dir = std::path::Path::new(&root_dir)
+            .join("game-memos")
+            .join(id.value.to_string());
+        if game_screenshot_dir.exists() {
+            let _ = std::fs::remove_dir_all(game_screenshot_dir);
+        }
+
+        // Delete screenshots from DB
+        self.repositories
+            .screenshot_repository()
+            .delete_by_game_id(id)
+            .await?;
+
         self.repositories
             .collection_repository()
             .delete_collection_element(id)
@@ -637,5 +672,32 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
                 .await?;
         }
         Ok(())
+    }
+
+    pub async fn update_collection_element_path(
+        &self,
+        id: &Id<CollectionElement>,
+        path: String,
+    ) -> anyhow::Result<()> {
+        let is_lnk = path.to_lowercase().ends_with(".lnk");
+        let (exe_path, lnk_path) = if is_lnk {
+            (None, Some(path))
+        } else {
+            (Some(path), None)
+        };
+        self.repositories
+            .collection_repository()
+            .update_collection_element_path(id, exe_path, lnk_path)
+            .await
+    }
+
+    pub async fn delete_collection_element_logical(
+        &self,
+        id: &Id<CollectionElement>,
+    ) -> anyhow::Result<()> {
+        self.repositories
+            .collection_repository()
+            .update_collection_element_path(id, None, None)
+            .await
     }
 }
