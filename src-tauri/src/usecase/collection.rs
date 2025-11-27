@@ -64,22 +64,32 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
         // For .lnk files or .exe files, use cmd /c start which properly handles shortcuts
         let is_lnk = path_str.to_lowercase().ends_with(".lnk");
 
-        if is_lnk {
+        let spawn_result = if is_lnk {
             // For .lnk files, use cmd /c start with the full path
             Command::new("cmd")
                 .args(&["/c", "start", "", &path_str])
                 .spawn()
-                .map_err(|e| anyhow::anyhow!("Failed to launch game: {}", e))?;
         } else {
             // For .exe files, launch directly with working directory set
             if let Some(parent_dir) = path.parent() {
-                Command::new(path)
-                    .current_dir(parent_dir)
-                    .spawn()
-                    .map_err(|e| anyhow::anyhow!("Failed to launch game: {}", e))?;
+                Command::new(path).current_dir(parent_dir).spawn()
             } else {
                 return Err(anyhow::anyhow!("親ディレクトリが見つかりません"));
             }
+        };
+
+        if let Err(e) = spawn_result {
+            // 自動的に未インストール状態にする
+            // 2: ERROR_FILE_NOT_FOUND
+            // 3: ERROR_PATH_NOT_FOUND
+            // 267: ERROR_DIRECTORY
+            if let Some(code) = e.raw_os_error() {
+                if code == 2 || code == 3 || code == 267 {
+                    self.delete_collection_element_logical(&Id::new(element_id))
+                        .await?;
+                }
+            }
+            return Err(anyhow::anyhow!("Failed to launch game: {}", e));
         }
 
         let game_name = element.gamename.clone();
