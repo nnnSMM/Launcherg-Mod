@@ -73,8 +73,8 @@
         <div class="text-(body2 text-primary)">
           <ul class="list-disc pl-4 space-y-1">
             <li>
-              <b>アンインストール (データ保持)</b>:
-              プレイ履歴やスクリーンショットは保持されます。後でパスを再設定できます。
+              <b>未インストール状態にする</b>:
+              起動パスの設定をクリアします。次回プレイするには再度パスの設定が必要です。記録やゲームファイルはそのまま残ります。
             </li>
             <li>
               <b>完全削除</b>:
@@ -103,7 +103,7 @@
       />
     {:else}
       <Button
-        text="アンインストール (データ保持)"
+        text="未インストール状態にする"
         variant="warning"
         wrappable
         appendClass="w-full justify-center"
