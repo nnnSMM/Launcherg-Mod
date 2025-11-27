@@ -36,9 +36,8 @@ export const scrapeAllGameCacheOnes = async (ids: number[]) => {
 export const scrapeAllGame = async (idCursor = 0) => {
   const idGameNamePairs: AllGameCacheOne[] = [];
   for (let i = 0; i < MAX_SCRAPE_COUNT; i++) {
-    const query = `${ALL_GAME_CACHE_BASE_QUERY} WHERE id >= ${idCursor} AND id < ${
-      idCursor + STEP
-    } AND model = 'PC';`;
+    const query = `${ALL_GAME_CACHE_BASE_QUERY} WHERE id >= ${idCursor} AND id < ${idCursor + STEP
+      } AND model = 'PC';`;
     const rows = await scrapeSql(query, 3);
     if (!rows.length) {
       console.log(

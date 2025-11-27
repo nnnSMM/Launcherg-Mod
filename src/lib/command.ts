@@ -216,3 +216,14 @@ export const commandUpdateScreenshotsOrder = async (
 ) => {
   return await invoke<void>("update_screenshots_order", { updates });
 };
+
+export const commandUpdateCollectionElementPath = async (
+  id: number,
+  path: string
+) => {
+  return await invoke<void>("update_collection_element_path", { id, path });
+};
+
+export const commandDeleteCollectionElementLogical = async (id: number) => {
+  return await invoke<void>("delete_collection_element_logical", { id });
+};

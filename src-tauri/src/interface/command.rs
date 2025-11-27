@@ -457,12 +457,13 @@ pub async fn get_collection_element(
 
 #[tauri::command]
 pub async fn delete_collection_element(
+    handle: tauri::AppHandle,
     modules: State<'_, Arc<Modules>>,
     collection_element_id: i32,
 ) -> Result<(), CommandError> {
     Ok(modules
         .collection_use_case()
-        .delete_collection_element_by_id(&Id::new(collection_element_id))
+        .delete_collection_element_by_id(&Arc::new(handle), &Id::new(collection_element_id))
         .await?)
 }
 
@@ -749,5 +750,28 @@ pub async fn update_screenshots_order(
     Ok(modules
         .collection_use_case()
         .update_screenshots_order(updates_vec)
+        .await?)
+}
+
+#[tauri::command]
+pub async fn update_collection_element_path(
+    modules: State<'_, Arc<Modules>>,
+    id: i32,
+    path: String,
+) -> Result<(), CommandError> {
+    Ok(modules
+        .collection_use_case()
+        .update_collection_element_path(&Id::new(id), path)
+        .await?)
+}
+
+#[tauri::command]
+pub async fn delete_collection_element_logical(
+    modules: State<'_, Arc<Modules>>,
+    id: i32,
+) -> Result<(), CommandError> {
+    Ok(modules
+        .collection_use_case()
+        .delete_collection_element_logical(&Id::new(id))
         .await?)
 }

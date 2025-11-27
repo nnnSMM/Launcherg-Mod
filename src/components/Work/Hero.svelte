@@ -1,18 +1,13 @@
 <script lang="ts">
     import { convertFileSrc } from "@tauri-apps/api/core";
-    import type { Work, CollectionElement } from "@/lib/types";
-    import { formatLastPlayed } from "@/lib/utils";
-    import PlayButton from "@/components/Work/PlayButton.svelte";
-    import Button from "@/components/UI/Button.svelte";
+    import type { CollectionElement } from "@/lib/types";
     import { createEventDispatcher } from "svelte";
     import { commandPlayGame } from "@/lib/command";
-    import { link } from "svelte-spa-router";
 
     import { open } from "@tauri-apps/plugin-dialog";
     import { commandUpdateGameImage } from "@/lib/command";
     import ContextMenu from "@/components/UI/ContextMenu.svelte";
 
-    export let work: Work;
     export let element: CollectionElement;
     export let scrollY: number = 0;
 

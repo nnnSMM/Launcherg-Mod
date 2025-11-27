@@ -23,5 +23,6 @@ pub trait ScreenshotRepository {
     async fn get_by_id(&self, id: i32) -> anyhow::Result<Option<Screenshot>>;
     async fn insert(&self, game_id: &Id<CollectionElement>, filename: &str) -> anyhow::Result<()>;
     async fn delete(&self, id: i32) -> anyhow::Result<()>;
+    async fn delete_by_game_id(&self, game_id: &Id<CollectionElement>) -> anyhow::Result<()>;
     async fn update_order(&self, id: i32, order_index: i32) -> anyhow::Result<()>;
 }

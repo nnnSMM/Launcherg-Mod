@@ -37,6 +37,13 @@
     }}
   />
   <OptionButton
+    text="ゲームの場所を変更"
+    on:click={() => {
+      dispatcher("close");
+      dispatcher("selectChange");
+    }}
+  />
+  <OptionButton
     text="別のゲームに変更する"
     on:click={() => {
       dispatcher("close");
