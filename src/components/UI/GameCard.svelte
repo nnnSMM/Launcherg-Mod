@@ -23,12 +23,22 @@
                 alt={collectionElement.gamename}
                 class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                 loading="lazy"
+                on:error={(e) => {
+                    const img = e.currentTarget;
+                    if (img instanceof HTMLImageElement) {
+                        img.src = "/images/dummy_thumbnail.svg";
+                    }
+                }}
             />
         {:else}
             <div
-                class="w-full h-full flex items-center justify-center text-text-tertiary p-4 text-center"
+                class="w-full h-full flex items-center justify-center bg-bg-secondary"
             >
-                {collectionElement.gamename}
+                <img
+                    src="/images/dummy_thumbnail.svg"
+                    alt="No Image"
+                    class="w-full h-full object-cover opacity-50"
+                />
             </div>
         {/if}
     </div>

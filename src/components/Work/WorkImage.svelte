@@ -15,9 +15,15 @@
     y: 0,
   };
 
-  $: srcWithVersion = `${convertFileSrc(element.thumbnail)}?v=${
-    element.updatedAt
-  }`;
+  $: srcWithVersion =
+    element.thumbnail && element.thumbnail.trim() !== ""
+      ? `${convertFileSrc(element.thumbnail)}?v=${element.updatedAt}`
+      : "/images/dummy_thumbnail.svg";
+
+  const handleError = (e: Event) => {
+    const img = e.target as HTMLImageElement;
+    img.src = "/images/dummy_thumbnail.svg";
+  };
 
   const handleContextMenu = (e: MouseEvent) => {
     e.preventDefault();
@@ -49,6 +55,7 @@
   <img
     alt="{element.gamename}_thumbnail"
     src={srcWithVersion}
+    on:error={handleError}
     class="object-contain w-full"
   />
 </div>

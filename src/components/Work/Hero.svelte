@@ -18,9 +18,15 @@
 
     const dispatch = createEventDispatcher();
 
-    $: bgImage = element.thumbnail
-        ? `${convertFileSrc(element.thumbnail)}?v=${element.updatedAt}`
-        : work.imgUrl;
+    $: bgImage =
+        element.thumbnail && element.thumbnail.trim() !== ""
+            ? `${convertFileSrc(element.thumbnail)}?v=${element.updatedAt}`
+            : "/images/dummy_thumbnail.svg";
+
+    const handleImageError = (e: Event) => {
+        const img = e.target as HTMLImageElement;
+        img.src = "/images/dummy_thumbnail.svg";
+    };
 
     let menu = {
         isOpen: false,
@@ -78,11 +84,11 @@
     $: TARGET_AREA = innerWidth < 1280 ? 90000 : 130000;
 
     $: imageWidth = (() => {
-        if (element.thumbnailWidth && element.thumbnailHeight) {
-            const ratio = element.thumbnailWidth / element.thumbnailHeight;
-            // Width = Sqrt(Area * Ratio)
-            return Math.sqrt(TARGET_AREA * ratio);
-        }
+        const width = element.thumbnailWidth || 16;
+        const height = element.thumbnailHeight || 9;
+        const ratio = width / height;
+        // Width = Sqrt(Area * Ratio)
+        return Math.sqrt(TARGET_AREA * ratio);
     })();
 </script>
 
@@ -101,6 +107,7 @@
                 src={bgImage}
                 alt={element.gamename}
                 class="w-full h-full object-cover object-top opacity-100 blur-sm"
+                on:error={handleImageError}
             />
         </div>
         <div
@@ -128,7 +135,12 @@
                     role="button"
                     tabindex="0"
                 >
-                    <img src={bgImage} alt="Cover" class="w-full h-auto" />
+                    <img
+                        src={bgImage}
+                        alt="Cover"
+                        class="w-full h-auto"
+                        on:error={handleImageError}
+                    />
                 </div>
             </div>
         </div>

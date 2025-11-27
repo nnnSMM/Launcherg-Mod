@@ -1,5 +1,8 @@
 <script lang="ts">
-  import type { CollectionElement, PlayStatus as PlayStatusType } from "@/lib/types";
+  import type {
+    CollectionElement,
+    PlayStatus as PlayStatusType,
+  } from "@/lib/types";
   import { PlayStatus as PSConst } from "@/lib/types";
   import { createEventDispatcher } from "svelte";
   import { convertFileSrc } from "@tauri-apps/api/core";
@@ -20,44 +23,69 @@
   const bgColorSelectedHover = "#CBD5E1";
 
   const textColorNormalBase = "#374151"; // 非選択時の基本文字色
-  const textColorSelected = "#1f2937";   // 選択時の文字色
+  const textColorSelected = "#1f2937"; // 選択時の文字色
 
   const dispatch = createEventDispatcher<{ toggle: void }>();
 
-  $: actualTileWidth = targetImageWidth + (tilePadding * 2);
+  $: actualTileWidth = targetImageWidth + tilePadding * 2;
 
-  const playStatusInfo: Record<PlayStatusType, {
-    label: string;
-    icon: string;
-    baseColorCode: string;
-    selectedIconColor: string; // 選択時のアイコン色
-  }> = {
-    [PSConst.Unplayed]: { label: "未プレイ", icon: "i-material-symbols-play-circle-outline-rounded", baseColorCode: "#A0AEC0", selectedIconColor: "#FFFFFF" }, // 選択時アイコンは白
-    [PSConst.Playing]: { label: "プレイ中", icon: "i-material-symbols-pause-circle-outline-rounded", baseColorCode: "#4299E1", selectedIconColor: "#FFFFFF" }, // 選択時アイコンは白
-    [PSConst.Cleared]: { label: "クリア済み", icon: "i-material-symbols-check-circle-outline-rounded", baseColorCode: "#48BB78", selectedIconColor: "#FFFFFF" }, // 選択時アイコンは白
-  };
-
-  $: displayPlayStatus = (isSelected && previewTargetPlayStatus !== undefined) ? previewTargetPlayStatus : game.playStatus;
-  $: currentStatusInfo = playStatusInfo[displayPlayStatus] || {
-      label: "不明",
-      icon: "i-material-symbols-help-outline-rounded",
+  const playStatusInfo: Record<
+    PlayStatusType,
+    {
+      label: string;
+      icon: string;
+      baseColorCode: string;
+      selectedIconColor: string; // 選択時のアイコン色
+    }
+  > = {
+    [PSConst.Unplayed]: {
+      label: "未プレイ",
+      icon: "i-material-symbols-play-circle-outline-rounded",
       baseColorCode: "#A0AEC0",
-      selectedIconColor: "#FFFFFF"
+      selectedIconColor: "#FFFFFF",
+    }, // 選択時アイコンは白
+    [PSConst.Playing]: {
+      label: "プレイ中",
+      icon: "i-material-symbols-pause-circle-outline-rounded",
+      baseColorCode: "#4299E1",
+      selectedIconColor: "#FFFFFF",
+    }, // 選択時アイコンは白
+    [PSConst.Cleared]: {
+      label: "クリア済み",
+      icon: "i-material-symbols-check-circle-outline-rounded",
+      baseColorCode: "#48BB78",
+      selectedIconColor: "#FFFFFF",
+    }, // 選択時アイコンは白
   };
 
-  $: thumbnailSrc = game.thumbnail ? convertFileSrc(game.thumbnail) : '/icon.png';
+  $: displayPlayStatus =
+    isSelected && previewTargetPlayStatus !== undefined
+      ? previewTargetPlayStatus
+      : game.playStatus;
+  $: currentStatusInfo = playStatusInfo[displayPlayStatus] || {
+    label: "不明",
+    icon: "i-material-symbols-help-outline-rounded",
+    baseColorCode: "#A0AEC0",
+    selectedIconColor: "#FFFFFF",
+  };
+
+  $: thumbnailSrc = game.thumbnail
+    ? convertFileSrc(game.thumbnail)
+    : "/icon.png";
 
   let imageHasError = false;
   $: if (game.thumbnail) imageHasError = false;
 
   const handleImageError = () => {
     imageHasError = true;
-  }
+  };
 
   let isHovered = false;
 
   $: currentBgColor = isSelected ? bgColorSelected : bgColorUnselected;
-  $: currentHoverBgColor = isSelected ? bgColorSelectedHover : bgColorUnselectedHover;
+  $: currentHoverBgColor = isSelected
+    ? bgColorSelectedHover
+    : bgColorUnselectedHover;
 
   $: tileBorderStyle = (() => {
     const ringWidth = isSelected ? 4 : 2;
@@ -74,10 +102,17 @@
     }
   })();
 
-  $: iconFillColor = isSelected ? currentStatusInfo.selectedIconColor : currentStatusInfo.baseColorCode;
-  $: textFillColor = isSelected ? textColorSelected : currentStatusInfo.baseColorCode;
-  $: textFillColorForLabel = isSelected ? textColorSelected : (currentStatusInfo.baseColorCode === '#A0AEC0' ? textColorNormalBase : currentStatusInfo.baseColorCode); // 未プレイ時は少し薄めに
-
+  $: iconFillColor = isSelected
+    ? currentStatusInfo.selectedIconColor
+    : currentStatusInfo.baseColorCode;
+  $: textFillColor = isSelected
+    ? textColorSelected
+    : currentStatusInfo.baseColorCode;
+  $: textFillColorForLabel = isSelected
+    ? textColorSelected
+    : currentStatusInfo.baseColorCode === "#A0AEC0"
+      ? textColorNormalBase
+      : currentStatusInfo.baseColorCode; // 未プレイ時は少し薄めに
 </script>
 
 <button
@@ -92,16 +127,25 @@
     background-color: {isHovered ? currentHoverBgColor : currentBgColor};
     {tileBorderStyle}
   "
-  on:click={() => dispatch('toggle')}
-  on:mouseenter={() => isHovered = true}
-  on:mouseleave={() => isHovered = false}
+  on:click={() => dispatch("toggle")}
+  on:mouseenter={() => (isHovered = true)}
+  on:mouseleave={() => (isHovered = false)}
 >
   <div
     class="image-container relative overflow-hidden rounded bg-bg-primary flex items-center justify-center"
-    style="width: {targetImageWidth}px; height: {imageDisplayHeight}px; margin-bottom: {tilePadding / 2}px;"
+    style="width: {targetImageWidth}px; height: {imageDisplayHeight}px; margin-bottom: {tilePadding /
+      2}px;"
   >
     {#if imageHasError || !game.thumbnail}
-      <div class="text-(xs text-tertiary) p-1 text-center break-all flex items-center justify-center w-full h-full">{game.gamename}</div>
+      <div
+        class="text-(xs text-tertiary) p-1 text-center break-all flex items-center justify-center w-full h-full bg-bg-secondary"
+      >
+        <img
+          src="/images/dummy_thumbnail.svg"
+          alt="No Image"
+          class="w-full h-full object-cover opacity-50"
+        />
+      </div>
     {:else}
       <img
         src={thumbnailSrc}
@@ -113,23 +157,27 @@
     {/if}
     <div
       class="absolute top-1 right-1 p-0.5 rounded-full"
-      style="background-color: {isSelected ? currentStatusInfo.baseColorCode : 'rgba(0,0,0,0.3)'};"
+      style="background-color: {isSelected
+        ? currentStatusInfo.baseColorCode
+        : 'rgba(0,0,0,0.3)'};"
     >
-      <div class="{currentStatusInfo.icon} w-4 h-4"
-           style="color: {isSelected ? currentStatusInfo.selectedIconColor : '#FFFFFF'};"
-       />
+      <div
+        class="{currentStatusInfo.icon} w-4 h-4"
+        style="color: {isSelected
+          ? currentStatusInfo.selectedIconColor
+          : '#FFFFFF'};"
+      />
     </div>
   </div>
 
   <div class="w-full text-center mt-auto px-1">
-    <p class="text-(xs) font-medium truncate"
-       style="color: {textFillColor}; max-width: {targetImageWidth}px;"
+    <p
+      class="text-(xs) font-medium truncate"
+      style="color: {textFillColor}; max-width: {targetImageWidth}px;"
     >
-        {game.gamename}
+      {game.gamename}
     </p>
-    <p class="text-(xs opacity-90)"
-       style="color: {textFillColorForLabel};"
-    >
+    <p class="text-(xs opacity-90)" style="color: {textFillColorForLabel};">
       {currentStatusInfo.label}
     </p>
   </div>

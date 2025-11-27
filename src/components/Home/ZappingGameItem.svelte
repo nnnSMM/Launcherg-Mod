@@ -76,12 +76,22 @@
           class:object-top={objectPosition === "top"}
           src={imgSrc}
           alt={`${collectionElement.gamename}のサムネイル`}
+          on:error={(e) => {
+            const img = e.currentTarget;
+            if (img instanceof HTMLImageElement) {
+              img.src = "/images/dummy_thumbnail.svg";
+            }
+          }}
         />
       {:else}
         <div
-          class="text-(body text-primary) font-bold px-6 rounded border bg-bg-primary w-full h-full flex items-center justify-center"
+          class="text-(body text-primary) font-bold px-6 rounded border bg-bg-primary w-full h-full flex items-center justify-center bg-bg-secondary"
         >
-          {collectionElement.gamename}
+          <img
+            src="/images/dummy_thumbnail.svg"
+            alt="No Image"
+            class="w-full h-full object-cover opacity-50"
+          />
         </div>
       {/if}
     </a>
