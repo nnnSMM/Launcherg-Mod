@@ -232,7 +232,6 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
 
                 let mut interval = interval(Duration::from_secs(10));
                 let mut system = System::new_all();
-                let mut elapsed_time_accumulator = 0;
                 let mut last_check_time = Instant::now();
 
                 loop {
@@ -241,8 +240,14 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
 
                     if !pause_manager.is_paused() {
                         let now = Instant::now();
-                        elapsed_time_accumulator +=
-                            now.duration_since(last_check_time).as_secs() as i32;
+                        let duration = now.duration_since(last_check_time).as_secs() as i32;
+                        if duration > 0 {
+                            // Incrementally save play time
+                            let _ = repositories
+                                .collection_repository()
+                                .add_play_time_seconds(&Id::new(element_id), duration)
+                                .await;
+                        }
                         last_check_time = now;
                     } else {
                         last_check_time = Instant::now();
@@ -252,13 +257,7 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
                         // Stop screenshot watcher
                         screenshot_watcher.stop_watching();
 
-                        let duration = elapsed_time_accumulator;
-                        if duration > 0 {
-                            let _ = repositories
-                                .collection_repository()
-                                .add_play_time_seconds(&Id::new(element_id), duration)
-                                .await;
-                        }
+                        // Final play time save is no longer needed as we save incrementally
 
                         let _ = repositories
                             .collection_repository()
