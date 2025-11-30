@@ -120,12 +120,22 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
                 }
             }
 
-            // ランチャーがゲーム本体を起動するまで5秒待つ
-            tokio::time::sleep(Duration::from_secs(5)).await;
+            // ランチャーがゲーム本体を起動するまで1秒待つ
+            tokio::time::sleep(Duration::from_secs(1)).await;
 
-            let search_timeout = Duration::from_secs(45);
+            let search_timeout = Duration::from_secs(180);
             let search_start_time = Instant::now();
             let mut target_pid: Option<sysinfo::Pid> = None;
+
+            // LNKの解決をループの外で行う
+            let final_exe_path_str = if path_str_clone.to_lowercase().ends_with(".lnk") {
+                get_exe_path_from_lnk(&path_str_clone)
+                    .await
+                    .unwrap_or(path_str_clone.clone())
+            } else {
+                path_str_clone.clone()
+            };
+            let final_exe_path = std::path::Path::new(&final_exe_path_str);
 
             // ▼▼▼ 修正: 優先度付けを行う新しい特定ロジック ▼▼▼
             loop {
@@ -157,6 +167,8 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
                 for process in new_processes {
                     let exe_path = process.exe();
                     let path_lower = exe_path.to_string_lossy().to_lowercase();
+                    let name_lower = process.name().to_lowercase();
+                    let game_name_lower = game_name.to_lowercase();
 
                     if system_folders
                         .iter()
@@ -166,31 +178,34 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
                     }
 
                     // スコア付け
-                    let score;
-                    // 最優先: 起動パスと完全一致
-                    let final_exe_path_str = if path_str_clone.to_lowercase().ends_with(".lnk") {
-                        get_exe_path_from_lnk(&path_str_clone)
-                            .await
-                            .unwrap_or(path_str_clone.clone())
-                    } else {
-                        path_str_clone.clone()
-                    };
-                    let final_exe_path = std::path::Path::new(&final_exe_path_str);
+                    let mut score = 0;
 
+                    // 最優先: 起動パスと完全一致
                     if exe_path == final_exe_path {
-                        score = 3;
+                        score += 100;
                     }
+
+                    // 次点: プロセス名にゲーム名が含まれている (拡張子除外などを考慮して簡易的に)
+                    // 例: "GameName.exe" vs "GameName"
+                    if name_lower.contains(&game_name_lower)
+                        || game_name_lower.contains(&name_lower)
+                    {
+                        score += 50;
+                    }
+
                     // 次点: 有名なゲームフォルダ
-                    else if game_folders
+                    if game_folders
                         .iter()
                         .any(|folder| path_lower.contains(folder))
                     {
-                        score = 2;
+                        score += 10;
                     }
-                    // それ以外
-                    else {
+
+                    // それ以外でも新しいプロセスなら候補には入れる(スコア1)
+                    if score == 0 {
                         score = 1;
                     }
+
                     candidates.push((process, score));
                 }
 
@@ -201,13 +216,12 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
                         .map(|(_, score)| *score)
                         .max()
                         .unwrap_or(0);
+
+                    // スコアが同じ場合は、名前の類似度（文字数差）で判定
                     if let Some(best_match) = candidates
                         .iter()
                         .filter(|(_, score)| *score == max_score)
-                        .min_by_key(|(p, _)| {
-                            // 編集距離の代わりに簡易的な文字数差で最終判断
-                            (p.name().len() as i32 - game_name.len() as i32).abs()
-                        })
+                        .min_by_key(|(p, _)| (p.name().len() as i32 - game_name.len() as i32).abs())
                     {
                         target_pid = Some(best_match.0.pid());
                     }
