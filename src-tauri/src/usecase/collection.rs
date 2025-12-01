@@ -53,16 +53,13 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
             }
         };
 
-        let mut system_before = System::new_all();
-        system_before.refresh_processes();
-        let pids_before: std::collections::HashSet<_> =
-            system_before.processes().keys().cloned().collect();
-
         // Use Windows cmd /c start to launch the game, which handles both .exe and .lnk
         let path = std::path::Path::new(&path_str);
 
         // For .lnk files or .exe files, use cmd /c start which properly handles shortcuts
         let is_lnk = path_str.to_lowercase().ends_with(".lnk");
+
+        let mut spawned_pid: Option<u32> = None;
 
         let spawn_result = if is_lnk {
             // For .lnk files, use cmd /c start with the full path
@@ -72,7 +69,13 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
         } else {
             // For .exe files, launch directly with working directory set
             if let Some(parent_dir) = path.parent() {
-                Command::new(path).current_dir(parent_dir).spawn()
+                match Command::new(path).current_dir(parent_dir).spawn() {
+                    Ok(child) => {
+                        spawned_pid = Some(child.id());
+                        Ok(child)
+                    }
+                    Err(e) => Err(e),
+                }
             } else {
                 return Err(anyhow::anyhow!("親ディレクトリが見つかりません"));
             }
@@ -127,6 +130,10 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
             let search_start_time = Instant::now();
             let mut target_pid: Option<sysinfo::Pid> = None;
 
+            if let Some(pid) = spawned_pid {
+                target_pid = Some(sysinfo::Pid::from(pid as usize));
+            }
+
             // LNKの解決をループの外で行う
             let final_exe_path_str = if path_str_clone.to_lowercase().ends_with(".lnk") {
                 get_exe_path_from_lnk(&path_str_clone)
@@ -139,6 +146,10 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
 
             // ▼▼▼ 修正: 優先度付けを行う新しい特定ロジック ▼▼▼
             loop {
+                if target_pid.is_some() {
+                    break;
+                }
+
                 if search_start_time.elapsed() > search_timeout {
                     println!(
                         "[WARN] Game process search timed out. Play time may not be recorded."
@@ -147,14 +158,10 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
                 }
                 tokio::time::sleep(Duration::from_secs(2)).await;
 
-                let mut system_after = System::new_all();
+                let mut system_after = System::new();
                 system_after.refresh_processes();
 
-                let new_processes: Vec<_> = system_after
-                    .processes()
-                    .values()
-                    .filter(|p| !pids_before.contains(&p.pid()))
-                    .collect();
+                let new_processes: Vec<_> = system_after.processes().values().collect();
 
                 if new_processes.is_empty() {
                     continue;
@@ -245,7 +252,7 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
                 }
 
                 let mut interval = interval(Duration::from_secs(10));
-                let mut system = System::new_all();
+                let mut system = System::new();
                 let mut last_check_time = Instant::now();
 
                 loop {

@@ -39,8 +39,8 @@ struct ProcessIdCandidate {
     children: Vec<u32>,
 }
 fn find_candidate_process_ids_by_started(started_process_id: u32) -> ProcessIdCandidate {
-    let mut system = sysinfo::System::new_all();
-    system.refresh_all();
+    let mut system = sysinfo::System::new();
+    system.refresh_processes();
 
     let mut process_id_candidates: ProcessIdCandidate = ProcessIdCandidate {
         started: None,
