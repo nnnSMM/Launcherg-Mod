@@ -22,13 +22,17 @@ impl<R: RepositoriesExt + Send + Sync + 'static> ScreenshotWatcher<R> {
         let handle = handle.clone();
         let game_id: Id<crate::domain::collection::CollectionElement> = Id::new(game_id);
 
-        let (tx, rx) = std::sync::mpsc::channel();
+        let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
 
-        let mut watcher = RecommendedWatcher::new(tx, Config::default())?;
+        let mut watcher = RecommendedWatcher::new(
+            move |res: Result<Event, notify::Error>| {
+                let _ = tx.send(res);
+            },
+            Config::default(),
+        )?;
 
         let user_profile = std::env::var("USERPROFILE")?;
 
-        // Try multiple possible screenshot directories
         // Try multiple possible screenshot directories
         let mut screenshot_paths = Vec::new();
 
@@ -54,32 +58,30 @@ impl<R: RepositoriesExt + Send + Sync + 'static> ScreenshotWatcher<R> {
             }
         }
 
-        let mut screenshots_dir = None;
+        let mut valid_screenshot_dirs = Vec::new();
         for path in screenshot_paths {
             if path.exists() {
-                screenshots_dir = Some(path);
-                break;
+                valid_screenshot_dirs.push(path);
             }
         }
 
-        let screenshots_dir = match screenshots_dir {
-            Some(dir) => dir,
-            None => {
-                // If no directory exists, create the standard one
-                let default_dir = Path::new(&user_profile)
-                    .join("Pictures")
-                    .join("Screenshots");
-                std::fs::create_dir_all(&default_dir)?;
-                default_dir
-            }
-        };
+        if valid_screenshot_dirs.is_empty() {
+            // If no directory exists, create the standard one
+            let default_dir = Path::new(&user_profile)
+                .join("Pictures")
+                .join("Screenshots");
+            std::fs::create_dir_all(&default_dir)?;
+            valid_screenshot_dirs.push(default_dir);
+        }
 
-        watcher.watch(&screenshots_dir, RecursiveMode::NonRecursive)?;
+        for dir in valid_screenshot_dirs {
+            watcher.watch(&dir, RecursiveMode::NonRecursive)?;
+        }
 
         *self.watcher.lock().unwrap() = Some(watcher);
 
         tauri::async_runtime::spawn(async move {
-            for res in rx {
+            while let Some(res) = rx.recv().await {
                 match res {
                     Ok(event) => {
                         if let Event {
@@ -95,18 +97,26 @@ impl<R: RepositoriesExt + Send + Sync + 'static> ScreenshotWatcher<R> {
                                         tokio::time::sleep(Duration::from_secs(1)).await;
 
                                         // Copy to game folder
-                                        if let Err(_) =
-                                            copy_screenshot(&handle, &repositories, &game_id, &path)
-                                                .await
+                                        match copy_screenshot(
+                                            &handle,
+                                            &repositories,
+                                            &game_id,
+                                            &path,
+                                        )
+                                        .await
                                         {
-                                            // Ignore error
+                                            Ok(_) => {}
+                                            Err(e) => eprintln!(
+                                                "ScreenshotWatcher: Failed to copy screenshot: {}",
+                                                e
+                                            ),
                                         }
                                     }
                                 }
                             }
                         }
                     }
-                    Err(_) => {}
+                    Err(e) => eprintln!("ScreenshotWatcher: Watch error: {}", e),
                 }
             }
         });
