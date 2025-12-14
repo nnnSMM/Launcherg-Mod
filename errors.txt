@@ -1,0 +1,76 @@
+﻿
+  ncherg-Mod\src-tauri)
+  発生場所 行:1 文字:1
+> + cargo check > build_error.log 2>&1
+  + ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      + CategoryInfo          : NotSpecified:
+  
+     (    Checking la...-Mod\src-tauri):Strin
+  
+    g) [], RemoteException
+>     + FullyQualifiedErrorId : NativeCommand
+E 
+     rror
+   
+> error[E0432]: unresolved import `windows::W
+in
+  32::Foundation::SetEvent`
+    --> src\infrastructure\windowsimpl\scalin
+g\
+  n`
+  
+> error[E0432]: unresolved import `windows::W
+in
+  32::Graphics::Direct2D::D2D1_COLOR_F`
+   --> src\infrastructure\windowsimpl\scaling
+\t
+  :Common::D2D1_COLOR_F
+  
+> error[E0422]: cannot find struct, variant o
+r 
+  union type `D2D1_ELLIPSE` in this scope
+     --> src\infrastructure\windowsimpl\scali
+ng
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^
+  
+> error[E0308]: mismatched types
+     --> src\infrastructure\windowsimpl\scali
+ng
+  \cursor.rs:157:32
+        +
+  
+> error[E0308]: mismatched types
+     --> src\infrastructure\windowsimpl\scali
+ng
+  \cursor.rs:162:32
+           +
+  
+> error[E0308]: mismatched types
+     --> src\infrastructure\windowsimpl\scali
+ng
+  \processor.rs:342:20
+      |     ^^
+  
+> error[E0308]: mismatched types
+     --> src\infrastructure\windowsimpl\scali
+ng
+  \processor.rs:346:20
+   default
+  
+> Some errors have detailed explanations: E03
+08
+  , E0422, E0432.
+> For more information about an error, try `r
+us
+  tc --explain E0308`.
+  warning: `launcherg` (bin "launcherg") gene
+ra
+  ted 10 warnings
+> error: could not compile `launcherg` (bin "
+la
+> uncherg") due to 7 previous errors; 10 warn
+in
+  gs emitted
+
+

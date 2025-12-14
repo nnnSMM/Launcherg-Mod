@@ -1,0 +1,183 @@
+warning: unused import: `windows::core::PCWSTR`
+ --> src\infrastructure\windowsimpl\scaling\cursor.rs:2:5
+  |
+2 | use windows::core::PCWSTR;
+  |     ^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `BOOL`
+ --> src\infrastructure\windowsimpl\scaling\cursor.rs:3:34
+  |
+3 | use windows::Win32::Foundation::{BOOL, HWND, POINT, RECT};
+  |                                  ^^^^
+
+warning: unused imports: `INPUT_MOUSE`, `INPUT`, `MOUSEEVENTF_ABSOLUTE`, `MOUSEEVENTF_MOVE`, and `SendInput`
+ --> src\infrastructure\windowsimpl\scaling\cursor.rs:5:5
+  |
+5 |     SendInput, INPUT, INPUT_MOUSE, MOUSEEVENTF_ABSOLUTE, MOUSEEVENTF_MOVE,
+  |     ^^^^^^^^^  ^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^
+
+warning: unused imports: `IDC_ARROW` and `LoadCursorW`
+ --> src\infrastructure\windowsimpl\scaling\cursor.rs:8:47
+  |
+8 |     ClipCursor, GetCursorPos, GetWindowLongW, LoadCursorW, SetCursorPos, SetWindowLongW,
+  |                                               ^^^^^^^^^^^
+9 |     ShowCursor, GWL_EXSTYLE, IDC_ARROW, WS_EX_TRANSPARENT,
+  |                              ^^^^^^^^^
+
+warning: unused import: `DXGI_ALPHA_MODE_PREMULTIPLIED`
+  --> src\infrastructure\windowsimpl\scaling\processor.rs:23:29
+   |
+23 |     DXGI_ALPHA_MODE_IGNORE, DXGI_ALPHA_MODE_PREMULTIPLIED, DXGI_FORMAT_B8G8R8A8_UNORM,
+   |                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `D2D1_ANTIALIAS_MODE_PER_PRIMITIVE`, `D2D1_BRUSH_PROPERTIES`, `D2D1_ROUNDED_RECT`, and `D2D1_TEXT_ANTIALIAS_MODE_DEFAULT`
+  --> src\infrastructure\windowsimpl\scaling\toolbar.rs:9:5
+   |
+9  |     D2D1_ANTIALIAS_MODE_PER_PRIMITIVE,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+10 |     D2D1_BRUSH_PROPERTIES,
+   |     ^^^^^^^^^^^^^^^^^^^^^
+...
+19 |     D2D1_ROUNDED_RECT,
+   |     ^^^^^^^^^^^^^^^^^
+20 |     D2D1_TEXT_ANTIALIAS_MODE_DEFAULT,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `DWRITE_MEASURING_MODE_NATURAL`
+  --> src\infrastructure\windowsimpl\scaling\toolbar.rs:25:5
+   |
+25 |     DWRITE_MEASURING_MODE_NATURAL, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_TEXT_ALIGNMENT_CENTER,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `windows::core::Interface`
+ --> src\infrastructure\windowsimpl\scaling\toolbar.rs:2:5
+  |
+2 | use windows::core::Interface;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: variable does not need to be mutable
+   --> src\infrastructure\windowsimpl\scaling\processor.rs:223:21
+    |
+223 |                 let mut cursor_manager = crate::infrastructure::windowsimpl::scaling::cursor::CursorManager::new(overlay_window);
+    |                     ----^^^^^^^^^^^^^^
+    |                     |
+    |                     help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` on by default
+
+warning: variable does not need to be mutable
+   --> src\infrastructure\windowsimpl\scaling\processor.rs:346:21
+    |
+346 | ...   Ok((mut window_manager, device, context, swap_chain, compute_shader, const_buffer, output_texture, output_uav, mut toolbar, mut cur...
+    |           ----^^^^^^^^^^^^^^
+    |           |
+    |           help: remove this `mut`
+
+warning: unused variable: `height`
+   --> src\infrastructure\windowsimpl\scaling\toolbar.rs:157:9
+    |
+157 |         height: u32,
+    |         ^^^^^^ help: if this is intentional, prefix it with an underscore: `_height`
+    |
+    = note: `#[warn(unused_variables)]` on by default
+
+warning: unnecessary `unsafe` block
+   --> src\infrastructure\windowsimpl\scaling\toolbar.rs:163:20
+    |
+163 |             .ok_or(unsafe { windows::core::Error::from_win32() })?;
+    |                    ^^^^^^ unnecessary `unsafe` block
+    |
+    = note: `#[warn(unused_unsafe)]` on by default
+
+warning: fields `should_draw_cursor` and `original_ex_style` are never read
+  --> src\infrastructure\windowsimpl\scaling\cursor.rs:14:5
+   |
+12 | pub struct CursorManager {
+   |            ------------- fields in this struct
+13 |     is_under_capture: bool,
+14 |     should_draw_cursor: bool,
+   |     ^^^^^^^^^^^^^^^^^^
+...
+18 |     original_ex_style: u32,
+   |     ^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` on by default
+
+warning: method `stop_capture` is never used
+   --> src\infrastructure\windowsimpl\scaling\cursor.rs:135:8
+    |
+24  | impl CursorManager {
+    | ------------------ method in this implementation
+...
+135 |     fn stop_capture(&mut self) -> Result<()> {
+    |        ^^^^^^^^^^^^
+
+warning: fields `device` and `context` are never read
+   --> src\infrastructure\windowsimpl\scaling\processor.rs:168:5
+    |
+164 | pub struct ScalingProcessor {
+    |            ---------------- fields in this struct
+...
+168 |     device: Option<ID3D11Device>,
+    |     ^^^^^^
+169 |     context: Option<ID3D11DeviceContext>,
+    |     ^^^^^^^
+
+warning: fields `btn_active_brush`, `border_brush`, `alpha`, and `toolbar_rect` are never read
+  --> src\infrastructure\windowsimpl\scaling\toolbar.rs:39:5
+   |
+29 | pub struct Toolbar {
+   |            ------- fields in this struct
+...
+39 |     btn_active_brush: Option<ID2D1SolidColorBrush>,
+   |     ^^^^^^^^^^^^^^^^
+40 |     border_brush: Option<ID2D1SolidColorBrush>,
+   |     ^^^^^^^^^^^^
+...
+47 |     pub alpha: f32,
+   |         ^^^^^
+...
+50 |     toolbar_rect: D2D_RECT_F,
+   |     ^^^^^^^^^^^^
+
+warning: unused `Result` that must be used
+   --> src\infrastructure\windowsimpl\scaling\processor.rs:239:26
+    |
+239 |                 unsafe { windows::Win32::UI::WindowsAndMessaging::GetClientRect(overlay_window, &mut rect) };
+    |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+    = note: `#[warn(unused_must_use)]` on by default
+help: use `let _ = ...` to ignore the resulting value
+    |
+239 |                 unsafe { let _ = windows::Win32::UI::WindowsAndMessaging::GetClientRect(overlay_window, &mut rect); };
+    |                          +++++++                                                                                  +
+
+warning: unused `Result` that must be used
+   --> src\infrastructure\windowsimpl\scaling\processor.rs:374:42
+    |
+374 | ...                   unsafe { windows::Win32::UI::WindowsAndMessaging::GetWindowRect(target_hwnd, &mut src_rect) };
+    |                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+374 |                                 unsafe { let _ = windows::Win32::UI::WindowsAndMessaging::GetWindowRect(target_hwnd, &mut src_rect); };
+    |                                          +++++++                                                                                   +
+
+warning: unused `Result` that must be used
+   --> src\infrastructure\windowsimpl\scaling\processor.rs:385:46
+    |
+385 | ...                   unsafe { windows::Win32::UI::WindowsAndMessaging::GetWindowRect(hwnd, &mut dest_rect) };
+    |                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+385 |                                     unsafe { let _ = windows::Win32::UI::WindowsAndMessaging::GetWindowRect(hwnd, &mut dest_rect); };
+    |                                              +++++++                                                                             +
+
+warning: `launcherg` (bin "launcherg") generated 19 warnings (run `cargo fix --bin "launcherg"` to apply 9 suggestions)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.19s

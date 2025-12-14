@@ -14,7 +14,7 @@ use crate::{
     usecase::{
         all_game_cache::AllGameCacheUseCase, collection::CollectionUseCase,
         explored_cache::ExploredCacheUseCase, file::FileUseCase, pause_manager::PauseManager,
-        process::ProcessUseCase,
+        process::ProcessUseCase, scaling::ScalingUseCase,
     },
 };
 
@@ -26,6 +26,7 @@ pub struct Modules {
     all_game_cache_use_case: AllGameCacheUseCase<Repositories>,
     process_use_case: ProcessUseCase<Windows>,
     pause_manager: PauseManager,
+    scaling_use_case: ScalingUseCase,
 }
 pub trait ModulesExt {
     type Repositories: RepositoriesExt;
@@ -38,6 +39,7 @@ pub trait ModulesExt {
 
     fn file_use_case(&self) -> &FileUseCase<Self::Explorers>;
     fn process_use_case(&self) -> &ProcessUseCase<Self::Windows>;
+    fn scaling_use_case(&self) -> &ScalingUseCase;
     fn pause_manager(&self) -> &PauseManager;
 }
 
@@ -61,6 +63,9 @@ impl ModulesExt for Modules {
     }
     fn process_use_case(&self) -> &ProcessUseCase<Self::Windows> {
         &self.process_use_case
+    }
+    fn scaling_use_case(&self) -> &ScalingUseCase {
+        &self.scaling_use_case
     }
     fn pause_manager(&self) -> &PauseManager {
         &self.pause_manager
@@ -94,6 +99,8 @@ impl Modules {
             Arc::new(screenshot_watcher.clone()),
         );
 
+        let scaling_use_case = ScalingUseCase::new();
+
         Self {
             collection_use_case,
             explored_cache_use_case,
@@ -102,6 +109,7 @@ impl Modules {
             file_use_case,
             process_use_case,
             pause_manager,
+            scaling_use_case,
         }
     }
 }

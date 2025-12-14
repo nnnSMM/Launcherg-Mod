@@ -1,0 +1,200 @@
+warning: unused import: `std::time::Duration`
+ --> src\infrastructure\windowsimpl\scaling\processor.rs:8:5
+  |
+8 | use std::time::Duration;
+  |     ^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `Interface`
+ --> src\infrastructure\windowsimpl\scaling\processor.rs:9:35
+  |
+9 | use windows::core::{ComInterface, Interface};
+  |                                   ^^^^^^^^^
+
+warning: unused import: `D3D11_USAGE_DEFAULT`
+  --> src\infrastructure\windowsimpl\scaling\processor.rs:20:27
+   |
+20 |     D3D11_TEXTURE2D_DESC, D3D11_USAGE_DEFAULT, D3D11_USAGE_DYNAMIC,
+   |                           ^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `DXGI_FORMAT_R8G8B8A8_UNORM`
+  --> src\infrastructure\windowsimpl\scaling\processor.rs:23:64
+   |
+23 |     DXGI_ALPHA_MODE_PREMULTIPLIED, DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_FORMAT_R8G8B8A8_UNORM,
+   |                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `IDXGISwapChain`
+  --> src\infrastructure\windowsimpl\scaling\processor.rs:27:33
+   |
+27 |     IDXGIDevice, IDXGIFactory2, IDXGISwapChain, IDXGISwapChain1, DXGI_SCALING_NONE,
+   |                                 ^^^^^^^^^^^^^^
+
+warning: unused import: `s`
+ --> src\infrastructure\windowsimpl\scaling\shader.rs:5:12
+  |
+5 |     core::{s, PCSTR},
+  |            ^
+
+warning: unused import: `crate::infrastructure::windowsimpl::scaling::shader::MagpieConstants`
+ --> src\infrastructure\windowsimpl\scaling\shader_compiler.rs:1:5
+  |
+1 | use crate::infrastructure::windowsimpl::scaling::shader::MagpieConstants;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `regex::Regex`
+ --> src\infrastructure\windowsimpl\scaling\shader_compiler.rs:3:5
+  |
+3 | use regex::Regex;
+  |     ^^^^^^^^^^^^
+
+warning: unused imports: `HashMap` and `HashSet`
+ --> src\infrastructure\windowsimpl\scaling\shader_compiler.rs:4:24
+  |
+4 | use std::collections::{HashMap, HashSet};
+  |                        ^^^^^^^  ^^^^^^^
+
+warning: unused variable: `bb_desc`
+   --> src\infrastructure\windowsimpl\scaling\processor.rs:362:57
+    |
+362 | ...                   let mut bb_desc = D3D11_TEXTURE2D_DESC::default();
+    |                               ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_bb_desc`
+    |
+    = note: `#[warn(unused_variables)]` on by default
+
+warning: unnecessary `unsafe` block
+   --> src\infrastructure\windowsimpl\scaling\processor.rs:468:13
+    |
+468 |             unsafe {
+    |             ^^^^^^ unnecessary `unsafe` block
+    |
+    = note: `#[warn(unused_unsafe)]` on by default
+
+warning: variable does not need to be mutable
+   --> src\infrastructure\windowsimpl\scaling\processor.rs:290:17
+    |
+290 |             let mut source_result = CaptureFrameSource::new(target_hwnd, device_for_thread.clone());
+    |                 ----^^^^^^^^^^^^^
+    |                 |
+    |                 help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` on by default
+
+warning: variable does not need to be mutable
+   --> src\infrastructure\windowsimpl\scaling\processor.rs:362:53
+    |
+362 | ...                   let mut bb_desc = D3D11_TEXTURE2D_DESC::default();
+    |                           ----^^^^^^^
+    |                           |
+    |                           help: remove this `mut`
+
+warning: variant `Error` is never constructed
+  --> src\infrastructure\windowsimpl\scaling\processor.rs:46:5
+   |
+43 | enum FrameSourceState {
+   |      ---------------- variant in this enum
+...
+46 |     Error,
+   |     ^^^^^
+   |
+   = note: `FrameSourceState` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+   = note: `#[warn(dead_code)]` on by default
+
+warning: fields `last_size` and `device` are never read
+  --> src\infrastructure\windowsimpl\scaling\processor.rs:54:5
+   |
+49 | struct CaptureFrameSource {
+   |        ------------------ fields in this struct
+...
+54 |     last_size: (i32, i32),
+   |     ^^^^^^^^^
+55 |     device: ID3D11Device,
+   |     ^^^^^^
+
+warning: fields `shader_manager` and `compute_shader` are never read
+   --> src\infrastructure\windowsimpl\scaling\processor.rs:168:5
+    |
+162 | pub struct ScalingProcessor {
+    |            ---------------- fields in this struct
+...
+168 |     shader_manager: Option<ShaderManager>,
+    |     ^^^^^^^^^^^^^^
+169 |     window_manager: Option<WindowManager>,
+170 |     compute_shader: Option<ID3D11ComputeShader>,
+    |     ^^^^^^^^^^^^^^
+
+warning: methods `compile_vertex_shader`, `compile_pixel_shader`, and `preprocess_source` are never used
+  --> src\infrastructure\windowsimpl\scaling\shader.rs:42:12
+   |
+34 | impl ShaderManager {
+   | ------------------ methods in this implementation
+...
+42 |     pub fn compile_vertex_shader(
+   |            ^^^^^^^^^^^^^^^^^^^^^
+...
+60 |     pub fn compile_pixel_shader(
+   |            ^^^^^^^^^^^^^^^^^^^^
+...
+93 |     fn preprocess_source(&self, source: &str) -> Result<String> {
+   |        ^^^^^^^^^^^^^^^^^
+
+warning: fields `block_size`, `num_threads`, `inputs`, `outputs`, and `code` are never read
+  --> src\infrastructure\windowsimpl\scaling\shader_compiler.rs:14:5
+   |
+12 | struct EffectPassDesc {
+   |        -------------- fields in this struct
+13 |     flags: u32,
+14 |     block_size: (u32, u32),
+   |     ^^^^^^^^^^
+15 |     num_threads: [u32; 3],
+   |     ^^^^^^^^^^^
+16 |     inputs: Vec<usize>,
+   |     ^^^^^^
+17 |     outputs: Vec<usize>,
+   |     ^^^^^^^
+18 |     code: String,
+   |     ^^^^
+   |
+   = note: `EffectPassDesc` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: fields `name`, `source`, and `format` are never read
+  --> src\infrastructure\windowsimpl\scaling\shader_compiler.rs:23:5
+   |
+22 | struct EffectTextureDesc {
+   |        ----------------- fields in this struct
+23 |     name: String,
+   |     ^^^^
+24 |     source: Option<String>,
+   |     ^^^^^^
+25 |     format: String, // Simplified for now
+   |     ^^^^^^
+   |
+   = note: `EffectTextureDesc` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: fields `name`, `textures`, and `samplers` are never read
+  --> src\infrastructure\windowsimpl\scaling\shader_compiler.rs:30:5
+   |
+29 | struct EffectDesc {
+   |        ---------- fields in this struct
+30 |     name: String,
+   |     ^^^^
+31 |     passes: Vec<EffectPassDesc>,
+32 |     textures: Vec<EffectTextureDesc>,
+   |     ^^^^^^^^
+33 |     params: Vec<String>,   // Placeholder for param parsing
+34 |     samplers: Vec<String>, // Placeholder
+   |     ^^^^^^^^
+   |
+   = note: `EffectDesc` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: method `restore_target_window` is never used
+   --> src\infrastructure\windowsimpl\scaling\window.rs:110:12
+    |
+27  | impl WindowManager {
+    | ------------------ method in this implementation
+...
+110 |     pub fn restore_target_window(&self) {
+    |            ^^^^^^^^^^^^^^^^^^^^^
+
+warning: `launcherg` (bin "launcherg") generated 21 warnings (run `cargo fix --bin "launcherg"` to apply 11 suggestions)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.90s

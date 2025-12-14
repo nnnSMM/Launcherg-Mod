@@ -12,9 +12,16 @@
 
   let games: CollectionElement[] = [];
   let gameOptions: Option<number>[] = [];
+  let shaderOptions: Option<string>[] = [
+    { label: "Bicubic", value: "Bicubic" },
+    { label: "Bilinear", value: "Bilinear" },
+    // Add more shaders here later
+  ];
   let selectedGameId: number = 0;
+  let selectedShader: string = "Bicubic";
   let shortcutKey: string = "";
   let pauseShortcutKey: string = "";
+  let scalingShortcutKey: string = "";
   let isLoading = true;
   let isSaving = false;
 
@@ -50,6 +57,20 @@
       });
       if (savedPauseShortcutKey) {
         pauseShortcutKey = savedPauseShortcutKey;
+      }
+
+      const savedScalingShortcutKey = await invoke<string>("get_app_setting", {
+        key: "scaling_shortcut_key",
+      });
+      if (savedScalingShortcutKey) {
+        scalingShortcutKey = savedScalingShortcutKey;
+      }
+
+      const savedShader = await invoke<string>("get_app_setting", {
+        key: "scaling_shader",
+      });
+      if (savedShader) {
+        selectedShader = savedShader;
       }
     } catch (error) {
       console.error("Error loading settings:", error);
@@ -104,6 +125,17 @@
         newShortcutKey: pauseKeyToSave,
       });
 
+      const scalingKeyToSave =
+        scalingShortcutKey === "" ? null : scalingShortcutKey;
+      await invoke("update_scaling_shortcut_registration", {
+        newShortcutKey: scalingKeyToSave,
+      });
+
+      await invoke("set_app_setting", {
+        key: "scaling_shader",
+        value: selectedShader,
+      });
+
       showInfoToast("設定を保存しました");
     } catch (error) {
       console.error("Error saving settings:", error);
@@ -114,7 +146,7 @@
   }
 </script>
 
-<div class="p-4 text-text-primary space-y-4">
+<div class="p-4 text-text-primary space-y-4 h-full overflow-y-auto">
   <div class="flex items-center gap-2">
     <div class="i-material-symbols-settings-outline w-6 h-6" />
     <h1 class="text-2xl font-bold">ショートカット設定</h1>
@@ -165,7 +197,8 @@
           />
           <Button
             text="Shift"
-            on:click={() => (shortcutKey = toggleModifier(shortcutKey, "Shift"))}
+            on:click={() =>
+              (shortcutKey = toggleModifier(shortcutKey, "Shift"))}
           />
         </div>
       </Card>
@@ -186,17 +219,66 @@
         <div class="flex gap-2 mt-2">
           <Button
             text="Ctrl"
-            on:click={() => (pauseShortcutKey = toggleModifier(pauseShortcutKey, "Ctrl"))}
+            on:click={() =>
+              (pauseShortcutKey = toggleModifier(pauseShortcutKey, "Ctrl"))}
           />
           <Button
             text="Alt"
-            on:click={() => (pauseShortcutKey = toggleModifier(pauseShortcutKey, "Alt"))}
+            on:click={() =>
+              (pauseShortcutKey = toggleModifier(pauseShortcutKey, "Alt"))}
           />
           <Button
             text="Shift"
-            on:click={() => (pauseShortcutKey = toggleModifier(pauseShortcutKey, "Shift"))}
+            on:click={() =>
+              (pauseShortcutKey = toggleModifier(pauseShortcutKey, "Shift"))}
           />
         </div>
+      </Card>
+
+      <Card className="relative z-0">
+        <div class="flex items-center gap-2 mb-2">
+          <div class="i-material-symbols-aspect-ratio-outline w-5 h-5" />
+          <h2 class="text-lg font-medium">スケーリング用ショートカットキー</h2>
+        </div>
+        <p class="text-sm text-text-secondary mb-4">
+          ウィンドウのスケーリング(高画質化・全画面化)を切り替えるためのショートカットキーを定義します。対象のウィンドウをアクティブにした状態でこのキーを押すと、Magpie風のスケーリング機能が有効になります。もう一度押すと無効になります。
+        </p>
+        <Input bind:value={scalingShortcutKey} placeholder="例: Ctrl+Shift+S" />
+        <div class="flex gap-2 mt-2">
+          <Button
+            text="Ctrl"
+            on:click={() =>
+              (scalingShortcutKey = toggleModifier(scalingShortcutKey, "Ctrl"))}
+          />
+          <Button
+            text="Alt"
+            on:click={() =>
+              (scalingShortcutKey = toggleModifier(scalingShortcutKey, "Alt"))}
+          />
+          <Button
+            text="Shift"
+            on:click={() =>
+              (scalingShortcutKey = toggleModifier(
+                scalingShortcutKey,
+                "Shift",
+              ))}
+          />
+        </div>
+      </Card>
+
+      <Card className="relative z-0">
+        <div class="flex items-center gap-2 mb-2">
+          <div class="i-material-symbols-filter-hdr-outline w-5 h-5" />
+          <h2 class="text-lg font-medium">使用するシェーダー</h2>
+        </div>
+        <p class="text-sm text-text-secondary mb-4">
+          アップスケーリングに使用するシェーダーアルゴリズムを選択します。
+        </p>
+        <Select
+          options={shaderOptions}
+          bind:value={selectedShader}
+          title="シェーダーを選択"
+        />
       </Card>
 
       <div class="flex justify-end">

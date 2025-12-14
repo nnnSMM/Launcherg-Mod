@@ -57,4 +57,28 @@ pub async fn handle_shortcut(app_handle: AppHandle, shortcut: Shortcut) {
             }
         }
     }
+
+    // Scaling shortcut handling
+    if let Ok(Some(scaling_shortcut_key)) = modules
+        .collection_use_case()
+        .get_app_setting("scaling_shortcut_key".to_string())
+        .await
+    {
+        if let Ok(scaling_shortcut) = scaling_shortcut_key.parse::<Shortcut>() {
+            if shortcut == scaling_shortcut {
+                let shader_name = match modules
+                    .collection_use_case()
+                    .get_app_setting("scaling_shader".to_string())
+                    .await
+                {
+                    Ok(Some(s)) if !s.is_empty() => s,
+                    _ => "Bicubic".to_string(),
+                };
+
+                if let Err(e) = modules.scaling_use_case().toggle_scaling(shader_name) {
+                    eprintln!("Error toggling scaling: {}", e);
+                }
+            }
+        }
+    }
 }

@@ -116,6 +116,53 @@ pub async fn update_pause_shortcut_registration(
 }
 
 #[tauri::command]
+pub async fn update_scaling_shortcut_registration(
+    handle: AppHandle,
+    modules: State<'_, Arc<Modules>>,
+    new_shortcut_key: Option<String>,
+) -> Result<(), CommandError> {
+    // Get the old shortcut key from settings
+    if let Ok(Some(old_shortcut_key)) = modules
+        .collection_use_case()
+        .get_app_setting("scaling_shortcut_key".to_string())
+        .await
+    {
+        if !old_shortcut_key.is_empty() {
+            if let Ok(old_shortcut) = old_shortcut_key.parse::<Shortcut>() {
+                if handle.global_shortcut().is_registered(old_shortcut.clone()) {
+                    handle
+                        .global_shortcut()
+                        .unregister(old_shortcut)
+                        .map_err(anyhow::Error::from)?;
+                }
+            }
+        }
+    }
+
+    // Save the new shortcut key
+    modules
+        .collection_use_case()
+        .set_app_setting("scaling_shortcut_key".to_string(), new_shortcut_key.clone())
+        .await?;
+
+    // Register the new shortcut key
+    if let Some(new_key) = new_shortcut_key {
+        if !new_key.is_empty() {
+            if let Ok(new_shortcut) = new_key.parse::<Shortcut>() {
+                if !handle.global_shortcut().is_registered(new_shortcut.clone()) {
+                    handle
+                        .global_shortcut()
+                        .register(new_shortcut)
+                        .map_err(anyhow::Error::from)?;
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
 pub async fn launch_shortcut_game(
     handle: AppHandle,
     modules: State<'_, Arc<Modules>>,
@@ -774,4 +821,31 @@ pub async fn delete_collection_element_logical(
         .collection_use_case()
         .delete_collection_element_logical(&Id::new(id))
         .await?)
+}
+
+#[tauri::command]
+pub async fn start_scaling(modules: State<'_, Arc<Modules>>) -> Result<(), CommandError> {
+    let shader_name = match modules
+        .collection_use_case()
+        .get_app_setting("scaling_shader".to_string())
+        .await
+    {
+        Ok(Some(s)) if !s.is_empty() => s,
+        _ => "Bicubic".to_string(),
+    };
+
+    modules
+        .scaling_use_case()
+        .start_scaling(shader_name)
+        .map_err(|e| CommandError::Anyhow(e))?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn stop_scaling(modules: State<'_, Arc<Modules>>) -> Result<(), CommandError> {
+    modules
+        .scaling_use_case()
+        .stop_scaling()
+        .map_err(|e| CommandError::Anyhow(e))?;
+    Ok(())
 }

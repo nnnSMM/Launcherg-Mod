@@ -1,0 +1,322 @@
+﻿cargo : warning: unnecessary parentheses arou
+nd function argument
+発生場所 行:1 文字:1
++ cargo check 2>&1 | Out-File -FilePath build
+_errors2.txt -Encoding utf ...
++ ~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified:  
+   (warning: unnece...nction argument:Strin  
+  g) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandE 
+   rror
+ 
+   --> src\infrastructure\windowsimpl\scaling
+\cursor_renderer.rs:386:46
+    |
+386 |             let mut final_pixels = vec!
+[0u8; (width as usize * height as usize * 4)]
+;
+    |                                        
+      ^                                    ^
+    |
+    = note: `#[warn(unused_parens)]` on by de
+fault
+help: remove these parentheses
+    |
+386 -             let mut final_pixels = vec!
+[0u8; (width as usize * height as usize * 4)]
+;
+386 +             let mut final_pixels = vec!
+[0u8; width as usize * height as usize * 4];
+    |
+
+warning: unused import: `DXGI_ALPHA_MODE_PREM
+ULTIPLIED`
+  --> src\infrastructure\windowsimpl\scaling\
+processor.rs:23:29
+   |
+23 |     DXGI_ALPHA_MODE_IGNORE, DXGI_ALPHA_M
+ODE_PREMULTIPLIED, DXGI_FORMAT_B8G8R8A8_UNORM
+,
+   |                             ^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` on by de
+fault
+
+warning: unused imports: `DWMWA_EXTENDED_FRAM
+E_BOUNDS`, `DWMWA_NCRENDERING_ENABLED`, and `
+DwmGetWindowAttribute`
+  --> src\infrastructure\windowsimpl\scaling\
+processor.rs:26:37
+   |
+26 | use windows::Win32::Graphics::Dwm::{DwmG
+etWindowAttribute, DWMWA_EXTENDED_FRAME_BOUND
+S, DWMWA_NCRENDERING_ENABLED};
+   |                                     ^^^^
+^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^
+^  ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `GetMessageW`, `Post
+QuitMessage`, and `TranslateMessage`
+  --> src\infrastructure\windowsimpl\scaling\
+processor.rs:42:23
+   |
+42 |     DispatchMessageW, GetMessageW, PeekM
+essageW, PostQuitMessage, TranslateMessage, M
+SG, PM_REMOVE,
+   |                       ^^^^^^^^^^^       
+         ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^
+
+warning: unused import: `windows::Win32::Grap
+hics::Direct2D::Common::D2D_POINT_2F`
+  --> src\infrastructure\windowsimpl\scaling\
+processor.rs:46:5
+   |
+46 | use windows::Win32::Graphics::Direct2D::
+Common::D2D_POINT_2F;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `ID2D1RenderTarget` 
+and `ID2D1SolidColorBrush`
+ --> src\infrastructure\windowsimpl\scaling\t
+oolbar.rs:4:38
+  |
+4 |     D2D1CreateFactory, ID2D1Factory, ID2D
+1RenderTarget, ID2D1SolidColorBrush,
+  |                                      ^^^^
+^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^
+
+warning: variable does not need to be mutable
+   --> src\infrastructure\windowsimpl\scaling
+\overlay.rs:368:17
+    |
+368 |             let mut fps_vertex_start = 
+vertices.len();
+    |                 ----^^^^^^^^^^^^^^^^
+    |                 |
+    |                 help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` on by defau
+lt
+
+warning: unused variable: `window_kind`
+   --> src\infrastructure\windowsimpl\scaling
+\processor.rs:445:57
+    |
+445 | ...                   let window_kind =
+ src_tracker.get_window_kind();
+    |                           ^^^^^^^^^^^ h
+elp: if this is intentional, prefix it with a
+n underscore: `_window_kind`
+    |
+    = note: `#[warn(unused_variables)]` on by
+ default
+
+warning: method `stop_capture` is never used
+   --> src\infrastructure\windowsimpl\scaling
+\cursor.rs:481:12
+    |
+199 | impl CursorManager {
+    | ------------------ method in this imple
+mentation
+...
+481 |     pub fn stop_capture(&mut self) {
+    |            ^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` on by defaul
+t
+
+warning: struct `CachedCursor` is never const
+ructed
+  --> src\infrastructure\windowsimpl\scaling\
+cursor_drawer.rs:19:8
+   |
+19 | struct CachedCursor {
+   |        ^^^^^^^^^^^^
+
+warning: struct `CursorDrawer` is never const
+ructed
+  --> src\infrastructure\windowsimpl\scaling\
+cursor_drawer.rs:27:12
+   |
+27 | pub struct CursorDrawer {
+   |            ^^^^^^^^^^^^
+
+warning: associated items `new`, `need_redraw
+`, `get_current_cursor`, `create_cursor_textu
+re`, and `draw` are never used
+   --> src\infrastructure\windowsimpl\scaling
+\cursor_drawer.rs:36:12
+    |
+35  | impl CursorDrawer {
+    | ----------------- associated items in t
+his implementation
+36  |     pub fn new(device: ID3D11Device, co
+ntext: ID3D11DeviceContext) -> Self {
+    |            ^^^
+...
+50  |     pub fn need_redraw(&self, cursor_ha
+ndle: isize, cursor_pos: POINT) -> bool {
+    |            ^^^^^^^^^^^
+...
+61  |     pub fn get_current_cursor() -> Opti
+on<(HCURSOR, POINT)> {
+    |            ^^^^^^^^^^^^^^^^^^
+...
+76  |     fn create_cursor_texture(&self, h_c
+ursor: HCURSOR) -> Option<CachedCursor> {
+    |        ^^^^^^^^^^^^^^^^^^^^^
+...
+241 |     pub fn draw(
+    |            ^^^^
+
+warning: field `texture` is never read
+  --> src\infrastructure\windowsimpl\scaling\
+cursor_renderer.rs:76:5
+   |
+75 | struct CachedCursorInfo {
+   |        ---------------- field in this st
+ruct
+76 |     texture: ID3D11Texture2D,
+   |     ^^^^^^^
+   |
+   = note: `CachedCursorInfo` has a derived i
+mpl for the trait `Clone`, but this is intent
+ionally ignored during dead code analysis
+
+warning: method `draw_circle` is never used
+   --> src\infrastructure\windowsimpl\scaling
+\cursor_renderer.rs:791:12
+    |
+101 | impl CursorRenderer {
+    | ------------------- method in this impl
+ementation
+...
+791 |     pub fn draw_circle(
+    |            ^^^^^^^^^^^
+
+warning: field `visibility_timer` is never re
+ad
+  --> src\infrastructure\windowsimpl\scaling\
+overlay.rs:75:5
+   |
+58 | pub struct SimpleToolbar {
+   |            ------------- field in this s
+truct
+...
+75 |     visibility_timer: Instant,
+   |     ^^^^^^^^^^^^^^^^
+
+warning: methods `is_visible` and `fps` are n
+ever used
+   --> src\infrastructure\windowsimpl\scaling
+\overlay.rs:629:12
+    |
+81  | impl SimpleToolbar {
+    | ------------------ methods in this impl
+ementation
+...
+629 |     pub fn is_visible(&self) -> bool {
+    |            ^^^^^^^^^^
+...
+634 |     pub fn fps(&self) -> f32 {
+    |            ^^^
+
+warning: fields `device` and `context` are ne
+ver read
+   --> src\infrastructure\windowsimpl\scaling
+\processor.rs:172:5
+    |
+168 | pub struct ScalingProcessor {
+    |            ---------------- fields in t
+his struct
+...
+172 |     device: Option<ID3D11Device>,
+    |     ^^^^^^
+173 |     context: Option<ID3D11DeviceContext
+>,
+    |     ^^^^^^^
+
+warning: methods `get_window_rect`, `get_clie
+nt_rect`, and `handle` are never used
+   --> src\infrastructure\windowsimpl\scaling
+\src_tracker.rs:171:12
+    |
+29  | impl SrcTracker {
+    | --------------- methods in this impleme
+ntation
+...
+171 |     pub fn get_window_rect(&self) -> RE
+CT {
+    |            ^^^^^^^^^^^^^^^
+...
+175 |     pub fn get_client_rect(&self) -> RE
+CT {
+    |            ^^^^^^^^^^^^^^^
+...
+190 |     pub fn handle(&self) -> HWND {
+    |            ^^^^^^
+
+warning: fields `d2d_factory`, `dw_factory`, 
+`text_format`, and `toolbar_rect` are never r
+ead
+  --> src\infrastructure\windowsimpl\scaling\
+toolbar.rs:17:5
+   |
+16 | pub struct Toolbar {
+   |            ------- fields in this struct
+17 |     d2d_factory: ID2D1Factory,
+   |     ^^^^^^^^^^^
+18 |     dw_factory: IDWriteFactory,
+   |     ^^^^^^^^^^
+19 |     text_format: Option<IDWriteTextForma
+t>,
+   |     ^^^^^^^^^^^
+...
+27 |     toolbar_rect: D2D_RECT_F,
+   |     ^^^^^^^^^^^^
+
+warning: method `render_with_cursor` is never
+ used
+  --> src\infrastructure\windowsimpl\scaling\
+toolbar.rs:71:12
+   |
+30 | impl Toolbar {
+   | ------------ method in this implementati
+on
+...
+71 |     pub fn render_with_cursor(
+   |            ^^^^^^^^^^^^^^^^^^
+
+warning: unused `Result` that must be used
+   --> src\infrastructure\windowsimpl\scaling
+\processor.rs:240:26
+    |
+240 |                 unsafe { windows::Win32
+::UI::WindowsAndMessaging::GetClientRect(over
+lay_window, &mut rect) };
+    |                          ^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: this `Result` may be an `Err` var
+iant, which should be handled
+    = note: `#[warn(unused_must_use)]` on by 
+default
+help: use `let _ = ...` to ignore the resulti
+ng value
+    |
+240 |                 unsafe { let _ = window
+s::Win32::UI::WindowsAndMessaging::GetClientR
+ect(overlay_window, &mut rect); };
+    |                          +++++++       
+                                             
+                              +
+
+warning: `launcherg` (bin "launcherg") genera
+ted 21 warnings (run `cargo fix --bin "launch
+erg"` to apply 7 suggestions)
+    Finished `dev` profile [unoptimized + deb
+uginfo] target(s) in 0.91s

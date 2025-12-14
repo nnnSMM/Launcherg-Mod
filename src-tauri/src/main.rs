@@ -186,6 +186,26 @@ fn main() {
                         }
                     }
                 }
+
+                // Register scaling shortcut
+                if let Ok(Some(scaling_shortcut_key)) = modules
+                    .collection_use_case()
+                    .get_app_setting("scaling_shortcut_key".to_string())
+                    .await
+                {
+                    if !scaling_shortcut_key.is_empty() {
+                        if let Ok(shortcut) = scaling_shortcut_key.parse::<Shortcut>() {
+                            if !handle.global_shortcut().is_registered(shortcut.clone()) {
+                                if let Err(e) = handle.global_shortcut().register(shortcut) {
+                                    eprintln!(
+                                        "Failed to register scaling shortcut on startup: {}",
+                                        e
+                                    );
+                                }
+                            }
+                        }
+                    }
+                }
             });
 
             Ok(())
@@ -236,7 +256,10 @@ fn main() {
             command::delete_screenshot,
             command::update_screenshots_order,
             command::update_collection_element_path,
-            command::delete_collection_element_logical
+            command::delete_collection_element_logical,
+            command::start_scaling,
+            command::stop_scaling,
+            command::update_scaling_shortcut_registration
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

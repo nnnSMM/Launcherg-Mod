@@ -1,0 +1,60 @@
+    Checking launcherg v0.0.0 (E:\Launcherg-Mod\src-tauri)
+error[E0432]: unresolved imports `windows::Win32::Graphics::Direct3D11::DXGI_ALPHA_MODE_PREMULTIPLIED`, `windows::Win32::Graphics::Direct3D11::DXGI_FORMAT_B8G8R8A8_UNORM`, `windows::Win32::Graphics::Direct3D11::DXGI_SAMPLE_DESC`
+  --> src\infrastructure\windowsimpl\scaling\processor.rs:19:5
+   |
+19 |     DXGI_ALPHA_MODE_PREMULTIPLIED, DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_SAMPLE_DESC,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^
+   |     |                              |                           |
+   |     |                              |                           no `DXGI_SAMPLE_DESC` in `Windows::Win32::Graphics::Direct3D11`
+   |     |                              |                           help: a similar name exists in the module: `D3D11_SAMPLER_DESC`
+   |     |                              no `DXGI_FORMAT_B8G8R8A8_UNORM` in `Windows::Win32::Graphics::Direct3D11`
+   |     no `DXGI_ALPHA_MODE_PREMULTIPLIED` in `Windows::Win32::Graphics::Direct3D11`
+   |
+   = help: consider importing this struct instead:
+           windows::Win32::Graphics::Dxgi::Common::DXGI_SAMPLE_DESC
+
+error[E0425]: cannot find value `D3D11_USAGE_DYNAMIC` in this scope
+   --> src\infrastructure\windowsimpl\scaling\processor.rs:238:24
+    |
+238 |                 Usage: D3D11_USAGE_DYNAMIC,
+    |                        ^^^^^^^^^^^^^^^^^^^ not found in this scope
+    |
+help: consider importing this constant
+    |
+1   + use windows::Win32::Graphics::Direct3D11::D3D11_USAGE_DYNAMIC;
+    |
+
+error[E0433]: failed to resolve: use of undeclared type `D3D11_TEXTURE2D_DESC`
+   --> src\infrastructure\windowsimpl\scaling\processor.rs:352:64
+    |
+352 | ...                   let mut desc = D3D11_TEXTURE2D_DESC::default();
+    |                                      ^^^^^^^^^^^^^^^^^^^^ use of undeclared type `D3D11_TEXTURE2D_DESC`
+    |
+help: consider importing this struct
+    |
+1   + use windows::Win32::Graphics::Direct3D11::D3D11_TEXTURE2D_DESC;
+    |
+
+error[E0433]: failed to resolve: use of undeclared type `D3D11_TEXTURE2D_DESC`
+   --> src\infrastructure\windowsimpl\scaling\processor.rs:357:68
+    |
+357 | ...                   let mut _bb_desc = D3D11_TEXTURE2D_DESC::default();
+    |                                          ^^^^^^^^^^^^^^^^^^^^ use of undeclared type `D3D11_TEXTURE2D_DESC`
+    |
+help: consider importing this struct
+    |
+1   + use windows::Win32::Graphics::Direct3D11::D3D11_TEXTURE2D_DESC;
+    |
+
+warning: unused import: `DXGI_ERROR_WAIT_TIMEOUT`
+  --> src\infrastructure\windowsimpl\scaling\processor.rs:22:50
+   |
+22 |     IDXGIDevice, IDXGIFactory2, IDXGISwapChain1, DXGI_ERROR_WAIT_TIMEOUT, DXGI_SCALING_NONE,
+   |                                                  ^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` on by default
+
+Some errors have detailed explanations: E0425, E0432, E0433.
+For more information about an error, try `rustc --explain E0425`.
+warning: `launcherg` (bin "launcherg") generated 1 warning
+error: could not compile `launcherg` (bin "launcherg") due to 4 previous errors; 1 warning emitted

@@ -5,6 +5,7 @@ pub mod explored_cache;
 pub mod file;
 mod file_test;
 pub mod models;
+pub mod scaling;
 
 pub mod pause_manager;
 pub mod process;

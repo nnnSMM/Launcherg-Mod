@@ -1,0 +1,96 @@
+    Checking launcherg v0.0.0 (E:\Launcherg-Mod\src-tauri)
+warning: unused import: `std::time::Duration`
+ --> src\infrastructure\windowsimpl\scaling\processor.rs:8:5
+  |
+8 | use std::time::Duration;
+  |     ^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `Interface`
+ --> src\infrastructure\windowsimpl\scaling\processor.rs:9:35
+  |
+9 | use windows::core::{ComInterface, Interface};
+  |                                   ^^^^^^^^^
+
+warning: unused imports: `LPARAM` and `WPARAM`
+  --> src\infrastructure\windowsimpl\scaling\processor.rs:15:40
+   |
+15 | use windows::Win32::Foundation::{HWND, LPARAM, WPARAM};
+   |                                        ^^^^^^  ^^^^^^
+
+warning: unused import: `ID3D11RenderTargetView`
+  --> src\infrastructure\windowsimpl\scaling\processor.rs:17:61
+   |
+17 |     ID3D11ComputeShader, ID3D11Device, ID3D11DeviceContext, ID3D11RenderTargetView,
+   |                                                             ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `DXGI_FORMAT_R8G8B8A8_UNORM`
+  --> src\infrastructure\windowsimpl\scaling\processor.rs:22:64
+   |
+22 |     DXGI_ALPHA_MODE_PREMULTIPLIED, DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_FORMAT_R8G8B8A8_UNORM,
+   |                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `IDXGISwapChain`
+  --> src\infrastructure\windowsimpl\scaling\processor.rs:26:33
+   |
+26 |     IDXGIDevice, IDXGIFactory2, IDXGISwapChain, IDXGISwapChain1, DXGI_SCALING_NONE,
+   |                                 ^^^^^^^^^^^^^^
+
+warning: unused imports: `GetForegroundWindow`, `PostThreadMessageW`, and `TranslateMessage`
+  --> src\infrastructure\windowsimpl\scaling\processor.rs:37:23
+   |
+37 |     DispatchMessageW, GetForegroundWindow, MsgWaitForMultipleObjectsEx, PeekMessageW,
+   |                       ^^^^^^^^^^^^^^^^^^^
+38 |     PostThreadMessageW, TranslateMessage, MSG, MWMO_INPUTAVAILABLE, PM_REMOVE, QS_ALLINPUT,
+   |     ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^
+
+warning: unused import: `s`
+ --> src\infrastructure\windowsimpl\scaling\shader.rs:5:12
+  |
+5 |     core::{s, PCSTR},
+  |            ^
+
+warning: unused import: `crate::infrastructure::windowsimpl::scaling::shader::MagpieConstants`
+ --> src\infrastructure\windowsimpl\scaling\shader_compiler.rs:1:5
+  |
+1 | use crate::infrastructure::windowsimpl::scaling::shader::MagpieConstants;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `regex::Regex`
+ --> src\infrastructure\windowsimpl\scaling\shader_compiler.rs:3:5
+  |
+3 | use regex::Regex;
+  |     ^^^^^^^^^^^^
+
+warning: unused imports: `HashMap` and `HashSet`
+ --> src\infrastructure\windowsimpl\scaling\shader_compiler.rs:4:24
+  |
+4 | use std::collections::{HashMap, HashSet};
+  |                        ^^^^^^^  ^^^^^^^
+
+error[E0599]: no method named `ok_or` found for enum `Result` in the current scope
+   --> src\infrastructure\windowsimpl\scaling\processor.rs:248:14
+    |
+247 |           let context = unsafe { device.GetImmediateContext() }
+    |  _______________________-
+248 | |             .ok_or(anyhow!("Failed to get immediate context"))?;
+    | |             -^^^^^ method not found in `Result<ID3D11DeviceContext, Error>`
+    | |_____________|
+    |
+
+error[E0308]: mismatched types
+   --> src\infrastructure\windowsimpl\scaling\processor.rs:352:40
+    |
+352 | ...                   if let Err(e) = unsafe { swap_chain_for_thread.Present(0, 0) } {
+    |                              ^^^^^^   ---------------------------------------------- this expression has type `HRESULT`
+    |                              |
+    |                              expected `HRESULT`, found `Result<_, _>`
+    |
+    = note: expected struct `HRESULT`
+                 found enum `Result<_, _>`
+
+Some errors have detailed explanations: E0308, E0599.
+For more information about an error, try `rustc --explain E0308`.
+warning: `launcherg` (bin "launcherg") generated 11 warnings
+error: could not compile `launcherg` (bin "launcherg") due to 2 previous errors; 11 warnings emitted

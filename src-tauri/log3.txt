@@ -1,0 +1,225 @@
+    Checking launcherg v0.0.0 (E:\Launcherg-Mod\src-tauri)
+warning: unused import: `std::time::Duration`
+ --> src\infrastructure\windowsimpl\scaling\processor.rs:8:5
+  |
+8 | use std::time::Duration;
+  |     ^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `Interface`
+ --> src\infrastructure\windowsimpl\scaling\processor.rs:9:35
+  |
+9 | use windows::core::{ComInterface, Interface};
+  |                                   ^^^^^^^^^
+
+warning: unused imports: `LPARAM` and `WPARAM`
+  --> src\infrastructure\windowsimpl\scaling\processor.rs:15:40
+   |
+15 | use windows::Win32::Foundation::{HWND, LPARAM, WPARAM};
+   |                                        ^^^^^^  ^^^^^^
+
+warning: unused imports: `D3D11_BIND_SHADER_RESOURCE`, `D3D11_BIND_UNORDERED_ACCESS`, `D3D11_USAGE_DEFAULT`, `ID3D11Buffer`, `ID3D11RenderTargetView`, and `ID3D11ShaderResourceView`
+  --> src\infrastructure\windowsimpl\scaling\processor.rs:17:5
+   |
+17 |     ID3D11Buffer, ID3D11ComputeShader, ID3D11Device, ID3D11DeviceContext, ID3D11RenderTargetView,
+   |     ^^^^^^^^^^^^                                                          ^^^^^^^^^^^^^^^^^^^^^^
+18 |     ID3D11ShaderResourceView, ID3D11Texture2D, ID3D11UnorderedAccessView,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+19 |     D3D11_BIND_CONSTANT_BUFFER, D3D11_BIND_SHADER_RESOURCE, D3D11_BIND_UNORDERED_ACCESS,
+   |                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+20 |     D3D11_BUFFER_DESC, D3D11_CPU_ACCESS_WRITE, D3D11_MAP_WRITE_DISCARD, D3D11_TEXTURE2D_DESC,
+21 |     D3D11_USAGE_DEFAULT, D3D11_USAGE_DYNAMIC,
+   |     ^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `DXGI_FORMAT_R8G8B8A8_UNORM`
+  --> src\infrastructure\windowsimpl\scaling\processor.rs:24:64
+   |
+24 |     DXGI_ALPHA_MODE_PREMULTIPLIED, DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_FORMAT_R8G8B8A8_UNORM,
+   |                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `IDXGISwapChain`
+  --> src\infrastructure\windowsimpl\scaling\processor.rs:28:33
+   |
+28 |     IDXGIDevice, IDXGIFactory2, IDXGISwapChain, IDXGISwapChain1, DXGI_SCALING_NONE,
+   |                                 ^^^^^^^^^^^^^^
+
+warning: unused imports: `GetForegroundWindow`, `PostThreadMessageW`, and `TranslateMessage`
+  --> src\infrastructure\windowsimpl\scaling\processor.rs:39:23
+   |
+39 |     DispatchMessageW, GetForegroundWindow, MsgWaitForMultipleObjectsEx, PeekMessageW,
+   |                       ^^^^^^^^^^^^^^^^^^^
+40 |     PostThreadMessageW, TranslateMessage, MSG, MWMO_INPUTAVAILABLE, PM_REMOVE, QS_ALLINPUT,
+   |     ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^
+
+warning: unnecessary parentheses around method argument
+   --> src\infrastructure\windowsimpl\scaling\processor.rs:429:53
+    |
+429 | ...                   (height * 2),
+    |                       ^          ^
+    |
+    = note: `#[warn(unused_parens)]` on by default
+help: remove these parentheses
+    |
+429 -                                                     (height * 2),
+429 +                                                     height * 2,
+    |
+
+warning: unused import: `s`
+ --> src\infrastructure\windowsimpl\scaling\shader.rs:5:12
+  |
+5 |     core::{s, PCSTR},
+  |            ^
+
+warning: unused import: `crate::infrastructure::windowsimpl::scaling::shader::MagpieConstants`
+ --> src\infrastructure\windowsimpl\scaling\shader_compiler.rs:1:5
+  |
+1 | use crate::infrastructure::windowsimpl::scaling::shader::MagpieConstants;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `regex::Regex`
+ --> src\infrastructure\windowsimpl\scaling\shader_compiler.rs:3:5
+  |
+3 | use regex::Regex;
+  |     ^^^^^^^^^^^^
+
+warning: unused imports: `HashMap` and `HashSet`
+ --> src\infrastructure\windowsimpl\scaling\shader_compiler.rs:4:24
+  |
+4 | use std::collections::{HashMap, HashSet};
+  |                        ^^^^^^^  ^^^^^^^
+
+error[E0609]: no field `output_texture` on type `&CaptureFrameSource`
+   --> src\infrastructure\windowsimpl\scaling\processor.rs:163:14
+    |
+163 |         self.output_texture.clone()
+    |              ^^^^^^^^^^^^^^ unknown field
+    |
+    = note: available fields are: `item`, `frame_pool`, `session`, `current_frame`, `last_size` ... and 2 others
+
+error[E0061]: this method takes 5 arguments but 4 arguments were supplied
+    --> src\infrastructure\windowsimpl\scaling\processor.rs:391:88
+     |
+391  |   ...                   if let Ok(mapped) = context_for_thread.Map(
+     |  ______________________________________________________________^^^-
+392  | | ...                       &cb_for_thread,
+393  | | ...                       0,
+394  | | ...                       D3D11_MAP_WRITE_DISCARD,
+395  | | ...                       0,
+396  | | ...                   ) {
+     | |_______________________- argument #5 of type `std::option::Option<*mut D3D11_MAPPED_SUBRESOURCE>` is missing
+     |
+note: method defined here
+    --> C:\Users\nnnma\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\windows-0.51.1\src\Windows\Win32\Graphics\Direct3D11\mod.rs:3295:19
+     |
+3295 |     pub unsafe fn Map<P0>(&self, presource: P0, subresource: u32, maptype: D3D11_MAP, mapflags: u32, pmappedresource: ::core::option::Opt...
+     |                   ^^^
+help: provide the argument
+     |
+391  -                                                 if let Ok(mapped) = context_for_thread.Map(
+392  -                                                     &cb_for_thread,
+393  -                                                     0,
+394  -                                                     D3D11_MAP_WRITE_DISCARD,
+395  -                                                     0,
+396  -                                                 ) {
+391  +                                                 if let Ok(mapped) = context_for_thread.Map(&cb_for_thread, 0, D3D11_MAP_WRITE_DISCARD, 0, /* std::option::Option<*mut D3D11_MAPPED_SUBRESOURCE> */) {
+     |
+
+error[E0609]: no field `pData` on type `()`
+   --> src\infrastructure\windowsimpl\scaling\processor.rs:397:70
+    |
+397 | ...                   let ptr = mapped.pData as *mut MagpieConstants;
+    |                                        ^^^^^ unknown field
+
+error[E0308]: mismatched types
+   --> src\infrastructure\windowsimpl\scaling\processor.rs:416:58
+    |
+416 | ...                   Some(&[Some(uav.clone())]),
+    |                       ---- ^^^^^^^^^^^^^^^^^^^^ expected `*const Option<ID3D11UnorderedAccessView>`, found `&[Option<ID3D11UnorderedAccessView>; 1]`
+    |                       |
+    |                       arguments to this enum variant are incorrect
+    |
+    = note: expected raw pointer `*const std::option::Option<ID3D11UnorderedAccessView>`
+                 found reference `&[std::option::Option<ID3D11UnorderedAccessView>; 1]`
+help: the type constructed contains `&[std::option::Option<ID3D11UnorderedAccessView>; 1]` due to the type of the argument passed
+   --> src\infrastructure\windowsimpl\scaling\processor.rs:416:53
+    |
+416 | ...                   Some(&[Some(uav.clone())]),
+    |                       ^^^^^--------------------^
+    |                            |
+    |                            this argument influences the type of `Some`
+note: tuple variant defined here
+   --> C:\Users\nnnma\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib/rustlib/src/rust\library\core\src\option.rs:580:5
+    |
+580 |     Some(#[stable(feature = "rust1", since = "1.0.0")] T),
+    |     ^^^^
+
+error[E0308]: mismatched types
+    --> src\infrastructure\windowsimpl\scaling\processor.rs:417:53
+     |
+413  | ...                   context_for_thread.CSSetUnorderedAccessViews(
+     |                                          ------------------------- arguments to this method are incorrect
+...
+417  | ...                       std::ptr::null(),
+     |                           ^^^^^^^^^^^^^^^^ expected `Option<*const u32>`, found `*const _`
+     |
+     = note:     expected enum `std::option::Option<*const u32>`
+             found raw pointer `*const _`
+note: method defined here
+    --> C:\Users\nnnma\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\windows-0.51.1\src\Windows\Win32\Graphics\Direct3D11\mod.rs:3571:19
+     |
+3571 |     pub unsafe fn CSSetUnorderedAccessViews(&self, startslot: u32, numuavs: u32, ppunorderedaccessviews: ::core::option::Option<*const ::...
+     |                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+help: try wrapping the expression in `Some`
+     |
+417  |                                                     Some(std::ptr::null()),
+     |                                                     +++++                +
+
+error[E0308]: mismatched types
+   --> src\infrastructure\windowsimpl\scaling\processor.rs:439:58
+    |
+439 | ...                   Some(&null_uav),
+    |                       ---- ^^^^^^^^^ expected `*const Option<ID3D11UnorderedAccessView>`, found `&[Option<ID3D11UnorderedAccessView>; 1]`
+    |                       |
+    |                       arguments to this enum variant are incorrect
+    |
+    = note: expected raw pointer `*const std::option::Option<ID3D11UnorderedAccessView>`
+                 found reference `&[std::option::Option<ID3D11UnorderedAccessView>; 1]`
+help: the type constructed contains `&[std::option::Option<ID3D11UnorderedAccessView>; 1]` due to the type of the argument passed
+   --> src\infrastructure\windowsimpl\scaling\processor.rs:439:53
+    |
+439 | ...                   Some(&null_uav),
+    |                       ^^^^^---------^
+    |                            |
+    |                            this argument influences the type of `Some`
+note: tuple variant defined here
+   --> C:\Users\nnnma\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib/rustlib/src/rust\library\core\src\option.rs:580:5
+    |
+580 |     Some(#[stable(feature = "rust1", since = "1.0.0")] T),
+    |     ^^^^
+
+error[E0308]: mismatched types
+    --> src\infrastructure\windowsimpl\scaling\processor.rs:440:53
+     |
+436  | ...                   context_for_thread.CSSetUnorderedAccessViews(
+     |                                          ------------------------- arguments to this method are incorrect
+...
+440  | ...                       std::ptr::null(),
+     |                           ^^^^^^^^^^^^^^^^ expected `Option<*const u32>`, found `*const _`
+     |
+     = note:     expected enum `std::option::Option<*const u32>`
+             found raw pointer `*const _`
+note: method defined here
+    --> C:\Users\nnnma\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\windows-0.51.1\src\Windows\Win32\Graphics\Direct3D11\mod.rs:3571:19
+     |
+3571 |     pub unsafe fn CSSetUnorderedAccessViews(&self, startslot: u32, numuavs: u32, ppunorderedaccessviews: ::core::option::Option<*const ::...
+     |                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+help: try wrapping the expression in `Some`
+     |
+440  |                                                     Some(std::ptr::null()),
+     |                                                     +++++                +
+
+Some errors have detailed explanations: E0061, E0308, E0609.
+For more information about an error, try `rustc --explain E0061`.
+warning: `launcherg` (bin "launcherg") generated 12 warnings
+error: could not compile `launcherg` (bin "launcherg") due to 7 previous errors; 12 warnings emitted

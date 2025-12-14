@@ -50,6 +50,7 @@ tauri-plugin-http = "2.0.0-rc.0"
 tauri-plugin-single-instance = "2.3.4"
 screenshots = "0.8.10"
 notify = "6.0"
+regex = "1.12.2"
 
 [dependencies.windows]
 version = "0.51"
@@ -74,6 +75,15 @@ features = [
     "Storage",
     "Storage_Streams",
     "Win32_System_Environment",
+    "Win32_Graphics_Direct3D_Fxc",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_System_LibraryLoader",
+    "Win32_System_Threading",
+    "Win32_Graphics_Direct2D",
+    "Win32_Graphics_Direct2D_Common",
+    "Win32_Graphics_DirectWrite",
+    "Foundation_Numerics",
+    "Win32_Security",
 ]
 
 [dependencies.uuid]
