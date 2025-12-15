@@ -536,81 +536,76 @@ impl ScalingProcessor {
                                     stats_updated = true;
                                 }
 
-                                // Present condition: new frame, stats updated, or cursor visible
-                                // カーソルが表示されている場合は常にPresentしてカーソル位置を更新
-                                let should_present = got_new_frame || stats_updated || cursor_manager.should_draw_cursor;
-                                
-                                if should_present {
-                                    unsafe {
-                                        // カーソル描画前に必ずバックバッファをリセット（残像防止）
-                                        // FLIP_DISCARDはバックバッファを破棄するため、常にコピーが必要
-                                        context.CopyResource(&cached_backbuffer, &output_texture);
-                                        
-                                        // Get Output desc again for size (TODO: optimize)
-                                        let mut output_desc = D3D11_TEXTURE2D_DESC::default();
-                                        output_texture.GetDesc(&mut output_desc);
+                                // Always Present to consume frame latency signal and keep cursor smooth
+                                unsafe {
+                                    // カーソル描画前に必ずバックバッファをリセット（残像防止）
+                                    // FLIP_DISCARDはバックバッファを破棄するため、常にコピーが必要
+                                    context.CopyResource(&cached_backbuffer, &output_texture);
+                                    
+                                    // Get Output desc again for size (TODO: optimize)
+                                    let mut output_desc = D3D11_TEXTURE2D_DESC::default();
+                                    output_texture.GetDesc(&mut output_desc);
 
-                                        // Update Cursor (毎フレーム)
-                                        let mut src_rect = RECT::default();
-                                        let mut dest_rect = RECT::default();
-                                        let _ = GetWindowRect(target_hwnd, &mut src_rect);
-                                        if let Some(hwnd) = window_manager.get_overlay_window() {
-                                            let _ = GetWindowRect(hwnd, &mut dest_rect);
-                                        }
-                                        
-                                        // Ensure dest_rect is valid (sometimes fails on first frame)
-                                        if (dest_rect.right - dest_rect.left) > 0 {
-                                            // SrcTrackerからフォーカス状態を取得
-                                            let is_src_focused = src_tracker.is_focused();
-                                            if let Ok(_) = cursor_manager.update(src_rect, dest_rect, target_hwnd, is_src_focused) {
-                                                // ツールバー更新と描画 (カーソルより先に描画)
-                                                let mut toolbar_cursor_pos = cursor_manager.draw_pos;
-                                                if let Some(hwnd) = window_manager.get_overlay_window() {
-                                                    let _ = ScreenToClient(hwnd, &mut toolbar_cursor_pos);
-                                                }
-                                                simple_toolbar.tick();
-                                                simple_toolbar.update_visibility(toolbar_cursor_pos, (dest_rect.bottom - dest_rect.top) as i32);
-                                                let _ = simple_toolbar.render(&cached_backbuffer);
-                                                
-                                                // 終了ボタンチェック (左クリック)
-                                                if (windows::Win32::UI::Input::KeyboardAndMouse::GetAsyncKeyState(0x01) as u16 & 0x8000) != 0 {
-                                                    if simple_toolbar.check_close_button_click(toolbar_cursor_pos) {
-                                                        println!("Close button clicked, stopping scaling");
-                                                        running.store(false, Ordering::SeqCst);
-                                                        break;
-                                                    }
-                                                }
-
-                                                // システムカーソルを描画 (ツールバーの上に)
-                                                if cursor_manager.should_draw_cursor {
-                                                    let mut client_pt = cursor_manager.draw_pos;
-                                                    if let Some(hwnd) = window_manager.get_overlay_window() {
-                                                        let _ = ScreenToClient(hwnd, &mut client_pt);
-                                                    }
-                                                    
-                                                    // カーソルハンドルを取得して描画
-                                                    let mut cursor_info = windows::Win32::UI::WindowsAndMessaging::CURSORINFO {
-                                                        cbSize: std::mem::size_of::<windows::Win32::UI::WindowsAndMessaging::CURSORINFO>() as u32,
-                                                        ..Default::default()
-                                                    };
-                                                    if windows::Win32::UI::WindowsAndMessaging::GetCursorInfo(&mut cursor_info).is_ok() 
-                                                        && !cursor_info.hCursor.is_invalid() {
-                                                        let _ = cursor_renderer.draw_cursor(&cached_backbuffer, cursor_info.hCursor, client_pt, 1.0);
-                                                    }
-                                                }
-                                                
-                                                let _ = (&toolbar, output_desc.Width, &cached_rtv, &frame_latency_handle); // unused warning 回避
-                                            }
-                                        }
-
-                                        let _ = swap_chain.Present(0, 0);
+                                    // Update Cursor (毎フレーム)
+                                    let mut src_rect = RECT::default();
+                                    let mut dest_rect = RECT::default();
+                                    let _ = GetWindowRect(target_hwnd, &mut src_rect);
+                                    if let Some(hwnd) = window_manager.get_overlay_window() {
+                                        let _ = GetWindowRect(hwnd, &mut dest_rect);
                                     }
+                                    
+                                    // Ensure dest_rect is valid (sometimes fails on first frame)
+                                    if (dest_rect.right - dest_rect.left) > 0 {
+                                        // SrcTrackerからフォーカス状態を取得
+                                        let is_src_focused = src_tracker.is_focused();
+                                        if let Ok(_) = cursor_manager.update(src_rect, dest_rect, target_hwnd, is_src_focused) {
+                                            // ツールバー更新と描画 (カーソルより先に描画)
+                                            let mut toolbar_cursor_pos = cursor_manager.draw_pos;
+                                            if let Some(hwnd) = window_manager.get_overlay_window() {
+                                                let _ = ScreenToClient(hwnd, &mut toolbar_cursor_pos);
+                                            }
+                                            simple_toolbar.tick();
+                                            simple_toolbar.update_visibility(toolbar_cursor_pos, (dest_rect.bottom - dest_rect.top) as i32);
+                                            let _ = simple_toolbar.render(&cached_backbuffer);
+                                            
+                                            // 終了ボタンチェック (左クリック)
+                                            if (windows::Win32::UI::Input::KeyboardAndMouse::GetAsyncKeyState(0x01) as u16 & 0x8000) != 0 {
+                                                if simple_toolbar.check_close_button_click(toolbar_cursor_pos) {
+                                                    println!("Close button clicked, stopping scaling");
+                                                    running.store(false, Ordering::SeqCst);
+                                                    break;
+                                                }
+                                            }
+
+                                            // システムカーソルを描画 (ツールバーの上に)
+                                            if cursor_manager.should_draw_cursor {
+                                                let mut client_pt = cursor_manager.draw_pos;
+                                                if let Some(hwnd) = window_manager.get_overlay_window() {
+                                                    let _ = ScreenToClient(hwnd, &mut client_pt);
+                                                }
+                                                
+                                                // カーソルハンドルを取得して描画
+                                                let mut cursor_info = windows::Win32::UI::WindowsAndMessaging::CURSORINFO {
+                                                    cbSize: std::mem::size_of::<windows::Win32::UI::WindowsAndMessaging::CURSORINFO>() as u32,
+                                                    ..Default::default()
+                                                };
+                                                if windows::Win32::UI::WindowsAndMessaging::GetCursorInfo(&mut cursor_info).is_ok() 
+                                                    && !cursor_info.hCursor.is_invalid() {
+                                                    let _ = cursor_renderer.draw_cursor(&cached_backbuffer, cursor_info.hCursor, client_pt, 1.0);
+                                                }
+                                            }
+                                            
+                                            let _ = (&toolbar, output_desc.Width, &cached_rtv, &frame_latency_handle); // unused warning 回避
+                                        }
+                                    }
+
+                                    let _ = swap_chain.Present(0, 0);
                                 }
                                 
-                                // 短い待機時間で高頻度ループ (カーソル追従のため)
+                                // Wait for Frame Latency Object (to sync with refresh rate) or New Frame Event
                                 unsafe {
-                                    let handles = [source.frame_event];
-                                    MsgWaitForMultipleObjectsEx(Some(&handles), 8, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
+                                    let handles = [frame_latency_handle, source.frame_event];
+                                    MsgWaitForMultipleObjectsEx(Some(&handles), 1000, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
                                 }
                             }
                             let _ = source.stop();
