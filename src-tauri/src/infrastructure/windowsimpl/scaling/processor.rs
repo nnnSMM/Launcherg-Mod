@@ -20,10 +20,10 @@ use windows::Win32::Graphics::Direct3D11::{
     D3D11_USAGE_DYNAMIC,
 };
 use windows::Win32::Graphics::Dxgi::Common::{
-    DXGI_ALPHA_MODE_IGNORE, DXGI_ALPHA_MODE_PREMULTIPLIED, DXGI_FORMAT_B8G8R8A8_UNORM,
+    DXGI_ALPHA_MODE_IGNORE, DXGI_FORMAT_B8G8R8A8_UNORM,
     DXGI_SAMPLE_DESC,
 };
-use windows::Win32::Graphics::Dwm::{DwmGetWindowAttribute, DWMWA_EXTENDED_FRAME_BOUNDS, DWMWA_NCRENDERING_ENABLED};
+use windows::Win32::Graphics::Dwm::{DwmSetWindowAttribute, DWMWINDOWATTRIBUTE};
 use windows::Win32::Graphics::Dxgi::{
     IDXGIDevice, IDXGIFactory2, IDXGISwapChain1, DXGI_SWAP_CHAIN_DESC1,
     DXGI_SWAP_EFFECT_FLIP_DISCARD, DXGI_USAGE_RENDER_TARGET_OUTPUT,
@@ -39,12 +39,16 @@ use windows::Win32::System::WinRT::Graphics::Capture::IGraphicsCaptureItemIntero
 use windows::Win32::System::WinRT::{RoInitialize, RO_INIT_SINGLETHREADED};
 use windows::Win32::Foundation::{CloseHandle, HWND, RECT};
 use windows::Win32::UI::WindowsAndMessaging::{
-    DispatchMessageW, GetMessageW, PeekMessageW, PostQuitMessage, TranslateMessage, MSG, PM_REMOVE,
+    DispatchMessageW, PeekMessageW, MSG, PM_REMOVE,
     QS_ALLINPUT, WM_QUIT, MsgWaitForMultipleObjectsEx, MWMO_INPUTAVAILABLE, GetWindowRect,
 };
 use windows::Win32::Graphics::Gdi::ScreenToClient;
-use windows::Win32::Graphics::Direct2D::Common::D2D_POINT_2F;
 use crate::infrastructure::windowsimpl::scaling::src_tracker::SrcTracker;
+
+// DWM constants for corner preference
+const DWMWA_WINDOW_CORNER_PREFERENCE: DWMWINDOWATTRIBUTE = DWMWINDOWATTRIBUTE(33);
+const DWMWCP_DEFAULT: u32 = 0;
+const DWMWCP_DONOTROUND: u32 = 1;
 
 #[derive(Debug, PartialEq, Eq)]
 enum FrameSourceState {
@@ -371,7 +375,7 @@ impl ScalingProcessor {
             })();
 
             match init_result {
-                Ok((window_manager, device, context, swap_chain, frame_latency_handle, cached_backbuffer, cached_rtv, compute_shader, const_buffer, output_texture, output_uav, mut toolbar, mut cursor_manager, mut cursor_renderer, mut simple_toolbar, sampler)) => {
+                Ok((window_manager, device, context, swap_chain, frame_latency_handle, _cached_backbuffer_initial, _cached_rtv_initial, compute_shader, const_buffer, output_texture, output_uav, mut toolbar, mut cursor_manager, mut cursor_renderer, mut simple_toolbar, sampler)) => {
                     println!("Initialization successful");
                     let mut src_tracker = SrcTracker::new(target_hwnd);
                     let source_result = CaptureFrameSource::new(target_hwnd, device.clone());
@@ -384,6 +388,23 @@ impl ScalingProcessor {
                             let mut frames = 0;
                             let mut total_processing_time = 0.0;
                             let mut processing_start;
+                            
+                            // Aspect Ratio & Centering State
+                            let mut current_target_w = 0.0f32;
+                            let mut current_target_h = 0.0f32;
+                            let mut current_offset_x = 0u32;
+                            let mut current_offset_y = 0u32;
+
+                            // 1. Disable Rounded Corners if possible (Windows 11)
+                            unsafe {
+                                let preference = DWMWCP_DONOTROUND;
+                                let _ = DwmSetWindowAttribute(
+                                    target_hwnd,
+                                    DWMWA_WINDOW_CORNER_PREFERENCE,
+                                    &preference as *const _ as *const std::ffi::c_void,
+                                    std::mem::size_of::<u32>() as u32,
+                                );
+                            }
 
                             while running.load(Ordering::SeqCst) {
                                 unsafe {
@@ -398,7 +419,27 @@ impl ScalingProcessor {
 
                                 if !running.load(Ordering::SeqCst) { break; }
 
-                                // ソースウィンドウ監視: 消滅/非表示/最小化で終了
+
+
+                                // Acquire BackBuffer and Create RTV per frame (FLIP Model Requirement)
+                                let backbuffer: ID3D11Texture2D = match unsafe { swap_chain.GetBuffer(0) } {
+                                    Ok(b) => b,
+                                    Err(e) => {
+                                        println!("Failed to get backbuffer: {:?}", e);
+                                        continue;
+                                    }
+                                };
+                                let mut rtv_out = None;
+                                if let Err(e) = unsafe { device.CreateRenderTargetView(&backbuffer, None, Some(&mut rtv_out)) } {
+                                    println!("Failed to create RTV: {:?}", e);
+                                    continue;
+                                }
+                                let rtv = match rtv_out {
+                                    Some(r) => r,
+                                    None => continue,
+                                };
+                                    
+                                    // 監視: ソースウィンドウ監視
                                 unsafe {
                                     use windows::Win32::UI::WindowsAndMessaging::{IsWindow, IsWindowVisible, IsIconic};
                                     
@@ -419,7 +460,6 @@ impl ScalingProcessor {
 
                                 processing_start = std::time::Instant::now();
 
-                                let mut got_new_frame = false;
                                 match source.update() {
                                     Ok(FrameSourceState::NewFrame) => {
                                         if let Ok(input_texture) = source.get_texture() {
@@ -433,11 +473,11 @@ impl ScalingProcessor {
                                                     let input_width = desc.Width;
                                                     let input_height = desc.Height;
                                                     
-                                                    // Output Size = SwapChain Size
+                                                    // Output Size = SwapChain Size (Full Screen)
                                                     let mut output_desc = D3D11_TEXTURE2D_DESC::default();
                                                     output_texture.GetDesc(&mut output_desc);
-                                                    let output_width = output_desc.Width;
-                                                    let output_height = output_desc.Height;
+                                                    let full_output_width = output_desc.Width;
+                                                    let full_output_height = output_desc.Height;
 
                                                     // Pseudo-borderless: Calculate borders based on Magpie logic
                                                     let _ = src_tracker.update();
@@ -471,11 +511,41 @@ impl ScalingProcessor {
                                                     let scale_u = if cap_w > 0.0 { region_w / cap_w } else { 1.0 };
                                                     let scale_v = if cap_h > 0.0 { region_h / cap_h } else { 1.0 };
 
+                                                    // Aspect Ratio Preservation Logic
+                                                    let src_w = (source_rect.right - source_rect.left) as f32;
+                                                    let src_h = (source_rect.bottom - source_rect.top) as f32;
+                                                    
+                                                    let mut target_w = full_output_width as f32;
+                                                    let mut target_h = full_output_height as f32;
+
+                                                    if src_w > 0.0 && src_h > 0.0 {
+                                                        let scale_x = full_output_width as f32 / src_w;
+                                                        let scale_y = full_output_height as f32 / src_h;
+                                                        let scale = scale_x.min(scale_y);
+
+                                                        target_w = (src_w * scale).round();
+                                                        target_h = (src_h * scale).round();
+                                                    }
+
+                                                    // Centering offsets
+                                                    let offset_x = ((full_output_width as f32 - target_w) / 2.0).round() as u32;
+                                                    let offset_y = ((full_output_height as f32 - target_h) / 2.0).round() as u32;
+                                                    
+                                                    // Update State for Cursor
+                                                    current_target_w = target_w;
+                                                    current_target_h = target_h;
+                                                    current_offset_x = offset_x;
+                                                    current_offset_y = offset_y;
+
+                                                    // Use calculated target size for Shader
+                                                    let output_width = target_w as u32;
+                                                    let output_height = target_h as u32;
+
                                                     let constants = MagpieConstants {
                                                         input_size: [input_width, input_height],
                                                         output_size: [output_width, output_height], 
                                                         input_pt: [1.0 / input_width as f32, 1.0 / input_height as f32],
-                                                        output_pt: [1.0 / output_width as f32, 1.0 / output_height as f32],
+                                                        output_pt: [1.0 / target_w, 1.0 / target_h],
                                                         scale: [scale_u, scale_v], // ROI / Capture ratio
                                                         src_rect_offset: [offset_u, offset_v], // Offset
                                                     };
@@ -498,9 +568,9 @@ impl ScalingProcessor {
                                                     let uavs = [Some(output_uav.clone())];
                                                     context.CSSetUnorderedAccessViews(0, 1, Some(uavs.as_ptr()), None);
 
-                                                    // Dispatch
+                                                    // Dispatch (only for the valid image area)
                                                     context.Dispatch((output_width + 7) / 8, (output_height + 7) / 8, 1);
-
+                                                    
                                                     let null_uav: [Option<ID3D11UnorderedAccessView>; 1] = [None];
                                                     context.CSSetUnorderedAccessViews(0, 1, Some(null_uav.as_ptr()), None);
                                                     
@@ -508,7 +578,6 @@ impl ScalingProcessor {
                                                     let elapsed = processing_start.elapsed().as_secs_f32() * 1000.0;
                                                     total_processing_time += elapsed;
 
-                                                    got_new_frame = true;
                                                     frames += 1;
                                                 }
                                             }
@@ -538,10 +607,32 @@ impl ScalingProcessor {
 
                                 // Always Present to consume frame latency signal and keep cursor smooth
                                 unsafe {
-                                    // カーソル描画前に必ずバックバッファをリセット（残像防止）
-                                    // FLIP_DISCARDはバックバッファを破棄するため、常にコピーが必要
-                                    context.CopyResource(&cached_backbuffer, &output_texture);
-                                    
+                                    // 1. Clear Backbuffer (Every Frame)
+                                    let black_color = [0.0, 0.0, 0.0, 1.0];
+                                    context.ClearRenderTargetView(&rtv, &black_color);
+
+                                    // 2. Draw Last Scaled Frame (Every Frame)
+                                    if current_target_w > 0.0 && current_target_h > 0.0 {
+                                        let src_box = windows::Win32::Graphics::Direct3D11::D3D11_BOX {
+                                            left: 0,
+                                            top: 0,
+                                            front: 0,
+                                            right: current_target_w as u32,
+                                            bottom: current_target_h as u32,
+                                            back: 1,
+                                        };
+                                        context.CopySubresourceRegion(
+                                            &backbuffer,
+                                            0,
+                                            current_offset_x,
+                                            current_offset_y,
+                                            0,
+                                            &output_texture,
+                                            0,
+                                            Some(&src_box)
+                                        );
+                                    }
+
                                     // Get Output desc again for size (TODO: optimize)
                                     let mut output_desc = D3D11_TEXTURE2D_DESC::default();
                                     output_texture.GetDesc(&mut output_desc);
@@ -556,9 +647,19 @@ impl ScalingProcessor {
                                     
                                     // Ensure dest_rect is valid (sometimes fails on first frame)
                                     if (dest_rect.right - dest_rect.left) > 0 {
+                                        
+                                        // Calculate Valid Dest Rect (Inner Image Area)
+                                        let mut valid_dest_rect = dest_rect;
+                                        if current_target_w > 0.0 && current_target_h > 0.0 {
+                                            valid_dest_rect.left += current_offset_x as i32;
+                                            valid_dest_rect.top += current_offset_y as i32;
+                                            valid_dest_rect.right = valid_dest_rect.left + current_target_w as i32;
+                                            valid_dest_rect.bottom = valid_dest_rect.top + current_target_h as i32;
+                                        }
+
                                         // SrcTrackerからフォーカス状態を取得
                                         let is_src_focused = src_tracker.is_focused();
-                                        if let Ok(_) = cursor_manager.update(src_rect, dest_rect, target_hwnd, is_src_focused) {
+                                        if let Ok(_) = cursor_manager.update(src_rect, valid_dest_rect, target_hwnd, is_src_focused) {
                                             // ツールバー更新と描画 (カーソルより先に描画)
                                             let mut toolbar_cursor_pos = cursor_manager.draw_pos;
                                             if let Some(hwnd) = window_manager.get_overlay_window() {
@@ -566,7 +667,7 @@ impl ScalingProcessor {
                                             }
                                             simple_toolbar.tick();
                                             simple_toolbar.update_visibility(toolbar_cursor_pos, (dest_rect.bottom - dest_rect.top) as i32);
-                                            let _ = simple_toolbar.render(&cached_backbuffer);
+                                            let _ = simple_toolbar.render(&backbuffer);
                                             
                                             // 終了ボタンチェック (左クリック)
                                             if (windows::Win32::UI::Input::KeyboardAndMouse::GetAsyncKeyState(0x01) as u16 & 0x8000) != 0 {
@@ -591,11 +692,32 @@ impl ScalingProcessor {
                                                 };
                                                 if windows::Win32::UI::WindowsAndMessaging::GetCursorInfo(&mut cursor_info).is_ok() 
                                                     && !cursor_info.hCursor.is_invalid() {
-                                                    let _ = cursor_renderer.draw_cursor(&cached_backbuffer, cursor_info.hCursor, client_pt, 1.0);
+                                                    // シザーレクトを設定してコンテンツ領域内にカーソルをクリップ
+                                                    let scissor_rect = windows::Win32::Foundation::RECT {
+                                                        left: current_offset_x as i32,
+                                                        top: current_offset_y as i32,
+                                                        right: current_offset_x as i32 + current_target_w as i32,
+                                                        bottom: current_offset_y as i32 + current_target_h as i32,
+                                                    };
+                                                    context.RSSetScissorRects(Some(&[scissor_rect]));
+                                                    
+                                                    // リサイズカーソルをフィルタリング (Magpie方式)
+                                                    let filtered_cursor = cursor_manager.get_cursor_handle(cursor_info.hCursor.0 as isize);
+                                                    let h_cursor = windows::Win32::UI::WindowsAndMessaging::HCURSOR(filtered_cursor as _);
+                                                    let _ = cursor_renderer.draw_cursor(&backbuffer, h_cursor, client_pt, 1.0, Some(scissor_rect));
+                                                    
+                                                    // シザーレクトをリセット（画面全体に戻す）
+                                                    let full_rect = windows::Win32::Foundation::RECT {
+                                                        left: 0,
+                                                        top: 0,
+                                                        right: output_desc.Width as i32,
+                                                        bottom: output_desc.Height as i32,
+                                                    };
+                                                    context.RSSetScissorRects(Some(&[full_rect]));
                                                 }
                                             }
                                             
-                                            let _ = (&toolbar, output_desc.Width, &cached_rtv, &frame_latency_handle); // unused warning 回避
+                                            let _ = (&toolbar, output_desc.Width, &rtv, &frame_latency_handle); // unused warning 回避
                                         }
                                     }
 
@@ -608,6 +730,18 @@ impl ScalingProcessor {
                                     MsgWaitForMultipleObjectsEx(Some(&handles), 1000, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
                                 }
                             }
+                            
+                            // Restore Rounded Corners
+                            unsafe {
+                                let preference = DWMWCP_DEFAULT;
+                                let _ = DwmSetWindowAttribute(
+                                    target_hwnd,
+                                    DWMWA_WINDOW_CORNER_PREFERENCE,
+                                    &preference as *const _ as *const std::ffi::c_void,
+                                    std::mem::size_of::<u32>() as u32,
+                                );
+                            }
+
                             let _ = source.stop();
                         } else {
                             println!("Failed to start capture");

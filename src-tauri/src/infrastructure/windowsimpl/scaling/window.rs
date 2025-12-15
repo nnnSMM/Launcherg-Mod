@@ -13,12 +13,17 @@ pub struct WindowManager {
     target_hwnd: Option<HWND>,
 }
 
+use windows::Win32::UI::WindowsAndMessaging::{HTCLIENT, WM_NCHITTEST};
+
 unsafe extern "system" fn window_proc(
     hwnd: HWND,
     msg: u32,
     wparam: WPARAM,
     lparam: LPARAM,
 ) -> LRESULT {
+    if msg == WM_NCHITTEST {
+        return LRESULT(HTCLIENT as isize);
+    }
     DefWindowProcW(hwnd, msg, wparam, lparam)
 }
 

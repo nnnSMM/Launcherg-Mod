@@ -1,7 +1,7 @@
 use anyhow::Result;
 use std::sync::OnceLock;
 use windows::core::{s, w};
-use windows::Win32::Foundation::{BOOL, HWND, LPARAM, POINT, RECT};
+use windows::Win32::Foundation::{BOOL, HWND, LPARAM, POINT, RECT, WPARAM};
 use windows::Win32::Graphics::Dwm::{DwmGetWindowAttribute, DWMWA_CLOAKED};
 use windows::Win32::Graphics::Gdi::{
     ClientToScreen, CreateRectRgn, GetWindowRgn, PtInRect, PtInRegion, GDI_REGION_TYPE,
@@ -10,12 +10,12 @@ use windows::Win32::System::LibraryLoader::{GetModuleHandleW, GetProcAddress};
 use windows::Win32::System::Threading::Sleep;
 use windows::Win32::UI::WindowsAndMessaging::{
     ChildWindowFromPointEx, ClipCursor, EnumWindows, GetAncestor, GetClientRect, GetClipCursor,
-    GetCursorPos, GetForegroundWindow, GetWindowLongW, GetWindowRect, IsWindowVisible,
-    SetCursorPos, SetWindowLongW, SetWindowPos, SystemParametersInfoW,
+    GetCursorPos, GetForegroundWindow, GetWindowLongW, GetWindowRect, IsWindowVisible, IsZoomed,
+    SendMessageTimeoutW, SetWindowLongW, SetWindowPos, SystemParametersInfoW,
     WindowFromPoint as WinApiWindowFromPoint, CWP_SKIPDISABLED, CWP_SKIPINVISIBLE,
     CWP_SKIPTRANSPARENT, GA_ROOT, GWL_EXSTYLE, HWND_NOTOPMOST, HWND_TOP, HWND_TOPMOST,
-    SPI_GETMOUSESPEED, SPI_SETMOUSESPEED, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE,
-    SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS, WS_EX_TRANSPARENT,
+    SMTO_ABORTIFHUNG, SPI_GETMOUSESPEED, SPI_SETMOUSESPEED, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE,
+    SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS, WM_NCHITTEST, WS_EX_TRANSPARENT,
 };
 
 // ShowSystemCursor API の関数ポインタ型
@@ -30,6 +30,48 @@ fn get_show_system_cursor() -> Option<ShowSystemCursorFn> {
         let proc = GetProcAddress(h_user32, s!("ShowSystemCursor"))?;
         Some(std::mem::transmute::<_, ShowSystemCursorFn>(proc))
     })
+}
+
+/// ソースウィンドウのリサイズボーダー上にカーソルがあるかチェック
+/// pt はソースウィンドウ座標系のスクリーン座標
+fn is_on_resize_border(src_hwnd: HWND, pt: POINT) -> bool {
+    // 最大化されている場合はリサイズボーダーなし
+    if unsafe { IsZoomed(src_hwnd).0 != 0 } {
+        return false;
+    }
+
+    // WM_NCHITTEST でチェック (Magpie AdvancedWindowHitTest相当)
+    let x = pt.x as i16;
+    let y = pt.y as i16;
+    let lparam_val = (x as u32 & 0xFFFF) | ((y as u32 & 0xFFFF) << 16);
+
+    let mut result: usize = 0;
+    let send_result = unsafe {
+        SendMessageTimeoutW(
+            src_hwnd,
+            WM_NCHITTEST,
+            WPARAM(0),
+            LPARAM(lparam_val as isize),
+            SMTO_ABORTIFHUNG,
+            100, // Magpieと同様に100msタイムアウト
+            Some(&mut result),
+        )
+    };
+
+    if send_result.0 != 0 {
+        let hit = result as i16;
+        // HTSIZEFIRST (10) から HTSIZELAST (17) の範囲をチェック (Magpie IsEdgeArea)
+        const HTSIZEFIRST: i16 = 10; // HTLEFT
+        const HTSIZELAST: i16 = 17; // HTBOTTOMRIGHT
+
+        let is_edge = hit >= HTSIZEFIRST && hit <= HTSIZELAST;
+
+        if is_edge {
+            return true;
+        }
+    }
+
+    false
 }
 
 /// ウィンドウが指定座標でマウス入力を受け取るかどうか (Magpie PtInWindow 相当)
@@ -185,6 +227,10 @@ pub struct CursorManager {
     is_system_cursor_shown: bool,
     original_mouse_speed: i32,
     last_src_focused: bool,
+
+    // リサイズカーソル防止用 (Magpie方式)
+    pub is_on_edge: bool,        // エッジ上にいるか
+    cached_cursor_handle: isize, // 最後の非リサイズカーソルハンドル
 }
 
 impl CursorManager {
@@ -201,6 +247,8 @@ impl CursorManager {
             is_system_cursor_shown: true,
             original_mouse_speed: 0,
             last_src_focused: false,
+            is_on_edge: false,
+            cached_cursor_handle: 0,
         }
     }
 
@@ -212,18 +260,6 @@ impl CursorManager {
         src_hwnd: HWND,
         is_src_focused: bool,
     ) -> Result<()> {
-        // デバッグ: update呼び出し確認（最初の数回のみ）
-        static mut UPDATE_DEBUG_COUNT: u32 = 0;
-        unsafe {
-            if UPDATE_DEBUG_COUNT < 5 {
-                println!(
-                    "[Cursor] update() called, is_src_focused={}",
-                    is_src_focused
-                );
-                UPDATE_DEBUG_COUNT += 1;
-            }
-        }
-
         if self.is_processing {
             return Ok(());
         }
@@ -248,16 +284,11 @@ impl CursorManager {
     fn handle_focus_change(&mut self, is_src_focused: bool) {
         // フォーカスが変化した時のみログを出力
         if is_src_focused != self.last_src_focused {
-            println!(
-                "[Cursor] Focus CHANGED: {} -> {}",
-                self.last_src_focused, is_src_focused
-            );
             self.last_src_focused = is_src_focused;
 
             unsafe {
                 if is_src_focused {
                     // ソースがフォーカス: 拡大ウィンドウを最前面に
-                    println!("[Cursor] Focus gained - setting TOPMOST");
                     let _ = SetWindowPos(
                         self.scaling_hwnd,
                         HWND_TOPMOST,
@@ -278,7 +309,6 @@ impl CursorManager {
                     );
                 } else {
                     // ソースがフォーカス外: 拡大ウィンドウの最前面を解除
-                    println!("[Cursor] Focus lost - removing TOPMOST");
                     let _ = SetWindowPos(
                         self.scaling_hwnd,
                         HWND_NOTOPMOST,
@@ -291,7 +321,6 @@ impl CursorManager {
 
                     // フォーカスを失ったらキャプチャも解除してカーソルを拡大位置に移動
                     if self.is_under_capture {
-                        println!("[Cursor] Releasing capture due to focus loss");
                         let mut pos = POINT::default();
                         let _ = GetCursorPos(&mut pos);
 
@@ -299,10 +328,6 @@ impl CursorManager {
                         self.stop_capture(&mut pos);
 
                         // カーソルを拡大位置に移動
-                        println!(
-                            "[Cursor] Moving cursor to scaled position: ({}, {})",
-                            pos.x, pos.y
-                        );
                         self.reliable_set_cursor_pos(pos);
 
                         self.set_ex_transparent(false, unsafe {
@@ -337,7 +362,6 @@ impl CursorManager {
             let foreground = unsafe { GetForegroundWindow() };
             if foreground != src_hwnd && foreground != self.scaling_hwnd {
                 // 別のウィンドウがフォアグラウンドにある - キャプチャ停止
-                println!("[Cursor] Foreground changed, stopping capture");
                 self.should_draw_cursor = false;
                 self.set_ex_transparent(false, style);
                 self.stop_capture(&mut cursor_pos);
@@ -357,7 +381,6 @@ impl CursorManager {
 
             if !in_dest_rect {
                 // カーソルが拡大ウィンドウ外に出た - キャプチャ停止
-                println!("[Cursor] Cursor outside dest_rect");
                 self.should_draw_cursor = false;
                 self.set_ex_transparent(false, style);
                 if self.stop_capture(&mut cursor_pos) {
@@ -399,17 +422,31 @@ impl CursorManager {
 
                     if src_hidden {
                         // ソースが隠されている - キャプチャ停止
-                        println!("[Cursor] Stopping - src hidden");
                         self.set_ex_transparent(false, style);
                         self.stop_capture(&mut cursor_pos);
                         self.reliable_set_cursor_pos(cursor_pos);
                     } else {
-                        // 正常動作 - 透明を維持
-                        self.set_ex_transparent(true, style);
+                        // リサイズボーダー上かチェック (Magpie L619-631)
+                        // cursor_pos はソース座標系なので直接チェック可能
+                        let on_resize_border = is_on_resize_border(src_hwnd, cursor_pos);
+
+                        if on_resize_border {
+                            // リサイズボーダー上 - キャプチャ停止、オーバーレイ不透明
+                            // カスタムカーソルを描画し続けてリサイズカーソルを隠す
+                            self.is_on_edge = true;
+                            self.should_draw_cursor = true;
+                            self.set_ex_transparent(false, style);
+                            self.show_system_cursor(false); // すぐにシステムカーソルを非表示
+                            self.stop_capture(&mut cursor_pos);
+                            self.reliable_set_cursor_pos(cursor_pos);
+                        } else {
+                            // 正常動作 - 透明を維持
+                            self.is_on_edge = false;
+                            self.set_ex_transparent(true, style);
+                        }
                     }
                 } else {
                     // 拡大ウィンドウが他のウィンドウで隠されている - キャプチャ停止
-                    println!("[Cursor] Stopping - scaling hidden by {:?}", win_api_root.0);
                     self.set_ex_transparent(false, style);
                     if self.stop_capture(&mut cursor_pos) {
                         self.reliable_set_cursor_pos(cursor_pos);
@@ -436,6 +473,7 @@ impl CursorManager {
                 self.should_draw_cursor = hwnd_cur == self.scaling_hwnd;
 
                 if self.should_draw_cursor {
+                    // 拡大座標をソース座標に変換
                     let new_cursor_pos =
                         Self::scaling_to_src_static(cursor_pos, src_rect, dest_rect);
 
@@ -445,18 +483,36 @@ impl CursorManager {
                         && new_cursor_pos.y >= src_rect.top
                         && new_cursor_pos.y < src_rect.bottom
                     {
-                        // ソースウィンドウが隠されていないかチェック (Magpie L686-691)
-                        let hwnd_at_src =
-                            window_from_point(self.scaling_hwnd, dest_rect, new_cursor_pos, true);
-                        let start_capture = hwnd_at_src == src_hwnd;
+                        // リサイズボーダー上かチェック (Magpie L693-705)
+                        // new_cursor_pos はソース座標系
+                        let on_resize_border = is_on_resize_border(src_hwnd, new_cursor_pos);
 
-                        if start_capture {
-                            // キャプチャ開始 (Magpie L708-713)
-                            self.set_ex_transparent(true, style);
-                            self.start_capture(&mut cursor_pos);
-                        } else {
-                            // ソースが隠されている - 透明解除 (Magpie L714-717)
+                        if on_resize_border {
+                            // リサイズボーダー上 - キャプチャ開始しない、オーバーレイ不透明
+                            // カスタムカーソルを描画し続けてリサイズカーソルを隠す
+                            self.is_on_edge = true;
+                            self.should_draw_cursor = true;
                             self.set_ex_transparent(false, style);
+                            self.show_system_cursor(false); // すぐにシステムカーソルを非表示
+                        } else {
+                            // ソースウィンドウが隠されていないかチェック (Magpie L686-691)
+                            let hwnd_at_src = window_from_point(
+                                self.scaling_hwnd,
+                                dest_rect,
+                                new_cursor_pos,
+                                true,
+                            );
+                            let start_capture = hwnd_at_src == src_hwnd;
+
+                            if start_capture {
+                                // キャプチャ開始 (Magpie L708-713)
+                                self.is_on_edge = false;
+                                self.set_ex_transparent(true, style);
+                                self.start_capture(&mut cursor_pos);
+                            } else {
+                                // ソースが隠されている - 透明解除 (Magpie L714-717)
+                                self.set_ex_transparent(false, style);
+                            }
                         }
                     } else {
                         // ソース領域外 - 透明解除
@@ -480,6 +536,26 @@ impl CursorManager {
 
         // システムカーソルの表示制御 (Magpie L785)
         self.show_system_cursor(!self.should_draw_cursor);
+
+        // カーソル制限 (Magpie _ClipCursorForMonitors相当)
+        // ソースがフォーカス中はレターボックス領域への進入を防止
+        if self.is_under_capture {
+            // キャプチャ中はソース領域に制限
+            unsafe {
+                let _ = ClipCursor(Some(&self.src_rect_cache));
+            }
+        } else if self.should_draw_cursor {
+            // 非キャプチャ中でもスケーリングウィンドウ上にいる場合は
+            // dest_rect（コンテンツ領域）に制限してレターボックスへの進入を防止
+            unsafe {
+                let _ = ClipCursor(Some(&self.dest_rect_cache));
+            }
+        } else {
+            // その他の場合はカーソル制限を解除
+            unsafe {
+                let _ = ClipCursor(None);
+            }
+        }
 
         // カーソル位置が変更された場合は移動 (Magpie L789-792)
         if cursor_pos.x != origin_cursor_pos.x || cursor_pos.y != origin_cursor_pos.y {
@@ -589,6 +665,59 @@ impl CursorManager {
         let mut pos = POINT::default();
         let _ = unsafe { GetCursorPos(&mut pos) };
         self.stop_capture(&mut pos);
+    }
+
+    /// リサイズカーソルかどうかを判定
+    fn is_resize_cursor(h_cursor: isize) -> bool {
+        use windows::Win32::UI::WindowsAndMessaging::{
+            LoadCursorW, IDC_SIZENESW, IDC_SIZENS, IDC_SIZENWSE, IDC_SIZEWE,
+        };
+
+        // システムリサイズカーソルハンドルを取得してチェック
+        unsafe {
+            let size_we = LoadCursorW(None, IDC_SIZEWE)
+                .map(|c| c.0 as isize)
+                .unwrap_or(0);
+            let size_ns = LoadCursorW(None, IDC_SIZENS)
+                .map(|c| c.0 as isize)
+                .unwrap_or(0);
+            let size_nesw = LoadCursorW(None, IDC_SIZENESW)
+                .map(|c| c.0 as isize)
+                .unwrap_or(0);
+            let size_nwse = LoadCursorW(None, IDC_SIZENWSE)
+                .map(|c| c.0 as isize)
+                .unwrap_or(0);
+
+            h_cursor == size_we
+                || h_cursor == size_ns
+                || h_cursor == size_nesw
+                || h_cursor == size_nwse
+        }
+    }
+
+    /// 描画用カーソルハンドルを取得 (Magpie方式でリサイズカーソルをフィルタリング)
+    pub fn get_cursor_handle(&mut self, current_cursor: isize) -> isize {
+        if self.is_on_edge && Self::is_resize_cursor(current_cursor) {
+            // エッジ上でリサイズカーソルの場合は、キャッシュしたカーソルを使用
+            if self.cached_cursor_handle != 0 {
+                return self.cached_cursor_handle;
+            }
+            // キャッシュがない場合は標準矢印カーソルを返す
+            unsafe {
+                use windows::Win32::UI::WindowsAndMessaging::{LoadCursorW, IDC_ARROW};
+                if let Ok(arrow) = LoadCursorW(None, IDC_ARROW) {
+                    return arrow.0 as isize;
+                }
+            }
+            return current_cursor;
+        }
+
+        // リサイズカーソルでない通常カーソルはキャッシュ
+        if !Self::is_resize_cursor(current_cursor) && current_cursor != 0 {
+            self.cached_cursor_handle = current_cursor;
+        }
+
+        current_cursor
     }
 
     fn adjust_cursor_speed(&mut self) {

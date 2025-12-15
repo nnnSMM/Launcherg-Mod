@@ -620,12 +620,14 @@ impl CursorRenderer {
     }
 
     /// カーソルを描画
+    /// viewport_rect: カーソルをクリップするビューポート矩形（クライアント座標系、Noneの場合はクリップなし）
     pub fn draw_cursor(
         &mut self,
         backbuffer: &ID3D11Texture2D,
         h_cursor: HCURSOR,
         cursor_pos: POINT,
         scale: f32,
+        viewport_rect: Option<windows::Win32::Foundation::RECT>,
     ) -> Result<()> {
         if !self.initialized {
             self.initialize()?;
@@ -673,29 +675,73 @@ impl CursorRenderer {
             let draw_x = cursor_pos.x - hot_spot_x;
             let draw_y = cursor_pos.y - hot_spot_y;
 
-            // NDC座標に変換
-            let left = draw_x as f32 / width * 2.0 - 1.0;
-            let right = (draw_x + cursor_width) as f32 / width * 2.0 - 1.0;
-            let top = 1.0 - draw_y as f32 / height * 2.0;
-            let bottom = 1.0 - (draw_y + cursor_height) as f32 / height * 2.0;
+            // カーソル矩形を計算
+            let cursor_rect = windows::Win32::Foundation::RECT {
+                left: draw_x,
+                top: draw_y,
+                right: draw_x + cursor_width,
+                bottom: draw_y + cursor_height,
+            };
 
-            // 頂点バッファを更新
+            // ビューポート判定 (Magpie方式: CursorDrawer.cpp L141-154)
+            // ビューポートが指定されている場合、カーソル矩形とビューポートをチェック
+            let (clip_left, clip_top, clip_right, clip_bottom) = if let Some(vp) = viewport_rect {
+                // カーソル矩形がビューポート完全に外にある場合は描画しない
+                if cursor_rect.left >= vp.right
+                    || cursor_rect.top >= vp.bottom
+                    || cursor_rect.right <= vp.left
+                    || cursor_rect.bottom <= vp.top
+                {
+                    return Ok(());
+                }
+                // クリップ座標を計算
+                (
+                    cursor_rect.left.max(vp.left),
+                    cursor_rect.top.max(vp.top),
+                    cursor_rect.right.min(vp.right),
+                    cursor_rect.bottom.min(vp.bottom),
+                )
+            } else {
+                // ビューポートなし = クリップなし
+                (
+                    cursor_rect.left,
+                    cursor_rect.top,
+                    cursor_rect.right,
+                    cursor_rect.bottom,
+                )
+            };
+
+            // クリップされたUV座標を計算
+            let cursor_w = cursor_rect.right - cursor_rect.left;
+            let cursor_h = cursor_rect.bottom - cursor_rect.top;
+            let uv_left = (clip_left - cursor_rect.left) as f32 / cursor_w as f32;
+            let uv_top = (clip_top - cursor_rect.top) as f32 / cursor_h as f32;
+            let uv_right = (clip_right - cursor_rect.left) as f32 / cursor_w as f32;
+            let uv_bottom = (clip_bottom - cursor_rect.top) as f32 / cursor_h as f32;
+
+            // NDC座標に変換（クリップ後の座標を使用）
+            let left = clip_left as f32 / width * 2.0 - 1.0;
+            let right = clip_right as f32 / width * 2.0 - 1.0;
+            let top = 1.0 - clip_top as f32 / height * 2.0;
+            let bottom = 1.0 - clip_bottom as f32 / height * 2.0;
+
+            // 頂点バッファを更新（クリップされたUV座標を使用）
             let vertices = [
                 Vertex {
                     pos: [left, top],
-                    tex: [0.0, 0.0],
+                    tex: [uv_left, uv_top],
                 },
                 Vertex {
                     pos: [right, top],
-                    tex: [1.0, 0.0],
+                    tex: [uv_right, uv_top],
                 },
                 Vertex {
                     pos: [left, bottom],
-                    tex: [0.0, 1.0],
+                    tex: [uv_left, uv_bottom],
                 },
                 Vertex {
                     pos: [right, bottom],
-                    tex: [1.0, 1.0],
+                    tex: [uv_right, uv_bottom],
                 },
             ];
 
@@ -826,6 +872,7 @@ impl CursorRenderer {
                         ci.hCursor,
                         cursor_pos,
                         cursor_size / 32.0,
+                        None
                     );
                 }
             }
