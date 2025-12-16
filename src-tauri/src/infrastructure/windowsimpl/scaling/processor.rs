@@ -377,6 +377,14 @@ impl ScalingProcessor {
             match init_result {
                 Ok((window_manager, device, context, swap_chain, frame_latency_handle, _cached_backbuffer_initial, _cached_rtv_initial, compute_shader, const_buffer, output_texture, output_uav, mut toolbar, mut cursor_manager, mut cursor_renderer, mut simple_toolbar, sampler)) => {
                     println!("Initialization successful");
+                    
+                    // ソースウィンドウの位置を保存（終了時に復元するため）
+                    let saved_src_rect = unsafe {
+                        let mut rect = RECT::default();
+                        let _ = GetWindowRect(target_hwnd, &mut rect);
+                        rect
+                    };
+                    
                     let mut src_tracker = SrcTracker::new(target_hwnd);
                     let source_result = CaptureFrameSource::new(target_hwnd, device.clone());
                     
@@ -388,7 +396,7 @@ impl ScalingProcessor {
                             let mut frames = 0;
                             let mut total_processing_time = 0.0;
                             let mut processing_start;
-                            
+
                             // Aspect Ratio & Centering State
                             let mut current_target_w = 0.0f32;
                             let mut current_target_h = 0.0f32;
@@ -753,10 +761,34 @@ impl ScalingProcessor {
                     } else {
                         println!("Failed to create capture source");
                     }
+                    
                     window_manager.restore_target_window();
+                    
+                    // オーバーレイウィンドウを明示的に破棄（ソースウィンドウへの影響を制御するため）
+                    if let Some(overlay_hwnd) = window_manager.get_overlay_window() {
+                        unsafe {
+                            use windows::Win32::UI::WindowsAndMessaging::DestroyWindow;
+                            let _ = DestroyWindow(overlay_hwnd);
+                        }
+                    }
+                    
+                    // オーバーレイ破棄後にソースウィンドウの位置を復元
+                    unsafe {
+                        use windows::Win32::UI::WindowsAndMessaging::{SetWindowPos, SWP_NOZORDER, SWP_NOACTIVATE};
+                        let _ = SetWindowPos(
+                            target_hwnd,
+                            None,
+                            saved_src_rect.left,
+                            saved_src_rect.top,
+                            saved_src_rect.right - saved_src_rect.left,
+                            saved_src_rect.bottom - saved_src_rect.top,
+                            SWP_NOZORDER | SWP_NOACTIVATE,
+                        );
+                    }
                 }
                 Err(e) => println!("Backend Init Failed: {:?}", e),
             }
+            
             println!("Backend thread stopped");
         });
 
