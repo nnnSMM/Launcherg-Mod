@@ -416,9 +416,18 @@ impl CursorManager {
 
     /// カーソルハンドルを取得（リサイズカーソルフィルタリング付き）
     pub fn get_cursor_handle(&self, _current_cursor: isize) -> isize {
-        // リサイズカーソルのフィルタリングは現在の実装では省略
-        // 必要に応じて追加可能
-        self.h_cursor
+        // リサイズカーソルの場合は通常の矢印カーソルに置き換え
+        // スケーリング中はソースウィンドウの境界でリサイズカーソルが表示されるのを防ぐ
+        if self.is_size_cursor(self.h_cursor) {
+            unsafe {
+                use windows::Win32::UI::WindowsAndMessaging::{LoadCursorW, IDC_ARROW};
+                LoadCursorW(None, IDC_ARROW)
+                    .map(|c| c.0 as isize)
+                    .unwrap_or(self.h_cursor)
+            }
+        } else {
+            self.h_cursor
+        }
     }
 
     // ========== 座標変換 ==========
@@ -791,15 +800,16 @@ impl CursorManager {
                     // リサイズカーソル遅延処理
                     let is_size_cursor = self.is_size_cursor(ci.hCursor.0 as isize);
                     if is_size_cursor {
-                        if ci.hCursor.0 as isize != self.h_cursor {
-                            if self.size_cursor_start_time.is_none() {
-                                self.size_cursor_start_time = Some(Instant::now());
-                            } else if self.size_cursor_start_time.unwrap().elapsed().as_millis()
-                                > 50
-                            {
-                                self.h_cursor = ci.hCursor.0 as isize;
-                            }
+                        // リサイズカーソルは矢印カーソルに置き換える
+                        use windows::Win32::UI::WindowsAndMessaging::{
+                            LoadCursorW, SetCursor, IDC_ARROW,
+                        };
+                        if let Ok(arrow) = LoadCursorW(None, IDC_ARROW) {
+                            self.h_cursor = arrow.0 as isize;
+                            // システムカーソルも矢印に変更
+                            SetCursor(arrow);
                         }
+                        self.size_cursor_start_time = None;
                     } else {
                         self.size_cursor_start_time = None;
                         self.h_cursor = ci.hCursor.0 as isize;

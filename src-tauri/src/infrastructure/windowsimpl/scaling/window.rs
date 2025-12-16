@@ -13,7 +13,9 @@ pub struct WindowManager {
     target_hwnd: Option<HWND>,
 }
 
-use windows::Win32::UI::WindowsAndMessaging::{HTCLIENT, WM_NCHITTEST};
+use windows::Win32::UI::WindowsAndMessaging::{
+    LoadCursorW, SetCursor, HTCLIENT, IDC_ARROW, WM_NCHITTEST, WM_SETCURSOR,
+};
 
 unsafe extern "system" fn window_proc(
     hwnd: HWND,
@@ -23,6 +25,13 @@ unsafe extern "system" fn window_proc(
 ) -> LRESULT {
     if msg == WM_NCHITTEST {
         return LRESULT(HTCLIENT as isize);
+    }
+    // リサイズカーソルが表示されないように、常に矢印カーソルを設定
+    if msg == WM_SETCURSOR {
+        if let Ok(arrow) = LoadCursorW(None, IDC_ARROW) {
+            SetCursor(arrow);
+            return LRESULT(1); // カーソル設定済みを示す
+        }
     }
     DefWindowProcW(hwnd, msg, wparam, lparam)
 }
