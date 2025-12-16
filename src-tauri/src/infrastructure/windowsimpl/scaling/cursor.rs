@@ -15,15 +15,13 @@ use windows::Win32::Graphics::Gdi::{
 use windows::Win32::System::LibraryLoader::{GetModuleHandleW, GetProcAddress};
 use windows::Win32::System::Threading::Sleep;
 use windows::Win32::UI::WindowsAndMessaging::{
-    ChildWindowFromPointEx, ClipCursor, EnumWindows, GetAncestor, GetClientRect, GetClipCursor,
-    GetCursorPos, GetForegroundWindow, GetGUIThreadInfo, GetWindowLongPtrW, GetWindowRect, IsChild,
-    IsWindowVisible, IsZoomed, SendMessageTimeoutW, SetWindowLongPtrW, SetWindowPos,
-    SystemParametersInfoW, WindowFromPoint as WinApiWindowFromPoint, CWP_SKIPDISABLED,
-    CWP_SKIPINVISIBLE, CWP_SKIPTRANSPARENT, GA_ROOT, GUITHREADINFO, GUI_INMENUMODE, GUI_INMOVESIZE,
-    GUI_POPUPMENUMODE, GUI_SYSTEMMENUMODE, GWL_EXSTYLE, GWL_STYLE, HTSIZEFIRST, HTSIZELAST,
-    HWND_NOTOPMOST, HWND_TOP, HWND_TOPMOST, SMTO_ABORTIFHUNG, SPI_GETMOUSESPEED, SPI_SETMOUSESPEED,
-    SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS, WM_NCHITTEST,
-    WS_CHILD, WS_EX_TRANSPARENT,
+    ChildWindowFromPointEx, ClipCursor, EnumWindows, GetClientRect, GetClipCursor, GetCursorPos,
+    GetForegroundWindow, GetGUIThreadInfo, GetWindowLongPtrW, GetWindowRect, IsChild,
+    IsWindowVisible, IsZoomed, SendMessageTimeoutW, SetWindowLongPtrW, SystemParametersInfoW,
+    CWP_SKIPDISABLED, CWP_SKIPINVISIBLE, CWP_SKIPTRANSPARENT, GUITHREADINFO, GUI_INMENUMODE,
+    GUI_INMOVESIZE, GUI_POPUPMENUMODE, GUI_SYSTEMMENUMODE, GWL_EXSTYLE, GWL_STYLE, HTSIZEFIRST,
+    HTSIZELAST, SMTO_ABORTIFHUNG, SPI_GETMOUSESPEED, SPI_SETMOUSESPEED,
+    SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS, WM_NCHITTEST, WS_CHILD, WS_EX_TRANSPARENT,
 };
 
 // ShowSystemCursor API の関数ポインタ型
@@ -46,6 +44,32 @@ pub enum RoundMethod {
     Round,
     Floor,
     Ceil,
+}
+
+/// タスクバーがカーソル位置にあるかチェック（強制検出用）
+fn is_taskbar_at_point(pt: POINT) -> bool {
+    unsafe {
+        let taskbar_class: Vec<u16> = "Shell_TrayWnd\0".encode_utf16().collect();
+        let taskbar_hwnd = windows::Win32::UI::WindowsAndMessaging::FindWindowW(
+            windows::core::PCWSTR::from_raw(taskbar_class.as_ptr()),
+            windows::core::PCWSTR::null(),
+        );
+
+        if taskbar_hwnd == HWND::default() {
+            return false;
+        }
+
+        if !IsWindowVisible(taskbar_hwnd).as_bool() {
+            return false;
+        }
+
+        let mut rect = RECT::default();
+        if GetWindowRect(taskbar_hwnd, &mut rect).is_err() {
+            return false;
+        }
+
+        PtInRect(&rect, pt).as_bool()
+    }
 }
 
 /// ウィンドウが指定座標でマウス入力を受け取るかどうか (Magpie PtInWindow 相当)
@@ -85,35 +109,54 @@ fn pt_in_window(hwnd: HWND, pt: POINT) -> bool {
             return false;
         }
 
-        // 5. クライアント領域の透明性をチェック
-        let mut client_rect = RECT::default();
-        if GetClientRect(hwnd, &mut client_rect).is_ok() {
-            let mut client_pt = POINT { x: 0, y: 0 };
-            let _ = ClientToScreen(hwnd, &mut client_pt);
-            let client_screen_rect = RECT {
-                left: client_pt.x,
-                top: client_pt.y,
-                right: client_pt.x + (client_rect.right - client_rect.left),
-                bottom: client_pt.y + (client_rect.bottom - client_rect.top),
-            };
+        // UWPウィンドウやシステムウィンドウ（タスクバーなど）はクライアント領域が
+        // 特殊な描画や透明効果を持つことが多く、ChildWindowFromPointExで誤って
+        // 透明と判定されるため、クラス名をチェックしてスキップする
+        let mut class_name: [u16; 256] = [0; 256];
+        let class_len =
+            windows::Win32::UI::WindowsAndMessaging::GetClassNameW(hwnd, &mut class_name);
 
-            if PtInRect(&client_screen_rect, pt).as_bool() {
-                let local_pt = POINT {
-                    x: pt.x - client_screen_rect.left,
-                    y: pt.y - client_screen_rect.top,
+        let should_skip_transparency_check = if class_len > 0 {
+            let name = String::from_utf16_lossy(&class_name[..class_len as usize]);
+            name == "Windows.UI.Core.CoreWindow"
+                || name == "Shell_TrayWnd"
+                || name == "NotifyIconOverflowWindow"
+                || name == "TopLevelWindowForOverflowXamlIsland"
+        } else {
+            false
+        };
+
+        // 5. クライアント領域の透明性をチェック（特殊ウィンドウはスキップ）
+        if !should_skip_transparency_check {
+            let mut client_rect = RECT::default();
+            if GetClientRect(hwnd, &mut client_rect).is_ok() {
+                let mut client_pt = POINT { x: 0, y: 0 };
+                let _ = ClientToScreen(hwnd, &mut client_pt);
+                let client_screen_rect = RECT {
+                    left: client_pt.x,
+                    top: client_pt.y,
+                    right: client_pt.x + (client_rect.right - client_rect.left),
+                    bottom: client_pt.y + (client_rect.bottom - client_rect.top),
                 };
-                windows::Win32::Foundation::SetLastError(windows::Win32::Foundation::WIN32_ERROR(
-                    0,
-                ));
-                let child = ChildWindowFromPointEx(
-                    hwnd,
-                    local_pt,
-                    CWP_SKIPINVISIBLE | CWP_SKIPDISABLED | CWP_SKIPTRANSPARENT,
-                );
-                if child == HWND::default() {
-                    let err = windows::Win32::Foundation::GetLastError();
-                    if err.is_ok() {
-                        return false;
+
+                if PtInRect(&client_screen_rect, pt).as_bool() {
+                    let local_pt = POINT {
+                        x: pt.x - client_screen_rect.left,
+                        y: pt.y - client_screen_rect.top,
+                    };
+                    windows::Win32::Foundation::SetLastError(
+                        windows::Win32::Foundation::WIN32_ERROR(0),
+                    );
+                    let child = ChildWindowFromPointEx(
+                        hwnd,
+                        local_pt,
+                        CWP_SKIPINVISIBLE | CWP_SKIPDISABLED | CWP_SKIPTRANSPARENT,
+                    );
+                    if child == HWND::default() {
+                        let err = windows::Win32::Foundation::GetLastError();
+                        if err.is_ok() {
+                            return false;
+                        }
                     }
                 }
             }
@@ -124,9 +167,11 @@ fn pt_in_window(hwnd: HWND, pt: POINT) -> bool {
         let region_type = GetWindowRgn(hwnd, h_rgn);
         if region_type == GDI_REGION_TYPE(2) || region_type == GDI_REGION_TYPE(3) {
             if !PtInRegion(h_rgn, pt.x - window_rect.left, pt.y - window_rect.top).as_bool() {
+                windows::Win32::Graphics::Gdi::DeleteObject(h_rgn);
                 return false;
             }
         }
+        windows::Win32::Graphics::Gdi::DeleteObject(h_rgn);
 
         true
     }
@@ -591,28 +636,48 @@ impl CursorManager {
                 ..Default::default()
             };
             if GetGUIThreadInfo(0, &mut info).is_ok() {
-                if info.hwndCapture != HWND::default()
-                    && (info.flags.0
-                        & (GUI_INMENUMODE.0 | GUI_POPUPMENUMODE.0 | GUI_SYSTEMMENUMODE.0))
-                        == 0
-                {
+                let in_menu_mode = (info.flags.0
+                    & (GUI_INMENUMODE.0 | GUI_POPUPMENUMODE.0 | GUI_SYSTEMMENUMODE.0))
+                    != 0;
+
+                // デバッグ: メニューモードの状態を確認
+                if in_menu_mode {
+                    println!(
+                        "[CursorManager] In menu mode! flags={:#x}, hwndCapture={:?}, is_under_capture={}",
+                        info.flags.0, info.hwndCapture, self.is_under_capture
+                    );
+                }
+
+                if info.hwndCapture != HWND::default() && !in_menu_mode {
                     self.is_captured_on_foreground = true;
 
-                    if info.hwndCapture == self.src_hwnd
-                        && self.local_cursor_pos_on_moving.x == i32::MAX
-                    {
-                        self.local_cursor_pos_on_moving.x =
-                            self.cursor_pos.x - self.renderer_rect.left;
-                        self.local_cursor_pos_on_moving.y =
-                            self.cursor_pos.y - self.renderer_rect.top;
-                    }
+                    // キャプチャしているウィンドウがソースウィンドウまたはその子ウィンドウの場合のみ
+                    // 早期リターンしてドラッグ操作などを妨げない
+                    // システムウィンドウ（スタートメニュー、タスクバーなど）の場合は
+                    // カーソル位置ベースの判断を継続する
+                    let is_src_related = info.hwndCapture == self.src_hwnd
+                        || info.hwndCapture == self.scaling_hwnd
+                        || IsChild(self.src_hwnd, info.hwndCapture).as_bool();
 
-                    if self.is_under_capture && (info.flags.0 & GUI_INMOVESIZE.0) == 0 {
-                        self.set_clip_cursor(&self.src_rect.clone());
-                    } else {
-                        self.restore_clip_cursor();
+                    if is_src_related {
+                        if info.hwndCapture == self.src_hwnd
+                            && self.local_cursor_pos_on_moving.x == i32::MAX
+                        {
+                            self.local_cursor_pos_on_moving.x =
+                                self.cursor_pos.x - self.renderer_rect.left;
+                            self.local_cursor_pos_on_moving.y =
+                                self.cursor_pos.y - self.renderer_rect.top;
+                        }
+
+                        if self.is_under_capture && (info.flags.0 & GUI_INMOVESIZE.0) == 0 {
+                            self.set_clip_cursor(&self.src_rect.clone());
+                        } else {
+                            self.restore_clip_cursor();
+                        }
+                        return;
                     }
-                    return;
+                    // システムウィンドウなどの場合は早期リターンせず、
+                    // カーソル位置ベースの判断を継続
                 }
 
                 if info.hwndCapture != self.src_hwnd {
@@ -634,37 +699,39 @@ impl CursorManager {
         let is_src_focused =
             foreground_hwnd == self.src_hwnd || foreground_hwnd == self.scaling_hwnd;
 
-        // 前景ウィンドウがソースウィンドウでもスケーリングウィンドウでもない場合
-        // （スタートメニュー、タスクバー、その他のシステムウィンドウなど）
-        // キャプチャを停止してシステムカーソルを表示する
-        if !is_src_focused && foreground_hwnd != HWND::default() {
-            // キャプチャ中なら停止（カーソル位置変換を含む）
-            if self.is_under_capture {
-                self.set_ex_transparent(false, style);
-                self.stop_capture(&mut cursor_pos);
-            }
-            // カスタムカーソル描画を無効化
-            self.should_draw_cursor = false;
-            self.set_ex_transparent(false, style);
-            self.show_system_cursor(true);
-            self.restore_clip_cursor();
-            // カーソル位置が変更された場合は移動（ただしSleepなしのSetCursorPosを使用）
-            if cursor_pos != origin_cursor_pos {
-                unsafe {
-                    use windows::Win32::UI::WindowsAndMessaging::SetCursorPos;
-                    let _ = SetCursorPos(cursor_pos.x, cursor_pos.y);
-                }
-            }
-            return;
-        }
+        // Magpie方式: 前景ウィンドウではなく、カーソル位置ベースで判断
+        // 他のウィンドウが前景にあっても、カーソルがソースウィンドウ上にあればキャプチャを維持
 
         let mut should_clear_hit_test = true;
 
         if self.is_under_capture {
             // キャプチャ中
             let scaled_pos = self.src_to_scaling(cursor_pos, is_src_focused);
-            let hwnd_cur =
+
+            // 前景ウィンドウがスケーリング後の位置を遮蔽しているかチェック
+            // EnumWindowsではTOPMOSTウィンドウが先に列挙されるため、
+            // 前景ウィンドウの矩形を直接チェックする
+            let mut hwnd_cur =
                 window_from_point(self.scaling_hwnd, self.renderer_rect, scaled_pos, false);
+
+            // 前景ウィンドウが変わっている場合、遮蔽をチェック
+            if hwnd_cur == self.scaling_hwnd
+                && !is_src_focused
+                && foreground_hwnd != HWND::default()
+            {
+                let mut fg_rect = RECT::default();
+                if unsafe { GetWindowRect(foreground_hwnd, &mut fg_rect) }.is_ok() {
+                    if unsafe { PtInRect(&fg_rect, scaled_pos) }.as_bool() {
+                        hwnd_cur = foreground_hwnd;
+                    }
+                }
+            }
+
+            // タスクバー強制検出 (Z順序に関わらずチェック)
+            if hwnd_cur == self.scaling_hwnd && is_taskbar_at_point(scaled_pos) {
+                hwnd_cur = HWND::default(); // 遮蔽として扱う
+            }
+
             self.should_draw_cursor = hwnd_cur == self.scaling_hwnd;
 
             if self.should_draw_cursor {
@@ -679,6 +746,8 @@ impl CursorManager {
                             || (unsafe { GetWindowLongPtrW(hwnd_at_src, GWL_STYLE) as u32 }
                                 & WS_CHILD.0)
                                 == 0);
+
+                    // デバッグログ削除
 
                     if !stop_capture {
                         should_clear_hit_test = false;
@@ -714,7 +783,28 @@ impl CursorManager {
             // 非キャプチャ中
             let hwnd_cur =
                 window_from_point(self.scaling_hwnd, self.renderer_rect, cursor_pos, false);
-            self.should_draw_cursor = hwnd_cur == self.scaling_hwnd;
+
+            // 前景ウィンドウがカーソル位置を遮蔽しているかチェック
+            let mut is_blocked = if hwnd_cur == self.scaling_hwnd
+                && !is_src_focused
+                && foreground_hwnd != HWND::default()
+            {
+                let mut fg_rect = RECT::default();
+                if unsafe { GetWindowRect(foreground_hwnd, &mut fg_rect) }.is_ok() {
+                    unsafe { PtInRect(&fg_rect, cursor_pos) }.as_bool()
+                } else {
+                    false
+                }
+            } else {
+                hwnd_cur != self.scaling_hwnd
+            };
+
+            // タスクバー強制検出
+            if !is_blocked && hwnd_cur == self.scaling_hwnd && is_taskbar_at_point(cursor_pos) {
+                is_blocked = true;
+            }
+
+            self.should_draw_cursor = !is_blocked;
 
             if self.should_draw_cursor {
                 let new_cursor_pos = self.scaling_to_src(cursor_pos, RoundMethod::Round);
