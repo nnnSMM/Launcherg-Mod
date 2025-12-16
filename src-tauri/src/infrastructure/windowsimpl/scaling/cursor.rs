@@ -630,8 +630,29 @@ impl CursorManager {
         }
 
         let origin_cursor_pos = cursor_pos;
-        let is_src_focused = unsafe { GetForegroundWindow() } == self.src_hwnd
-            || unsafe { GetForegroundWindow() } == self.scaling_hwnd;
+        let foreground_hwnd = unsafe { GetForegroundWindow() };
+        let is_src_focused =
+            foreground_hwnd == self.src_hwnd || foreground_hwnd == self.scaling_hwnd;
+
+        // 前景ウィンドウがソースウィンドウでもスケーリングウィンドウでもない場合
+        // （スタートメニュー、タスクバー、その他のシステムウィンドウなど）
+        // キャプチャを停止してシステムカーソルを表示する
+        if !is_src_focused && foreground_hwnd != HWND::default() {
+            // キャプチャ中なら停止
+            if self.is_under_capture {
+                self.set_ex_transparent(false, style);
+                self.stop_capture(&mut cursor_pos);
+            }
+            // カスタムカーソル描画を無効化
+            self.should_draw_cursor = false;
+            self.set_ex_transparent(false, style);
+            self.show_system_cursor(true);
+            self.restore_clip_cursor();
+            if cursor_pos != origin_cursor_pos {
+                self.reliable_set_cursor_pos(cursor_pos);
+            }
+            return;
+        }
 
         let mut should_clear_hit_test = true;
 
@@ -1267,11 +1288,11 @@ impl CursorManager {
             // SetCursorPosも呼び出して確実に移動
             let _ = SetCursorPos(pos.x, pos.y);
 
-            // OSが入力キューを処理するまで待機
-            Sleep(8);
-
-            // クリップを復元
-            let _ = ClipCursor(Some(&origin_clip));
+            // クリップ復元を別スレッドで遅延実行（メインスレッドをブロックしない）
+            std::thread::spawn(move || {
+                Sleep(8);
+                let _ = ClipCursor(Some(&origin_clip));
+            });
         }
     }
 
