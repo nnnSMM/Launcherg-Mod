@@ -646,79 +646,79 @@ impl ScalingProcessor {
                                     }
                                     
                                     // Ensure dest_rect is valid (sometimes fails on first frame)
-                                    if (dest_rect.right - dest_rect.left) > 0 {
+                                    // current_target_w/current_target_hも有効でないとdest_rectが正しくない
+                                    if (dest_rect.right - dest_rect.left) > 0 && current_target_w > 0.0 && current_target_h > 0.0 {
                                         
                                         // Calculate Valid Dest Rect (Inner Image Area)
                                         let mut valid_dest_rect = dest_rect;
-                                        if current_target_w > 0.0 && current_target_h > 0.0 {
-                                            valid_dest_rect.left += current_offset_x as i32;
-                                            valid_dest_rect.top += current_offset_y as i32;
-                                            valid_dest_rect.right = valid_dest_rect.left + current_target_w as i32;
-                                            valid_dest_rect.bottom = valid_dest_rect.top + current_target_h as i32;
-                                        }
+                                        valid_dest_rect.left += current_offset_x as i32;
+                                        valid_dest_rect.top += current_offset_y as i32;
+                                        valid_dest_rect.right = valid_dest_rect.left + current_target_w as i32;
+                                        valid_dest_rect.bottom = valid_dest_rect.top + current_target_h as i32;
 
                                         // SrcTrackerからフォーカス状態を取得
                                         let is_src_focused = src_tracker.is_focused();
-                                        if let Ok(_) = cursor_manager.update(src_rect, valid_dest_rect, target_hwnd, is_src_focused) {
-                                            // ツールバー更新と描画 (カーソルより先に描画)
-                                            let mut toolbar_cursor_pos = cursor_manager.draw_pos;
-                                            if let Some(hwnd) = window_manager.get_overlay_window() {
-                                                let _ = ScreenToClient(hwnd, &mut toolbar_cursor_pos);
-                                            }
-                                            simple_toolbar.tick();
-                                            simple_toolbar.update_visibility(toolbar_cursor_pos, (dest_rect.bottom - dest_rect.top) as i32);
-                                            let _ = simple_toolbar.render(&backbuffer);
-                                            
-                                            // 終了ボタンチェック (左クリック)
-                                            if (windows::Win32::UI::Input::KeyboardAndMouse::GetAsyncKeyState(0x01) as u16 & 0x8000) != 0 {
-                                                if simple_toolbar.check_close_button_click(toolbar_cursor_pos) {
-                                                    println!("Close button clicked, stopping scaling");
-                                                    running.store(false, Ordering::SeqCst);
-                                                    break;
-                                                }
-                                            }
-
-                                            // システムカーソルを描画 (ツールバーの上に)
-                                            if cursor_manager.should_draw_cursor {
-                                                let mut client_pt = cursor_manager.draw_pos;
-                                                if let Some(hwnd) = window_manager.get_overlay_window() {
-                                                    let _ = ScreenToClient(hwnd, &mut client_pt);
-                                                }
-                                                
-                                                // カーソルハンドルを取得して描画
-                                                let mut cursor_info = windows::Win32::UI::WindowsAndMessaging::CURSORINFO {
-                                                    cbSize: std::mem::size_of::<windows::Win32::UI::WindowsAndMessaging::CURSORINFO>() as u32,
-                                                    ..Default::default()
-                                                };
-                                                if windows::Win32::UI::WindowsAndMessaging::GetCursorInfo(&mut cursor_info).is_ok() 
-                                                    && !cursor_info.hCursor.is_invalid() {
-                                                    // シザーレクトを設定してコンテンツ領域内にカーソルをクリップ
-                                                    let scissor_rect = windows::Win32::Foundation::RECT {
-                                                        left: current_offset_x as i32,
-                                                        top: current_offset_y as i32,
-                                                        right: current_offset_x as i32 + current_target_w as i32,
-                                                        bottom: current_offset_y as i32 + current_target_h as i32,
-                                                    };
-                                                    context.RSSetScissorRects(Some(&[scissor_rect]));
-                                                    
-                                                    // リサイズカーソルをフィルタリング (Magpie方式)
-                                                    let filtered_cursor = cursor_manager.get_cursor_handle(cursor_info.hCursor.0 as isize);
-                                                    let h_cursor = windows::Win32::UI::WindowsAndMessaging::HCURSOR(filtered_cursor as _);
-                                                    let _ = cursor_renderer.draw_cursor(&backbuffer, h_cursor, client_pt, 1.0, Some(scissor_rect));
-                                                    
-                                                    // シザーレクトをリセット（画面全体に戻す）
-                                                    let full_rect = windows::Win32::Foundation::RECT {
-                                                        left: 0,
-                                                        top: 0,
-                                                        right: output_desc.Width as i32,
-                                                        bottom: output_desc.Height as i32,
-                                                    };
-                                                    context.RSSetScissorRects(Some(&[full_rect]));
-                                                }
-                                            }
-                                            
-                                            let _ = (&toolbar, output_desc.Width, &rtv, &frame_latency_handle); // unused warning 回避
+                                        let overlay_hwnd = window_manager.get_overlay_window().unwrap_or(HWND::default());
+                                        cursor_manager.update(target_hwnd, src_rect, valid_dest_rect, dest_rect, false, false);
+                                        
+                                        // ツールバー更新と描画 (カーソルより先に描画)
+                                        let mut toolbar_cursor_pos = cursor_manager.draw_pos();
+                                        if let Some(hwnd) = window_manager.get_overlay_window() {
+                                            let _ = ScreenToClient(hwnd, &mut toolbar_cursor_pos);
                                         }
+                                        simple_toolbar.tick();
+                                        simple_toolbar.update_visibility(toolbar_cursor_pos, (dest_rect.bottom - dest_rect.top) as i32);
+                                        let _ = simple_toolbar.render(&backbuffer);
+                                        
+                                        // 終了ボタンチェック (左クリック)
+                                        if (windows::Win32::UI::Input::KeyboardAndMouse::GetAsyncKeyState(0x01) as u16 & 0x8000) != 0 {
+                                            if simple_toolbar.check_close_button_click(toolbar_cursor_pos) {
+                                                println!("Close button clicked, stopping scaling");
+                                                running.store(false, Ordering::SeqCst);
+                                                break;
+                                            }
+                                        }
+
+                                        // システムカーソルを描画 (ツールバーの上に)
+                                        if cursor_manager.should_draw_cursor() {
+                                            let mut client_pt = cursor_manager.draw_pos();
+                                            if let Some(hwnd) = window_manager.get_overlay_window() {
+                                                let _ = ScreenToClient(hwnd, &mut client_pt);
+                                            }
+                                            
+                                            // カーソルハンドルを取得して描画
+                                            let mut cursor_info = windows::Win32::UI::WindowsAndMessaging::CURSORINFO {
+                                                cbSize: std::mem::size_of::<windows::Win32::UI::WindowsAndMessaging::CURSORINFO>() as u32,
+                                                ..Default::default()
+                                            };
+                                            if windows::Win32::UI::WindowsAndMessaging::GetCursorInfo(&mut cursor_info).is_ok() 
+                                                && !cursor_info.hCursor.is_invalid() {
+                                                // シザーレクトを設定してコンテンツ領域内にカーソルをクリップ
+                                                let scissor_rect = windows::Win32::Foundation::RECT {
+                                                    left: current_offset_x as i32,
+                                                    top: current_offset_y as i32,
+                                                    right: current_offset_x as i32 + current_target_w as i32,
+                                                    bottom: current_offset_y as i32 + current_target_h as i32,
+                                                };
+                                                context.RSSetScissorRects(Some(&[scissor_rect]));
+                                                
+                                                // リサイズカーソルをフィルタリング (Magpie方式)
+                                                let filtered_cursor = cursor_manager.get_cursor_handle(cursor_info.hCursor.0 as isize);
+                                                let h_cursor = windows::Win32::UI::WindowsAndMessaging::HCURSOR(filtered_cursor as _);
+                                                let _ = cursor_renderer.draw_cursor(&backbuffer, h_cursor, client_pt, 1.0, Some(scissor_rect));
+                                                
+                                                // シザーレクトをリセット（画面全体に戻す）
+                                                let full_rect = windows::Win32::Foundation::RECT {
+                                                    left: 0,
+                                                    top: 0,
+                                                    right: output_desc.Width as i32,
+                                                    bottom: output_desc.Height as i32,
+                                                };
+                                                context.RSSetScissorRects(Some(&[full_rect]));
+                                            }
+                                        }
+                                        
+                                        let _ = (&toolbar, output_desc.Width, &rtv, &frame_latency_handle, is_src_focused, overlay_hwnd); // unused warning 回避
                                     }
 
                                     let _ = swap_chain.Present(0, 0);
@@ -741,6 +741,10 @@ impl ScalingProcessor {
                                     std::mem::size_of::<u32>() as u32,
                                 );
                             }
+
+
+                            // Cursor cleanup: カーソルをスクリーン座標に戻す
+                            cursor_manager.stop_capture_public();
 
                             let _ = source.stop();
                         } else {
