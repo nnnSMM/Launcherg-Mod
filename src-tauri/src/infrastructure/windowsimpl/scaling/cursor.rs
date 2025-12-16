@@ -638,7 +638,7 @@ impl CursorManager {
         // （スタートメニュー、タスクバー、その他のシステムウィンドウなど）
         // キャプチャを停止してシステムカーソルを表示する
         if !is_src_focused && foreground_hwnd != HWND::default() {
-            // キャプチャ中なら停止
+            // キャプチャ中なら停止（カーソル位置変換を含む）
             if self.is_under_capture {
                 self.set_ex_transparent(false, style);
                 self.stop_capture(&mut cursor_pos);
@@ -648,8 +648,12 @@ impl CursorManager {
             self.set_ex_transparent(false, style);
             self.show_system_cursor(true);
             self.restore_clip_cursor();
+            // カーソル位置が変更された場合は移動（ただしSleepなしのSetCursorPosを使用）
             if cursor_pos != origin_cursor_pos {
-                self.reliable_set_cursor_pos(cursor_pos);
+                unsafe {
+                    use windows::Win32::UI::WindowsAndMessaging::SetCursorPos;
+                    let _ = SetCursorPos(cursor_pos.x, cursor_pos.y);
+                }
             }
             return;
         }
@@ -1288,11 +1292,11 @@ impl CursorManager {
             // SetCursorPosも呼び出して確実に移動
             let _ = SetCursorPos(pos.x, pos.y);
 
-            // クリップ復元を別スレッドで遅延実行（メインスレッドをブロックしない）
-            std::thread::spawn(move || {
-                Sleep(8);
-                let _ = ClipCursor(Some(&origin_clip));
-            });
+            // OSが入力キューを処理するまで待機
+            Sleep(8);
+
+            // クリップを復元
+            let _ = ClipCursor(Some(&origin_clip));
         }
     }
 
