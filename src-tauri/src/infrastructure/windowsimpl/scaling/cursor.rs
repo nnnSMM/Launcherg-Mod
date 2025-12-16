@@ -946,12 +946,25 @@ impl CursorManager {
     }
 
     pub fn stop_capture_public(&mut self) {
-        let mut pos = POINT::default();
-        let _ = unsafe { GetCursorPos(&mut pos) };
-        self.stop_capture(&mut pos);
-        self.reliable_set_cursor_pos(pos);
-        self.show_system_cursor(true);
+        if !self.is_under_capture {
+            self.show_system_cursor(true);
+            self.restore_clip_cursor();
+            return;
+        }
+
+        // draw_pos（スケーリング座標系でのカーソル表示位置）を使用
+        // GetCursorPosはClipCursorでsrc_rect内に制限された位置を返すため
+        let new_cursor_pos = self.draw_pos;
+
+        self.restore_cursor_speed();
+        self.is_under_capture = false;
+
+        // ClipCursorを先に解除してからカーソル位置を設定
+        // reliable_set_cursor_posは内部で元のClipを復元するため、
+        // 先にClipを解除しておかないとsrc_rectに戻されてしまう
         self.restore_clip_cursor();
+        self.reliable_set_cursor_pos(new_cursor_pos);
+        self.show_system_cursor(true);
     }
 
     // ========== ClipCursor ==========
