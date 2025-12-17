@@ -337,7 +337,7 @@ impl ScalingProcessor {
                 println!("Init: ConstantBuffer");
                 let const_buffer = unsafe {
                     let desc = D3D11_BUFFER_DESC {
-                        ByteWidth: std::mem::size_of::<MagpieConstants>() as u32,
+                        ByteWidth: ((std::mem::size_of::<MagpieConstants>() + 15) & !15) as u32,
                         Usage: D3D11_USAGE_DYNAMIC,
                         BindFlags: D3D11_BIND_CONSTANT_BUFFER.0 as u32,
                         CPUAccessFlags: D3D11_CPU_ACCESS_WRITE.0 as u32,
@@ -389,9 +389,8 @@ impl ScalingProcessor {
                     };
                     
                     let mut src_tracker = SrcTracker::new(target_hwnd);
-                    let source_result = CaptureFrameSource::new(target_hwnd, device.clone());
-                    
-                    if let Ok(mut source) = source_result {
+                    match CaptureFrameSource::new(target_hwnd, device.clone()) {
+                        Ok(mut source) => {
                         if let Ok(_) = source.start() {
                             println!("Capture started");
                             
@@ -688,7 +687,6 @@ impl ScalingProcessor {
                                                 input_pt: [1.0 / input_width as f32, 1.0 / input_height as f32],
                                                 output_pt: [1.0 / output_width as f32, 1.0 / output_height as f32], // Output PT based on Render Size
                                                 scale: [scale_u, scale_v],
-                                                src_rect_offset: [offset_u, offset_v],
                                             };
 
                                             let mut mapped = D3D11_MAPPED_SUBRESOURCE::default();
@@ -747,30 +745,25 @@ impl ScalingProcessor {
                                                     right: current_offset_x as i32 + current_target_w as i32,
                                                     bottom: current_offset_y as i32 + current_target_h as i32,
                                                 };
-                                                if let Err(e) = effect_runtime.execute_blit(tex, &backbuffer, dst_rect) {
+                                                if let Err(e) = effect_runtime.execute_blit(tex, &backbuffer, dst_rect, &sampler) {
                                                     println!("Blit failed: {:?}", e);
                                                 }
                                             }
                                         } else {
-                                            let src_box = windows::Win32::Graphics::Direct3D11::D3D11_BOX {
-                                                left: 0,
-                                                top: 0,
-                                                front: 0,
-                                                right: current_target_w as u32,
-                                                bottom: current_target_h as u32,
-                                                back: 1,
+                                            let dst_rect = windows::Win32::Foundation::RECT {
+                                                left: current_offset_x as i32,
+                                                top: current_offset_y as i32,
+                                                right: (current_offset_x + current_target_w as u32) as i32,
+                                                bottom: (current_offset_y + current_target_h as u32) as i32,
                                             };
-                                            
-                                            context.CopySubresourceRegion(
-                                                &backbuffer,
-                                                0,
-                                                current_offset_x,
-                                                current_offset_y,
-                                                0,
+                                            if let Err(e) = effect_runtime.execute_blit(
                                                 &output_texture,
-                                                0,
-                                                Some(&src_box)
-                                            );
+                                                &backbuffer,
+                                                dst_rect,
+                                                &sampler
+                                            ) {
+                                                println!("Blit failed: {:?}", e);
+                                            }
                                         }
                                     }
 
@@ -891,8 +884,8 @@ impl ScalingProcessor {
                         } else {
                             println!("Failed to start capture");
                         }
-                    } else {
-                        println!("Failed to create capture source");
+                        }
+                        Err(e) => println!("Failed to create capture source: {:?}", e),
                     }
                     
                     window_manager.restore_target_window();

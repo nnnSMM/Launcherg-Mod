@@ -1,6 +1,5 @@
 //! エフェクトランタイム
 //! マルチパスエフェクトの実行時リソース管理
-
 use super::effect_desc::*;
 use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
@@ -11,7 +10,6 @@ use windows::Win32::Graphics::Direct3D::Fxc::{
 use windows::Win32::Graphics::Direct3D::*;
 use windows::Win32::Graphics::Direct3D11::*;
 use windows::Win32::Graphics::Dxgi::Common::*;
-
 /// コンパイル済みパス
 #[derive(Clone, Serialize, Deserialize)]
 pub struct CompiledPass {
@@ -30,7 +28,6 @@ pub struct CompiledPass {
     /// 説明
     pub desc: String,
 }
-
 /// コンパイル済みエフェクト
 #[derive(Clone, Serialize, Deserialize)]
 pub struct CompiledEffect {
@@ -47,7 +44,6 @@ pub struct CompiledEffect {
     /// フラグ
     pub flags: u32,
 }
-
 /// キャッシュ用データ
 #[derive(Serialize, Deserialize)]
 pub struct EffectCacheData {
@@ -58,7 +54,6 @@ pub struct EffectCacheData {
     /// コンパイル済みエフェクト
     pub effect: CompiledEffect,
 }
-
 /// テクスチャ記述子（実行時用）
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct EffectTextureDesc {
@@ -77,7 +72,6 @@ pub struct EffectTextureDesc {
     /// 出力テクスチャかどうか
     pub is_output: bool,
 }
-
 impl EffectTextureDesc {
     pub fn input() -> Self {
         Self {
@@ -90,7 +84,6 @@ impl EffectTextureDesc {
             is_output: false,
         }
     }
-
     pub fn output() -> Self {
         Self {
             name: "OUTPUT".to_string(),
@@ -103,7 +96,6 @@ impl EffectTextureDesc {
         }
     }
 }
-
 /// ランタイムテクスチャ（GPU上に作成されたテクスチャ）
 #[derive(Clone)]
 pub struct RuntimeTexture {
@@ -114,7 +106,6 @@ pub struct RuntimeTexture {
     pub height: u32,
     pub format: DXGI_FORMAT,
 }
-
 /// エフェクトランタイム
 pub struct EffectRuntime {
     /// デバイス
@@ -138,7 +129,6 @@ pub struct EffectRuntime {
     /// Blit用定数バッファ
     blit_buffer: ID3D11Buffer,
 }
-
 #[repr(C)]
 struct BlitConstants {
     dst_offset: [u32; 2],
@@ -147,7 +137,6 @@ struct BlitConstants {
     param_b: f32,
     param_c: f32,
 }
-
 impl EffectRuntime {
     /// 新しいエフェクトランタイムを作成
     pub fn new(
@@ -161,21 +150,17 @@ impl EffectRuntime {
             let shader = Self::create_compute_shader(&device, &pass.cso)?;
             shaders.push(shader);
         }
-
         // サンプラーを作成
         let mut samplers = Vec::new();
         for sampler_desc in &effect.samplers {
             let sampler = Self::create_sampler(&device, sampler_desc)?;
             samplers.push(sampler);
         }
-
         // テクスチャのスロットを確保
         let textures = vec![None; effect.textures.len()];
-
         // Blitリソース作成
         let blit_shader = Self::create_blit_shader(&device)?;
         let blit_buffer = Self::create_blit_buffer(&device)?;
-
         Ok(Self {
             device,
             context,
@@ -189,14 +174,12 @@ impl EffectRuntime {
             blit_buffer,
         })
     }
-
     // Bicubic Blit Shader
     fn create_blit_shader(device: &ID3D11Device) -> Result<ID3D11ComputeShader> {
         let source = r#"
             Texture2D<float4> Input : register(t0);
             RWTexture2D<float4> Output : register(u0);
             SamplerState Linear : register(s0);
-
             cbuffer CB : register(b0) {
                 uint2 dst_offset;
                 uint2 dst_size;
@@ -204,13 +187,11 @@ impl EffectRuntime {
                 float param_b;
                 float param_c;
             }
-
             float weight(float x) {
 // ...
                 const float B = param_b;
                 const float C = param_c;
                 float ax = abs(x);
-
                 if (ax < 1.0) {
                     return (x * x * ((12.0 - 9.0 * B - 6.0 * C) * ax + (-18.0 + 12.0 * B + 6.0 * C)) + (6.0 - 2.0 * B)) / 6.0;
                 } else if (ax >= 1.0 && ax < 2.0) {
@@ -219,7 +200,6 @@ impl EffectRuntime {
                     return 0.0;
                 }
             }
-
             float4 weight4(float x) {
                 return float4(
                     weight(x - 2.0),
@@ -228,7 +208,6 @@ impl EffectRuntime {
                     weight(x + 1.0)
                 );
             }
-
             [numthreads(8, 8, 1)]
             void main(uint3 id : SV_DispatchThreadID) {
                 if (id.x >= dst_size.x || id.y >= dst_size.y) return;
@@ -242,28 +221,22 @@ impl EffectRuntime {
                 float2 pos = uv * input_size;
                 float2 pos1 = floor(pos - 0.5) + 0.5;
                 float2 f = pos - pos1;
-
                 float4 rowtaps = weight4(1.0 - f.x);
                 float4 coltaps = weight4(1.0 - f.y);
-
                 // Re-normalize weights
                 rowtaps /= rowtaps.r + rowtaps.g + rowtaps.b + rowtaps.a;
                 coltaps /= coltaps.r + coltaps.g + coltaps.b + coltaps.a;
-
                 float2 inputPt = 1.0 / input_size;
                 float2 uv1 = pos1 * inputPt;
                 float2 uv0 = uv1 - inputPt;
                 float2 uv2 = uv1 + inputPt;
                 float2 uv3 = uv2 + inputPt;
-
                 float u_weight_sum = rowtaps.y + rowtaps.z;
                 float u_middle_offset = rowtaps.z * inputPt.x / u_weight_sum;
                 float u_middle = uv1.x + u_middle_offset;
-
                 float v_weight_sum = coltaps.y + coltaps.z;
                 float v_middle_offset = coltaps.z * inputPt.y / v_weight_sum;
                 float v_middle = uv1.y + v_middle_offset;
-
                 // 9-tap Mixed Sampling (Load + SampleLevel)
                 // Note: Use clamp to avoid out-of-bounds Load
                 int2 max_coord = int2(input_size - 1.0);
@@ -274,36 +247,29 @@ impl EffectRuntime {
                 
                 int2 coord_bottom_right = int2(min(uv3 * input_size, input_size - 0.5));
                 coord_bottom_right = clamp(coord_bottom_right, int2(0,0), max_coord);
-
                 float3 top = Input.Load(int3(coord_top_left, 0)).rgb * rowtaps.x;
                 top += Input.SampleLevel(Linear, float2(u_middle, uv0.y), 0).rgb * u_weight_sum;
                 top += Input.Load(int3(coord_bottom_right.x, coord_top_left.y, 0)).rgb * rowtaps.w;
                 float3 total = top * coltaps.x;
-
                 float3 middle = Input.SampleLevel(Linear, float2(uv0.x, v_middle), 0).rgb * rowtaps.x;
                 middle += Input.SampleLevel(Linear, float2(u_middle, v_middle), 0).rgb * u_weight_sum;
                 middle += Input.SampleLevel(Linear, float2(uv3.x, v_middle), 0).rgb * rowtaps.w;
                 total += middle * v_weight_sum;
-
                 float3 bottom = Input.Load(int3(coord_top_left.x, coord_bottom_right.y, 0)).rgb * rowtaps.x;
                 bottom += Input.SampleLevel(Linear, float2(u_middle, uv3.y), 0).rgb * u_weight_sum;
                 bottom += Input.Load(int3(coord_bottom_right, 0)).rgb * rowtaps.w;
                 total += bottom * coltaps.w;
-
                 int2 out_pos = int2(id.x + dst_offset.x, id.y + dst_offset.y);
                 Output[out_pos] = float4(total, 1.0);
             }
         "#;
-
         // Compile shader (using D3DCompile from d3dcompiler_47.dll which is linked)
         use windows::core::s;
         use windows::Win32::Graphics::Direct3D::Fxc::D3DCompile;
         use windows::Win32::Graphics::Direct3D::ID3DBlob;
-
         let flags = D3DCOMPILE_ENABLE_STRICTNESS | D3DCOMPILE_OPTIMIZATION_LEVEL3;
         let mut bytecode: Option<ID3DBlob> = None;
         let mut error_blob: Option<ID3DBlob> = None;
-
         unsafe {
             let res = D3DCompile(
                 source.as_ptr() as *const _,
@@ -318,7 +284,6 @@ impl EffectRuntime {
                 &mut bytecode,
                 Some(&mut error_blob),
             );
-
             if res.is_err() {
                 if let Some(blob) = error_blob {
                     let ptr = blob.GetBufferPointer();
@@ -330,14 +295,12 @@ impl EffectRuntime {
                 return Err(anyhow!("Blit Shader Compile Failed"));
             }
         }
-
         let blob = bytecode.unwrap();
         let bytes = unsafe {
             std::slice::from_raw_parts(blob.GetBufferPointer() as *const u8, blob.GetBufferSize())
         };
         Self::create_compute_shader(device, bytes)
     }
-
     fn create_blit_buffer(device: &ID3D11Device) -> Result<ID3D11Buffer> {
         let desc = D3D11_BUFFER_DESC {
             ByteWidth: std::mem::size_of::<BlitConstants>() as u32,
@@ -347,32 +310,28 @@ impl EffectRuntime {
             MiscFlags: 0,
             StructureByteStride: 0,
         };
-
         let mut buffer = None;
         unsafe {
             device.CreateBuffer(&desc, None, Some(&mut buffer))?;
         }
         buffer.ok_or_else(|| anyhow!("Failed to create blit buffer"))
     }
-
     pub fn execute_blit(
         &self,
         src: &ID3D11Texture2D,
         dst: &ID3D11Texture2D,
         dst_rect: windows::Win32::Foundation::RECT,
+        sampler: &windows::Win32::Graphics::Direct3D11::ID3D11SamplerState,
     ) -> Result<()> {
         let width = (dst_rect.right - dst_rect.left).max(0) as u32;
         let height = (dst_rect.bottom - dst_rect.top).max(0) as u32;
-
         if width == 0 || height == 0 {
             return Ok(());
         }
-
         let mut src_desc = D3D11_TEXTURE2D_DESC::default();
         unsafe { src.GetDesc(&mut src_desc) };
         let input_w = src_desc.Width as f32;
         let input_h = src_desc.Height as f32;
-
         let constants = BlitConstants {
             dst_offset: [dst_rect.left as u32, dst_rect.top as u32],
             dst_size: [width, height],
@@ -380,11 +339,9 @@ impl EffectRuntime {
             param_b: 0.0, // Magpie Default (Catmull-Rom)
             param_c: 0.5, // Magpie Default (Catmull-Rom)
         };
-
         unsafe {
             // RTVがバインドされたままだとUAVバインドに失敗するため、明示的にアンバインド
             self.context.OMSetRenderTargets(Some(&[]), None);
-
             // 定数バッファ更新
             let mut mapped = D3D11_MAPPED_SUBRESOURCE::default();
             self.context.Map(
@@ -396,58 +353,43 @@ impl EffectRuntime {
             )?;
             std::ptr::copy_nonoverlapping(&constants, mapped.pData as *mut BlitConstants, 1);
             self.context.Unmap(&self.blit_buffer, 0);
-
             // リソース作成
             let mut srv_desc = D3D11_SHADER_RESOURCE_VIEW_DESC::default();
             srv_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
             srv_desc.ViewDimension = D3D_SRV_DIMENSION_TEXTURE2D;
             srv_desc.Anonymous.Texture2D.MipLevels = 1;
-
             let mut uav_desc = D3D11_UNORDERED_ACCESS_VIEW_DESC::default();
             uav_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
             uav_desc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2D;
-
             // Get Desc to check formats
             let mut src_desc = D3D11_TEXTURE2D_DESC::default();
             src.GetDesc(&mut src_desc);
             srv_desc.Format = src_desc.Format;
-
             let mut dst_desc = D3D11_TEXTURE2D_DESC::default();
             dst.GetDesc(&mut dst_desc);
             uav_desc.Format = dst_desc.Format;
-
             let mut srv = None;
             self.device
                 .CreateShaderResourceView(src, Some(&srv_desc), Some(&mut srv))?;
-
             let mut uav = None;
             self.device
                 .CreateUnorderedAccessView(dst, Some(&uav_desc), Some(&mut uav))?;
-
             // Bind
             self.context.CSSetShader(Some(&self.blit_shader), None);
-
             let buffers = [Some(self.blit_buffer.clone())];
             self.context.CSSetConstantBuffers(0, Some(&buffers));
-
             let srvs = [srv];
             self.context.CSSetShaderResources(0, Some(&srvs));
-
             let uavs = [uav];
             self.context
                 .CSSetUnorderedAccessViews(0, 1, Some(uavs.as_ptr()), None);
-
-            // Linear Sampler
-            if let Some(sampler) = self.samplers.first() {
-                let samplers = [Some(sampler.clone())];
-                self.context.CSSetSamplers(0, Some(&samplers));
-            }
-
+            // Linear Sampler provided by caller
+            let samplers = [Some(sampler.clone())];
+            self.context.CSSetSamplers(0, Some(&samplers));
             // Dispatch
             let dispatch_x = (width + 7) / 8;
             let dispatch_y = (height + 7) / 8;
             self.context.Dispatch(dispatch_x, dispatch_y, 1);
-
             // Unbind
             let null_uav = [None];
             self.context
@@ -456,45 +398,37 @@ impl EffectRuntime {
             self.context.CSSetShaderResources(0, Some(&null_srv));
             self.context.CSSetShader(None, None);
         }
-
         Ok(())
     }
-
     /// サイズを更新し、必要に応じてテクスチャを再作成
     pub fn update_size(&mut self, input_size: (u32, u32), output_size: (u32, u32)) -> Result<()> {
         if self.input_size == input_size && self.output_size == output_size {
             return Ok(());
         }
-
         self.input_size = input_size;
         self.output_size = output_size;
-
         // 中間テクスチャを再作成
         for (i, tex_desc) in self.effect.textures.iter().enumerate() {
             // INPUT と OUTPUT はスキップ
             if tex_desc.is_input || tex_desc.is_output {
                 continue;
             }
-
             // サイズを計算
             let (width, height) = self.evaluate_size_expr(
                 &tex_desc.width_expr,
                 &tex_desc.height_expr,
                 input_size,
                 output_size,
+                &tex_desc.name,
             )?;
-
             // フォーマットを取得
             let format = tex_desc.format.desc().dxgi_format;
-
             // テクスチャを作成
             let runtime_tex = self.create_texture(width, height, format)?;
             self.textures[i] = Some(runtime_tex);
         }
-
         Ok(())
     }
-
     pub fn get_pass_infos(&self) -> [MagpiePassInfo; 16] {
         let mut infos = [MagpiePassInfo::default(); 16];
         for (i, pass) in self.effect.passes.iter().enumerate() {
@@ -510,8 +444,6 @@ impl EffectRuntime {
         }
         infos
     }
-
-    /// エフェクトが要求する推奨出力サイズを計算
     pub fn get_preferred_output_size(
         &self,
         input_size: (u32, u32),
@@ -519,21 +451,19 @@ impl EffectRuntime {
     ) -> Result<(u32, u32)> {
         // OUTPUT テクスチャを探す
         let output_tex = self.effect.textures.iter().find(|t| t.is_output);
-
         if let Some(desc) = output_tex {
             if !desc.width_expr.is_empty() {
-                // OUTPUT_WIDTH/HEIGHT は自己参照しないはずなので、ターゲットサイズを渡すか、0を渡す
-                // Magpieではこの段階では未定義だが、eval_expr_innerは値を要求する
-                // 式には恐らくINPUT_WIDTHしか使われないため、current_target_sizeを渡しても安全なはず
-                let w = self.eval_expr_inner(&desc.width_expr, input_size, current_target_size)?;
-                let h = self.eval_expr_inner(&desc.height_expr, input_size, current_target_size)?;
-                return Ok((w.round() as u32, h.round() as u32));
+                return self.evaluate_size_expr(
+                    &desc.width_expr,
+                    &desc.height_expr,
+                    input_size,
+                    current_target_size,
+                    "PreferredOutput",
+                );
             }
         }
-
         Ok(current_target_size)
     }
-
     /// サイズ式の変数を評価
     fn evaluate_size_expr(
         &self,
@@ -541,12 +471,12 @@ impl EffectRuntime {
         height_expr: &str,
         input_size: (u32, u32),
         output_size: (u32, u32),
+        name: &str,
     ) -> Result<(u32, u32)> {
         let w = self.eval_expr_inner(width_expr, input_size, output_size)?;
         let h = self.eval_expr_inner(height_expr, input_size, output_size)?;
         Ok((w.round() as u32, h.round() as u32))
     }
-
     fn eval_expr_inner(
         &self,
         expr: &str,
@@ -557,96 +487,31 @@ impl EffectRuntime {
         if expr.is_empty() {
             return Ok(0.0);
         }
-
         // 変数置換
         let expr_replaced = expr
             .replace("INPUT_WIDTH", &input_size.0.to_string())
             .replace("INPUT_HEIGHT", &input_size.1.to_string())
             .replace("OUTPUT_WIDTH", &output_size.0.to_string())
             .replace("OUTPUT_HEIGHT", &output_size.1.to_string());
-
         // 簡易評価 ( +, -, *, /, %, max, min )
         // 本来はちゃんとしたパーサーが必要だが、ここでは簡易的な実装にする
         // Magpieのエフェクトで使用される式の範囲をカバーする
-
         // カッコの処理は省略（必要なら実装）
         // 演算子の優先順位: *, /, % > +, -
-
         // トークン分割 (スペースで区切られていると仮定しない)
         // 再帰的評価を行う
-
         self.parse_and_eval(&expr_replaced)
     }
-
     fn parse_and_eval(&self, expr: &str) -> Result<f32> {
-        // +, - で分割
-        // (注: カッコ内の +, - は無視する必要があるが、ここではカッコなしと仮定するか、簡易パース)
-        // 実装を簡単にするため、スペースなしで結合されている可能性を考慮せず、単純な eval を実装する
-        // ここでは非常に簡易な実装にとどめる。必要に応じて強化する。
-
-        let terms: Vec<&str> = expr.split('+').collect();
-        if terms.len() > 1 {
-            let mut sum = 0.0;
-            for term in terms {
-                sum += self.parse_and_eval(term)?;
-            }
-            return Ok(sum);
+        let mut tokenizer = Tokenizer::new(expr);
+        let mut tokens = Vec::new();
+        while let Some(token) = tokenizer.next_token()? {
+            tokens.push(token);
         }
 
-        let terms: Vec<&str> = expr.split('-').collect();
-        if terms.len() > 1 {
-            // First term positive, others negative?
-            // Handle "a - b - c" -> (a) - (b) - (c)
-            // Left associative
-            // Split by '-' is tricky with negative numbers. Assuming positive inputs mostly.
-            let mut total = self.parse_and_eval(terms[0])?;
-            for term in &terms[1..] {
-                total -= self.parse_and_eval(term)?;
-            }
-            return Ok(total);
-        }
-
-        // *, /
-        let factors: Vec<&str> = expr.split('*').collect();
-        if factors.len() > 1 {
-            let mut product = 1.0;
-            for factor in factors {
-                product *= self.parse_and_eval(factor)?;
-            }
-            return Ok(product);
-        }
-
-        let factors: Vec<&str> = expr.split('/').collect();
-        if factors.len() > 1 {
-            let mut result = self.parse_and_eval(factors[0])?;
-            for factor in &factors[1..] {
-                result /= self.parse_and_eval(factor)?;
-            }
-            return Ok(result);
-        }
-
-        // 関数 (max, min, floor, ceil)
-        let expr = expr.trim();
-        if expr.starts_with("max(") && expr.ends_with(")") {
-            let content = &expr[4..expr.len() - 1];
-            let args: Vec<&str> = content.split(',').collect();
-            if args.len() == 2 {
-                let v1 = self.parse_and_eval(args[0])?;
-                let v2 = self.parse_and_eval(args[1])?;
-                return Ok(v1.max(v2));
-            }
-        }
-        if expr.starts_with("floor(") && expr.ends_with(")") {
-            let content = &expr[6..expr.len() - 1];
-            return Ok(self.parse_and_eval(content)?.floor());
-        }
-
-        // 数値
-        expr.trim()
-            .parse::<f32>()
-            .map_err(|_| anyhow!("Invalid number/expr: {}", expr))
+        let mut parser = Parser::new(tokens);
+        parser.parse_expression()
     }
-
     /// 入力テクスチャを設定
     pub fn set_input_texture(&mut self, texture: &ID3D11Texture2D) -> Result<()> {
         // INPUT のインデックスを見つける
@@ -656,14 +521,11 @@ impl EffectRuntime {
             .iter()
             .position(|t| t.is_input)
             .ok_or_else(|| anyhow!("INPUT texture not found"))?;
-
         // SRVを作成
         let srv = self.create_srv(texture)?;
-
         // テクスチャサイズを取得
         let mut desc = D3D11_TEXTURE2D_DESC::default();
         unsafe { texture.GetDesc(&mut desc) };
-
         self.textures[input_idx] = Some(RuntimeTexture {
             texture: texture.clone(),
             srv: Some(srv),
@@ -672,10 +534,8 @@ impl EffectRuntime {
             height: desc.Height,
             format: desc.Format,
         });
-
         Ok(())
     }
-
     /// 出力テクスチャを設定
     pub fn set_output_texture(&mut self, texture: &ID3D11Texture2D) -> Result<()> {
         // OUTPUT のインデックスを見つける
@@ -685,14 +545,11 @@ impl EffectRuntime {
             .iter()
             .position(|t| t.is_output)
             .ok_or_else(|| anyhow!("OUTPUT texture not found"))?;
-
         // UAVを作成
         let uav = self.create_uav(texture)?;
-
         // テクスチャサイズを取得
         let mut desc = D3D11_TEXTURE2D_DESC::default();
         unsafe { texture.GetDesc(&mut desc) };
-
         self.textures[output_idx] = Some(RuntimeTexture {
             texture: texture.clone(),
             srv: None,
@@ -701,27 +558,22 @@ impl EffectRuntime {
             height: desc.Height,
             format: desc.Format,
         });
-
         Ok(())
     }
-
     /// すべてのパスを実行
     pub fn execute(&self, constants_buffer: &ID3D11Buffer) -> Result<()> {
         unsafe {
             // 定数バッファをバインド
             self.context
                 .CSSetConstantBuffers(0, Some(&[Some(constants_buffer.clone())]));
-
             // サンプラーをバインド
             let sampler_refs: Vec<Option<ID3D11SamplerState>> =
                 self.samplers.iter().map(|s| Some(s.clone())).collect();
             self.context.CSSetSamplers(0, Some(&sampler_refs));
-
             // 各パスを実行
             for (pass_idx, pass) in self.effect.passes.iter().enumerate() {
                 self.execute_pass(pass_idx, pass)?;
             }
-
             // リソースをアンバインド
             self.context.CSSetShader(None, None);
             let null_srvs = [None, None, None, None, None, None, None, None];
@@ -730,17 +582,14 @@ impl EffectRuntime {
             self.context
                 .CSSetUnorderedAccessViews(0, 8, Some(null_uavs.as_ptr()), None);
         }
-
         Ok(())
     }
-
     /// 単一パスを実行
     fn execute_pass(&self, pass_idx: usize, pass: &CompiledPass) -> Result<()> {
         unsafe {
             // シェーダーをバインド
             self.context
                 .CSSetShader(Some(&self.shaders[pass_idx]), None);
-
             // 入力テクスチャ（SRV）をバインド
             let mut srvs: Vec<Option<ID3D11ShaderResourceView>> = Vec::new();
             for &input_idx in &pass.inputs {
@@ -753,7 +602,6 @@ impl EffectRuntime {
             if !srvs.is_empty() {
                 self.context.CSSetShaderResources(0, Some(&srvs));
             }
-
             // 出力テクスチャ（UAV）をバインド
             let mut uavs: Vec<Option<ID3D11UnorderedAccessView>> = Vec::new();
             for &output_idx in &pass.outputs {
@@ -771,7 +619,6 @@ impl EffectRuntime {
                     None,
                 );
             }
-
             // ディスパッチサイズを計算
             let output_size = if !pass.outputs.is_empty() {
                 if let Some(ref tex) = self.textures[pass.outputs[0]] {
@@ -782,12 +629,9 @@ impl EffectRuntime {
             } else {
                 self.output_size
             };
-
             let dispatch_x = (output_size.0 + pass.block_size.0 - 1) / pass.block_size.0;
             let dispatch_y = (output_size.1 + pass.block_size.1 - 1) / pass.block_size.1;
-
             self.context.Dispatch(dispatch_x, dispatch_y, 1);
-
             // リソースハザードを防ぐためにUAVとSRVをアンバインド
             let null_uavs = vec![None; uavs.len()];
             if !null_uavs.is_empty() {
@@ -798,18 +642,14 @@ impl EffectRuntime {
                     None,
                 );
             }
-
             let null_srvs = vec![None; srvs.len()];
             if !null_srvs.is_empty() {
                 self.context.CSSetShaderResources(0, Some(&null_srvs));
             }
         }
-
         Ok(())
     }
-
     // ヘルパー関数
-
     fn create_compute_shader(
         device: &ID3D11Device,
         bytecode: &[u8],
@@ -824,7 +664,6 @@ impl EffectRuntime {
         }
         shader.ok_or_else(|| anyhow!("Failed to create compute shader"))
     }
-
     fn create_sampler(
         device: &ID3D11Device,
         desc: &EffectSamplerDesc,
@@ -833,12 +672,10 @@ impl EffectRuntime {
             EffectSamplerFilterType::Point => D3D11_FILTER_MIN_MAG_MIP_POINT,
             EffectSamplerFilterType::Linear => D3D11_FILTER_MIN_MAG_MIP_LINEAR,
         };
-
         let address = match desc.address_type {
             EffectSamplerAddressType::Clamp => D3D11_TEXTURE_ADDRESS_CLAMP,
             EffectSamplerAddressType::Wrap => D3D11_TEXTURE_ADDRESS_WRAP,
         };
-
         let sampler_desc = D3D11_SAMPLER_DESC {
             Filter: filter,
             AddressU: address,
@@ -851,14 +688,12 @@ impl EffectRuntime {
             MinLOD: 0.0,
             MaxLOD: f32::MAX,
         };
-
         let mut sampler = None;
         unsafe {
             device.CreateSamplerState(&sampler_desc, Some(&mut sampler))?;
         }
         sampler.ok_or_else(|| anyhow!("Failed to create sampler state"))
     }
-
     fn create_texture(
         &self,
         width: u32,
@@ -880,17 +715,14 @@ impl EffectRuntime {
             CPUAccessFlags: D3D11_CPU_ACCESS_FLAG(0).0 as u32,
             MiscFlags: D3D11_RESOURCE_MISC_FLAG(0).0 as u32,
         };
-
         let mut texture = None;
         unsafe {
             self.device
                 .CreateTexture2D(&desc, None, Some(&mut texture))?;
         }
         let texture = texture.ok_or_else(|| anyhow!("Failed to create texture"))?;
-
         let srv = self.create_srv(&texture)?;
         let uav = self.create_uav(&texture)?;
-
         Ok(RuntimeTexture {
             texture,
             srv: Some(srv),
@@ -900,7 +732,6 @@ impl EffectRuntime {
             format,
         })
     }
-
     fn create_srv(&self, texture: &ID3D11Texture2D) -> Result<ID3D11ShaderResourceView> {
         let mut srv = None;
         unsafe {
@@ -909,7 +740,6 @@ impl EffectRuntime {
         }
         srv.ok_or_else(|| anyhow!("Failed to create SRV"))
     }
-
     fn create_uav(&self, texture: &ID3D11Texture2D) -> Result<ID3D11UnorderedAccessView> {
         let mut uav = None;
         unsafe {
@@ -919,7 +749,6 @@ impl EffectRuntime {
         uav.ok_or_else(|| anyhow!("Failed to create UAV"))
     }
 }
-
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
 pub struct MagpieConstants {
@@ -928,12 +757,264 @@ pub struct MagpieConstants {
     pub input_pt: [f32; 2],
     pub output_pt: [f32; 2],
     pub scale: [f32; 2],
-    pub src_rect_offset: [f32; 2], // Offset for pseudo-borderless (x, y)
 }
-
 #[repr(C)]
 #[derive(Debug, Clone, Copy, Default)]
 pub struct MagpiePassInfo {
     pub output_size: [u32; 2],
     pub output_pt: [f32; 2],
+}
+
+// --- Expression Parser Implementation ---
+
+#[derive(Debug, Clone, PartialEq)]
+enum Token {
+    Number(f32),
+    Identifier(String),
+    Plus,
+    Minus,
+    Star,
+    Slash,
+    Percent,
+    LParen,
+    RParen,
+    Comma,
+}
+
+struct Tokenizer<'a> {
+    chars: std::iter::Peekable<std::str::Chars<'a>>,
+}
+
+impl<'a> Tokenizer<'a> {
+    fn new(input: &'a str) -> Self {
+        Self {
+            chars: input.chars().peekable(),
+        }
+    }
+
+    fn next_token(&mut self) -> Result<Option<Token>> {
+        while let Some(&c) = self.chars.peek() {
+            match c {
+                ' ' | '\t' | '\n' | '\r' => {
+                    self.chars.next();
+                }
+                '0'..='9' | '.' => {
+                    let mut s = String::new();
+                    while let Some(&c) = self.chars.peek() {
+                        if c.is_digit(10) || c == '.' {
+                            s.push(c);
+                            self.chars.next();
+                        } else {
+                            break;
+                        }
+                    }
+                    if s == "." {
+                        return Err(anyhow!("Invalid number: ."));
+                    }
+                    let val = s
+                        .parse::<f32>()
+                        .map_err(|_| anyhow!("Invalid number: {}", s))?;
+                    return Ok(Some(Token::Number(val)));
+                }
+                'a'..='z' | 'A'..='Z' | '_' => {
+                    let mut s = String::new();
+                    while let Some(&c) = self.chars.peek() {
+                        if c.is_alphanumeric() || c == '_' {
+                            s.push(c);
+                            self.chars.next();
+                        } else {
+                            break;
+                        }
+                    }
+                    return Ok(Some(Token::Identifier(s)));
+                }
+                '+' => {
+                    self.chars.next();
+                    return Ok(Some(Token::Plus));
+                }
+                '-' => {
+                    self.chars.next();
+                    return Ok(Some(Token::Minus));
+                }
+                '*' => {
+                    self.chars.next();
+                    return Ok(Some(Token::Star));
+                }
+                '/' => {
+                    self.chars.next();
+                    return Ok(Some(Token::Slash));
+                }
+                '%' => {
+                    self.chars.next();
+                    return Ok(Some(Token::Percent));
+                }
+                '(' => {
+                    self.chars.next();
+                    return Ok(Some(Token::LParen));
+                }
+                ')' => {
+                    self.chars.next();
+                    return Ok(Some(Token::RParen));
+                }
+                ',' => {
+                    self.chars.next();
+                    return Ok(Some(Token::Comma));
+                }
+                _ => return Err(anyhow!("Unexpected character: {}", c)),
+            }
+        }
+        Ok(None)
+    }
+}
+
+struct Parser {
+    tokens: Vec<Token>,
+    pos: usize,
+}
+
+impl Parser {
+    fn new(tokens: Vec<Token>) -> Self {
+        Self { tokens, pos: 0 }
+    }
+
+    fn parse_expression(&mut self) -> Result<f32> {
+        let mut left = self.parse_term()?;
+
+        while self.pos < self.tokens.len() {
+            match self.tokens[self.pos] {
+                Token::Plus => {
+                    self.pos += 1;
+                    left += self.parse_term()?;
+                }
+                Token::Minus => {
+                    self.pos += 1;
+                    left -= self.parse_term()?;
+                }
+                _ => break,
+            }
+        }
+        Ok(left)
+    }
+
+    fn parse_term(&mut self) -> Result<f32> {
+        let mut left = self.parse_factor()?;
+
+        while self.pos < self.tokens.len() {
+            match self.tokens[self.pos] {
+                Token::Star => {
+                    self.pos += 1;
+                    left *= self.parse_factor()?;
+                }
+                Token::Slash => {
+                    self.pos += 1;
+                    let right = self.parse_factor()?;
+                    if right == 0.0 {
+                        return Err(anyhow!("Division by zero"));
+                    }
+                    left /= right;
+                }
+                Token::Percent => {
+                    self.pos += 1;
+                    let right = self.parse_factor()?;
+                    if right == 0.0 {
+                        return Err(anyhow!("Modulo by zero"));
+                    }
+                    left %= right;
+                }
+                _ => break,
+            }
+        }
+        Ok(left)
+    }
+
+    fn parse_factor(&mut self) -> Result<f32> {
+        if self.pos >= self.tokens.len() {
+            return Err(anyhow!("Unexpected end of expression"));
+        }
+
+        let token = self.tokens[self.pos].clone();
+        match token {
+            Token::Number(val) => {
+                self.pos += 1;
+                Ok(val)
+            }
+            Token::Identifier(name) => {
+                self.pos += 1;
+                if self.pos < self.tokens.len() && self.tokens[self.pos] == Token::LParen {
+                    self.pos += 1; // consume '('
+                                   // Function call
+                    let mut args = Vec::new();
+                    if self.pos < self.tokens.len() && self.tokens[self.pos] != Token::RParen {
+                        args.push(self.parse_expression()?);
+                        while self.pos < self.tokens.len() && self.tokens[self.pos] == Token::Comma
+                        {
+                            self.pos += 1; // consume ','
+                            args.push(self.parse_expression()?);
+                        }
+                    }
+                    if self.pos >= self.tokens.len() || self.tokens[self.pos] != Token::RParen {
+                        return Err(anyhow!("Missing closing parenthesis for function call"));
+                    }
+                    self.pos += 1; // consume ')'
+
+                    match name.as_str() {
+                        "max" => {
+                            if args.len() != 2 {
+                                return Err(anyhow!("max requires 2 arguments"));
+                            }
+                            Ok(args[0].max(args[1]))
+                        }
+                        "min" => {
+                            if args.len() != 2 {
+                                return Err(anyhow!("min requires 2 arguments"));
+                            }
+                            Ok(args[0].min(args[1]))
+                        }
+                        "ceil" => {
+                            if args.len() != 1 {
+                                return Err(anyhow!("ceil requires 1 argument"));
+                            }
+                            Ok(args[0].ceil())
+                        }
+                        "floor" => {
+                            if args.len() != 1 {
+                                return Err(anyhow!("floor requires 1 argument"));
+                            }
+                            Ok(args[0].floor())
+                        }
+                        "pow" => {
+                            if args.len() != 2 {
+                                return Err(anyhow!("pow requires 2 arguments"));
+                            }
+                            Ok(args[0].powf(args[1]))
+                        }
+                        "sqrt" => {
+                            if args.len() != 1 {
+                                return Err(anyhow!("sqrt requires 1 argument"));
+                            }
+                            Ok(args[0].sqrt())
+                        }
+                        _ => Err(anyhow!("Unknown function: {}", name)),
+                    }
+                } else {
+                    Err(anyhow!("Unexpected identifier: {}", name))
+                }
+            }
+            Token::LParen => {
+                self.pos += 1;
+                let val = self.parse_expression()?;
+                if self.pos >= self.tokens.len() || self.tokens[self.pos] != Token::RParen {
+                    return Err(anyhow!("Missing closing parenthesis"));
+                }
+                self.pos += 1;
+                Ok(val)
+            }
+            Token::Minus => {
+                self.pos += 1;
+                let val = self.parse_factor()?;
+                Ok(-val)
+            }
+            _ => Err(anyhow!("Unexpected token: {:?}", token)),
+        }
+    }
 }

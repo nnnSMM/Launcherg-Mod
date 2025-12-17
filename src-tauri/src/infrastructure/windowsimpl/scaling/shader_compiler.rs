@@ -705,7 +705,6 @@ impl ShaderCompiler {
     float2 __inputPt;
     float2 __outputPt;
     float2 __scale;
-    float2 __srcRectOffset;
 "#,
         );
 
@@ -843,7 +842,7 @@ float2 GetInputPt() { return __inputPt; }
 uint2 GetOutputSize() { return __outputSize; }
 float2 GetOutputPt() { return __outputPt; }
 float2 GetScale() { return __scale; }
-float2 GetSrcRectOffset() { return __srcRectOffset; }
+
 
 "#);
 

@@ -4,7 +4,7 @@ use std::path::Path;
 use windows::{
     core::PCSTR,
     Win32::Graphics::Direct3D::Fxc::{
-        D3DCompile, D3DCOMPILE_DEBUG, D3DCOMPILE_ENABLE_STRICTNESS,
+        D3DCompile, D3DCOMPILE_DEBUG, D3DCOMPILE_ENABLE_STRICTNESS, D3DCOMPILE_OPTIMIZATION_LEVEL3,
         D3DCOMPILE_PACK_MATRIX_COLUMN_MAJOR,
     },
     Win32::Graphics::Direct3D11::{ID3D11ClassLinkage, ID3D11ComputeShader, ID3D11Device},
@@ -150,7 +150,9 @@ impl ShaderManager {
         let target_cstr = CString::new(target)?;
         let source_cstr = CString::new(source)?;
 
-        let mut flags = D3DCOMPILE_ENABLE_STRICTNESS | D3DCOMPILE_PACK_MATRIX_COLUMN_MAJOR;
+        let mut flags = D3DCOMPILE_ENABLE_STRICTNESS
+            | D3DCOMPILE_OPTIMIZATION_LEVEL3
+            | D3DCOMPILE_PACK_MATRIX_COLUMN_MAJOR;
         if cfg!(debug_assertions) {
             flags |= D3DCOMPILE_DEBUG;
         }
