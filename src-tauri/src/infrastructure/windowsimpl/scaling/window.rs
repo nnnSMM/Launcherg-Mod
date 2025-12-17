@@ -5,7 +5,11 @@ use windows::Win32::Graphics::Gdi::HBRUSH;
 use windows::Win32::UI::WindowsAndMessaging::{
     CreateWindowExW, DefWindowProcW, GetSystemMetrics, RegisterClassW, ShowWindow, SM_CXSCREEN,
     SM_CYSCREEN, SW_SHOW, WNDCLASSW, WS_EX_LAYERED, WS_EX_NOACTIVATE, WS_EX_NOREDIRECTIONBITMAP,
-    WS_POPUP, WS_VISIBLE,
+    WS_POPUP,
+};
+
+use windows::Win32::UI::WindowsAndMessaging::{
+    SetWindowPos, HWND_TOP, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SWP_SHOWWINDOW,
 };
 
 pub struct WindowManager {
@@ -87,7 +91,7 @@ impl WindowManager {
                 WS_EX_LAYERED | WS_EX_NOACTIVATE | WS_EX_NOREDIRECTIONBITMAP,
                 class_name,
                 w!("Magpie Overlay"),
-                WS_POPUP | WS_VISIBLE,
+                WS_POPUP, // WS_VISIBLE removed to prevent flash
                 0,
                 0,
                 screen_width,
@@ -102,10 +106,27 @@ impl WindowManager {
                 return Err(anyhow!("Failed to create overlay window"));
             }
 
-            ShowWindow(hwnd, SW_SHOW);
+            // ShowWindow(hwnd, SW_SHOW); // Removed, call show_overlay manually later
             self.overlay_hwnd = Some(hwnd);
+
+            Ok(())
         }
-        Ok(())
+    }
+
+    pub fn show_overlay(&self) {
+        if let Some(hwnd) = self.overlay_hwnd {
+            unsafe {
+                let _ = SetWindowPos(
+                    hwnd,
+                    HWND_TOP,
+                    0,
+                    0,
+                    0,
+                    0,
+                    SWP_SHOWWINDOW | SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE,
+                );
+            }
+        }
     }
 
     pub fn get_overlay_window(&self) -> Option<HWND> {

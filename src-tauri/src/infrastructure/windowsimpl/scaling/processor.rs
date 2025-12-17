@@ -123,6 +123,8 @@ impl CaptureFrameSource {
                 let _ = session.SetIsCursorCaptureEnabled(false);
             }
         }
+        // Disable yellow border (WGC)
+        let _ = session.SetIsBorderRequired(false);
 
         session.StartCapture()?;
         Ok(())
@@ -220,7 +222,7 @@ impl ScalingProcessor {
 
             thread_id_atomic.store(unsafe { GetCurrentThreadId() }, Ordering::SeqCst);
 
-            let init_result = (|| -> Result<(WindowManager, ID3D11Device, ID3D11DeviceContext, IDXGISwapChain1, windows::Win32::Foundation::HANDLE, ID3D11Texture2D, ID3D11RenderTargetView, EffectRuntime, ID3D11Buffer, ID3D11Texture2D, ID3D11UnorderedAccessView, crate::infrastructure::windowsimpl::scaling::toolbar::Toolbar, crate::infrastructure::windowsimpl::scaling::cursor::CursorManager, crate::infrastructure::windowsimpl::scaling::cursor_renderer::CursorRenderer, crate::infrastructure::windowsimpl::scaling::overlay::SimpleToolbar, windows::Win32::Graphics::Direct3D11::ID3D11SamplerState)> {
+            let init_result = (|| -> Result<(WindowManager, ID3D11Device, ID3D11DeviceContext, IDXGISwapChain1, windows::Win32::Foundation::HANDLE, ID3D11Texture2D, ID3D11RenderTargetView, EffectRuntime, ID3D11Buffer, ID3D11Texture2D, ID3D11UnorderedAccessView, crate::infrastructure::windowsimpl::scaling::toolbar::Toolbar, crate::infrastructure::windowsimpl::scaling::cursor::CursorManager, crate::infrastructure::windowsimpl::scaling::cursor_renderer::CursorRenderer, crate::infrastructure::windowsimpl::scaling::overlay::SimpleToolbar, windows::Win32::Graphics::Direct3D11::ID3D11SamplerState, CaptureFrameSource)> {
                 // 1. Start Device Creation in separate thread (Async)
                 let device_handle = thread::spawn(|| -> Result<ID3D11Device> {
                     Ok(create_d3d_device()?)
@@ -254,6 +256,11 @@ impl ScalingProcessor {
 
                 // 3. Join Device
                 let device = device_handle.join().map_err(|_| anyhow!("Device thread panicked"))??;
+                
+                // Early Capture Start (Optimization)
+                // Initialize capture while other resources are being created
+                let mut source = CaptureFrameSource::new(target_hwnd, device.clone())?;
+                source.start()?;
                 
                 // 4. Continue with Device Dependent Init
                 let context = unsafe { device.GetImmediateContext()? };
@@ -364,11 +371,11 @@ impl ScalingProcessor {
                 unsafe { device.CreateSamplerState(&sampler_desc, Some(&mut sampler_out))? };
                 let sampler = sampler_out.unwrap();
 
-                Ok((window_manager, device, context, swap_chain, frame_latency_handle, cached_backbuffer, cached_rtv, effect_runtime, const_buffer, output_texture, _output_uav, toolbar, cursor_manager, cursor_renderer, simple_toolbar, sampler))
+                Ok((window_manager, device, context, swap_chain, frame_latency_handle, cached_backbuffer, cached_rtv, effect_runtime, const_buffer, output_texture, _output_uav, toolbar, cursor_manager, cursor_renderer, simple_toolbar, sampler, source))
             })();
 
             match init_result {
-                Ok((window_manager, device, context, swap_chain, frame_latency_handle, _cached_backbuffer_initial, _cached_rtv_initial, mut effect_runtime, const_buffer, output_texture, _output_uav, mut toolbar, mut cursor_manager, mut cursor_renderer, mut simple_toolbar, sampler)) => {
+                Ok((mut window_manager, device, context, swap_chain, frame_latency_handle, _cached_backbuffer_initial, _cached_rtv_initial, mut effect_runtime, const_buffer, mut output_texture, _output_uav, mut toolbar, mut cursor_manager, mut cursor_renderer, mut simple_toolbar, sampler, mut source)) => {
                     println!("Initialization successful");
                     
                     // ソースウィンドウの位置を保存（終了時に復元するため）
@@ -381,9 +388,8 @@ impl ScalingProcessor {
                     let mut src_tracker = SrcTracker::new(target_hwnd);
                     let _ = src_tracker.update(); 
                     
-                    match CaptureFrameSource::new(target_hwnd, device.clone()) {
-                        Ok(mut source) => {
-                        if let Ok(_) = source.start() {
+                    // Capture already started
+                    {
                             println!("Capture started");
                             
                             let mut last_time = std::time::Instant::now();
@@ -413,6 +419,8 @@ impl ScalingProcessor {
                                     std::mem::size_of::<u32>() as u32,
                                 );
                             }
+                            
+                            let mut first_frame_presented = false;
 
                             while running.load(Ordering::SeqCst) {
                                 unsafe {
@@ -848,6 +856,11 @@ impl ScalingProcessor {
                                     }
 
                                     let _ = swap_chain.Present(0, 0);
+                                    
+                                    if !first_frame_presented {
+                                        window_manager.show_overlay();
+                                        first_frame_presented = true;
+                                    }
                                 }
                                 
                                 // Wait for Frame Latency Object (to sync with refresh rate) or New Frame Event
@@ -873,11 +886,6 @@ impl ScalingProcessor {
                             cursor_manager.stop_capture_public();
 
                             let _ = source.stop();
-                        } else {
-                            println!("Failed to start capture");
-                        }
-                        }
-                        Err(e) => println!("Failed to create capture source: {:?}", e),
                     }
                     
                     window_manager.restore_target_window();
