@@ -213,6 +213,7 @@ impl CursorRenderer {
             let mut vertex_buffer = None;
             self.device
                 .CreateBuffer(&buffer_desc, None, Some(&mut vertex_buffer))?;
+            let current_vertex_buffer = self.vertex_buffer.clone();
             self.vertex_buffer = vertex_buffer;
 
             // ブレンド状態 (予乗済みアルファ)
@@ -872,7 +873,7 @@ impl CursorRenderer {
                         ci.hCursor,
                         cursor_pos,
                         cursor_size / 32.0,
-                        None
+                        None,
                     );
                 }
             }

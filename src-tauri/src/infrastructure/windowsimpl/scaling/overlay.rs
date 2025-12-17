@@ -365,7 +365,7 @@ impl SimpleToolbar {
             let fps_start_y = toolbar_y + (toolbar_height - digit_height) / 2.0;
             let text_color = [1.0, 1.0, 1.0, 1.0]; // 白
 
-            let mut fps_vertex_start = vertices.len();
+            let fps_vertex_start = vertices.len();
             for (i, ch) in fps_text.chars().enumerate() {
                 let x = fps_start_x + i as f32 * digit_spacing;
                 let y = fps_start_y;

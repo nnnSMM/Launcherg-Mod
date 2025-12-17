@@ -1,4 +1,5 @@
-use crate::infrastructure::windowsimpl::scaling::shader::{MagpieConstants, ShaderManager};
+use crate::infrastructure::windowsimpl::scaling::shader::ShaderManager;
+use crate::infrastructure::windowsimpl::scaling::effect_runtime::{EffectRuntime, MagpieConstants, MagpiePassInfo};
 use crate::infrastructure::windowsimpl::scaling::window::WindowManager;
 use crate::infrastructure::windowsimpl::screenshot::d3d::create_d3d_device;
 use anyhow::{anyhow, Result};
@@ -26,7 +27,7 @@ use windows::Win32::Graphics::Dxgi::Common::{
 use windows::Win32::Graphics::Dwm::{DwmSetWindowAttribute, DWMWINDOWATTRIBUTE};
 use windows::Win32::Graphics::Dxgi::{
     IDXGIDevice, IDXGIFactory2, IDXGISwapChain1, DXGI_SWAP_CHAIN_DESC1,
-    DXGI_SWAP_EFFECT_FLIP_DISCARD, DXGI_USAGE_RENDER_TARGET_OUTPUT,
+    DXGI_SWAP_EFFECT_FLIP_DISCARD, DXGI_USAGE_RENDER_TARGET_OUTPUT, DXGI_USAGE_UNORDERED_ACCESS
 };
 use windows::Win32::System::Com::{CoInitializeEx, COINIT_APARTMENTTHREADED};
 use windows::Win32::System::Threading::{
@@ -218,7 +219,7 @@ impl ScalingProcessor {
 
             thread_id_atomic.store(unsafe { GetCurrentThreadId() }, Ordering::SeqCst);
 
-            let init_result = (|| -> Result<(WindowManager, ID3D11Device, ID3D11DeviceContext, IDXGISwapChain1, windows::Win32::Foundation::HANDLE, ID3D11Texture2D, ID3D11RenderTargetView, ID3D11ComputeShader, ID3D11Buffer, ID3D11Texture2D, ID3D11UnorderedAccessView, crate::infrastructure::windowsimpl::scaling::toolbar::Toolbar, crate::infrastructure::windowsimpl::scaling::cursor::CursorManager, crate::infrastructure::windowsimpl::scaling::cursor_renderer::CursorRenderer, crate::infrastructure::windowsimpl::scaling::overlay::SimpleToolbar, windows::Win32::Graphics::Direct3D11::ID3D11SamplerState)> {
+            let init_result = (|| -> Result<(WindowManager, ID3D11Device, ID3D11DeviceContext, IDXGISwapChain1, windows::Win32::Foundation::HANDLE, ID3D11Texture2D, ID3D11RenderTargetView, EffectRuntime, ID3D11Buffer, ID3D11Texture2D, ID3D11UnorderedAccessView, crate::infrastructure::windowsimpl::scaling::toolbar::Toolbar, crate::infrastructure::windowsimpl::scaling::cursor::CursorManager, crate::infrastructure::windowsimpl::scaling::cursor_renderer::CursorRenderer, crate::infrastructure::windowsimpl::scaling::overlay::SimpleToolbar, windows::Win32::Graphics::Direct3D11::ID3D11SamplerState)> {
                 println!("Init: WindowManager");
                 let mut window_manager = WindowManager::new();
                 window_manager.prepare_target_window(target_hwnd)?;
@@ -249,10 +250,10 @@ impl ScalingProcessor {
                 let swap_chain_desc = DXGI_SWAP_CHAIN_DESC1 {
                     Width: width,
                     Height: height,
-                    Format: DXGI_FORMAT_B8G8R8A8_UNORM,
+                    Format: windows::Win32::Graphics::Dxgi::Common::DXGI_FORMAT_R8G8B8A8_UNORM,
                     Stereo: false.into(),
                     SampleDesc: DXGI_SAMPLE_DESC { Count: 1, Quality: 0 },
-                    BufferUsage: DXGI_USAGE_RENDER_TARGET_OUTPUT,
+                    BufferUsage: DXGI_USAGE_RENDER_TARGET_OUTPUT | DXGI_USAGE_UNORDERED_ACCESS,
                     BufferCount: 2,
                     Scaling: windows::Win32::Graphics::Dxgi::DXGI_SCALING_STRETCH,
                     SwapEffect: DXGI_SWAP_EFFECT_FLIP_DISCARD,
@@ -310,7 +311,7 @@ impl ScalingProcessor {
                 
                 let mut output_uav_out = None;
                 unsafe { device.CreateUnorderedAccessView(&output_texture, None, Some(&mut output_uav_out))? };
-                let output_uav = output_uav_out.unwrap();
+                let _output_uav = output_uav_out.unwrap();
 
                 println!("Init: Shaders");
                 let mut shader_path_buf = std::env::current_dir()?;
@@ -327,9 +328,11 @@ impl ScalingProcessor {
                 };
                 let full_shader_path = shader_path_buf.join(shade_file_name);
                 
-                let compute_shader =
-                    shader_manager.compile_compute_shader(&full_shader_path)
+                let compiled_effect =
+                    shader_manager.compile_effect(&full_shader_path)
                         .map_err(|e| anyhow!("Shader compilation failed: {:?}", e))?;
+                
+                let effect_runtime = EffectRuntime::new(device.clone(), context.clone(), compiled_effect)?;
 
                 println!("Init: ConstantBuffer");
                 let const_buffer = unsafe {
@@ -371,11 +374,11 @@ impl ScalingProcessor {
                 let sampler = sampler_out.unwrap();
 
                 println!("Init: Done");
-                Ok((window_manager, device, context, swap_chain, frame_latency_handle, cached_backbuffer, cached_rtv, compute_shader, const_buffer, output_texture, output_uav, toolbar, cursor_manager, cursor_renderer, simple_toolbar, sampler))
+                Ok((window_manager, device, context, swap_chain, frame_latency_handle, cached_backbuffer, cached_rtv, effect_runtime, const_buffer, output_texture, _output_uav, toolbar, cursor_manager, cursor_renderer, simple_toolbar, sampler))
             })();
 
             match init_result {
-                Ok((window_manager, device, context, swap_chain, frame_latency_handle, _cached_backbuffer_initial, _cached_rtv_initial, compute_shader, const_buffer, output_texture, output_uav, mut toolbar, mut cursor_manager, mut cursor_renderer, mut simple_toolbar, sampler)) => {
+                Ok((window_manager, device, context, swap_chain, frame_latency_handle, _cached_backbuffer_initial, _cached_rtv_initial, mut effect_runtime, const_buffer, output_texture, _output_uav, mut toolbar, mut cursor_manager, mut cursor_renderer, mut simple_toolbar, sampler)) => {
                     println!("Initialization successful");
                     
                     // ソースウィンドウの位置を保存（終了時に復元するため）
@@ -402,6 +405,9 @@ impl ScalingProcessor {
                             let mut current_target_h = 0.0f32;
                             let mut current_offset_x = 0u32;
                             let mut current_offset_y = 0u32;
+                            
+                            let mut intermediate_texture: Option<ID3D11Texture2D> = None;
+                            let mut using_intermediate = false;
 
                             // 1. Disable Rounded Corners if possible (Windows 11)
                             unsafe {
@@ -468,137 +474,174 @@ impl ScalingProcessor {
 
                                 processing_start = std::time::Instant::now();
 
-                                match source.update() {
-                                    Ok(FrameSourceState::NewFrame) => {
-                                        if let Ok(input_texture) = source.get_texture() {
-                                            unsafe {
-                                                let mut input_srv = None;
-                                                let _ = device.CreateShaderResourceView(&input_texture, None, Some(&mut input_srv));
+                                // Try to get new frame, but don't block/skip if no new frame
+                                let _ = source.update(); // Ignore result, just update internal state
 
-                                                if let Some(input_srv) = input_srv {
-                                                    let mut desc = D3D11_TEXTURE2D_DESC::default();
-                                                    input_texture.GetDesc(&mut desc);
-                                                    let input_width = desc.Width;
-                                                    let input_height = desc.Height;
-                                                    
-                                                    // Output Size = SwapChain Size (Full Screen)
-                                                    let mut output_desc = D3D11_TEXTURE2D_DESC::default();
-                                                    output_texture.GetDesc(&mut output_desc);
-                                                    let full_output_width = output_desc.Width;
-                                                    let full_output_height = output_desc.Height;
+                                if let Ok(input_texture) = source.get_texture() {
+                                    unsafe {
+                                        let mut input_srv = None;
+                                        let _ = device.CreateShaderResourceView(&input_texture, None, Some(&mut input_srv));
 
-                                                    // Pseudo-borderless: Calculate borders based on Magpie logic
-                                                    let _ = src_tracker.update();
-                                                    let source_rect = src_tracker.get_capture_rect();
-                                                    let window_kind = src_tracker.get_window_kind();
-                                                    
-                                                    // Frame Rect for reference (Capture is usually Frame)
-                                                    let frame_rect = src_tracker.get_frame_rect();
+                                        if let Some(_input_srv) = input_srv {
+                                            let mut desc = D3D11_TEXTURE2D_DESC::default();
+                                            input_texture.GetDesc(&mut desc);
+                                            let input_width = desc.Width;
+                                            let input_height = desc.Height;
+                                            
+                                            // Output Size = SwapChain Size (Full Screen)
+                                            let mut output_desc = D3D11_TEXTURE2D_DESC::default();
+                                            output_texture.GetDesc(&mut output_desc);
+                                            let full_output_width = output_desc.Width;
+                                            let full_output_height = output_desc.Height;
 
-                                                    // Calculate offsets relative to Frame Rect
-                                                    // Source Rect tells us what part of the Screen we want.
-                                                    // Texture contains everything in FrameRect (usually).
-                                                    // So we map SourceRect relative to FrameRect.
-                                                    
-                                                    let mut border_left = source_rect.left - frame_rect.left;
-                                                    let mut border_top = source_rect.top - frame_rect.top;
-                                                    
-                                                    // Clamp to 0
-                                                    if border_left < 0 { border_left = 0; }
-                                                    if border_top < 0 { border_top = 0; }
+                                            // Pseudo-borderless: Calculate borders based on Magpie logic
+                                            let _ = src_tracker.update();
+                                            let source_rect = src_tracker.get_capture_rect();
+                                            let _window_kind = src_tracker.get_window_kind();
+                                            
+                                            // Frame Rect for reference (Capture is usually Frame)
+                                            let frame_rect = src_tracker.get_frame_rect();
 
-                                                    let region_w = (source_rect.right - source_rect.left) as f32;
-                                                    let region_h = (source_rect.bottom - source_rect.top) as f32;
-                                                    
-                                                    let cap_w = input_width as f32;
-                                                    let cap_h = input_height as f32;
+                                            // Calculate offsets relative to Frame Rect
+                                            // Source Rect tells us what part of the Screen we want.
+                                            // Texture contains everything in FrameRect (usually).
+                                            // So we map SourceRect relative to FrameRect.
+                                            
+                                            let mut border_left = source_rect.left - frame_rect.left;
+                                            let mut border_top = source_rect.top - frame_rect.top;
+                                            
+                                            // Clamp to 0
+                                            if border_left < 0 { border_left = 0; }
+                                            if border_top < 0 { border_top = 0; }
 
-                                                    // UV Offsets & Scales
-                                                    let offset_u = if cap_w > 0.0 { border_left as f32 / cap_w } else { 0.0 };
-                                                    let offset_v = if cap_h > 0.0 { border_top as f32 / cap_h } else { 0.0 };
-                                                    let scale_u = if cap_w > 0.0 { region_w / cap_w } else { 1.0 };
-                                                    let scale_v = if cap_h > 0.0 { region_h / cap_h } else { 1.0 };
+                                            let region_w = (source_rect.right - source_rect.left) as f32;
+                                            let region_h = (source_rect.bottom - source_rect.top) as f32;
+                                            
+                                            let cap_w = input_width as f32;
+                                            let cap_h = input_height as f32;
 
-                                                    // Aspect Ratio Preservation Logic
-                                                    let src_w = (source_rect.right - source_rect.left) as f32;
-                                                    let src_h = (source_rect.bottom - source_rect.top) as f32;
-                                                    
-                                                    let mut target_w = full_output_width as f32;
-                                                    let mut target_h = full_output_height as f32;
+                                            // UV Offsets & Scales
+                                            let offset_u = if cap_w > 0.0 { border_left as f32 / cap_w } else { 0.0 };
+                                            let offset_v = if cap_h > 0.0 { border_top as f32 / cap_h } else { 0.0 };
+                                            let scale_u = if cap_w > 0.0 { region_w / cap_w } else { 1.0 };
+                                            let scale_v = if cap_h > 0.0 { region_h / cap_h } else { 1.0 };
 
-                                                    if src_w > 0.0 && src_h > 0.0 {
-                                                        let scale_x = full_output_width as f32 / src_w;
-                                                        let scale_y = full_output_height as f32 / src_h;
-                                                        let scale = scale_x.min(scale_y);
+                                            // Aspect Ratio Preservation Logic
+                                            let src_w = (source_rect.right - source_rect.left) as f32;
+                                            let src_h = (source_rect.bottom - source_rect.top) as f32;
+                                            
+                                            let mut target_w = full_output_width as f32;
+                                            let mut target_h = full_output_height as f32;
 
-                                                        target_w = (src_w * scale).round();
-                                                        target_h = (src_h * scale).round();
+                                            if src_w > 0.0 && src_h > 0.0 {
+                                                let scale_x = full_output_width as f32 / src_w;
+                                                let scale_y = full_output_height as f32 / src_h;
+                                                let scale = scale_x.min(scale_y);
+
+                                                target_w = (src_w * scale).round();
+                                                target_h = (src_h * scale).round();
+                                            }
+
+                                            // Centering offsets
+                                            let offset_x = ((full_output_width as f32 - target_w) / 2.0).round() as u32;
+                                            let offset_y = ((full_output_height as f32 - target_h) / 2.0).round() as u32;
+                                            
+                                            // Update State for Cursor
+                                            current_target_w = target_w;
+                                            current_target_h = target_h;
+                                            current_offset_x = offset_x;
+                                            current_offset_y = offset_y;
+
+                                            // Preferred Output Size Calculation
+                                            let mut output_width = target_w as u32;
+                                            let mut output_height = target_h as u32;
+                                            using_intermediate = false;
+
+                                            if let Ok((pref_w, pref_h)) = effect_runtime.get_preferred_output_size((input_width, input_height), (output_width, output_height)) {
+                                                if pref_w != output_width || pref_h != output_height {
+                                                    using_intermediate = true;
+                                                    output_width = pref_w;
+                                                    output_height = pref_h;
+
+                                                    // Check if we need to recreate intermediate texture
+                                                    let mut recreate = true;
+                                                    if let Some(ref tex) = intermediate_texture {
+                                                        let mut desc = D3D11_TEXTURE2D_DESC::default();
+                                                        unsafe { tex.GetDesc(&mut desc) };
+                                                        if desc.Width == output_width && desc.Height == output_height {
+                                                            recreate = false;
+                                                        }
                                                     }
 
-                                                    // Centering offsets
-                                                    let offset_x = ((full_output_width as f32 - target_w) / 2.0).round() as u32;
-                                                    let offset_y = ((full_output_height as f32 - target_h) / 2.0).round() as u32;
-                                                    
-                                                    // Update State for Cursor
-                                                    current_target_w = target_w;
-                                                    current_target_h = target_h;
-                                                    current_offset_x = offset_x;
-                                                    current_offset_y = offset_y;
-
-                                                    // Use calculated target size for Shader
-                                                    let output_width = target_w as u32;
-                                                    let output_height = target_h as u32;
-
-                                                    let constants = MagpieConstants {
-                                                        input_size: [input_width, input_height],
-                                                        output_size: [output_width, output_height], 
-                                                        input_pt: [1.0 / input_width as f32, 1.0 / input_height as f32],
-                                                        output_pt: [1.0 / target_w, 1.0 / target_h],
-                                                        scale: [scale_u, scale_v], // ROI / Capture ratio
-                                                        src_rect_offset: [offset_u, offset_v], // Offset
-                                                    };
-
-
-                                                    let mut mapped = D3D11_MAPPED_SUBRESOURCE::default();
-                                                    if context.Map(&const_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, Some(&mut mapped)).is_ok() {
-                                                        let ptr = mapped.pData as *mut MagpieConstants;
-                                                        ptr.write(constants);
-                                                        context.Unmap(&const_buffer, 0);
+                                                    if recreate {
+                                                        let desc = D3D11_TEXTURE2D_DESC {
+                                                            Width: output_width,
+                                                            Height: output_height,
+                                                            MipLevels: 1,
+                                                            ArraySize: 1,
+                                                            Format: windows::Win32::Graphics::Dxgi::Common::DXGI_FORMAT_R8G8B8A8_UNORM,
+                                                            SampleDesc: windows::Win32::Graphics::Dxgi::Common::DXGI_SAMPLE_DESC { Count: 1, Quality: 0 },
+                                                            Usage: D3D11_USAGE_DEFAULT,
+                                                            BindFlags: (D3D11_BIND_SHADER_RESOURCE.0 | D3D11_BIND_UNORDERED_ACCESS.0) as u32, // UAV for CS output, SRV for Blit input
+                                                            ..Default::default()
+                                                        };
+                                                        let mut tex = None;
+                                                        unsafe { device.CreateTexture2D(&desc, None, Some(&mut tex)).unwrap() }; // Handle error properly in prod
+                                                        intermediate_texture = tex;
                                                     }
-
-                                                    context.CSSetShader(&compute_shader, None);
-                                                    let cbs = [Some(const_buffer.clone())];
-                                                    context.CSSetConstantBuffers(0, Some(&cbs));
-                                                    let srvs = [Some(input_srv)];
-                                                    context.CSSetShaderResources(0, Some(&srvs));
-                                                    let samplers = [Some(sampler.clone())];
-                                                    context.CSSetSamplers(0, Some(&samplers)); // Bind Sampler
-                                                    let uavs = [Some(output_uav.clone())];
-                                                    context.CSSetUnorderedAccessViews(0, 1, Some(uavs.as_ptr()), None);
-
-                                                    // Dispatch (only for the valid image area)
-                                                    context.Dispatch((output_width + 7) / 8, (output_height + 7) / 8, 1);
-                                                    
-                                                    let null_uav: [Option<ID3D11UnorderedAccessView>; 1] = [None];
-                                                    context.CSSetUnorderedAccessViews(0, 1, Some(null_uav.as_ptr()), None);
-                                                    
-                                                    // Calculate Timing
-                                                    let elapsed = processing_start.elapsed().as_secs_f32() * 1000.0;
-                                                    total_processing_time += elapsed;
-
-                                                    frames += 1;
                                                 }
                                             }
+
+                                            // Effect Runtime Update
+                                            // output_width/height now reflects the ACTUAL render resolution (Target or Preferred)
+                                            let _ = effect_runtime.update_size((input_width, input_height), (output_width, output_height));
+                                            let _ = effect_runtime.set_input_texture(&input_texture);
+                                            
+                                            if using_intermediate {
+                                                if let Some(ref tex) = intermediate_texture {
+                                                        let _ = effect_runtime.set_output_texture(tex);
+                                                }
+                                            } else {
+                                                let _ = effect_runtime.set_output_texture(&output_texture);
+                                            }
+
+                                            let pass_infos = effect_runtime.get_pass_infos();
+
+                                            let constants = MagpieConstants {
+                                                input_size: [input_width, input_height],
+                                                output_size: [output_width, output_height], 
+                                                input_pt: [1.0 / input_width as f32, 1.0 / input_height as f32],
+                                                output_pt: [1.0 / output_width as f32, 1.0 / output_height as f32], // Output PT based on Render Size
+                                                scale: [scale_u, scale_v],
+                                                src_rect_offset: [offset_u, offset_v],
+                                                passes: pass_infos,
+                                            };
+
+                                            let mut mapped = D3D11_MAPPED_SUBRESOURCE::default();
+                                            if context.Map(&const_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, Some(&mut mapped)).is_ok() {
+                                                let ptr = mapped.pData as *mut MagpieConstants;
+                                                ptr.write(constants);
+                                                context.Unmap(&const_buffer, 0);
+                                            }
+
+                                            if let Err(e) = effect_runtime.execute(&const_buffer) {
+                                                println!("Effect execution failed: {:?}", e);
+                                            }
+                                            
+                                            // effect_runtime already handles resource binding and unbinding
+                                            
+                                            // Calculate Timing
+                                            let elapsed = processing_start.elapsed().as_secs_f32() * 1000.0;
+                                            total_processing_time += elapsed;
+
+                                            frames += 1;
                                         }
-                                    }
-                                    _ => {
-                                        // No new frame
                                     }
                                 }
 
                                 // Update FPS & Stats (Every ~0.2s)
                                 let elapsed_chk = last_time.elapsed().as_secs_f32();
-                                let mut stats_updated = false;
+                                let mut _stats_updated = false;
                                 if elapsed_chk >= 0.2 {
                                     toolbar.fps = (frames as f32 / elapsed_chk) as u32;
                                     toolbar.processing_time_ms = if frames > 0 {
@@ -610,7 +653,7 @@ impl ScalingProcessor {
                                     frames = 0;
                                     total_processing_time = 0.0;
                                     last_time = std::time::Instant::now();
-                                    stats_updated = true;
+                                    _stats_updated = true;
                                 }
 
                                 // Always Present to consume frame latency signal and keep cursor smooth
@@ -620,25 +663,40 @@ impl ScalingProcessor {
                                     context.ClearRenderTargetView(&rtv, &black_color);
 
                                     // 2. Draw Last Scaled Frame (Every Frame)
+                                    // 2. Draw Last Scaled Frame (Every Frame)
                                     if current_target_w > 0.0 && current_target_h > 0.0 {
-                                        let src_box = windows::Win32::Graphics::Direct3D11::D3D11_BOX {
-                                            left: 0,
-                                            top: 0,
-                                            front: 0,
-                                            right: current_target_w as u32,
-                                            bottom: current_target_h as u32,
-                                            back: 1,
-                                        };
-                                        context.CopySubresourceRegion(
-                                            &backbuffer,
-                                            0,
-                                            current_offset_x,
-                                            current_offset_y,
-                                            0,
-                                            &output_texture,
-                                            0,
-                                            Some(&src_box)
-                                        );
+                                        if using_intermediate {
+                                            if let Some(ref tex) = intermediate_texture {
+                                                let dst_rect = RECT {
+                                                    left: current_offset_x as i32,
+                                                    top: current_offset_y as i32,
+                                                    right: current_offset_x as i32 + current_target_w as i32,
+                                                    bottom: current_offset_y as i32 + current_target_h as i32,
+                                                };
+                                                if let Err(e) = effect_runtime.execute_blit(tex, &backbuffer, dst_rect) {
+                                                    println!("Blit failed: {:?}", e);
+                                                }
+                                            }
+                                        } else {
+                                            let src_box = windows::Win32::Graphics::Direct3D11::D3D11_BOX {
+                                                left: 0,
+                                                top: 0,
+                                                front: 0,
+                                                right: current_target_w as u32,
+                                                bottom: current_target_h as u32,
+                                                back: 1,
+                                            };
+                                            context.CopySubresourceRegion(
+                                                &backbuffer,
+                                                0,
+                                                current_offset_x,
+                                                current_offset_y,
+                                                0,
+                                                &output_texture,
+                                                0,
+                                                Some(&src_box)
+                                            );
+                                        }
                                     }
 
                                     // Get Output desc again for size (TODO: optimize)

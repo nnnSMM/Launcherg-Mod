@@ -13,9 +13,16 @@
   let games: CollectionElement[] = [];
   let gameOptions: Option<number>[] = [];
   let shaderOptions: Option<string>[] = [
-    { label: "Bicubic", value: "Bicubic" },
     { label: "Bilinear", value: "Bilinear" },
-    // Add more shaders here later
+    { label: "Bicubic", value: "Bicubic" },
+    { label: "ArtFlow-8x32-VN", value: "ArtFlow-VN/ArtFlow-8x32-VN" },
+    { label: "ArtFlow-8x32-VN-Opt", value: "ArtFlow-VN/ArtFlow-8x32-VN-Opt" },
+    { label: "ArtFlow-8x32-Detail-VN", value: "ArtFlow-VN/ArtFlow-8x32-Detail-VN" },
+    { label: "ArtFlow-8x32-Detail-VN-Opt", value: "ArtFlow-VN/ArtFlow-8x32-Detail-VN-Opt" },
+    { label: "ArtFlow-12x32-VN", value: "ArtFlow-VN/ArtFlow-12x32-VN" },
+    { label: "ArtFlow-12x32-VN-Opt", value: "ArtFlow-VN/ArtFlow-12x32-VN-Opt" },
+    { label: "ArtFlow-12x32-Detail-VN", value: "ArtFlow-VN/ArtFlow-12x32-Detail-VN" },
+    { label: "ArtFlow-12x32-Detail-VN-Opt", value: "ArtFlow-VN/ArtFlow-12x32-Detail-VN-Opt" },
   ];
   let selectedGameId: number = 0;
   let selectedShader: string = "Bicubic";

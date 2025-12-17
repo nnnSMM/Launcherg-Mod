@@ -1,6 +1,9 @@
 pub mod cursor;
 pub mod cursor_drawer;
 pub mod cursor_renderer;
+pub mod effect_desc;
+pub mod effect_runtime;
+pub mod include_handler;
 pub mod overlay;
 pub mod processor;
 pub mod shader;
