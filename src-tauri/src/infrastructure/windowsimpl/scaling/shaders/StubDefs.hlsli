@@ -26,22 +26,12 @@
 #define MF4x3 float4x3
 #define MF4x4 float4x4
 
-cbuffer GlobalConstants : register(b0) {
-    uint2 _inputSize;
-    uint2 _outputSize;
-    float2 _inputPt;
-    float2 _outputPt;
-    float2 _scale;
-    float2 _srcRectOffset;
-}
-
 uint2 Rmp8x8(uint a) { return uint2(a / 8, a % 8); }
-uint2 GetInputSize() { return _inputSize; }
-float2 GetInputPt() { return _inputPt; }
-float2 GetSrcRectOffset() { return _srcRectOffset; }
-uint2 GetOutputSize() { return _outputSize; }
-float2 GetOutputPt() { return _outputPt; }
-float2 GetScale() { return _scale; }
+uint2 GetInputSize() { return uint2(0, 0); }
+float2 GetInputPt() { return float2(0, 0); }
+uint2 GetOutputSize() { return float2(0, 0); }
+float2 GetOutputPt() { return float2(0, 0); }
+float2 GetScale() { return float2(0, 0); }
 MF2 MulAdd(MF2 x, MF2x2 y, MF2 a) { return mul(x, y) + a; }
 MF3 MulAdd(MF2 x, MF2x3 y, MF3 a) { return mul(x, y) + a; }
 MF4 MulAdd(MF2 x, MF2x4 y, MF4 a) { return mul(x, y) + a; }
