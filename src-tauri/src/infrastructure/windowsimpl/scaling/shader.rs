@@ -18,7 +18,7 @@ use std::collections::hash_map::DefaultHasher;
 use std::fs;
 use std::hash::{Hash, Hasher};
 
-const COMPILER_VERSION: u32 = 1;
+const COMPILER_VERSION: u32 = 3;
 
 pub struct ShaderManager {
     device: ID3D11Device,

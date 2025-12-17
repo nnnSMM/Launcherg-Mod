@@ -297,7 +297,7 @@ impl ScalingProcessor {
                     Height: height,
                     MipLevels: 1,
                     ArraySize: 1,
-                    Format: windows::Win32::Graphics::Dxgi::Common::DXGI_FORMAT_B8G8R8A8_UNORM,
+                    Format: windows::Win32::Graphics::Dxgi::Common::DXGI_FORMAT_R8G8B8A8_UNORM,
                     SampleDesc: DXGI_SAMPLE_DESC { Count: 1, Quality: 0 },
                     Usage: D3D11_USAGE_DEFAULT,
                     BindFlags: (D3D11_BIND_SHADER_RESOURCE.0 | D3D11_BIND_UNORDERED_ACCESS.0) as u32,
@@ -408,6 +408,9 @@ impl ScalingProcessor {
                             
                             let mut intermediate_texture: Option<ID3D11Texture2D> = None;
                             let mut using_intermediate = false;
+                            
+                            // Input Crop Texture (for removing window borders/shadows before shader pass)
+                            let mut input_crop_texture: Option<ID3D11Texture2D> = None;
 
                             // 1. Disable Rounded Corners if possible (Windows 11)
                             unsafe {
@@ -477,46 +480,117 @@ impl ScalingProcessor {
                                 // Try to get new frame, but don't block/skip if no new frame
                                 let _ = source.update(); // Ignore result, just update internal state
 
-                                if let Ok(input_texture) = source.get_texture() {
+                                if let Ok(input_texture_raw) = source.get_texture() {
+                                    // Use raw texture by default, but might be replaced by cropped one
+                                    let mut input_texture = input_texture_raw.clone();
+                                    
                                     unsafe {
+                                        // 1. Get raw dimensions
+                                        let mut desc = D3D11_TEXTURE2D_DESC::default();
+                                        input_texture_raw.GetDesc(&mut desc);
+                                        let raw_width = desc.Width;
+                                        let raw_height = desc.Height;
+                                        
+                                        let mut input_width = raw_width;
+                                        let mut input_height = raw_height;
+
+                                        // 2. Update Tracker & Calculate Crop
+                                        let _ = src_tracker.update();
+                                        let source_rect = src_tracker.get_capture_rect();
+                                        let frame_rect = src_tracker.get_frame_rect();
+
+                                        let mut crop_x = (source_rect.left - frame_rect.left).max(0) as u32;
+                                        let mut crop_y = (source_rect.top - frame_rect.top).max(0) as u32;
+                                        let mut crop_w = (source_rect.right - source_rect.left).max(0) as u32;
+                                        let mut crop_h = (source_rect.bottom - source_rect.top).max(0) as u32;
+                                        
+                                        // Safety Clamp
+                                        crop_w = crop_w.min(raw_width - crop_x);
+                                        crop_h = crop_h.min(raw_height - crop_y);
+                                        
+                                        // 3. Perform Crop if needed
+                                        let mut border_left = 0.0f32;
+                                        let mut border_top = 0.0f32;
+                                        let mut region_w = crop_w as f32;
+                                        let mut region_h = crop_h as f32;
+
+                                        if crop_w > 0 && crop_h > 0 && (crop_w != raw_width || crop_h != raw_height || crop_x > 0 || crop_y > 0) {
+                                            // Recreate crop texture if size changed
+                                            let mut recreate = true;
+                                            if let Some(ref t) = input_crop_texture {
+                                                let mut d = D3D11_TEXTURE2D_DESC::default();
+                                                t.GetDesc(&mut d);
+                                                if d.Width == crop_w && d.Height == crop_h {
+                                                    recreate = false;
+                                                }
+                                            }
+                                            
+                                            if recreate {
+                                                let crop_desc = D3D11_TEXTURE2D_DESC {
+                                                    Width: crop_w,
+                                                    Height: crop_h,
+                                                    MipLevels: 1,
+                                                    ArraySize: 1,
+                                                    Format: desc.Format,
+                                                    SampleDesc: DXGI_SAMPLE_DESC { Count: 1, Quality: 0 },
+                                                    Usage: D3D11_USAGE_DEFAULT,
+                                                    BindFlags: D3D11_BIND_SHADER_RESOURCE.0 as u32,
+                                                    ..Default::default()
+                                                };
+                                                let mut tex = None;
+                                                let _ = device.CreateTexture2D(&crop_desc, None, Some(&mut tex));
+                                                input_crop_texture = tex;
+                                            }
+                                            
+                                            // Copy Region
+                                            if let Some(ref dst_tex) = input_crop_texture {
+                                                let src_box = windows::Win32::Graphics::Direct3D11::D3D11_BOX {
+                                                    left: crop_x,
+                                                    top: crop_y,
+                                                    front: 0,
+                                                    right: crop_x + crop_w,
+                                                    bottom: crop_y + crop_h,
+                                                    back: 1,
+                                                };
+                                                context.CopySubresourceRegion(dst_tex, 0, 0, 0, 0, &input_texture_raw, 0, Some(&src_box));
+                                                
+                                                // Switch input
+                                                input_texture = dst_tex.clone();
+                                                input_width = crop_w;
+                                                input_height = crop_h;
+                                                
+                                                // Reset borders for shader constants (since we cropped them out)
+                                                // border_left / top are used for src_rect_offset.
+                                                // Since we cropped, the new texture starts at (0,0) of content.
+                                                border_left = 0.0;
+                                                border_top = 0.0;
+                                                region_w = input_width as f32;
+                                                region_h = input_height as f32;
+                                            }
+                                        } else {
+                                            // No crop needed (or invalid crop), use raw values
+                                            // Still need to calculate border_left etc for shader constants if we didn't crop?
+                                            // If we didn't crop, it means input IS raw.
+                                            // Ideally we SHOULD have cropped if borders exist.
+                                            // If crop logic failed (e.g. crop_w=0), we fallback to full texture.
+                                            // In that case, border_left should technically be calculated...
+                                            // But for safety let's use what we have.
+                                            border_left = (source_rect.left - frame_rect.left).max(0) as f32;
+                                            border_top = (source_rect.top - frame_rect.top).max(0) as f32;
+                                            region_w = (source_rect.right - source_rect.left) as f32;
+                                            region_h = (source_rect.bottom - source_rect.top) as f32;
+                                        }
+
                                         let mut input_srv = None;
                                         let _ = device.CreateShaderResourceView(&input_texture, None, Some(&mut input_srv));
-
+ 
                                         if let Some(_input_srv) = input_srv {
-                                            let mut desc = D3D11_TEXTURE2D_DESC::default();
-                                            input_texture.GetDesc(&mut desc);
-                                            let input_width = desc.Width;
-                                            let input_height = desc.Height;
                                             
                                             // Output Size = SwapChain Size (Full Screen)
                                             let mut output_desc = D3D11_TEXTURE2D_DESC::default();
                                             output_texture.GetDesc(&mut output_desc);
                                             let full_output_width = output_desc.Width;
                                             let full_output_height = output_desc.Height;
-
-                                            // Pseudo-borderless: Calculate borders based on Magpie logic
-                                            let _ = src_tracker.update();
-                                            let source_rect = src_tracker.get_capture_rect();
-                                            let _window_kind = src_tracker.get_window_kind();
-                                            
-                                            // Frame Rect for reference (Capture is usually Frame)
-                                            let frame_rect = src_tracker.get_frame_rect();
-
-                                            // Calculate offsets relative to Frame Rect
-                                            // Source Rect tells us what part of the Screen we want.
-                                            // Texture contains everything in FrameRect (usually).
-                                            // So we map SourceRect relative to FrameRect.
-                                            
-                                            let mut border_left = source_rect.left - frame_rect.left;
-                                            let mut border_top = source_rect.top - frame_rect.top;
-                                            
-                                            // Clamp to 0
-                                            if border_left < 0 { border_left = 0; }
-                                            if border_top < 0 { border_top = 0; }
-
-                                            let region_w = (source_rect.right - source_rect.left) as f32;
-                                            let region_h = (source_rect.bottom - source_rect.top) as f32;
-                                            
                                             let cap_w = input_width as f32;
                                             let cap_h = input_height as f32;
 
@@ -607,6 +681,7 @@ impl ScalingProcessor {
 
                                             let pass_infos = effect_runtime.get_pass_infos();
 
+                                            // 定数バッファを更新
                                             let constants = MagpieConstants {
                                                 input_size: [input_width, input_height],
                                                 output_size: [output_width, output_height], 
@@ -614,7 +689,6 @@ impl ScalingProcessor {
                                                 output_pt: [1.0 / output_width as f32, 1.0 / output_height as f32], // Output PT based on Render Size
                                                 scale: [scale_u, scale_v],
                                                 src_rect_offset: [offset_u, offset_v],
-                                                passes: pass_infos,
                                             };
 
                                             let mut mapped = D3D11_MAPPED_SUBRESOURCE::default();
@@ -686,6 +760,7 @@ impl ScalingProcessor {
                                                 bottom: current_target_h as u32,
                                                 back: 1,
                                             };
+                                            
                                             context.CopySubresourceRegion(
                                                 &backbuffer,
                                                 0,

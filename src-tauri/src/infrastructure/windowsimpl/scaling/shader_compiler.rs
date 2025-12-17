@@ -708,11 +708,6 @@ impl ShaderCompiler {
     float2 __srcRectOffset;
 "#,
         );
-        // パスごとの出力サイズ変数を追加 (MagpiePassInfoに対応)
-        for i in 0..16 {
-            result.push_str(&format!("    uint2 __pass{}OutputSize;\n", i));
-            result.push_str(&format!("    float2 __pass{}OutputPt;\n", i));
-        }
 
         // パラメータを追加
         for param in &desc.params {
@@ -726,8 +721,35 @@ impl ShaderCompiler {
         result.push_str("};\n\n");
 
         // MF マクロ定義 (FP16/FP32切り替え用)
-        result.push_str(
-            r#"#define MF float
+        if desc.flags & effect_flags::SUPPORT_FP16 != 0 {
+            result.push_str(
+                r#"#define MF min16float
+#define MF1 min16float
+#define MF2 min16float2
+#define MF3 min16float3
+#define MF4 min16float4
+#define MF1x1 min16float1x1
+#define MF1x2 min16float1x2
+#define MF1x3 min16float1x3
+#define MF1x4 min16float1x4
+#define MF2x1 min16float2x1
+#define MF2x2 min16float2x2
+#define MF2x3 min16float2x3
+#define MF2x4 min16float2x4
+#define MF3x1 min16float3x1
+#define MF3x2 min16float3x2
+#define MF3x3 min16float3x3
+#define MF3x4 min16float3x4
+#define MF4x1 min16float4x1
+#define MF4x2 min16float4x2
+#define MF4x3 min16float4x3
+#define MF4x4 min16float4x4
+
+"#,
+            );
+        } else {
+            result.push_str(
+                r#"#define MF float
 #define MF1 float1
 #define MF2 float2
 #define MF3 float3
@@ -750,7 +772,8 @@ impl ShaderCompiler {
 #define MF4x4 float4x4
 
 "#,
-        );
+            );
+        }
 
         // Dynamic フラグ
         if desc.flags & effect_flags::USE_DYNAMIC != 0 {

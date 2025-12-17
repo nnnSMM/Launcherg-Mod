@@ -377,8 +377,8 @@ impl EffectRuntime {
             dst_offset: [dst_rect.left as u32, dst_rect.top as u32],
             dst_size: [width, height],
             input_size: [input_w, input_h],
-            param_b: 0.33,
-            param_c: 0.33,
+            param_b: 0.0, // Magpie Default (Catmull-Rom)
+            param_c: 0.5, // Magpie Default (Catmull-Rom)
         };
 
         unsafe {
@@ -929,7 +929,6 @@ pub struct MagpieConstants {
     pub output_pt: [f32; 2],
     pub scale: [f32; 2],
     pub src_rect_offset: [f32; 2], // Offset for pseudo-borderless (x, y)
-    pub passes: [MagpiePassInfo; 16], // Support up to 16 passes
 }
 
 #[repr(C)]
