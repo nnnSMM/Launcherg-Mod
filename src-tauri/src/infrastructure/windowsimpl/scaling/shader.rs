@@ -14,41 +14,33 @@ use crate::infrastructure::windowsimpl::scaling::effect_runtime::{
     CompiledEffect, CompiledPass, EffectCacheData, EffectTextureDesc,
 };
 use crate::infrastructure::windowsimpl::scaling::shader_compiler::ShaderCompiler;
+use once_cell::sync::Lazy;
 use std::collections::hash_map::DefaultHasher;
+use std::collections::HashMap;
 use std::fs;
 use std::hash::{Hash, Hasher};
+use std::path::PathBuf;
+use std::sync::Mutex;
 
-const COMPILER_VERSION: u32 = 3;
+use rayon::prelude::*;
+
+const COMPILER_VERSION: u32 = 4;
+
+static MEMORY_CACHE: Lazy<Mutex<HashMap<PathBuf, (u64, CompiledEffect)>>> =
+    Lazy::new(|| Mutex::new(HashMap::new()));
 
 pub struct ShaderManager {
-    device: ID3D11Device,
     compiler: ShaderCompiler,
 }
 
 impl ShaderManager {
-    pub fn new(device: ID3D11Device, resources_path: impl AsRef<Path>) -> Self {
+    pub fn new(resources_path: impl AsRef<Path>) -> Self {
         Self {
-            device,
             compiler: ShaderCompiler::new(resources_path),
         }
     }
 
-    // Unused methods removed
-
-    pub fn compile_compute_shader(&self, shader_path: &Path) -> Result<ID3D11ComputeShader> {
-        let (source, entry_point) = self.compiler.compile_compute_shader_source(shader_path)?;
-        let bytecode = self.compile(&source, &entry_point, "cs_5_0")?;
-
-        let mut shader = None;
-        unsafe {
-            self.device.CreateComputeShader(
-                &bytecode,
-                Option::<&ID3D11ClassLinkage>::None,
-                Some(&mut shader),
-            )?;
-        }
-        shader.ok_or_else(|| anyhow!("Failed to create compute shader"))
-    }
+    // compile_compute_shader removed as it required device and was unused.
 
     /// マルチパスエフェクトをコンパイル
     pub fn compile_effect(&self, shader_path: &Path) -> Result<CompiledEffect> {
@@ -60,7 +52,18 @@ impl ShaderManager {
             source_hash = hasher.finish();
         }
 
-        let cache_path = shader_path.with_extension("hlsl.compiled.json");
+        // メモリキャッシュチェック
+        {
+            let cache = MEMORY_CACHE.lock().unwrap();
+            if let Some((cached_hash, effect)) = cache.get(shader_path) {
+                if *cached_hash == source_hash {
+                    println!("Loaded effect from memory cache: {:?}", shader_path);
+                    return Ok(effect.clone());
+                }
+            }
+        }
+
+        let cache_path = shader_path.with_extension("hlsl.compiled.bin");
 
         if cache_path.exists() {
             if let Ok(cache_data) = self.load_cache(&cache_path) {
@@ -68,6 +71,16 @@ impl ShaderManager {
                     && cache_data.compiler_version == COMPILER_VERSION
                 {
                     println!("Loaded effect from cache: {:?}", cache_path);
+
+                    // メモリキャッシュにも保存
+                    {
+                        let mut cache = MEMORY_CACHE.lock().unwrap();
+                        cache.insert(
+                            shader_path.to_path_buf(),
+                            (source_hash, cache_data.effect.clone()),
+                        );
+                    }
+
                     return Ok(cache_data.effect);
                 }
                 println!("Cache mismatch or stale: {:?}", cache_path);
@@ -76,23 +89,30 @@ impl ShaderManager {
 
         let (desc, sources) = self.compiler.compile_all_passes(shader_path)?;
 
-        let mut compiled_passes = Vec::new();
-        for (i, source) in sources.iter().enumerate() {
-            let bytecode = self
-                .compile(source, "__M", "cs_5_0")
-                .map_err(|e| anyhow!("Failed to compile pass {}: {}", i + 1, e))?;
+        // 並列コンパイル
+        let compiled_results: Result<Vec<_>> = sources
+            .par_iter()
+            .enumerate()
+            .map(|(i, source)| {
+                let bytecode = self
+                    .compile(source, "__M", "cs_5_0")
+                    .map_err(|e| anyhow!("Failed to compile pass {}: {}", i + 1, e))?;
 
-            let pass_desc = &desc.passes[i];
-            compiled_passes.push(CompiledPass {
-                cso: bytecode,
-                inputs: pass_desc.inputs.clone(),
-                outputs: pass_desc.outputs.clone(),
-                block_size: pass_desc.block_size,
-                num_threads: pass_desc.num_threads,
-                is_ps_style: pass_desc.is_ps_style(),
-                desc: pass_desc.desc.clone(),
-            });
-        }
+                // Note: desc is shared reference, safe to access
+                let pass_desc = &desc.passes[i];
+                Ok(CompiledPass {
+                    cso: bytecode,
+                    inputs: pass_desc.inputs.clone(),
+                    outputs: pass_desc.outputs.clone(),
+                    block_size: pass_desc.block_size,
+                    num_threads: pass_desc.num_threads,
+                    is_ps_style: pass_desc.is_ps_style(),
+                    desc: pass_desc.desc.clone(),
+                })
+            })
+            .collect();
+
+        let compiled_passes = compiled_results?;
 
         // テクスチャ記述子を変換
         let textures: Vec<EffectTextureDesc> = desc
@@ -128,20 +148,26 @@ impl ShaderManager {
             println!("Failed to save cache: {:?}", e);
         }
 
+        // メモリキャッシュに保存
+        {
+            let mut cache = MEMORY_CACHE.lock().unwrap();
+            cache.insert(shader_path.to_path_buf(), (source_hash, effect.clone()));
+        }
+
         Ok(effect)
     }
 
     fn load_cache(&self, path: &Path) -> Result<EffectCacheData> {
         let file = fs::File::open(path)?;
         let reader = std::io::BufReader::new(file);
-        let data = serde_json::from_reader(reader)?;
+        let data = bincode::deserialize_from(reader)?;
         Ok(data)
     }
 
     fn save_cache(&self, path: &Path, data: &EffectCacheData) -> Result<()> {
         let file = fs::File::create(path)?;
         let writer = std::io::BufWriter::new(file);
-        serde_json::to_writer(writer, data)?;
+        bincode::serialize_into(writer, data)?;
         Ok(())
     }
 

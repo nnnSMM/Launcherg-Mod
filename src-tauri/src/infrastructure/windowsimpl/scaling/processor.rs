@@ -1,6 +1,7 @@
 use crate::infrastructure::windowsimpl::scaling::shader::ShaderManager;
 use crate::infrastructure::windowsimpl::scaling::effect_runtime::{EffectRuntime, MagpieConstants, MagpiePassInfo};
 use crate::infrastructure::windowsimpl::scaling::window::WindowManager;
+// use crate::infrastructure::windowsimpl::scaling::shared_resources::get_shared_d3d_device; // Reverted
 use crate::infrastructure::windowsimpl::screenshot::d3d::create_d3d_device;
 use anyhow::{anyhow, Result};
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
@@ -21,7 +22,7 @@ use windows::Win32::Graphics::Direct3D11::{
     D3D11_USAGE_DYNAMIC,
 };
 use windows::Win32::Graphics::Dxgi::Common::{
-    DXGI_ALPHA_MODE_IGNORE, DXGI_FORMAT_B8G8R8A8_UNORM,
+    DXGI_ALPHA_MODE_IGNORE, DXGI_FORMAT_R8G8B8A8_UNORM,
     DXGI_SAMPLE_DESC,
 };
 use windows::Win32::Graphics::Dwm::{DwmSetWindowAttribute, DWMWINDOWATTRIBUTE};
@@ -220,7 +221,12 @@ impl ScalingProcessor {
             thread_id_atomic.store(unsafe { GetCurrentThreadId() }, Ordering::SeqCst);
 
             let init_result = (|| -> Result<(WindowManager, ID3D11Device, ID3D11DeviceContext, IDXGISwapChain1, windows::Win32::Foundation::HANDLE, ID3D11Texture2D, ID3D11RenderTargetView, EffectRuntime, ID3D11Buffer, ID3D11Texture2D, ID3D11UnorderedAccessView, crate::infrastructure::windowsimpl::scaling::toolbar::Toolbar, crate::infrastructure::windowsimpl::scaling::cursor::CursorManager, crate::infrastructure::windowsimpl::scaling::cursor_renderer::CursorRenderer, crate::infrastructure::windowsimpl::scaling::overlay::SimpleToolbar, windows::Win32::Graphics::Direct3D11::ID3D11SamplerState)> {
-                println!("Init: WindowManager");
+                // 1. Start Device Creation in separate thread (Async)
+                let device_handle = thread::spawn(|| -> Result<ID3D11Device> {
+                    Ok(create_d3d_device()?)
+                });
+                
+                // 2. Main Thread: WindowManager & Shaders
                 let mut window_manager = WindowManager::new();
                 window_manager.prepare_target_window(target_hwnd)?;
                 window_manager.create_overlay_window()?;
@@ -228,29 +234,47 @@ impl ScalingProcessor {
                     .get_overlay_window()
                     .ok_or(anyhow!("No overlay window"))?;
 
-                println!("Init: CreateDevice");
-                let device = create_d3d_device()?;
+                let mut shader_path_buf = std::env::current_dir()?;
+                if !shader_path_buf.ends_with("src-tauri") {
+                    shader_path_buf.push("src-tauri");
+                }
+                shader_path_buf.push("src/infrastructure/windowsimpl/scaling/shaders");
+
+                // ShaderManager no longer needs Device!
+                let shader_manager = ShaderManager::new(&shader_path_buf);
+                let shade_file_name = if shader_name.ends_with(".hlsl") {
+                    shader_name.clone()
+                } else {
+                    format!("{}.hlsl", shader_name)
+                };
+                let full_shader_path = shader_path_buf.join(shade_file_name);
+                
+                let compiled_effect = shader_manager.compile_effect(&full_shader_path)
+                        .map_err(|e| anyhow!("Shader compilation failed: {:?}", e))?;
+
+                // 3. Join Device
+                let device = device_handle.join().map_err(|_| anyhow!("Device thread panicked"))??;
+                
+                // 4. Continue with Device Dependent Init
                 let context = unsafe { device.GetImmediateContext()? };
                 unsafe {
                     let feature_level = device.GetFeatureLevel();
                     println!("D3D Feature Level: {:?}", feature_level);
                 }
 
-                println!("Init: DXGI Objects");
                 let dxgi_device: IDXGIDevice = device.cast()?;
                 let adapter = unsafe { dxgi_device.GetAdapter()? };
                 let factory: IDXGIFactory2 = unsafe { adapter.GetParent()? };
 
                 let mut rect = windows::Win32::Foundation::RECT::default();
-                unsafe { windows::Win32::UI::WindowsAndMessaging::GetClientRect(overlay_window, &mut rect) };
+                unsafe { let _ = windows::Win32::UI::WindowsAndMessaging::GetClientRect(overlay_window, &mut rect); };
                 let width = (rect.right - rect.left) as u32;
                 let height = (rect.bottom - rect.top) as u32;
-                println!("Overlay Window Size: {}x{}", width, height);
 
                 let swap_chain_desc = DXGI_SWAP_CHAIN_DESC1 {
                     Width: width,
                     Height: height,
-                    Format: windows::Win32::Graphics::Dxgi::Common::DXGI_FORMAT_R8G8B8A8_UNORM,
+                    Format: DXGI_FORMAT_R8G8B8A8_UNORM,
                     Stereo: false.into(),
                     SampleDesc: DXGI_SAMPLE_DESC { Count: 1, Quality: 0 },
                     BufferUsage: DXGI_USAGE_RENDER_TARGET_OUTPUT | DXGI_USAGE_UNORDERED_ACCESS,
@@ -258,15 +282,10 @@ impl ScalingProcessor {
                     Scaling: windows::Win32::Graphics::Dxgi::DXGI_SCALING_STRETCH,
                     SwapEffect: DXGI_SWAP_EFFECT_FLIP_DISCARD,
                     AlphaMode: DXGI_ALPHA_MODE_IGNORE,
-                    // フレームレイテンシ制御を有効化 (Magpie方式)
                     Flags: windows::Win32::Graphics::Dxgi::DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT.0 as u32,
                 };
 
-                println!("Init: SwapChain");
                 let swap_chain: IDXGISwapChain1 = unsafe {
-                    // NOTE: Sometimes 0x887A0001 happens if window style is weird (e.g. layered + child?)
-                    // Overlay is WS_POPUP | WS_VISIBLE | WS_EX_LAYERED | WS_EX_TRANSPARENT.
-                    // Layered windows support Flip SwapChain? Yes, starting from Win8.
                     factory.CreateSwapChainForHwnd(&device, overlay_window, &swap_chain_desc, None, None)
                         .map_err(|e| anyhow!("CreateSwapChainForHwnd failed: {:?}", e))?
                 };
@@ -283,21 +302,12 @@ impl ScalingProcessor {
                 let cached_rtv = cached_rtv_out.ok_or_else(|| anyhow!("Failed to create cached RTV"))?;
 
                 // Create Intermediate Texture (for CS output)
-                // Must match SwapChain size and format (roughly)
-                // SwapChain is B8G8R8A8, CS usually outputs R8G8B8A8?
-                // Magpie Shaders output R8G8B8A8 usually.
-                // WE NEED TO BE CAREFUL ABOUT FORMAT.
-                // If SwapChain is B8G8R8A8 (standard for Windows Store/Composition),
-                // and CS writes RGBA, channels might be swapped.
-                // For now, let's use B8G8R8A8 for intermediate too if possible.
-                // D3D11 supports UAV on B8G8R8A8? Yes.
-                
                 let output_texture_desc = D3D11_TEXTURE2D_DESC {
                     Width: width,
                     Height: height,
                     MipLevels: 1,
                     ArraySize: 1,
-                    Format: windows::Win32::Graphics::Dxgi::Common::DXGI_FORMAT_R8G8B8A8_UNORM,
+                    Format: DXGI_FORMAT_R8G8B8A8_UNORM,
                     SampleDesc: DXGI_SAMPLE_DESC { Count: 1, Quality: 0 },
                     Usage: D3D11_USAGE_DEFAULT,
                     BindFlags: (D3D11_BIND_SHADER_RESOURCE.0 | D3D11_BIND_UNORDERED_ACCESS.0) as u32,
@@ -313,28 +323,9 @@ impl ScalingProcessor {
                 unsafe { device.CreateUnorderedAccessView(&output_texture, None, Some(&mut output_uav_out))? };
                 let _output_uav = output_uav_out.unwrap();
 
-                println!("Init: Shaders");
-                let mut shader_path_buf = std::env::current_dir()?;
-                if !shader_path_buf.ends_with("src-tauri") {
-                    shader_path_buf.push("src-tauri");
-                }
-                shader_path_buf.push("src/infrastructure/windowsimpl/scaling/shaders");
-
-                let shader_manager = ShaderManager::new(device.clone(), &shader_path_buf);
-                let shade_file_name = if shader_name.ends_with(".hlsl") {
-                    shader_name.clone()
-                } else {
-                    format!("{}.hlsl", shader_name)
-                };
-                let full_shader_path = shader_path_buf.join(shade_file_name);
-                
-                let compiled_effect =
-                    shader_manager.compile_effect(&full_shader_path)
-                        .map_err(|e| anyhow!("Shader compilation failed: {:?}", e))?;
-                
+                // Effect Runtime Init (Requires Device)
                 let effect_runtime = EffectRuntime::new(device.clone(), context.clone(), compiled_effect)?;
 
-                println!("Init: ConstantBuffer");
                 let const_buffer = unsafe {
                     let desc = D3D11_BUFFER_DESC {
                         ByteWidth: ((std::mem::size_of::<MagpieConstants>() + 15) & !15) as u32,
@@ -373,7 +364,6 @@ impl ScalingProcessor {
                 unsafe { device.CreateSamplerState(&sampler_desc, Some(&mut sampler_out))? };
                 let sampler = sampler_out.unwrap();
 
-                println!("Init: Done");
                 Ok((window_manager, device, context, swap_chain, frame_latency_handle, cached_backbuffer, cached_rtv, effect_runtime, const_buffer, output_texture, _output_uav, toolbar, cursor_manager, cursor_renderer, simple_toolbar, sampler))
             })();
 
@@ -389,6 +379,8 @@ impl ScalingProcessor {
                     };
                     
                     let mut src_tracker = SrcTracker::new(target_hwnd);
+                    let _ = src_tracker.update(); 
+                    
                     match CaptureFrameSource::new(target_hwnd, device.clone()) {
                         Ok(mut source) => {
                         if let Ok(_) = source.start() {
@@ -652,8 +644,8 @@ impl ScalingProcessor {
                                                             Height: output_height,
                                                             MipLevels: 1,
                                                             ArraySize: 1,
-                                                            Format: windows::Win32::Graphics::Dxgi::Common::DXGI_FORMAT_R8G8B8A8_UNORM,
-                                                            SampleDesc: windows::Win32::Graphics::Dxgi::Common::DXGI_SAMPLE_DESC { Count: 1, Quality: 0 },
+                                                            Format: DXGI_FORMAT_R8G8B8A8_UNORM,
+                                                            SampleDesc: DXGI_SAMPLE_DESC { Count: 1, Quality: 0 },
                                                             Usage: D3D11_USAGE_DEFAULT,
                                                             BindFlags: (D3D11_BIND_SHADER_RESOURCE.0 | D3D11_BIND_UNORDERED_ACCESS.0) as u32, // UAV for CS output, SRV for Blit input
                                                             ..Default::default()
