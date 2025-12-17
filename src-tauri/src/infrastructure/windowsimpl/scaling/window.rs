@@ -18,8 +18,15 @@ pub struct WindowManager {
 }
 
 use windows::Win32::UI::WindowsAndMessaging::{
-    LoadCursorW, SetCursor, HTCLIENT, IDC_ARROW, WM_NCHITTEST, WM_SETCURSOR,
+    GetWindowLongPtrW, LoadCursorW, SetCursor, GWLP_USERDATA, HTCLIENT, HTTRANSPARENT, IDC_ARROW,
+    MA_NOACTIVATE, WM_MOUSEACTIVATE, WM_NCHITTEST, WM_SETCURSOR,
 };
+
+#[repr(C)]
+pub struct SharedWindowState {
+    pub toolbar_rect: windows::Win32::Foundation::RECT,
+    pub is_visible: bool,
+}
 
 unsafe extern "system" fn window_proc(
     hwnd: HWND,
@@ -28,8 +35,31 @@ unsafe extern "system" fn window_proc(
     lparam: LPARAM,
 ) -> LRESULT {
     if msg == WM_NCHITTEST {
-        return LRESULT(HTCLIENT as isize);
+        let ptr = GetWindowLongPtrW(hwnd, GWLP_USERDATA) as *mut SharedWindowState;
+        if !ptr.is_null() && (*ptr).is_visible {
+            let state = &*ptr;
+            // param is screen coordinates
+            let x = (lparam.0 & 0xFFFF) as i16 as i32;
+            let y = ((lparam.0 >> 16) & 0xFFFF) as i16 as i32;
+
+            let mut pt = windows::Win32::Foundation::POINT { x, y };
+            windows::Win32::Graphics::Gdi::ScreenToClient(hwnd, &mut pt);
+
+            if pt.x >= state.toolbar_rect.left
+                && pt.x <= state.toolbar_rect.right
+                && pt.y >= state.toolbar_rect.top
+                && pt.y <= state.toolbar_rect.bottom
+            {
+                return LRESULT(HTCLIENT as isize);
+            }
+        }
+        return LRESULT(HTTRANSPARENT as isize);
     }
+
+    if msg == WM_MOUSEACTIVATE {
+        return LRESULT(MA_NOACTIVATE as isize);
+    }
+
     // リサイズカーソルが表示されないように、常に矢印カーソルを設定
     if msg == WM_SETCURSOR {
         if let Ok(arrow) = LoadCursorW(None, IDC_ARROW) {

@@ -75,7 +75,7 @@ pub struct SimpleToolbar {
     visibility_timer: Instant,
 
     // ボタン領域 (NDC座標ではなくピクセル座標で保持)
-    close_button_rect: (f32, f32, f32, f32), // (left, top, right, bottom)
+    pub close_button_rect: (f32, f32, f32, f32), // (left, top, right, bottom)
 }
 
 impl SimpleToolbar {

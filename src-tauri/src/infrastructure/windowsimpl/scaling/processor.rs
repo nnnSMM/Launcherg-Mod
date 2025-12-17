@@ -43,9 +43,11 @@ use windows::Win32::Foundation::{CloseHandle, HWND, RECT};
 use windows::Win32::UI::WindowsAndMessaging::{
     DispatchMessageW, PeekMessageW, MSG, PM_REMOVE,
     QS_ALLINPUT, WM_QUIT, MsgWaitForMultipleObjectsEx, MWMO_INPUTAVAILABLE, GetWindowRect,
+    WM_LBUTTONUP, WM_LBUTTONDOWN, GetWindowLongPtrW, SetWindowLongPtrW, GWLP_USERDATA,
 };
 use windows::Win32::Graphics::Gdi::ScreenToClient;
 use crate::infrastructure::windowsimpl::scaling::src_tracker::SrcTracker;
+use crate::infrastructure::windowsimpl::scaling::window::SharedWindowState;
 
 // DWM constants for corner preference
 const DWMWA_WINDOW_CORNER_PREFERENCE: DWMWINDOWATTRIBUTE = DWMWINDOWATTRIBUTE(33);
@@ -235,6 +237,16 @@ impl ScalingProcessor {
                 let overlay_window = window_manager
                     .get_overlay_window()
                     .ok_or(anyhow!("No overlay window"))?;
+
+                // Setup SharedWindowState for Hit-Testing
+                let shared_state = Box::new(SharedWindowState {
+                    toolbar_rect: windows::Win32::Foundation::RECT::default(),
+                    is_visible: false,
+                });
+                let state_ptr = Box::into_raw(shared_state);
+                unsafe {
+                    SetWindowLongPtrW(overlay_window, GWLP_USERDATA, state_ptr as isize);
+                }
 
                 let mut shader_path_buf = std::env::current_dir()?;
                 if !shader_path_buf.ends_with("src-tauri") {
@@ -813,6 +825,25 @@ impl ScalingProcessor {
                                             }
                                         }
 
+                                        // Update SharedWindowState with current toolbar rect (Window Coordinates)
+                                        if let Some(hwnd) = window_manager.get_overlay_window() {
+                                            let ptr = unsafe { GetWindowLongPtrW(hwnd, GWLP_USERDATA) as *mut SharedWindowState };
+                                            if !ptr.is_null() {
+                                                unsafe {
+                                                    (*ptr).is_visible = simple_toolbar.is_visible();
+                                                    if simple_toolbar.is_visible() {
+                                                        let (l, t, r, b) = simple_toolbar.close_button_rect;
+                                                        (*ptr).toolbar_rect = windows::Win32::Foundation::RECT {
+                                                            left: l as i32,
+                                                            top: t as i32,
+                                                            right: r as i32,
+                                                            bottom: b as i32,
+                                                        };
+                                                    }
+                                                }
+                                            }
+                                        }
+
                                         // システムカーソルを描画 (ツールバーの上に)
                                         if cursor_manager.should_draw_cursor() {
                                             let mut client_pt = cursor_manager.draw_pos();
@@ -895,6 +926,12 @@ impl ScalingProcessor {
                         unsafe {
                             use windows::Win32::UI::WindowsAndMessaging::DestroyWindow;
                             let _ = DestroyWindow(overlay_hwnd);
+
+                            // Free SharedWindowState
+                            let ptr = GetWindowLongPtrW(overlay_hwnd, GWLP_USERDATA) as *mut SharedWindowState;
+                            if !ptr.is_null() {
+                                let _ = Box::from_raw(ptr); 
+                            }
                         }
                     }
                     
