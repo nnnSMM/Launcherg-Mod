@@ -1,10 +1,18 @@
 // D3D11ベースのシンプルなツールバー
 // カーソルが画面上端に近づくと表示され、FPSと終了ボタンを含む
+// DirectWriteを使用した高品質テキスト描画
 
 use anyhow::{anyhow, Result};
 use std::time::Instant;
-use windows::core::PCSTR;
+use windows::core::{ComInterface, PCSTR, PCWSTR};
 use windows::Win32::Foundation::POINT;
+use windows::Win32::Graphics::Direct2D::Common::{
+    D2D1_ALPHA_MODE_PREMULTIPLIED, D2D1_COLOR_F, D2D1_PIXEL_FORMAT,
+};
+use windows::Win32::Graphics::Direct2D::{
+    D2D1CreateFactory, ID2D1Factory, ID2D1RenderTarget, ID2D1SolidColorBrush,
+    D2D1_FACTORY_TYPE_SINGLE_THREADED, D2D1_RENDER_TARGET_PROPERTIES,
+};
 use windows::Win32::Graphics::Direct3D::Fxc::{D3DCompile, D3DCOMPILE_OPTIMIZATION_LEVEL3};
 use windows::Win32::Graphics::Direct3D::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
 use windows::Win32::Graphics::Direct3D11::{
@@ -16,45 +24,131 @@ use windows::Win32::Graphics::Direct3D11::{
     D3D11_MAP_WRITE_DISCARD, D3D11_RENDER_TARGET_BLEND_DESC, D3D11_TEXTURE2D_DESC,
     D3D11_USAGE_DYNAMIC, D3D11_VIEWPORT,
 };
+use windows::Win32::Graphics::DirectWrite::{
+    DWriteCreateFactory, IDWriteFactory, IDWriteTextFormat, DWRITE_FACTORY_TYPE_SHARED,
+    DWRITE_FONT_STRETCH_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_WEIGHT_NORMAL,
+    DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_TEXT_ALIGNMENT_CENTER,
+};
 use windows::Win32::Graphics::Dxgi::Common::DXGI_FORMAT_R32G32B32A32_FLOAT;
+use windows::Win32::Graphics::Dxgi::IDXGISurface;
 
 // 頂点シェーダー
+// 頂点シェーダー (Rounded Rect Support)
 const VS_SOURCE: &str = r#"
 struct VS_INPUT {
     float2 pos : POSITION;
+    float2 uv : TEXCOORD; // -1..1 relative to rect center
     float4 color : COLOR;
+    float2 size : SIZE;   // width, height (pixels)
+    float radius : RADIUS; // corner radius (pixels)
+    uint type : TYPE;     // 0=Flat Color, 1=Rounded Rect Background
 };
 struct VS_OUTPUT {
     float4 pos : SV_POSITION;
+    float2 uv : TEXCOORD;
     float4 color : COLOR;
+    float2 size : SIZE;
+    float radius : RADIUS;
+    nointerpolation uint type : TYPE;
 };
+
 VS_OUTPUT main(VS_INPUT input) {
     VS_OUTPUT output;
     output.pos = float4(input.pos, 0.0, 1.0);
+    output.uv = input.uv; 
     output.color = input.color;
+    output.size = input.size;
+    output.radius = input.radius;
+    output.type = input.type;
     return output;
 }
 "#;
 
-// ピクセルシェーダー (単色)
+// ピクセルシェーダー (Rounded Rect SDF)
 const PS_SOURCE: &str = r#"
 struct PS_INPUT {
     float4 pos : SV_POSITION;
+    float2 uv : TEXCOORD;
     float4 color : COLOR;
+    float2 size : SIZE;
+    float radius : RADIUS;
+    nointerpolation uint type : TYPE;
 };
+
+float rounded_box_sdf(float2 p, float2 b, float r) {
+    float2 q = abs(p) - b + r;
+    return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - r;
+}
+
+// Signed distance to a line segment
+float line_sdf(float2 p, float2 a, float2 b) {
+    float2 pa = p - a;
+    float2 ba = b - a;
+    float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
+    return length(pa - ba * h);
+}
+
 float4 main(PS_INPUT input) : SV_TARGET {
-    return input.color;
+    if (input.type == 1) {
+        // Rounded Rect with white border
+        float2 p = input.uv * (input.size / 2.0);
+        float dist = rounded_box_sdf(p, input.size / 2.0, input.radius);
+        
+        float alpha = 1.0 - smoothstep(-0.5, 0.5, dist);
+        
+        // Border: detect if we're near the edge
+        float border_width = 0.5; // thinner border
+        float border_alpha = 1.0 - smoothstep(border_width - 0.5, border_width + 0.5, abs(dist + border_width / 2.0));
+        
+        // Mix background color with white border
+        float3 border_color = float3(0.38, 0.4, 0.43); // 薄い灰青のボーダー
+        float3 final_color = lerp(input.color.rgb, border_color, border_alpha);
+        
+        float finalAlpha = input.color.a * alpha;
+        return float4(final_color * finalAlpha, finalAlpha);
+    }
+    else if (input.type == 2) {
+        // X Icon - two diagonal lines
+        // UV is -1..1, size is pixel dimensions
+        float2 p = input.uv * (input.size / 2.0);
+        float half_s = input.size.x / 2.0 - input.radius; // radius used as padding here
+        
+        // Line 1: top-left to bottom-right
+        float d1 = line_sdf(p, float2(-half_s, -half_s), float2(half_s, half_s));
+        // Line 2: top-right to bottom-left
+        float d2 = line_sdf(p, float2(half_s, -half_s), float2(-half_s, half_s));
+        
+        float dist = min(d1, d2);
+        float thickness = 0.6; // very thin line for X icon
+        float alpha = 1.0 - smoothstep(thickness - 0.15, thickness + 0.15, dist);
+        
+        float finalAlpha = input.color.a * alpha;
+        return float4(input.color.rgb * finalAlpha, finalAlpha);
+    }
+    // Flat color - also pre-multiply
+    return float4(input.color.rgb * input.color.a, input.color.a);
 }
 "#;
 
-// 頂点データ構造体
+// 頂点データ構造体 (Updated)
 #[repr(C)]
 struct ColorVertex {
     pos: [f32; 2],
+    uv: [f32; 2], // New
     color: [f32; 4],
+    size: [f32; 2], // New
+    radius: f32,    // New
+    type_: u32,     // New
 }
 
-/// シンプルなD3D11ツールバー
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ToolbarAction {
+    None,
+    Stop,
+    Close,
+}
+
+/// シンプルなD3D11ツールバー (DirectWrite対応)
 pub struct SimpleToolbar {
     device: ID3D11Device,
     context: ID3D11DeviceContext,
@@ -65,6 +159,11 @@ pub struct SimpleToolbar {
     blend_state: Option<ID3D11BlendState>,
     initialized: bool,
 
+    // DirectWrite/D2D1
+    d2d_factory: Option<ID2D1Factory>,
+    dwrite_factory: Option<IDWriteFactory>,
+    text_format: Option<IDWriteTextFormat>,
+
     // FPS計測
     fps_update_time: Instant,
     frame_count: u32,
@@ -74,8 +173,12 @@ pub struct SimpleToolbar {
     is_visible: bool,
     visibility_timer: Instant,
 
-    // ボタン領域 (NDC座標ではなくピクセル座標で保持)
+    // ボタン領域 (ピクセル座標)
     pub close_button_rect: (f32, f32, f32, f32), // (left, top, right, bottom)
+    pub stop_button_rect: (f32, f32, f32, f32),
+
+    // State
+    pub hovered_button: ToolbarAction,
 }
 
 impl SimpleToolbar {
@@ -90,12 +193,17 @@ impl SimpleToolbar {
             vertex_buffer: None,
             blend_state: None,
             initialized: false,
+            d2d_factory: None,
+            dwrite_factory: None,
+            text_format: None,
             fps_update_time: now,
             frame_count: 0,
             current_fps: 0.0,
             is_visible: false,
             visibility_timer: now,
             close_button_rect: (0.0, 0.0, 0.0, 0.0),
+            stop_button_rect: (0.0, 0.0, 0.0, 0.0),
+            hovered_button: ToolbarAction::None,
         }
     }
 
@@ -133,7 +241,7 @@ impl SimpleToolbar {
                 .CreateVertexShader(vs_data, None, Some(&mut vertex_shader))?;
             self.vertex_shader = vertex_shader;
 
-            // 入力レイアウト
+            // 入力レイアウト (Updated for new VS_INPUT)
             let input_elements = [
                 D3D11_INPUT_ELEMENT_DESC {
                     SemanticName: PCSTR(b"POSITION\0".as_ptr()),
@@ -145,11 +253,47 @@ impl SimpleToolbar {
                     InstanceDataStepRate: 0,
                 },
                 D3D11_INPUT_ELEMENT_DESC {
+                    SemanticName: PCSTR(b"TEXCOORD\0".as_ptr()), // UV
+                    SemanticIndex: 0,
+                    Format: windows::Win32::Graphics::Dxgi::Common::DXGI_FORMAT_R32G32_FLOAT,
+                    InputSlot: 0,
+                    AlignedByteOffset: 8,
+                    InputSlotClass: D3D11_INPUT_PER_VERTEX_DATA,
+                    InstanceDataStepRate: 0,
+                },
+                D3D11_INPUT_ELEMENT_DESC {
                     SemanticName: PCSTR(b"COLOR\0".as_ptr()),
                     SemanticIndex: 0,
                     Format: DXGI_FORMAT_R32G32B32A32_FLOAT,
                     InputSlot: 0,
-                    AlignedByteOffset: 8,
+                    AlignedByteOffset: 16,
+                    InputSlotClass: D3D11_INPUT_PER_VERTEX_DATA,
+                    InstanceDataStepRate: 0,
+                },
+                D3D11_INPUT_ELEMENT_DESC {
+                    SemanticName: PCSTR(b"SIZE\0".as_ptr()),
+                    SemanticIndex: 0,
+                    Format: windows::Win32::Graphics::Dxgi::Common::DXGI_FORMAT_R32G32_FLOAT,
+                    InputSlot: 0,
+                    AlignedByteOffset: 32,
+                    InputSlotClass: D3D11_INPUT_PER_VERTEX_DATA,
+                    InstanceDataStepRate: 0,
+                },
+                D3D11_INPUT_ELEMENT_DESC {
+                    SemanticName: PCSTR(b"RADIUS\0".as_ptr()),
+                    SemanticIndex: 0,
+                    Format: windows::Win32::Graphics::Dxgi::Common::DXGI_FORMAT_R32_FLOAT,
+                    InputSlot: 0,
+                    AlignedByteOffset: 40,
+                    InputSlotClass: D3D11_INPUT_PER_VERTEX_DATA,
+                    InstanceDataStepRate: 0,
+                },
+                D3D11_INPUT_ELEMENT_DESC {
+                    SemanticName: PCSTR(b"TYPE\0".as_ptr()),
+                    SemanticIndex: 0,
+                    Format: windows::Win32::Graphics::Dxgi::Common::DXGI_FORMAT_R32_UINT,
+                    InputSlot: 0,
+                    AlignedByteOffset: 44,
                     InputSlotClass: D3D11_INPUT_PER_VERTEX_DATA,
                     InstanceDataStepRate: 0,
                 },
@@ -225,6 +369,33 @@ impl SimpleToolbar {
             self.device
                 .CreateBlendState(&blend_desc, Some(&mut blend_state))?;
             self.blend_state = blend_state;
+
+            // DirectWrite と Direct2D の初期化
+            let d2d_factory: ID2D1Factory =
+                D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, None)?;
+            self.d2d_factory = Some(d2d_factory);
+
+            let dwrite_factory: IDWriteFactory = DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED)?;
+
+            // テキストフォーマット作成 (Segoe UI, 14pt)
+            let font_name: Vec<u16> = "Segoe UI\0".encode_utf16().collect();
+            let locale: Vec<u16> = "en-us\0".encode_utf16().collect();
+            let text_format = dwrite_factory.CreateTextFormat(
+                PCWSTR(font_name.as_ptr()),
+                None,
+                DWRITE_FONT_WEIGHT_NORMAL,
+                DWRITE_FONT_STYLE_NORMAL,
+                DWRITE_FONT_STRETCH_NORMAL,
+                14.0, // フォントサイズを小さく
+                PCWSTR(locale.as_ptr()),
+            )?;
+
+            // テキストを中央揃えに
+            text_format.SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER)?;
+            text_format.SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER)?;
+
+            self.text_format = Some(text_format);
+            self.dwrite_factory = Some(dwrite_factory);
         }
 
         self.initialized = true;
@@ -244,10 +415,29 @@ impl SimpleToolbar {
     }
 
     /// カーソル位置に基づいて表示/非表示を更新
-    /// 画面上端50ピクセル以内でカーソルがあれば表示、離れたら即座に非表示
-    pub fn update_visibility(&mut self, cursor_pos: POINT, _screen_height: i32) {
-        let near_top = cursor_pos.y < 50;
+    /// コンテンツ領域の上端50ピクセル以内でカーソルがあれば表示
+    pub fn update_visibility(
+        &mut self,
+        cursor_pos: POINT,
+        content_rect: &windows::Win32::Foundation::RECT,
+    ) {
+        let rel_y = cursor_pos.y - content_rect.top;
+        let near_top = rel_y >= -10 && rel_y < 50;
         self.is_visible = near_top;
+
+        // ホバー状態をチェック
+        if self.is_visible {
+            let cx = cursor_pos.x as f32;
+            let cy = cursor_pos.y as f32;
+            let (cl, ct, cr, cb) = self.close_button_rect;
+            if cx >= cl && cx <= cr && cy >= ct && cy <= cb {
+                self.hovered_button = ToolbarAction::Close;
+            } else {
+                self.hovered_button = ToolbarAction::None;
+            }
+        } else {
+            self.hovered_button = ToolbarAction::None;
+        }
     }
 
     /// 終了ボタンがクリックされたかチェック (ピクセル座標で)
@@ -264,7 +454,11 @@ impl SimpleToolbar {
     }
 
     /// ツールバーを描画
-    pub fn render(&mut self, backbuffer: &ID3D11Texture2D) -> Result<()> {
+    pub fn render(
+        &mut self,
+        backbuffer: &ID3D11Texture2D,
+        content_rect: &windows::Win32::Foundation::RECT,
+    ) -> Result<()> {
         if !self.is_visible {
             return Ok(());
         }
@@ -274,22 +468,40 @@ impl SimpleToolbar {
         }
 
         unsafe {
-            // バックバッファのサイズを取得
+            // バックバッファのサイズを取得 (画面全体)
             let mut bb_desc = D3D11_TEXTURE2D_DESC::default();
             backbuffer.GetDesc(&mut bb_desc);
             let width = bb_desc.Width as f32;
             let height = bb_desc.Height as f32;
 
+            // コンテンツ領域の寸法
+            let content_x = content_rect.left as f32;
+            let content_y = content_rect.top as f32;
+            let content_w = (content_rect.right - content_rect.left) as f32;
+
             // ツールバーの寸法 (ピクセル)
-            let toolbar_width = 200.0f32;
+            // Magpieっぽく少し丸みを帯びたデザインにするために上部を少しはみ出させる場合の調整はここで行う
+            let toolbar_width = 360.0f32; // Magpie reference uses 360 * scale
+                                          // TODO: DPI scale support if needed, currently fixed
+
             let toolbar_height = 40.0f32;
-            let toolbar_x = (width - toolbar_width) / 2.0;
-            let toolbar_y = 10.0;
+
+            // コンテンツ領域の中央に配置
+            let toolbar_x = content_x + (content_w - toolbar_width) / 2.0;
+
+            // コンテンツ領域の上端に配置
+            // Magpie-style: 上部を少し画面外に出して、上の角丸を隠す
+            let corner_rounding = 6.0f32;
+            let toolbar_y = content_y - corner_rounding;
 
             // 終了ボタンの寸法
-            let button_size = 30.0f32;
-            let button_x = toolbar_x + toolbar_width - button_size - 5.0;
-            let button_y = toolbar_y + 5.0;
+            let button_size = 22.0f32; // 小さく
+                                       // 右寄せ: toolbar_x + toolbar_width - button_size - margin
+            let button_x = toolbar_x + toolbar_width - button_size - 10.0;
+            // Y位置は角丸オフセット分下げる（可視部分の中央に配置）
+            let button_y = toolbar_y
+                + corner_rounding
+                + (toolbar_height - corner_rounding - button_size) / 2.0;
 
             // ボタン領域を保存
             self.close_button_rect = (
@@ -303,15 +515,19 @@ impl SimpleToolbar {
             let to_ndc_x = |px: f32| -> f32 { px / width * 2.0 - 1.0 };
             let to_ndc_y = |py: f32| -> f32 { 1.0 - py / height * 2.0 };
 
-            // ツールバー背景の頂点
-            let bg_color = [0.1, 0.1, 0.1, 0.85]; // 暗いグレー、半透明
+            // ツールバー背景の頂点 (Launcherg UIカラー #2d333b)
+            let bg_color = [0.176, 0.2, 0.231, 0.95];
             let bg_left = to_ndc_x(toolbar_x);
             let bg_right = to_ndc_x(toolbar_x + toolbar_width);
             let bg_top = to_ndc_y(toolbar_y);
             let bg_bottom = to_ndc_y(toolbar_y + toolbar_height);
 
             // 終了ボタンの頂点
-            let btn_color = [0.8, 0.2, 0.2, 1.0]; // 赤
+            let btn_color = if self.hovered_button == ToolbarAction::Close {
+                [0.8, 0.2, 0.2, 1.0] // ホバー時: 赤
+            } else {
+                [0.0, 0.0, 0.0, 0.0] // 通常時: 透明
+            };
             let btn_left = to_ndc_x(button_x);
             let btn_right = to_ndc_x(button_x + button_size);
             let btn_top = to_ndc_y(button_y);
@@ -320,68 +536,118 @@ impl SimpleToolbar {
             // 頂点データを収集するVec
             let mut vertices: Vec<ColorVertex> = Vec::new();
 
-            // 背景矩形 (triangle strip: 4頂点)
+            // 背景矩形 (rounded rect, type_=1)
+            let bg_size = [toolbar_width, toolbar_height];
             vertices.push(ColorVertex {
                 pos: [bg_left, bg_top],
+                uv: [-1.0, 1.0],
                 color: bg_color,
+                size: bg_size,
+                radius: 6.0,
+                type_: 1,
             });
             vertices.push(ColorVertex {
                 pos: [bg_right, bg_top],
+                uv: [1.0, 1.0],
                 color: bg_color,
+                size: bg_size,
+                radius: 6.0,
+                type_: 1,
             });
             vertices.push(ColorVertex {
                 pos: [bg_left, bg_bottom],
+                uv: [-1.0, -1.0],
                 color: bg_color,
+                size: bg_size,
+                radius: 6.0,
+                type_: 1,
             });
             vertices.push(ColorVertex {
                 pos: [bg_right, bg_bottom],
+                uv: [1.0, -1.0],
                 color: bg_color,
+                size: bg_size,
+                radius: 6.0,
+                type_: 1,
             });
 
-            // 終了ボタン矩形 (triangle strip: 4頂点)
+            // 終了ボタン矩形 (type_=0 for flat color or type_=1 with small radius)
+            let btn_sz = [button_size, button_size];
             vertices.push(ColorVertex {
                 pos: [btn_left, btn_top],
+                uv: [-1.0, 1.0],
                 color: btn_color,
+                size: btn_sz,
+                radius: 4.0,
+                type_: 1,
             });
             vertices.push(ColorVertex {
                 pos: [btn_right, btn_top],
+                uv: [1.0, 1.0],
                 color: btn_color,
+                size: btn_sz,
+                radius: 4.0,
+                type_: 1,
             });
             vertices.push(ColorVertex {
                 pos: [btn_left, btn_bottom],
+                uv: [-1.0, -1.0],
                 color: btn_color,
+                size: btn_sz,
+                radius: 4.0,
+                type_: 1,
             });
             vertices.push(ColorVertex {
                 pos: [btn_right, btn_bottom],
+                uv: [1.0, -1.0],
                 color: btn_color,
+                size: btn_sz,
+                radius: 4.0,
+                type_: 1,
             });
 
-            // FPS数字の描画
-            let fps_text = format!("{:.0}", self.current_fps);
-            let digit_width = 8.0f32;
-            let digit_height = 14.0f32;
-            let digit_spacing = 10.0f32;
-            let fps_start_x = toolbar_x + 10.0;
-            let fps_start_y = toolbar_y + (toolbar_height - digit_height) / 2.0;
-            let text_color = [1.0, 1.0, 1.0, 1.0]; // 白
+            // 終了ボタンにXアイコンを追加（斜め線2本、type_=2）
+            let x_color = [1.0, 1.0, 1.0, 1.0]; // 白
+            let x_padding = 5.0f32;
+            // X アイコン用の矩形（シェーダーで対角線を描画）
+            let x_left = to_ndc_x(button_x);
+            let x_right = to_ndc_x(button_x + button_size);
+            let x_top = to_ndc_y(button_y);
+            let x_bottom = to_ndc_y(button_y + button_size);
+            let x_sz = [button_size, button_size];
 
-            let fps_vertex_start = vertices.len();
-            for (i, ch) in fps_text.chars().enumerate() {
-                let x = fps_start_x + i as f32 * digit_spacing;
-                let y = fps_start_y;
-                let segments = Self::get_7segment_pattern(ch);
-                Self::add_7segment_vertices(
-                    &mut vertices,
-                    x,
-                    y,
-                    digit_width,
-                    digit_height,
-                    segments,
-                    text_color,
-                    &to_ndc_x,
-                    &to_ndc_y,
-                );
-            }
+            vertices.push(ColorVertex {
+                pos: [x_left, x_top],
+                uv: [-1.0, 1.0],
+                color: x_color,
+                size: x_sz,
+                radius: x_padding, // radius is used as padding in type_=2
+                type_: 2,
+            });
+            vertices.push(ColorVertex {
+                pos: [x_right, x_top],
+                uv: [1.0, 1.0],
+                color: x_color,
+                size: x_sz,
+                radius: x_padding,
+                type_: 2,
+            });
+            vertices.push(ColorVertex {
+                pos: [x_left, x_bottom],
+                uv: [-1.0, -1.0],
+                color: x_color,
+                size: x_sz,
+                radius: x_padding,
+                type_: 2,
+            });
+            vertices.push(ColorVertex {
+                pos: [x_right, x_bottom],
+                uv: [1.0, -1.0],
+                color: x_color,
+                size: x_sz,
+                radius: x_padding,
+                type_: 2,
+            });
 
             // 頂点バッファを更新
             if let Some(vb) = &self.vertex_buffer {
@@ -451,15 +717,61 @@ impl SimpleToolbar {
             self.context.Draw(4, 0);
             // 終了ボタンを描画
             self.context.Draw(4, 4);
+            // Xアイコンを描画
+            self.context.Draw(4, 8);
 
-            // FPS数字を描画
-            let fps_vertices_count = vertices.len() - fps_vertex_start;
-            for i in (0..fps_vertices_count).step_by(4) {
-                self.context.Draw(4, (fps_vertex_start + i) as u32);
-            }
-
-            // クリーンアップ
+            // クリーンアップ (D3D11レンダリング終了)
             self.context.OMSetRenderTargets(None, None);
+
+            // DirectWrite でFPS描画 (D3D11描画の後に実行)
+            if let (Some(d2d_factory), Some(text_format)) = (&self.d2d_factory, &self.text_format) {
+                let dxgi_surface: IDXGISurface = backbuffer.cast()?;
+
+                let render_target_props = D2D1_RENDER_TARGET_PROPERTIES {
+                    r#type: windows::Win32::Graphics::Direct2D::D2D1_RENDER_TARGET_TYPE_DEFAULT,
+                    pixelFormat: D2D1_PIXEL_FORMAT {
+                        format: windows::Win32::Graphics::Dxgi::Common::DXGI_FORMAT_UNKNOWN,
+                        alphaMode: D2D1_ALPHA_MODE_PREMULTIPLIED,
+                    },
+                    dpiX: 0.0,
+                    dpiY: 0.0,
+                    usage: windows::Win32::Graphics::Direct2D::D2D1_RENDER_TARGET_USAGE_NONE,
+                    minLevel: windows::Win32::Graphics::Direct2D::D2D1_FEATURE_LEVEL_DEFAULT,
+                };
+
+                let d2d_rt = d2d_factory
+                    .CreateDxgiSurfaceRenderTarget(&dxgi_surface, &render_target_props)?;
+
+                let white_color = D2D1_COLOR_F {
+                    r: 1.0,
+                    g: 1.0,
+                    b: 1.0,
+                    a: 1.0,
+                };
+                let white_brush = d2d_rt.CreateSolidColorBrush(&white_color, None)?;
+
+                let fps_text = format!("{:.0} FPS", self.current_fps);
+                let fps_text_wide: Vec<u16> =
+                    fps_text.encode_utf16().chain(std::iter::once(0)).collect();
+
+                let text_rect = windows::Win32::Graphics::Direct2D::Common::D2D_RECT_F {
+                    left: toolbar_x,
+                    top: toolbar_y + corner_rounding,
+                    right: toolbar_x + toolbar_width,
+                    bottom: toolbar_y + toolbar_height,
+                };
+
+                d2d_rt.BeginDraw();
+                d2d_rt.DrawText(
+                    &fps_text_wide[..fps_text_wide.len() - 1],
+                    text_format,
+                    &text_rect,
+                    &white_brush,
+                    windows::Win32::Graphics::Direct2D::D2D1_DRAW_TEXT_OPTIONS_NONE,
+                    windows::Win32::Graphics::DirectWrite::DWRITE_MEASURING_MODE_NATURAL,
+                );
+                d2d_rt.EndDraw(None, None)?;
+            }
         }
 
         Ok(())
@@ -502,7 +814,7 @@ impl SimpleToolbar {
         F1: Fn(f32) -> f32,
         F2: Fn(f32) -> f32,
     {
-        let seg_thickness = 2.0f32;
+        let seg_thickness = 2.5f32; // 太くして視認性向上
         let half_h = h / 2.0;
 
         // セグメント0 (上横): y, x to x+w
@@ -607,21 +919,39 @@ impl SimpleToolbar {
         let right = to_ndc_x(x + w);
         let top = to_ndc_y(y);
         let bottom = to_ndc_y(y + h);
+        let size = [w, h];
+        // Type 0 = flat color (no SDF)
         vertices.push(ColorVertex {
             pos: [left, top],
+            uv: [-1.0, 1.0],
             color,
+            size,
+            radius: 0.0,
+            type_: 0,
         });
         vertices.push(ColorVertex {
             pos: [right, top],
+            uv: [1.0, 1.0],
             color,
+            size,
+            radius: 0.0,
+            type_: 0,
         });
         vertices.push(ColorVertex {
             pos: [left, bottom],
+            uv: [-1.0, -1.0],
             color,
+            size,
+            radius: 0.0,
+            type_: 0,
         });
         vertices.push(ColorVertex {
             pos: [right, bottom],
+            uv: [1.0, -1.0],
             color,
+            size,
+            radius: 0.0,
+            type_: 0,
         });
     }
 

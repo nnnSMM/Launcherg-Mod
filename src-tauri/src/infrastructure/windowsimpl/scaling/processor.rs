@@ -813,8 +813,11 @@ impl ScalingProcessor {
                                             let _ = ScreenToClient(hwnd, &mut toolbar_cursor_pos);
                                         }
                                         simple_toolbar.tick();
-                                        simple_toolbar.update_visibility(toolbar_cursor_pos, (dest_rect.bottom - dest_rect.top) as i32);
-                                        let _ = simple_toolbar.render(&backbuffer);
+                                        
+                                        // simple_toolbar.update_visibility(toolbar_cursor_pos, (dest_rect.bottom - dest_rect.top) as i32);
+                                        // Use valid_dest_rect for content-relative positioning
+                                        simple_toolbar.update_visibility(toolbar_cursor_pos, &valid_dest_rect);
+                                        let _ = simple_toolbar.render(&backbuffer, &valid_dest_rect);
                                         
                                         // 終了ボタンチェック (左クリック)
                                         if (windows::Win32::UI::Input::KeyboardAndMouse::GetAsyncKeyState(0x01) as u16 & 0x8000) != 0 {
