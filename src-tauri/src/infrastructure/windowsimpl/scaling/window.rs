@@ -5,7 +5,7 @@ use windows::Win32::Graphics::Gdi::HBRUSH;
 use windows::Win32::UI::WindowsAndMessaging::{
     CreateWindowExW, DefWindowProcW, GetSystemMetrics, RegisterClassW, ShowWindow, SM_CXSCREEN,
     SM_CYSCREEN, SW_SHOW, WNDCLASSW, WS_EX_LAYERED, WS_EX_NOACTIVATE, WS_EX_NOREDIRECTIONBITMAP,
-    WS_POPUP,
+    WS_EX_TRANSPARENT, WS_POPUP,
 };
 
 use windows::Win32::UI::WindowsAndMessaging::{
@@ -116,9 +116,10 @@ impl WindowManager {
             // - WS_EX_LAYERED: レイヤードウィンドウ
             // - WS_EX_NOACTIVATE: アクティベーション防止
             // - WS_EX_NOREDIRECTIONBITMAP: DWMリダイレクトなし
+            // - WS_EX_TRANSPARENT: クリックスルー（ツールバー操作不可）
             // - 親ウィンドウとしてソースを設定（Z-order連動）
             let hwnd = CreateWindowExW(
-                WS_EX_LAYERED | WS_EX_NOACTIVATE | WS_EX_NOREDIRECTIONBITMAP,
+                WS_EX_LAYERED | WS_EX_NOACTIVATE | WS_EX_NOREDIRECTIONBITMAP | WS_EX_TRANSPARENT,
                 class_name,
                 w!("Magpie Overlay"),
                 WS_POPUP, // WS_VISIBLE removed to prevent flash

@@ -769,20 +769,10 @@ impl CursorManager {
                     self.set_ex_transparent(false, style);
                     self.stop_capture(&mut cursor_pos);
                 } else if self.is_on_overlay {
-                    // Do nothing - let window_proc handle transparency via WM_NCHITTEST
-                    // self.set_ex_transparent(false, style);
+                    self.set_ex_transparent(false, style);
                 } else {
-                    // Do nothing - let window_proc handle transparency
-                    // self.set_ex_transparent(true, style);
+                    self.set_ex_transparent(true, style);
                 }
-
-                // Ensure WS_EX_TRANSPARENT is NOT set by default managed here
-                // We rely on window.rs to return HTTRANSPARENT.
-                // However, if the window was created WITHOUT WS_EX_TRANSPARENT, it receives input.
-                // Magpie uses WS_EX_TRANSPARENT + WS_EX_LAYERED but dynamically removes it?
-                // No, Magpie reference says: "ImGui events captured... otherwise pass through".
-                // If we rely on HTTRANSPARENT, we MUST ensure WS_EX_TRANSPARENT is OFF in the style.
-                self.set_ex_transparent(false, style);
             } else {
                 self.set_ex_transparent(false, style);
                 if !self.stop_capture(&mut cursor_pos) {

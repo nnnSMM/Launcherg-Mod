@@ -827,24 +827,7 @@ impl ScalingProcessor {
                                             }
                                         }
 
-                                        // Update SharedWindowState with current toolbar rect (Window Coordinates)
-                                        if let Some(hwnd) = window_manager.get_overlay_window() {
-                                            let ptr = unsafe { GetWindowLongPtrW(hwnd, GWLP_USERDATA) as *mut SharedWindowState };
-                                            if !ptr.is_null() {
-                                                unsafe {
-                                                    (*ptr).is_visible = simple_toolbar.is_visible();
-                                                    if simple_toolbar.is_visible() {
-                                                        let (l, t, r, b) = simple_toolbar.close_button_rect;
-                                                        (*ptr).toolbar_rect = windows::Win32::Foundation::RECT {
-                                                            left: l as i32,
-                                                            top: t as i32,
-                                                            right: r as i32,
-                                                            bottom: b as i32,
-                                                        };
-                                                    }
-                                                }
-                                            }
-                                        }
+                                        // Update SharedWindowState removed
 
                                         // システムカーソルを描画 (ツールバーの上に)
                                         if cursor_manager.should_draw_cursor() {
