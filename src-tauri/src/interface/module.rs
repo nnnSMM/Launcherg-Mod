@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager};
 
 use crate::{
     infrastructure::{
@@ -9,6 +9,7 @@ use crate::{
             driver::Db,
             repository::{Repositories, RepositoriesExt},
         },
+        util::get_shaders_abs_dir,
         windowsimpl::windows::{Windows, WindowsExt},
     },
     usecase::{
@@ -99,7 +100,64 @@ impl Modules {
             Arc::new(screenshot_watcher.clone()),
         );
 
-        let scaling_use_case = ScalingUseCase::new();
+        let shader_dir = get_shaders_abs_dir(handle);
+        let scaling_use_case = ScalingUseCase::new(shader_dir.clone());
+
+        // Define a recursive copy helper
+        fn copy_recursively(
+            source: &std::path::Path,
+            destination: &std::path::Path,
+        ) -> std::io::Result<()> {
+            if source.is_dir() {
+                if !destination.exists() {
+                    std::fs::create_dir_all(destination)?;
+                }
+                for entry in std::fs::read_dir(source)? {
+                    let entry = entry?;
+                    let file_type = entry.file_type()?;
+                    let dest_path = destination.join(entry.file_name());
+                    if file_type.is_dir() {
+                        copy_recursively(&entry.path(), &dest_path)?;
+                    } else if !dest_path.exists() {
+                        std::fs::copy(entry.path(), &dest_path)?;
+                    }
+                }
+            } else if !destination.exists() {
+                // Should be covered by directory iteration, but handle single file case just in case
+                if let Some(parent) = destination.parent() {
+                    if !parent.exists() {
+                        std::fs::create_dir_all(parent)?;
+                    }
+                }
+                std::fs::copy(source, destination)?;
+            }
+            Ok(())
+        }
+
+        // Resolve bundled shaders path based on environment
+        let bundled_shaders_path = {
+            #[cfg(debug_assertions)]
+            {
+                let mut path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+                path.push("src/infrastructure/windowsimpl/scaling/shaders");
+                Some(path)
+            }
+            #[cfg(not(debug_assertions))]
+            {
+                handle
+                    .path()
+                    .resource_dir()
+                    .ok()
+                    .map(|dir| dir.join("src/infrastructure/windowsimpl/scaling/shaders"))
+            }
+        };
+
+        if let Some(path) = bundled_shaders_path {
+            if path.exists() {
+                let dest_root = std::path::PathBuf::from(&shader_dir);
+                let _ = copy_recursively(&path, &dest_root);
+            }
+        }
 
         Self {
             collection_use_case,

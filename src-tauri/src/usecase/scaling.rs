@@ -9,9 +9,9 @@ pub struct ScalingUseCase {
 }
 
 impl ScalingUseCase {
-    pub fn new() -> Self {
+    pub fn new(shader_dir: String) -> Self {
         Self {
-            processor: Arc::new(Mutex::new(ScalingProcessor::new())),
+            processor: Arc::new(Mutex::new(ScalingProcessor::new(shader_dir))),
         }
     }
 

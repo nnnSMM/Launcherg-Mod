@@ -41,3 +41,11 @@ pub fn get_save_root_abs_dir_with_ptr_handle(handle: &AppHandle) -> String {
     let root = handle.path().app_config_dir().ok();
     get_abs_dir(root)
 }
+
+pub fn get_shaders_abs_dir(handle: &AppHandle) -> String {
+    let root = Path::new(&get_save_root_abs_dir_with_ptr_handle(handle)).join("shaders");
+    if !root.exists() {
+        fs::create_dir_all(&root).unwrap();
+    }
+    root.to_string_lossy().to_string()
+}

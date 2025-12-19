@@ -23,6 +23,9 @@
     "createUpdaterArtifacts": "v1Compatible",
     "externalBin": [
       "bin/extract-icon"
+    ],
+    "resources": [
+      "src/infrastructure/windowsimpl/scaling/shaders/*"
     ]
   },
   "productName": "Launcherg",

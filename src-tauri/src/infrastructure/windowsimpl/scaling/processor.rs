@@ -181,6 +181,7 @@ pub struct ScalingProcessor {
 
     device: Option<ID3D11Device>,
     context: Option<ID3D11DeviceContext>,
+    shader_dir: String,
     _shader_manager: Option<ShaderManager>,
     _window_manager: Option<WindowManager>,
     _compute_shader: Option<ID3D11ComputeShader>,
@@ -188,12 +189,13 @@ pub struct ScalingProcessor {
 }
 
 impl ScalingProcessor {
-    pub fn new() -> Self {
+    pub fn new(shader_dir: String) -> Self {
         Self {
             running: Arc::new(AtomicBool::new(false)),
             thread_id: Arc::new(AtomicU32::new(0)),
             device: None,
             context: None,
+            shader_dir,
             _shader_manager: None,
             _window_manager: None,
             _compute_shader: None,
@@ -205,6 +207,7 @@ impl ScalingProcessor {
         let running = self.running.clone();
         let thread_id_atomic = self.thread_id.clone();
         let target_hwnd_val = target_hwnd.0 as u64;
+        let shader_dir = self.shader_dir.clone();
 
         self.running.store(true, Ordering::SeqCst);
 
@@ -248,11 +251,7 @@ impl ScalingProcessor {
                     SetWindowLongPtrW(overlay_window, GWLP_USERDATA, state_ptr as isize);
                 }
 
-                let mut shader_path_buf = std::env::current_dir()?;
-                if !shader_path_buf.ends_with("src-tauri") {
-                    shader_path_buf.push("src-tauri");
-                }
-                shader_path_buf.push("src/infrastructure/windowsimpl/scaling/shaders");
+                let shader_path_buf = std::path::PathBuf::from(shader_dir);
 
                 // ShaderManager no longer needs Device!
                 let shader_manager = ShaderManager::new(&shader_path_buf);
