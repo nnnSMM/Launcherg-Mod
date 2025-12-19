@@ -54,7 +54,6 @@
   let pauseShortcutKey: string = "";
   let scalingShortcutKey: string = "";
   let isLoading = true;
-  let isSaving = false;
 
   onMount(async () => {
     backgroundState.set({
@@ -133,11 +132,8 @@
     return parts.join("+");
   }
 
-  async function saveSettings() {
-    if (isSaving) {
-      return;
-    }
-    isSaving = true;
+  async function updateShortcutGame() {
+    if (isLoading) return;
     try {
       const gameIdToSave =
         selectedGameId === 0 ? null : selectedGameId.toString();
@@ -145,36 +141,71 @@
         key: "shortcut_game_id",
         value: gameIdToSave,
       });
+    } catch (error) {
+      console.error("Error saving shortcut_game_id:", error);
+      showErrorToast(`設定の保存に失敗しました: ${error}`);
+    }
+  }
 
+  async function updateShortcutKey() {
+    if (isLoading) return;
+    try {
       const keyToSave = shortcutKey === "" ? null : shortcutKey;
       await invoke("update_shortcut_registration", {
         newShortcutKey: keyToSave,
       });
+    } catch (error) {
+      console.error("Error saving shortcut_key:", error);
+      showErrorToast(`設定の保存に失敗しました: ${error}`);
+    }
+  }
 
+  async function updatePauseShortcutKey() {
+    if (isLoading) return;
+    try {
       const pauseKeyToSave = pauseShortcutKey === "" ? null : pauseShortcutKey;
       await invoke("update_pause_shortcut_registration", {
         newShortcutKey: pauseKeyToSave,
       });
+    } catch (error) {
+      console.error("Error saving pause_shortcut_key:", error);
+      showErrorToast(`設定の保存に失敗しました: ${error}`);
+    }
+  }
 
+  async function updateScalingShortcutKey() {
+    if (isLoading) return;
+    try {
       const scalingKeyToSave =
         scalingShortcutKey === "" ? null : scalingShortcutKey;
       await invoke("update_scaling_shortcut_registration", {
         newShortcutKey: scalingKeyToSave,
       });
+    } catch (error) {
+      console.error("Error saving scaling_shortcut_key:", error);
+      showErrorToast(`設定の保存に失敗しました: ${error}`);
+    }
+  }
 
+  async function updateScalingShader() {
+    if (isLoading) return;
+    try {
       await invoke("set_app_setting", {
         key: "scaling_shader",
         value: selectedShader,
       });
-
-      showInfoToast("設定を保存しました");
     } catch (error) {
-      console.error("Error saving settings:", error);
+      console.error("Error saving scaling_shader:", error);
       showErrorToast(`設定の保存に失敗しました: ${error}`);
-    } finally {
-      isSaving = false;
     }
   }
+
+  // Reactive auto-save
+  $: selectedGameId, updateShortcutGame();
+  $: shortcutKey, updateShortcutKey();
+  $: selectedShader, updateScalingShader();
+  $: scalingShortcutKey, updateScalingShortcutKey();
+  $: pauseShortcutKey, updatePauseShortcutKey();
 </script>
 
 <div class="p-4 text-text-primary space-y-4 h-full overflow-y-auto">
@@ -311,14 +342,6 @@
           />
         </div>
       </Card>
-
-      <div class="flex justify-end">
-        <Button
-          on:click={saveSettings}
-          text={isSaving ? "保存中..." : "設定を保存"}
-          disabled={isSaving}
-        />
-      </div>
     </div>
   {/if}
 </div>
