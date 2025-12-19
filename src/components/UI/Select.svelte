@@ -13,12 +13,34 @@
   export let bottomCreateButtonText = "";
   export let showSelectedCheck = false;
 
-  $: selectedLabel = options.find((v) => v.value === value)?.label ?? "";
+  function findLabelRecursive(
+    options: Option<string | number>[],
+    value: string | number,
+  ): string | null {
+    for (const option of options) {
+      if (option.value === value) {
+        return option.label;
+      }
+      if (option.children) {
+        const found = findLabelRecursive(option.children, value);
+        if (found) {
+          return found;
+        }
+      }
+    }
+    return null;
+  }
+
+  $: selectedLabel = findLabelRecursive(options, value) ?? "";
 
   const dispather = createEventDispatcher<{ create: {} }>();
 </script>
 
-<APopover let:open let:close>
+<APopover
+  panelClass="!bg-transparent !border-none !shadow-none"
+  let:open
+  let:close
+>
   <div slot="button">
     <slot>
       <button

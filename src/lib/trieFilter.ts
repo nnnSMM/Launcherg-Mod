@@ -1,4 +1,4 @@
-export type Option<T> = { label: string; value: T; otherLabels?: string[] };
+export type Option<T> = { label: string; value: T; otherLabels?: string[]; children?: Option<T>[] };
 import type { CollectionElement } from "@/lib/types";
 import { isNotNullOrUndefined } from "@/lib/utils";
 import { writable, type Readable } from "svelte/store";

@@ -17,7 +17,8 @@
   {#if open}
     <div
       transition:fly={{ y: -40, duration: 150 }}
-      class="absolute z-10000 mt-2 border border-(border-primary solid) rounded bg-bg-secondary {panelClass}"
+      class="absolute z-100 mt-2 border border-(border-primary solid) rounded bg-bg-secondary shadow-2xl {panelClass}"
+      style="left: 0; min-width: max-content;"
     >
       <PopoverPanel static let:close>
         <slot {open} {close} />
