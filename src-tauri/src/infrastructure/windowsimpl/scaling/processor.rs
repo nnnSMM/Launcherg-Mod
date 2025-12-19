@@ -1,5 +1,5 @@
 use crate::infrastructure::windowsimpl::scaling::shader::ShaderManager;
-use crate::infrastructure::windowsimpl::scaling::effect_runtime::{EffectRuntime, MagpieConstants, MagpiePassInfo};
+use crate::infrastructure::windowsimpl::scaling::effect_runtime::{EffectRuntime, MagpieConstants};
 use crate::infrastructure::windowsimpl::scaling::window::WindowManager;
 // use crate::infrastructure::windowsimpl::scaling::shared_resources::get_shared_d3d_device; // Reverted
 use crate::infrastructure::windowsimpl::screenshot::d3d::create_d3d_device;
@@ -43,7 +43,7 @@ use windows::Win32::Foundation::{CloseHandle, HWND, RECT};
 use windows::Win32::UI::WindowsAndMessaging::{
     DispatchMessageW, PeekMessageW, MSG, PM_REMOVE,
     QS_ALLINPUT, WM_QUIT, MsgWaitForMultipleObjectsEx, MWMO_INPUTAVAILABLE, GetWindowRect,
-    WM_LBUTTONUP, WM_LBUTTONDOWN, GetWindowLongPtrW, SetWindowLongPtrW, GWLP_USERDATA,
+    GetWindowLongPtrW, SetWindowLongPtrW, GWLP_USERDATA,
 };
 use windows::Win32::Graphics::Gdi::ScreenToClient;
 use crate::infrastructure::windowsimpl::scaling::src_tracker::SrcTracker;

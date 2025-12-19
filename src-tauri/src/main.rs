@@ -259,7 +259,8 @@ fn main() {
             command::delete_collection_element_logical,
             command::start_scaling,
             command::stop_scaling,
-            command::update_scaling_shortcut_registration
+            command::update_scaling_shortcut_registration,
+            command::get_available_shaders
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

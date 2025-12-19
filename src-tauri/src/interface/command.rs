@@ -801,6 +801,20 @@ pub async fn update_screenshots_order(
 }
 
 #[tauri::command]
+pub async fn get_available_shaders(
+) -> Result<Vec<crate::infrastructure::windowsimpl::scaling::shader::ShaderOption>, CommandError> {
+    let mut shader_path_buf = std::env::current_dir().map_err(anyhow::Error::from)?;
+    if !shader_path_buf.ends_with("src-tauri") {
+        shader_path_buf.push("src-tauri");
+    }
+    shader_path_buf.push("src/infrastructure/windowsimpl/scaling/shaders");
+
+    let shader_manager =
+        crate::infrastructure::windowsimpl::scaling::shader::ShaderManager::new(&shader_path_buf);
+    Ok(shader_manager.list_available_shaders(&shader_path_buf)?)
+}
+
+#[tauri::command]
 pub async fn update_collection_element_path(
     modules: State<'_, Arc<Modules>>,
     id: i32,

@@ -12,42 +12,7 @@
 
   let games: CollectionElement[] = [];
   let gameOptions: Option<number>[] = [];
-  let shaderOptions: Option<string>[] = [
-    { label: "Bilinear", value: "Bilinear" },
-    { label: "Bicubic", value: "Bicubic" },
-    {
-      label: "ArtFlow-VN",
-      value: "ArtFlow-VN",
-      children: [
-        { label: "ArtFlow-8x32-VN", value: "ArtFlow-VN/ArtFlow-8x32-VN" },
-        {
-          label: "ArtFlow-8x32-VN-Opt",
-          value: "ArtFlow-VN/ArtFlow-8x32-VN-Opt",
-        },
-        {
-          label: "ArtFlow-8x32-Detail-VN",
-          value: "ArtFlow-VN/ArtFlow-8x32-Detail-VN",
-        },
-        {
-          label: "ArtFlow-8x32-Detail-VN-Opt",
-          value: "ArtFlow-VN/ArtFlow-8x32-Detail-VN-Opt",
-        },
-        { label: "ArtFlow-12x32-VN", value: "ArtFlow-VN/ArtFlow-12x32-VN" },
-        {
-          label: "ArtFlow-12x32-VN-Opt",
-          value: "ArtFlow-VN/ArtFlow-12x32-VN-Opt",
-        },
-        {
-          label: "ArtFlow-12x32-Detail-VN",
-          value: "ArtFlow-VN/ArtFlow-12x32-Detail-VN",
-        },
-        {
-          label: "ArtFlow-12x32-Detail-VN-Opt",
-          value: "ArtFlow-VN/ArtFlow-12x32-Detail-VN-Opt",
-        },
-      ],
-    },
-  ];
+  let shaderOptions: Option<string>[] = [];
   let selectedGameId: number = 0;
   let selectedShader: string = "Bicubic";
   let shortcutKey: string = "";
@@ -61,6 +26,7 @@
       opacity: 0,
     });
     try {
+      shaderOptions = await invoke("get_available_shaders");
       games = await invoke("get_all_elements");
       gameOptions = [
         { label: "None", value: 0 },
