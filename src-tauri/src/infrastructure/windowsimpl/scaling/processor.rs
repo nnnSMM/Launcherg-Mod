@@ -103,7 +103,7 @@ impl CaptureFrameSource {
         self.frame_pool = Some(Direct3D11CaptureFramePool::Create(
             &self.winrt_device,
             DirectXPixelFormat::B8G8R8A8UIntNormalized,
-            2,
+            4, // Magpie uses 4 buffers to help with latency at low frame rates
             item_size,
         )?);
 
@@ -155,10 +155,16 @@ impl CaptureFrameSource {
             None => return Ok(FrameSourceState::Waiting), // Should be Error?
         };
 
-        let frame = match pool.TryGetNextFrame() {
+        let mut frame = match pool.TryGetNextFrame() {
             Ok(f) => f,
             Err(_) => return Ok(FrameSourceState::Waiting),
         };
+
+        // Magpie Logic: Drain the queue to get the very latest frame
+        // This reduces latency significantly if frames are piling up
+        while let Ok(next_frame) = pool.TryGetNextFrame() {
+            frame = next_frame;
+        }
 
         // Store the frame
         self.current_frame = Some(frame);
@@ -487,10 +493,11 @@ impl ScalingProcessor {
 
                                 processing_start = std::time::Instant::now();
 
-                                // Try to get new frame, but don't block/skip if no new frame
-                                let _ = source.update(); // Ignore result, just update internal state
+                                // Try to get new frame
+                                let frame_state = source.update().unwrap_or(FrameSourceState::Waiting);
 
-                                if let Ok(input_texture_raw) = source.get_texture() {
+                                if frame_state == FrameSourceState::NewFrame {
+                                    if let Ok(input_texture_raw) = source.get_texture() {
                                     // Use raw texture by default, but might be replaced by cropped one
                                     let mut input_texture = input_texture_raw.clone();
                                     
@@ -720,6 +727,7 @@ impl ScalingProcessor {
                                             frames += 1;
                                         }
                                     }
+                                }
                                 }
 
                                 // Update FPS & Stats (Every ~0.2s)
