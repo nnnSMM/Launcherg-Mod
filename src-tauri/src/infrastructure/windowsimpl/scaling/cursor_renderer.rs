@@ -9,14 +9,14 @@ use windows::Win32::Graphics::Direct3D::Fxc::{D3DCompile, D3DCOMPILE_OPTIMIZATIO
 use windows::Win32::Graphics::Direct3D::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
 use windows::Win32::Graphics::Direct3D11::{
     ID3D11BlendState, ID3D11Buffer, ID3D11Device, ID3D11DeviceContext, ID3D11InputLayout,
-    ID3D11PixelShader, ID3D11SamplerState, ID3D11ShaderResourceView, ID3D11Texture2D,
-    ID3D11VertexShader, D3D11_BIND_SHADER_RESOURCE, D3D11_BIND_VERTEX_BUFFER, D3D11_BLEND_DESC,
-    D3D11_BLEND_INV_SRC_ALPHA, D3D11_BLEND_ONE, D3D11_BLEND_OP_ADD, D3D11_BUFFER_DESC,
-    D3D11_COLOR_WRITE_ENABLE_ALL, D3D11_CPU_ACCESS_WRITE, D3D11_FILTER_MIN_MAG_MIP_POINT,
-    D3D11_INPUT_ELEMENT_DESC, D3D11_INPUT_PER_VERTEX_DATA, D3D11_MAPPED_SUBRESOURCE,
-    D3D11_MAP_WRITE_DISCARD, D3D11_RENDER_TARGET_BLEND_DESC, D3D11_SAMPLER_DESC,
-    D3D11_SUBRESOURCE_DATA, D3D11_TEXTURE2D_DESC, D3D11_TEXTURE_ADDRESS_CLAMP, D3D11_USAGE_DEFAULT,
-    D3D11_USAGE_DYNAMIC, D3D11_VIEWPORT,
+    ID3D11PixelShader, ID3D11RenderTargetView, ID3D11SamplerState, ID3D11ShaderResourceView,
+    ID3D11Texture2D, ID3D11VertexShader, D3D11_BIND_SHADER_RESOURCE, D3D11_BIND_VERTEX_BUFFER,
+    D3D11_BLEND_DESC, D3D11_BLEND_INV_SRC_ALPHA, D3D11_BLEND_ONE, D3D11_BLEND_OP_ADD,
+    D3D11_BUFFER_DESC, D3D11_COLOR_WRITE_ENABLE_ALL, D3D11_CPU_ACCESS_WRITE,
+    D3D11_FILTER_MIN_MAG_MIP_POINT, D3D11_INPUT_ELEMENT_DESC, D3D11_INPUT_PER_VERTEX_DATA,
+    D3D11_MAPPED_SUBRESOURCE, D3D11_MAP_WRITE_DISCARD, D3D11_RENDER_TARGET_BLEND_DESC,
+    D3D11_SAMPLER_DESC, D3D11_SUBRESOURCE_DATA, D3D11_TEXTURE2D_DESC, D3D11_TEXTURE_ADDRESS_CLAMP,
+    D3D11_USAGE_DEFAULT, D3D11_USAGE_DYNAMIC, D3D11_VIEWPORT,
 };
 use windows::Win32::Graphics::Dxgi::Common::{
     DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_FORMAT_R32G32_FLOAT, DXGI_SAMPLE_DESC,
@@ -622,9 +622,14 @@ impl CursorRenderer {
 
     /// カーソルを描画
     /// viewport_rect: カーソルをクリップするビューポート矩形（クライアント座標系、Noneの場合はクリップなし）
+    /// カーソルを描画
+    /// viewport_rect: カーソルをクリップするビューポート矩形（クライアント座標系、Noneの場合はクリップなし）
     pub fn draw_cursor(
         &mut self,
-        backbuffer: &ID3D11Texture2D,
+        _backbuffer: &ID3D11Texture2D, // Keep for API compatibility or remove if unused. Let's keep signature similar but use RTV. Actually, to be clean, let's pass RTV.
+        rtv: &ID3D11RenderTargetView,  // New argument
+        width: u32, // Need to pass dimensions since we can't easily get them from RTV
+        height: u32,
         h_cursor: HCURSOR,
         cursor_pos: POINT,
         scale: f32,
@@ -666,11 +671,8 @@ impl CursorRenderer {
         let srv = cursor_info.srv.clone();
 
         unsafe {
-            // バックバッファのサイズを取得
-            let mut bb_desc = D3D11_TEXTURE2D_DESC::default();
-            backbuffer.GetDesc(&mut bb_desc);
-            let width = bb_desc.Width as f32;
-            let height = bb_desc.Height as f32;
+            let width_f = width as f32;
+            let height_f = height as f32;
 
             // カーソル描画位置（ホットスポット考慮）
             let draw_x = cursor_pos.x - hot_spot_x;
@@ -721,10 +723,10 @@ impl CursorRenderer {
             let uv_bottom = (clip_bottom - cursor_rect.top) as f32 / cursor_h as f32;
 
             // NDC座標に変換（クリップ後の座標を使用）
-            let left = clip_left as f32 / width * 2.0 - 1.0;
-            let right = clip_right as f32 / width * 2.0 - 1.0;
-            let top = 1.0 - clip_top as f32 / height * 2.0;
-            let bottom = 1.0 - clip_bottom as f32 / height * 2.0;
+            let left = clip_left as f32 / width_f * 2.0 - 1.0;
+            let right = clip_right as f32 / width_f * 2.0 - 1.0;
+            let top = 1.0 - clip_top as f32 / height_f * 2.0;
+            let bottom = 1.0 - clip_bottom as f32 / height_f * 2.0;
 
             // 頂点バッファを更新（クリップされたUV座標を使用）
             let vertices = [
@@ -758,24 +760,20 @@ impl CursorRenderer {
                 self.context.Unmap(vb, 0);
             }
 
-            // レンダーターゲットビューを作成
-            let mut rtv = None;
-            self.device
-                .CreateRenderTargetView(backbuffer, None, Some(&mut rtv))?;
-            let rtv = rtv.ok_or_else(|| anyhow!("Failed to create RTV"))?;
-
             // ビューポート設定
             let viewport = D3D11_VIEWPORT {
                 TopLeftX: 0.0,
                 TopLeftY: 0.0,
-                Width: width,
-                Height: height,
+                Width: width_f,
+                Height: height_f,
                 MinDepth: 0.0,
                 MaxDepth: 1.0,
             };
 
             // パイプライン設定
-            self.context.OMSetRenderTargets(Some(&[Some(rtv)]), None);
+            // RTV is now passed in, no need to create from backbuffer
+            self.context
+                .OMSetRenderTargets(Some(&[Some(rtv.clone())]), None);
             self.context.RSSetViewports(Some(&[viewport]));
 
             // カーソルタイプに応じたブレンドステートを設定
@@ -868,8 +866,23 @@ impl CursorRenderer {
                 if windows::Win32::UI::WindowsAndMessaging::GetCursorInfo(&mut ci).is_ok()
                     && !ci.hCursor.is_invalid()
                 {
+                    // Create RTV locally for fallback
+                    // バックバッファのサイズを取得
+                    let mut bb_desc = D3D11_TEXTURE2D_DESC::default();
+                    backbuffer.GetDesc(&mut bb_desc);
+                    let width = bb_desc.Width;
+                    let height = bb_desc.Height;
+
+                    let mut rtv = None;
+                    self.device
+                        .CreateRenderTargetView(backbuffer, None, Some(&mut rtv))?;
+                    let rtv = rtv.ok_or_else(|| anyhow!("Failed to create RTV"))?;
+
                     return self.draw_cursor(
                         backbuffer,
+                        &rtv,
+                        width,
+                        height,
                         ci.hCursor,
                         cursor_pos,
                         cursor_size / 32.0,

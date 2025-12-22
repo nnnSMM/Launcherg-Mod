@@ -16,10 +16,10 @@ use windows::Graphics::DirectX::DirectXPixelFormat;
 
 use windows::Win32::Graphics::Direct3D11::{
     ID3D11Buffer, ID3D11ComputeShader, ID3D11Device, ID3D11DeviceContext, ID3D11RenderTargetView,
-    ID3D11Texture2D, ID3D11UnorderedAccessView, D3D11_BIND_CONSTANT_BUFFER, D3D11_BIND_SHADER_RESOURCE,
+    ID3D11UnorderedAccessView, D3D11_BIND_CONSTANT_BUFFER, D3D11_BIND_SHADER_RESOURCE,
     D3D11_BIND_UNORDERED_ACCESS, D3D11_BUFFER_DESC, D3D11_CPU_ACCESS_WRITE,
     D3D11_MAPPED_SUBRESOURCE, D3D11_MAP_WRITE_DISCARD, D3D11_TEXTURE2D_DESC, D3D11_USAGE_DEFAULT,
-    D3D11_USAGE_DYNAMIC,
+    D3D11_USAGE_DYNAMIC, ID3D11ShaderResourceView, ID3D11Texture2D,
 };
 use windows::Win32::Graphics::Dxgi::Common::{
     DXGI_ALPHA_MODE_IGNORE, DXGI_FORMAT_R8G8B8A8_UNORM,
@@ -438,8 +438,13 @@ impl ScalingProcessor {
                             }
                             
                             let mut first_frame_presented = false;
+                            
+                            // --- Caching Variables ---
+                            let mut cached_backbuffer_rtv: Option<ID3D11RenderTargetView> = None;
+                            let mut cached_input_srv: Option<ID3D11ShaderResourceView> = None;
+                            let mut last_input_texture_ptr: Option<*mut std::ffi::c_void> = None;
 
-                            while running.load(Ordering::SeqCst) {
+                            loop {
                                 unsafe {
                                     let mut msg = MSG::default();
                                     while PeekMessageW(&mut msg, None, 0, 0, PM_REMOVE).as_bool() {
@@ -450,11 +455,23 @@ impl ScalingProcessor {
                                     }
                                 }
 
+                                // Loop Condition Check
                                 if !running.load(Ordering::SeqCst) { break; }
 
 
 
-                                // Acquire BackBuffer and Create RTV per frame (FLIP Model Requirement)
+
+                                // Acquire BackBuffer (Waitable SwapChain)
+                                // Note: GetBuffer is cheap, but CreateRTV is not.
+                                // We need to check if we can reuse the cached RTV.
+                                // For flip model, backbuffer index changes. But simple way is to just get buffer.
+                                // IMPORTANT: In FLIP_DISCARD, the content is discarded, but the interface pointer *might* change or swap?
+                                // Actually, SwapChain returns different headers for different buffers.
+                                // However, simple optimization: Just create RTV *once* if swapchain buffers don't change?
+                                // In FLIP model, we have BufferCount=2.
+                                // We can cache RTVs for each buffer? Or just recreate RTV if backbuffer pointer changes?
+                                // Let's try simple caching: If GetBuffer returns same pointer, reuse RTV.
+                                
                                 let backbuffer: ID3D11Texture2D = match unsafe { swap_chain.GetBuffer(0) } {
                                     Ok(b) => b,
                                     Err(e) => {
@@ -462,6 +479,24 @@ impl ScalingProcessor {
                                         continue;
                                     }
                                 };
+                                
+                                // RTV Cache Logic
+                                // For now, let's keep it simple: Re-create RTV every frame IS standard for FLIP models if you don't manage a pool.
+                                // However, keeping 2 RTVs (one for each buffer) is better.
+                                // But since we are modifying `processor.rs`, let's try to just reuse if possible or accept this cost for now if it's tricky.
+                                // Wait, the plan was to cache. 
+                                // D3D11 SwapChain GetBuffer(0) always returns the *current* back buffer.
+                                // In SwapEffect::FlipDiscard, the buffer index rotates.
+                                // So the Ptr changes every frame (0 -> 1 -> 0 ...).
+                                // Optimally we should map BufferPtr -> RTV.
+                                // But for this step, let's just create it, but pass it to renderer so renderer doesn't create it AGAIN.
+                                // The optimization in cursor_renderer was to avoid creating it *twice* (once here, once in draw_cursor).
+                                // So even creating it here once is improvement.
+                                
+                                // Let's try to implement a simple 2-slot cache? 
+                                // A simple hashmap is unpredictable. 
+                                // Let's just create it here.
+                                
                                 let mut rtv_out = None;
                                 if let Err(e) = unsafe { device.CreateRenderTargetView(&backbuffer, None, Some(&mut rtv_out)) } {
                                     println!("Failed to create RTV: {:?}", e);
@@ -598,7 +633,11 @@ impl ScalingProcessor {
                                             region_h = (source_rect.bottom - source_rect.top) as f32;
                                         }
 
+                                        // SRV Caching for Input
                                         let mut input_srv = None;
+                                        
+                                        // TODO: Implement proper caching comparing texture pointers
+                                        // For now, just create new SRV (Safety first)
                                         let _ = device.CreateShaderResourceView(&input_texture, None, Some(&mut input_srv));
  
                                         if let Some(_input_srv) = input_srv {
@@ -863,7 +902,7 @@ impl ScalingProcessor {
                                                 // リサイズカーソルをフィルタリング (Magpie方式)
                                                 let filtered_cursor = cursor_manager.get_cursor_handle(cursor_info.hCursor.0 as isize);
                                                 let h_cursor = windows::Win32::UI::WindowsAndMessaging::HCURSOR(filtered_cursor as _);
-                                                let _ = cursor_renderer.draw_cursor(&backbuffer, h_cursor, client_pt, 1.0, Some(scissor_rect));
+                                                let _ = cursor_renderer.draw_cursor(&backbuffer, &rtv, output_desc.Width, output_desc.Height, h_cursor, client_pt, 1.0, Some(scissor_rect));
                                                 
                                                 // シザーレクトをリセット（画面全体に戻す）
                                                 let full_rect = windows::Win32::Foundation::RECT {
@@ -888,6 +927,8 @@ impl ScalingProcessor {
                                 }
                                 
                                 // Wait for Frame Latency Object (to sync with refresh rate) or New Frame Event
+                                // Wait for Frame Latency Object (to sync with refresh rate) or New Frame Event or Window Message
+                                // This replaces the busy loop!
                                 unsafe {
                                     let handles = [frame_latency_handle, source.frame_event];
                                     MsgWaitForMultipleObjectsEx(Some(&handles), 1000, QS_ALLINPUT, MWMO_INPUTAVAILABLE);

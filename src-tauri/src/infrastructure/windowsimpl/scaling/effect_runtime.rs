@@ -633,18 +633,26 @@ impl EffectRuntime {
             let dispatch_y = (output_size.1 + pass.block_size.1 - 1) / pass.block_size.1;
             self.context.Dispatch(dispatch_x, dispatch_y, 1);
             // リソースハザードを防ぐためにUAVとSRVをアンバインド
-            let null_uavs = vec![None; uavs.len()];
-            if !null_uavs.is_empty() {
+            // vec![] allocation is slow, use slice from array
+            if !uavs.is_empty() {
+                let null_uavs: [Option<ID3D11UnorderedAccessView>; 8] =
+                    [None, None, None, None, None, None, None, None];
+                let count = uavs.len().min(8);
                 self.context.CSSetUnorderedAccessViews(
                     0,
-                    null_uavs.len() as u32,
-                    Some(null_uavs.as_ptr()),
+                    count as u32,
+                    Some(null_uavs[0..count].as_ptr()),
                     None,
                 );
             }
-            let null_srvs = vec![None; srvs.len()];
-            if !null_srvs.is_empty() {
-                self.context.CSSetShaderResources(0, Some(&null_srvs));
+            if !srvs.is_empty() {
+                let null_srvs: [Option<ID3D11ShaderResourceView>; 16] = [
+                    None, None, None, None, None, None, None, None, None, None, None, None, None,
+                    None, None, None,
+                ];
+                let count = srvs.len().min(16);
+                self.context
+                    .CSSetShaderResources(0, Some(&null_srvs[0..count]));
             }
         }
         Ok(())
