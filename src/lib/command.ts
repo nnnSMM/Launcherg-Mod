@@ -108,11 +108,9 @@ export const commandUpdateElementLike = async (id: number, isLike: boolean) => {
   return await invoke<void>("update_element_like", { id, isLike });
 };
 
-// --- ここから追加 ---
 export const commandUpdateElementPlayStatus = async (id: number, playStatus: PlayStatus) => {
   return await invoke<void>("update_element_play_status", { id, playStatus });
 };
-// --- ここまで追加 ---
 
 export const commandOpenFolder = async (path: string) => {
   return await invoke<void>("open_folder", { path });
