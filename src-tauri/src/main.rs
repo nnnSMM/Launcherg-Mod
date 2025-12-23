@@ -158,6 +158,19 @@ fn main() {
                 });
             });
 
+            // ゲームプレイ終了時にトレイメニューを更新
+            let app_handle = app.handle().clone();
+            app.listen("recent-games-changed", move |_event| {
+                let app_handle = app_handle.clone();
+                tauri::async_runtime::spawn(async move {
+                    if let Ok(menu) = build_tray_menu(&app_handle).await {
+                        if let Some(tray) = app_handle.tray_by_id("main-tray") {
+                            let _ = tray.set_menu(Some(menu));
+                        }
+                    }
+                });
+            });
+
             let app_handle = app.handle().clone();
             app.listen("single-instance", move |_event| {
                 if let Some(window) = app_handle.get_webview_window("main") {

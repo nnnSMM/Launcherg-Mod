@@ -63,32 +63,29 @@ const createTabs = () => {
       return;
     }
 
+
     let tabToSelectIndex = -1;
 
-    if (location === PLAY_STATUS_EDITOR_PATH && tabTypeSegment === "settings") { // ★ 設定タブのパスで判定
-      tabToSelectIndex = getTabs().findIndex(t => t.id === PLAY_STATUS_EDITOR_TAB_ID && t.type === "settings");
-      if (tabToSelectIndex === -1) {
+    // 設定タブの処理をヘルパー関数化
+    const findOrCreateSettingsTab = (tabId: number, tabPath: string, tabTitle: string): number => {
+      let index = getTabs().findIndex(t => t.id === tabId && t.type === "settings");
+      if (index === -1) {
         const settingsTab: Tab = {
-          id: PLAY_STATUS_EDITOR_TAB_ID,
+          id: tabId,
           type: "settings",
           scrollTo: 0,
-          title: PLAY_STATUS_EDITOR_TITLE,
-          path: PLAY_STATUS_EDITOR_PATH,
+          title: tabTitle,
+          path: tabPath,
         };
-        tabToSelectIndex = insertNewTab(settingsTab);
+        index = insertNewTab(settingsTab);
       }
+      return index;
+    };
+
+    if (location === PLAY_STATUS_EDITOR_PATH && tabTypeSegment === "settings") {
+      tabToSelectIndex = findOrCreateSettingsTab(PLAY_STATUS_EDITOR_TAB_ID, PLAY_STATUS_EDITOR_PATH, PLAY_STATUS_EDITOR_TITLE);
     } else if (location === SHORTCUT_SETTINGS_PATH && tabTypeSegment === "settings") {
-      tabToSelectIndex = getTabs().findIndex(t => t.id === SHORTCUT_SETTINGS_TAB_ID && t.type === "settings");
-      if (tabToSelectIndex === -1) {
-        const settingsTab: Tab = {
-          id: SHORTCUT_SETTINGS_TAB_ID,
-          type: "settings",
-          scrollTo: 0,
-          title: SHORTCUT_SETTINGS_TITLE,
-          path: SHORTCUT_SETTINGS_PATH,
-        };
-        tabToSelectIndex = insertNewTab(settingsTab);
-      }
+      tabToSelectIndex = findOrCreateSettingsTab(SHORTCUT_SETTINGS_TAB_ID, SHORTCUT_SETTINGS_PATH, SHORTCUT_SETTINGS_TITLE);
     } else if (tabTypeSegment === "works" || tabTypeSegment === "memos") {
       if (!entityId || isNaN(entityId)) {
         console.error("Missing or invalid entityId for works/memos tab at location:", location);
@@ -251,46 +248,34 @@ const createTabs = () => {
     });
   };
 
-  const openSettingsTab = () => {
+  /** 設定タブを開くための共通ヘルパー関数 */
+  const openSpecificSettingsTab = (tabId: number, tabPath: string, tabTitle: string) => {
     const currentOpenTabs = getTabs();
-    const settingsTabIndex = currentOpenTabs.findIndex(t => t.id === PLAY_STATUS_EDITOR_TAB_ID);
+    const existingTabIndex = currentOpenTabs.findIndex(t => t.id === tabId);
 
-    if (settingsTabIndex !== -1) {
-      selected.set(settingsTabIndex);
-      push(PLAY_STATUS_EDITOR_PATH);
+    if (existingTabIndex !== -1) {
+      selected.set(existingTabIndex);
+      push(tabPath);
     } else {
       const settingsTab: Tab = {
-        id: PLAY_STATUS_EDITOR_TAB_ID,
+        id: tabId,
         type: "settings",
         scrollTo: 0,
-        title: PLAY_STATUS_EDITOR_TITLE,
-        path: PLAY_STATUS_EDITOR_PATH,
+        title: tabTitle,
+        path: tabPath,
       };
       const newIndex = insertNewTab(settingsTab);
       selected.set(newIndex);
-      push(PLAY_STATUS_EDITOR_PATH);
+      push(tabPath);
     }
   };
 
-  const openShortcutSettingsTab = () => {
-    const currentOpenTabs = getTabs();
-    const settingsTabIndex = currentOpenTabs.findIndex(t => t.id === SHORTCUT_SETTINGS_TAB_ID);
+  const openSettingsTab = () => {
+    openSpecificSettingsTab(PLAY_STATUS_EDITOR_TAB_ID, PLAY_STATUS_EDITOR_PATH, PLAY_STATUS_EDITOR_TITLE);
+  };
 
-    if (settingsTabIndex !== -1) {
-      selected.set(settingsTabIndex);
-      push(SHORTCUT_SETTINGS_PATH);
-    } else {
-      const settingsTab: Tab = {
-        id: SHORTCUT_SETTINGS_TAB_ID,
-        type: "settings",
-        scrollTo: 0,
-        title: SHORTCUT_SETTINGS_TITLE,
-        path: SHORTCUT_SETTINGS_PATH,
-      };
-      const newIndex = insertNewTab(settingsTab);
-      selected.set(newIndex);
-      push(SHORTCUT_SETTINGS_PATH);
-    }
+  const openShortcutSettingsTab = () => {
+    openSpecificSettingsTab(SHORTCUT_SETTINGS_TAB_ID, SHORTCUT_SETTINGS_PATH, SHORTCUT_SETTINGS_TITLE);
   };
 
   return {

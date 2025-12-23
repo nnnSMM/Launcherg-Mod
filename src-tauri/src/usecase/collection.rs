@@ -2,20 +2,20 @@ use std::{fs, sync::Arc};
 
 use chrono::Local;
 use derive_new::new;
-use std::process::Command;
-use sysinfo::{ProcessExt, System, SystemExt};
 use tauri::AppHandle;
 
-use tokio::time::{interval, Duration, Instant};
+use tokio::time::Duration;
 
 use super::error::UseCaseError;
+use super::game_tracker::{
+    is_path_related_error, launch_game, GameProcessMonitor, ProcessSearchConfig,
+};
 use super::pause_manager::PauseManager;
 use crate::{
     domain::{
         collection::{CollectionElement, NewCollectionElement, NewCollectionElementDetail},
         file::{
-            get_exe_path_from_lnk, get_icon_path, get_lnk_metadatas, get_thumbnail_path,
-            save_icon_to_png, save_thumbnail,
+            get_icon_path, get_lnk_metadatas, get_thumbnail_path, save_icon_to_png, save_thumbnail,
         },
         repository::collection::CollectionRepository,
         repository::screenshot::{Screenshot, ScreenshotRepository},
@@ -23,7 +23,6 @@ use crate::{
     },
     infrastructure::{repositoryimpl::repository::RepositoriesExt, util::get_save_root_abs_dir},
 };
-use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut};
 
 #[derive(new)]
 pub struct CollectionUseCase<R: RepositoriesExt> {
@@ -33,6 +32,13 @@ pub struct CollectionUseCase<R: RepositoriesExt> {
 }
 
 impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
+    /// ゲームを起動し、プレイ時間を追跡する
+    ///
+    /// この関数は以下の処理を行います:
+    /// 1. ゲームの起動
+    /// 2. ゲームプロセスの検索
+    /// 3. プレイ時間の記録
+    /// 4. スクリーンショットの監視
     pub async fn play_game_and_track(
         &self,
         handle: Arc<AppHandle>,
@@ -43,267 +49,60 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
         self.update_element_last_play_at(&Id::new(element_id))
             .await?;
 
-        let path_str = match (element.exe_path, element.lnk_path) {
-            (Some(p), _) => p,
-            (None, Some(p)) => p,
-            (None, None) => {
-                return Err(anyhow::anyhow!(
-                    "実行ファイルまたはショートカットが見つかりません"
-                ))
-            }
-        };
-
-        // Use Windows cmd /c start to launch the game, which handles both .exe and .lnk
-        let path = std::path::Path::new(&path_str);
-
-        // For .lnk files or .exe files, use cmd /c start which properly handles shortcuts
-        let is_lnk = path_str.to_lowercase().ends_with(".lnk");
-
-        let mut spawned_pid: Option<u32> = None;
-
-        let spawn_result = if is_lnk {
-            // For .lnk files, use cmd /c start with the full path
-            Command::new("cmd")
-                .args(&["/c", "start", "", &path_str])
-                .spawn()
-        } else {
-            // For .exe files, launch directly with working directory set
-            if let Some(parent_dir) = path.parent() {
-                match Command::new(path).current_dir(parent_dir).spawn() {
-                    Ok(child) => {
-                        spawned_pid = Some(child.id());
-                        Ok(child)
+        // ゲームを起動
+        let launch_result = match launch_game(&element) {
+            Ok(result) => result,
+            Err(e) => {
+                // パス関連のエラーの場合、未インストール状態にする
+                if let Some(io_error) = e.downcast_ref::<std::io::Error>() {
+                    if is_path_related_error(io_error) {
+                        self.delete_collection_element_logical(&Id::new(element_id))
+                            .await?;
                     }
-                    Err(e) => Err(e),
                 }
-            } else {
-                return Err(anyhow::anyhow!("親ディレクトリが見つかりません"));
+                return Err(e);
             }
         };
-
-        if let Err(e) = spawn_result {
-            // 自動的に未インストール状態にする
-            // 2: ERROR_FILE_NOT_FOUND
-            // 3: ERROR_PATH_NOT_FOUND
-            // 267: ERROR_DIRECTORY
-            if let Some(code) = e.raw_os_error() {
-                if code == 2 || code == 3 || code == 267 {
-                    self.delete_collection_element_logical(&Id::new(element_id))
-                        .await?;
-                }
-            }
-            return Err(anyhow::anyhow!("Failed to launch game: {}", e));
-        }
 
         let game_name = element.gamename.clone();
-        let path_str_clone = path_str.clone();
+        let path_str = launch_result.path_str.clone();
+        let spawned_pid = launch_result.spawned_pid;
         let repositories = self.repositories.clone();
         let pause_manager = self.pause_manager.clone();
         let screenshot_watcher = self.screenshot_watcher.clone();
 
         tauri::async_runtime::spawn(async move {
-            // Set tracking state to true when starting to track
+            // 追跡状態を開始
             pause_manager.set_tracking(true);
 
-            // Register pause shortcut
-            let mut registered_shortcut: Option<Shortcut> = None;
-            if let Ok(Some(pause_shortcut_key)) = repositories
-                .collection_repository()
-                .get_app_setting("pause_shortcut_key".to_string())
-                .await
-            {
-                if !pause_shortcut_key.is_empty() {
-                    if let Ok(shortcut) = pause_shortcut_key.parse::<Shortcut>() {
-                        if !handle.global_shortcut().is_registered(shortcut.clone()) {
-                            if let Ok(_) = handle.global_shortcut().register(shortcut.clone()) {
-                                registered_shortcut = Some(shortcut);
-                            }
-                        }
-                    }
-                }
-            }
+            let monitor = GameProcessMonitor::new(
+                handle.clone(),
+                repositories,
+                pause_manager,
+                screenshot_watcher,
+                element_id,
+            );
+
+            // ポーズショートカットを登録
+            let registered_shortcut = monitor.register_pause_shortcut().await;
 
             // ランチャーがゲーム本体を起動するまで1秒待つ
             tokio::time::sleep(Duration::from_secs(1)).await;
 
-            let search_timeout = Duration::from_secs(180);
-            let search_start_time = Instant::now();
-            let mut target_pid: Option<sysinfo::Pid> = None;
-
-            if let Some(pid) = spawned_pid {
-                target_pid = Some(sysinfo::Pid::from(pid as usize));
-            }
-
-            // LNKの解決をループの外で行う
-            let final_exe_path_str = if path_str_clone.to_lowercase().ends_with(".lnk") {
-                get_exe_path_from_lnk(&path_str_clone)
-                    .await
-                    .unwrap_or(path_str_clone.clone())
-            } else {
-                path_str_clone.clone()
-            };
-            let final_exe_path = std::path::Path::new(&final_exe_path_str);
-
-            // ▼▼▼ 修正: 優先度付けを行う新しい特定ロジック ▼▼▼
-            loop {
-                if target_pid.is_some() {
-                    break;
-                }
-
-                if search_start_time.elapsed() > search_timeout {
-                    println!(
-                        "[WARN] Game process search timed out. Play time may not be recorded."
-                    );
-                    break;
-                }
-                tokio::time::sleep(Duration::from_secs(2)).await;
-
-                let mut system_after = System::new();
-                system_after.refresh_processes();
-
-                let new_processes: Vec<_> = system_after.processes().values().collect();
-
-                if new_processes.is_empty() {
-                    continue;
-                }
-
-                let mut candidates: Vec<(&sysinfo::Process, i32)> = Vec::new();
-                let system_folders = ["c:\\windows"];
-                let game_folders = ["VisualNovel", "steamapps", "dmmgameplayer"];
-
-                for process in new_processes {
-                    let exe_path = process.exe();
-                    let path_lower = exe_path.to_string_lossy().to_lowercase();
-                    let name_lower = process.name().to_lowercase();
-                    let game_name_lower = game_name.to_lowercase();
-
-                    if system_folders
-                        .iter()
-                        .any(|folder| path_lower.starts_with(folder))
-                    {
-                        continue; // 除外
-                    }
-
-                    // スコア付け
-                    let mut score = 0;
-
-                    // 最優先: 起動パスと完全一致
-                    if exe_path == final_exe_path {
-                        score += 100;
-                    }
-
-                    // 次点: プロセス名にゲーム名が含まれている (拡張子除外などを考慮して簡易的に)
-                    // 例: "GameName.exe" vs "GameName"
-                    if name_lower.contains(&game_name_lower)
-                        || game_name_lower.contains(&name_lower)
-                    {
-                        score += 50;
-                    }
-
-                    // 次点: 有名なゲームフォルダ
-                    if game_folders
-                        .iter()
-                        .any(|folder| path_lower.contains(folder))
-                    {
-                        score += 10;
-                    }
-
-                    // それ以外でも新しいプロセスなら候補には入れる(スコア1)
-                    if score == 0 {
-                        score = 1;
-                    }
-
-                    candidates.push((process, score));
-                }
-
-                // 最もスコアの高い候補の中から、ゲーム名に一番近いものを探す
-                if !candidates.is_empty() {
-                    let max_score = candidates
-                        .iter()
-                        .map(|(_, score)| *score)
-                        .max()
-                        .unwrap_or(0);
-
-                    // スコアが同じ場合は、名前の類似度（文字数差）で判定
-                    if let Some(best_match) = candidates
-                        .iter()
-                        .filter(|(_, score)| *score == max_score)
-                        .min_by_key(|(p, _)| (p.name().len() as i32 - game_name.len() as i32).abs())
-                    {
-                        target_pid = Some(best_match.0.pid());
-                    }
-                }
-
-                if target_pid.is_some() {
-                    break;
-                }
-            }
-
-            if let Some(pid_to_monitor) = target_pid {
-                println!(
-                    "Start monitoring process (PID: {}) for game {}",
-                    pid_to_monitor, game_name
-                );
-
-                // Start screenshot watcher
-                match screenshot_watcher.start_watching(handle.clone(), element_id) {
-                    Ok(_) => {}
-                    Err(e) => eprintln!("Failed to start screenshot watcher: {}", e),
-                }
-
-                let mut interval = interval(Duration::from_secs(10));
-                let mut system = System::new();
-                let mut last_check_time = Instant::now();
-
-                loop {
-                    interval.tick().await;
-                    system.refresh_processes();
-
-                    if !pause_manager.is_paused() {
-                        let now = Instant::now();
-                        let duration = now.duration_since(last_check_time).as_secs() as i32;
-                        if duration > 0 {
-                            // Incrementally save play time
-                            let _ = repositories
-                                .collection_repository()
-                                .add_play_time_seconds(&Id::new(element_id), duration)
-                                .await;
-                        }
-                        last_check_time = now;
-                    } else {
-                        last_check_time = Instant::now();
-                    }
-
-                    if system.process(pid_to_monitor).is_none() {
-                        // Stop screenshot watcher
-                        screenshot_watcher.stop_watching();
-
-                        // Final play time save is no longer needed as we save incrementally
-
-                        let _ = repositories
-                            .collection_repository()
-                            .update_element_last_play_at_by_id(&Id::new(element_id), Local::now())
-                            .await;
-
-                        // Set tracking state to false when tracking ends
-                        pause_manager.set_tracking(false);
-
-                        // Unregister pause shortcut
-                        if let Some(shortcut) = registered_shortcut {
-                            let _ = handle.global_shortcut().unregister(shortcut);
-                        }
-
-                        // Stop screenshot watcher
-                        screenshot_watcher.stop_watching();
-
-                        break;
-                    }
-                }
+            // ゲームプロセスを検索
+            let config = ProcessSearchConfig::default();
+            if let Some(pid) = monitor
+                .find_game_process(&path_str, spawned_pid, &game_name, &config)
+                .await
+            {
+                // プロセスを監視
+                monitor.monitor_process(pid, registered_shortcut).await;
             }
         });
 
         Ok(())
     }
+
     pub async fn upsert_collection_element(
         &self,
         source: &NewCollectionElement,

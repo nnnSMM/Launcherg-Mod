@@ -61,18 +61,15 @@ const NOT_GAME_TERMS: [&str; 16] = [
     "公式サイト",
     "ホームページ",
 ];
+/// ファイル名がゲーム以外のファイルかどうかを判定
 fn not_game(filename: &str) -> bool {
-    for not_game_str in NOT_GAME_TERMS {
-        if filename.contains(not_game_str) {
-            return true;
-        }
-    }
-    for not_game_str in NOT_GAME_EQUALLY_WORD {
-        if filename.eq(not_game_str) {
-            return true;
-        }
-    }
-    return false;
+    let filename_lower = filename.to_lowercase();
+    NOT_GAME_TERMS
+        .iter()
+        .any(|term| filename_lower.contains(term))
+        || NOT_GAME_EQUALLY_WORD
+            .iter()
+            .any(|word| filename_lower == *word)
 }
 
 const REMOVE_WORDS: [&str; 9] = [
@@ -86,12 +83,11 @@ const REMOVE_WORDS: [&str; 9] = [
     "ダウンロード版",
     "DL版",
 ];
+/// ファイル名から不要なワードを削除
 fn remove_word(filename: &str) -> String {
-    let mut result = filename.to_string();
-    for word in REMOVE_WORDS.iter() {
-        result = result.replace(word, "");
-    }
-    result
+    REMOVE_WORDS
+        .iter()
+        .fold(filename.to_string(), |acc, word| acc.replace(word, ""))
 }
 
 const IGNORE_GAME_ID: [i32; 4] = [2644, 63, 2797, 10419];
@@ -432,6 +428,7 @@ pub fn save_ico_to_png_sync(file_path: &str, save_png_path: &str) -> anyhow::Res
     }
 }
 
+/// EXEファイルからアイコンを抽出してPNGとして保存
 pub fn save_exe_file_png(
     handle: &Arc<AppHandle>,
     file_path: &str,
@@ -446,20 +443,16 @@ pub fn save_exe_file_png(
 
     let handle: JoinHandle<anyhow::Result<()>> = tauri::async_runtime::spawn(async move {
         while let Some(event) = rx.recv().await {
-            if let CommandEvent::Stdout(_) = event {
-                if std::path::Path::new(&save_png_path_cloned).exists() {
-                    return Ok(());
+            match event {
+                CommandEvent::Stdout(_) | CommandEvent::Stderr(_) => {
+                    // アイコンが存在すればOK、なければデフォルトを保存
+                    if std::path::Path::new(&save_png_path_cloned).exists() {
+                        return Ok(());
+                    }
+                    return save_default_icon(&save_png_path_cloned)?.await?;
                 }
-                return save_default_icon(&save_png_path_cloned)?.await?;
-            }
-            if let CommandEvent::Stderr(_) = event {
-                if std::path::Path::new(&save_png_path_cloned).exists() {
-                    return Ok(());
-                }
-                return save_default_icon(&save_png_path_cloned)?.await?;
-            }
-            if let CommandEvent::Terminated(_) = event {
-                return Ok(());
+                CommandEvent::Terminated(_) => return Ok(()),
+                _ => {}
             }
         }
         Err(anyhow::anyhow!("extract-icon is not terminated"))
@@ -480,17 +473,6 @@ pub fn get_play_history_path(
         .to_string_lossy()
         .to_string()
 }
-
-// const TEMP_SCRIPTS_ROOT_DIR: &str = "temp-scripts";
-// pub fn get_temp_script_dir_path() -> String {
-//     let dir = Path::new(&get_save_root_abs_dir()).join(TEMP_SCRIPTS_ROOT_DIR);
-//     fs::create_dir_all(dir).unwrap();
-//     Path::new(&get_save_root_abs_dir())
-//         .join(PLAY_HISTORIES_ROOT_DIR)
-//         .join(format!("{}.jsonl", collection_element_id.value))
-//         .to_string_lossy()
-//         .to_string()
-// }
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
