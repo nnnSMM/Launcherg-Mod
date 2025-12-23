@@ -16,7 +16,6 @@
   let shortcutKey: string = "";
   let pauseShortcutKey: string = "";
   let isLoading = true;
-  let isSaving = false;
 
   onMount(async () => {
     backgroundState.set({
@@ -81,11 +80,8 @@
     return parts.join("+");
   }
 
-  async function saveSettings() {
-    if (isSaving) {
-      return;
-    }
-    isSaving = true;
+  async function updateShortcutGame() {
+    if (isLoading) return;
     try {
       const gameIdToSave =
         selectedGameId === 0 ? null : selectedGameId.toString();
@@ -93,28 +89,45 @@
         key: "shortcut_game_id",
         value: gameIdToSave,
       });
+    } catch (error) {
+      console.error("Error saving shortcut_game_id:", error);
+      showErrorToast(`設定の保存に失敗しました: ${error}`);
+    }
+  }
 
+  async function updateShortcutKey() {
+    if (isLoading) return;
+    try {
       const keyToSave = shortcutKey === "" ? null : shortcutKey;
       await invoke("update_shortcut_registration", {
         newShortcutKey: keyToSave,
       });
+    } catch (error) {
+      console.error("Error saving shortcut_key:", error);
+      showErrorToast(`設定の保存に失敗しました: ${error}`);
+    }
+  }
 
+  async function updatePauseShortcutKey() {
+    if (isLoading) return;
+    try {
       const pauseKeyToSave = pauseShortcutKey === "" ? null : pauseShortcutKey;
       await invoke("update_pause_shortcut_registration", {
         newShortcutKey: pauseKeyToSave,
       });
-
-      showInfoToast("設定を保存しました");
     } catch (error) {
-      console.error("Error saving settings:", error);
+      console.error("Error saving pause_shortcut_key:", error);
       showErrorToast(`設定の保存に失敗しました: ${error}`);
-    } finally {
-      isSaving = false;
     }
   }
+
+  // Reactive auto-save
+  $: selectedGameId, updateShortcutGame();
+  $: shortcutKey, updateShortcutKey();
+  $: pauseShortcutKey, updatePauseShortcutKey();
 </script>
 
-<div class="p-4 text-text-primary space-y-4">
+<div class="p-4 text-text-primary space-y-4 h-full overflow-y-auto">
   <div class="flex items-center gap-2">
     <div class="i-material-symbols-settings-outline w-6 h-6" />
     <h1 class="text-2xl font-bold">ショートカット設定</h1>
@@ -165,7 +178,8 @@
           />
           <Button
             text="Shift"
-            on:click={() => (shortcutKey = toggleModifier(shortcutKey, "Shift"))}
+            on:click={() =>
+              (shortcutKey = toggleModifier(shortcutKey, "Shift"))}
           />
         </div>
       </Card>
@@ -186,26 +200,21 @@
         <div class="flex gap-2 mt-2">
           <Button
             text="Ctrl"
-            on:click={() => (pauseShortcutKey = toggleModifier(pauseShortcutKey, "Ctrl"))}
+            on:click={() =>
+              (pauseShortcutKey = toggleModifier(pauseShortcutKey, "Ctrl"))}
           />
           <Button
             text="Alt"
-            on:click={() => (pauseShortcutKey = toggleModifier(pauseShortcutKey, "Alt"))}
+            on:click={() =>
+              (pauseShortcutKey = toggleModifier(pauseShortcutKey, "Alt"))}
           />
           <Button
             text="Shift"
-            on:click={() => (pauseShortcutKey = toggleModifier(pauseShortcutKey, "Shift"))}
+            on:click={() =>
+              (pauseShortcutKey = toggleModifier(pauseShortcutKey, "Shift"))}
           />
         </div>
       </Card>
-
-      <div class="flex justify-end">
-        <Button
-          on:click={saveSettings}
-          text={isSaving ? "保存中..." : "設定を保存"}
-          disabled={isSaving}
-        />
-      </div>
     </div>
   {/if}
 </div>
