@@ -6,9 +6,9 @@ use derive_new::new;
 use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
 use tauri::AppHandle;
 
+use crate::domain::repository::repositories::RepositoriesExt;
 use crate::domain::repository::screenshot::ScreenshotRepository;
 use crate::domain::Id;
-use crate::infrastructure::repositoryimpl::repository::RepositoriesExt;
 
 #[derive(new, Clone)]
 pub struct ScreenshotWatcher<R: RepositoriesExt> {

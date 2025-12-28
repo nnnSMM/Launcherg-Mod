@@ -3,13 +3,12 @@ use std::sync::Arc;
 use tauri::AppHandle;
 
 use crate::{
+    domain::repository::repositories::RepositoriesExt,
     infrastructure::{
         explorerimpl::explorer::{Explorers, ExplorersExt},
-        repositoryimpl::{
-            driver::Db,
-            repository::{Repositories, RepositoriesExt},
-        },
+        repositoryimpl::{driver::Db, repository::Repositories},
         windowsimpl::windows::{Windows, WindowsExt},
+        util::get_save_root_abs_dir,
     },
     usecase::{
         all_game_cache::AllGameCacheUseCase, collection::CollectionUseCase,
@@ -89,6 +88,7 @@ impl Modules {
         );
 
         let collection_use_case = CollectionUseCase::new(
+            get_save_root_abs_dir(handle),
             repositories.clone(),
             Arc::new(pause_manager.clone()),
             Arc::new(screenshot_watcher.clone()),

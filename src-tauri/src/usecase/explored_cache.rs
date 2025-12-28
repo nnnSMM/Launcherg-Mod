@@ -3,8 +3,8 @@ use std::sync::Arc;
 use derive_new::new;
 
 use crate::{
+    domain::repository::repositories::RepositoriesExt,
     domain::{explored_cache::ExploredCache, repository::explored_cache::ExploredCacheRepository},
-    infrastructure::repositoryimpl::repository::RepositoriesExt,
 };
 
 #[derive(new)]

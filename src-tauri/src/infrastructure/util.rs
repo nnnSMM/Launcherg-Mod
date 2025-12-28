@@ -1,5 +1,4 @@
 use std::path::PathBuf;
-use std::sync::Arc;
 use std::{fs, path::Path};
 
 use tauri::AppHandle;
@@ -32,12 +31,7 @@ fn get_abs_dir(root: Option<PathBuf>) -> String {
     }
 }
 
-pub fn get_save_root_abs_dir(handle: &Arc<AppHandle>) -> String {
-    let root = handle.path().app_config_dir().ok();
-    get_abs_dir(root)
-}
-
-pub fn get_save_root_abs_dir_with_ptr_handle(handle: &AppHandle) -> String {
+pub fn get_save_root_abs_dir(handle: &AppHandle) -> String {
     let root = handle.path().app_config_dir().ok();
     get_abs_dir(root)
 }

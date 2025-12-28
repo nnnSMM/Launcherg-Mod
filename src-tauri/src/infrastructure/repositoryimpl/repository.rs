@@ -28,17 +28,7 @@ pub struct Repositories {
     all_game_cache_repository: RepositoryImpl<AllGameCache>,
     screenshot_repository: ScreenshotRepositoryImpl,
 }
-pub trait RepositoriesExt {
-    type CollectionRepo: CollectionRepository;
-    type ExploredCacheRepo: ExploredCacheRepository;
-    type AllGameCacheRepo: AllGameCacheRepository;
-    type ScreenshotRepo: ScreenshotRepository;
-
-    fn collection_repository(&self) -> &Self::CollectionRepo;
-    fn explored_cache_repository(&self) -> &Self::ExploredCacheRepo;
-    fn all_game_cache_repository(&self) -> &Self::AllGameCacheRepo;
-    fn screenshot_repository(&self) -> &Self::ScreenshotRepo;
-}
+use crate::domain::repository::repositories::RepositoriesExt;
 
 impl RepositoriesExt for Repositories {
     type CollectionRepo = RepositoryImpl<CollectionElement>;

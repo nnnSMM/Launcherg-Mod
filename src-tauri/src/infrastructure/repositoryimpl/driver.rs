@@ -7,7 +7,7 @@ use sqlx::{
 };
 use tauri::AppHandle;
 
-use crate::infrastructure::util::get_save_root_abs_dir_with_ptr_handle;
+use crate::infrastructure::util::get_save_root_abs_dir;
 
 #[derive(Clone)]
 pub struct Db(pub(crate) Arc<Pool<Sqlite>>);
@@ -21,7 +21,7 @@ mod embedded {
 
 impl Db {
     pub async fn new(handle: &AppHandle) -> Db {
-        let root = get_save_root_abs_dir_with_ptr_handle(handle);
+        let root = get_save_root_abs_dir(handle);
         let db_filename = Path::new(&root)
             .join(Path::new(DB_FILE))
             .as_path()

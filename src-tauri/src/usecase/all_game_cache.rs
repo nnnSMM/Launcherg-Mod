@@ -4,11 +4,11 @@ use chrono::{DateTime, Local};
 use derive_new::new;
 
 use crate::{
+    domain::repository::repositories::RepositoriesExt,
     domain::{
         all_game_cache::{AllGameCache, AllGameCacheOneWithThumbnailUrl, NewAllGameCacheOne},
         repository::all_game_cache::AllGameCacheRepository,
     },
-    infrastructure::repositoryimpl::repository::RepositoriesExt,
 };
 
 #[derive(new)]

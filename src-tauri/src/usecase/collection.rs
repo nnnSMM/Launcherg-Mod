@@ -12,6 +12,7 @@ use super::game_tracker::{
 };
 use super::pause_manager::PauseManager;
 use crate::{
+    domain::repository::repositories::RepositoriesExt,
     domain::{
         collection::{CollectionElement, NewCollectionElement, NewCollectionElementDetail},
         file::{
@@ -21,11 +22,11 @@ use crate::{
         repository::screenshot::{Screenshot, ScreenshotRepository},
         Id,
     },
-    infrastructure::{repositoryimpl::repository::RepositoriesExt, util::get_save_root_abs_dir},
 };
 
 #[derive(new)]
 pub struct CollectionUseCase<R: RepositoriesExt> {
+    save_root_dir: String,
     repositories: Arc<R>,
     pause_manager: Arc<PauseManager>,
     screenshot_watcher: Arc<crate::usecase::screenshot_watcher::ScreenshotWatcher<R>>,
@@ -289,7 +290,7 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
         }
 
         // Delete screenshots directory
-        let root_dir = get_save_root_abs_dir(handle);
+        let root_dir = self.save_root_dir.clone();
         let game_screenshot_dir = std::path::Path::new(&root_dir)
             .join("game-memos")
             .join(id.value.to_string());
@@ -409,7 +410,7 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
             .get_by_game_id(&Id::new(game_id))
             .await?;
 
-        let root_dir = get_save_root_abs_dir(handle);
+        let root_dir = self.save_root_dir.clone();
         let game_dir = std::path::Path::new(&root_dir)
             .join("game-memos")
             .join(game_id.to_string());
@@ -439,7 +440,7 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
             .to_string_lossy()
             .to_string();
 
-        let dest_dir = std::path::Path::new(&get_save_root_abs_dir(handle))
+        let dest_dir = std::path::Path::new(&self.save_root_dir)
             .join("game-memos")
             .join(game_id.to_string());
 
@@ -478,7 +479,7 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
             .await?;
 
         // Delete file
-        let file_path = std::path::Path::new(&get_save_root_abs_dir(handle))
+        let file_path = std::path::Path::new(&self.save_root_dir)
             .join("game-memos")
             .join(screenshot.game_id.to_string())
             .join(screenshot.filename);

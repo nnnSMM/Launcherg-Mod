@@ -11,11 +11,11 @@ use tauri::{AppHandle, Emitter};
 use tokio::time::{interval, Duration, Instant};
 
 use crate::{
+    domain::repository::repositories::RepositoriesExt,
     domain::{
         collection::CollectionElement, file::get_exe_path_from_lnk,
         repository::collection::CollectionRepository, Id,
     },
-    infrastructure::repositoryimpl::repository::RepositoriesExt,
 };
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut};
 
