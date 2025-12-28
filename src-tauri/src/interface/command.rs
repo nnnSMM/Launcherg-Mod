@@ -16,10 +16,11 @@ use crate::{
         },
         Id,
     },
+    usecase::error::UseCaseError,
     usecase::models::collection::CreateCollectionElementDetail,
 };
 use std::sync::{Arc, Mutex};
-use tauri::{AppHandle, Emitter, Manager, State};
+use tauri::{AppHandle, Emitter, State};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut};
 
 #[tauri::command]
@@ -466,11 +467,25 @@ pub async fn get_collection_element(
     modules: State<'_, Arc<Modules>>,
     collection_element_id: i32,
 ) -> Result<CollectionElement, CommandError> {
-    Ok(modules
+    match modules
         .collection_use_case()
         .get_element_by_element_id(&Id::new(collection_element_id))
         .await
-        .and_then(|v| Ok(CollectionElement::from_domain(&Arc::new(handle), v)))?)
+        .and_then(|v| Ok(CollectionElement::from_domain(&Arc::new(handle), v)))
+    {
+        Ok(v) => Ok(v),
+        Err(e) => {
+            if let Some(usecase_error) = e.downcast_ref::<UseCaseError>() {
+                match usecase_error {
+                    UseCaseError::CollectionElementIsNotFound => {
+                        return Err(CommandError::NotFound)
+                    }
+                    _ => {}
+                }
+            }
+            Err(CommandError::Anyhow(e))
+        }
+    }
 }
 
 #[tauri::command]
@@ -687,25 +702,7 @@ pub async fn toggle_pause_tracking(
     handle: AppHandle,
     modules: State<'_, Arc<Modules>>,
 ) -> Result<bool, CommandError> {
-    let is_paused = modules
-        .pause_manager()
-        .toggle()
-        .map_err(|e| CommandError::Anyhow(anyhow::anyhow!(e)))?;
-
-    // Overlay window control
-    if let Some(window) = handle.get_webview_window("overlay") {
-        if is_paused {
-            window.show().map_err(anyhow::Error::from)?;
-            window.set_focus().map_err(anyhow::Error::from)?;
-        } else {
-            window.hide().map_err(anyhow::Error::from)?;
-        }
-    }
-
-    handle
-        .emit("pause-toggled", is_paused)
-        .map_err(anyhow::Error::from)?;
-    Ok(is_paused)
+    Ok(super::logic::toggle_pause_and_notify(&handle, &modules).map_err(CommandError::Anyhow)?)
 }
 
 #[tauri::command]

@@ -6,10 +6,6 @@ use crate::domain::{
     all_game_cache::AllGameCache,
     collection::CollectionElement,
     explored_cache::ExploredCache,
-    repository::{
-        all_game_cache::AllGameCacheRepository, collection::CollectionRepository,
-        explored_cache::ExploredCacheRepository, screenshot::ScreenshotRepository,
-    },
 };
 
 use super::driver::Db;

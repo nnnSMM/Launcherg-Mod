@@ -2,6 +2,8 @@
 pub enum CommandError {
     #[error(transparent)]
     Anyhow(#[from] anyhow::Error),
+    #[error("not found")]
+    NotFound,
 }
 
 impl serde::Serialize for CommandError {

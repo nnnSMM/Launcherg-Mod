@@ -4,13 +4,14 @@ pub struct LnkMetadata {
     pub icon: String,
 }
 
-use std::{collections::HashMap, fs, io::Write, path::Path, sync::Arc};
+use std::{collections::HashMap, fs, path::Path, sync::Arc};
 
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 use tauri::{async_runtime::JoinHandle, AppHandle};
 use tauri_plugin_shell::process::CommandEvent;
 use tauri_plugin_shell::ShellExt;
+use tokio::io::AsyncWriteExt;
 use walkdir::WalkDir;
 use windows::{
     core::{ComInterface, PCWSTR},
@@ -363,8 +364,8 @@ pub fn save_default_icon(save_png_path: &str) -> anyhow::Result<JoinHandle<anyho
     let save_p = save_png_path.to_string();
     let handle = tauri::async_runtime::spawn(async move {
         let default_icon = include_bytes!("../../icons/notfound.png");
-        let mut file = std::fs::File::create(save_p)?;
-        file.write_all(default_icon)?;
+        let mut file = tokio::fs::File::create(save_p).await?;
+        file.write_all(default_icon).await?;
         return Ok(());
     });
 
@@ -516,8 +517,18 @@ pub fn save_thumbnail(
             let client = reqwest::Client::new();
             let response = client.get(src_url).send().await?;
             let bytes = response.bytes().await?;
-            let img = image::load_from_memory(&bytes)?;
-            img.save(&save_path)?;
+
+            // Offload CPU intensive work to Rayon thread pool
+            let (tx, rx) = tokio::sync::oneshot::channel();
+            rayon::spawn(move || {
+                let res = (|| -> anyhow::Result<()> {
+                    let img = image::load_from_memory(&bytes)?;
+                    img.save(&save_path)?;
+                    Ok(())
+                })();
+                let _ = tx.send(res);
+            });
+            rx.await??;
         }
         Ok(())
     })

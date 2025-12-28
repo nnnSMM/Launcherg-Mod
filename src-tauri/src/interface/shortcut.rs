@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Manager};
 use tauri_plugin_global_shortcut::Shortcut;
 
 use super::module::{Modules, ModulesExt};
@@ -43,16 +43,8 @@ pub async fn handle_shortcut(app_handle: AppHandle, shortcut: Shortcut) {
         if let Ok(pause_shortcut) = pause_shortcut_key.parse::<Shortcut>() {
             if shortcut == pause_shortcut {
                 // Check if tracking before allowing pause
-                if let Ok(is_paused) = modules.pause_manager().toggle() {
-                    if let Some(window) = app_handle.get_webview_window("overlay") {
-                        if is_paused {
-                            let _ = window.show();
-                            let _ = window.set_focus();
-                        } else {
-                            let _ = window.hide();
-                        }
-                    }
-                    let _ = app_handle.emit("pause-toggled", is_paused);
+                if let Err(e) = super::logic::toggle_pause_and_notify(&app_handle, &modules) {
+                    eprintln!("Error toggling pause: {}", e);
                 }
             }
         }

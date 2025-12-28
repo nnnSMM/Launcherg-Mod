@@ -401,7 +401,7 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
 
     pub async fn get_game_screenshots(
         &self,
-        handle: &Arc<AppHandle>,
+        _handle: &Arc<AppHandle>,
         game_id: i32,
     ) -> anyhow::Result<Vec<Screenshot>> {
         let screenshots = self
@@ -425,7 +425,7 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
 
     pub async fn import_screenshot(
         &self,
-        handle: &Arc<AppHandle>,
+        _handle: &Arc<AppHandle>,
         game_id: i32,
         file_path: String,
     ) -> anyhow::Result<()> {
@@ -461,7 +461,7 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
 
     pub async fn delete_screenshot(
         &self,
-        handle: &Arc<AppHandle>,
+        _handle: &Arc<AppHandle>,
         screenshot_id: i32,
     ) -> anyhow::Result<()> {
         // Get screenshot details
