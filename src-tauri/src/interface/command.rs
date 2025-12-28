@@ -9,7 +9,7 @@ use super::{
 use crate::{
     domain::{
         collection::NewCollectionElement,
-        distance::get_comparable_distance,
+        distance::find_nearest,
         file::{
             get_exe_path_from_lnk, get_file_created_at_sync, get_icon_path, get_lnk_metadatas,
             get_thumbnail_path, normalize,
@@ -142,6 +142,15 @@ pub async fn create_elements_in_pc(
     explore_dir_paths: Vec<String>,
     use_cache: bool,
 ) -> Result<Vec<String>, CommandError> {
+    for path_str in &explore_dir_paths {
+        if !std::path::Path::new(path_str).is_dir() {
+            return Err(CommandError::Anyhow(anyhow::anyhow!(
+                "指定されたパスはフォルダではありません: {}",
+                path_str
+            )));
+        }
+    }
+
     let handle = Arc::new(handle);
     let emit_progress = Arc::new(|message| {
         if let Err(e) = handle.emit("progress", ProgressPayload::new(message)) {
@@ -250,18 +259,10 @@ pub async fn get_nearest_key_and_distance(
         }
     }
 
-    let mut max_distance = 0.0;
-    let mut max_distance_value = None;
-    for (comp_key, comp_value) in normalized_kv.into_iter() {
-        let distance = get_comparable_distance(&key, &comp_key);
-        if max_distance < distance {
-            max_distance = distance;
-            max_distance_value = Some(comp_value);
-        }
-    }
+    let (max_distance_value, max_distance) = find_nearest(&key, &normalized_kv);
 
     match max_distance_value {
-        Some(value) => Ok((value, max_distance)),
+        Some(value) => Ok((value.to_string(), max_distance)),
         _ => Err(CommandError::Anyhow(anyhow::anyhow!(
             "maybe calculate_distance_kv is empty."
         ))),
@@ -289,6 +290,23 @@ pub async fn upsert_collection_element(
     lnk_path: Option<String>,
     game_cache: AllGameCacheOne,
 ) -> Result<(), CommandError> {
+    if let Some(path) = &exe_path {
+        if !std::path::Path::new(path).is_file() {
+            return Err(CommandError::Anyhow(anyhow::anyhow!(
+                "指定されたパスはファイルではありません: {}",
+                path
+            )));
+        }
+    }
+    if let Some(path) = &lnk_path {
+        if !std::path::Path::new(path).is_file() {
+            return Err(CommandError::Anyhow(anyhow::anyhow!(
+                "指定されたパスはファイルではありません: {}",
+                path
+            )));
+        }
+    }
+
     let install_at;
     if let Some(path) = exe_path.clone() {
         install_at = get_file_created_at_sync(&path);
