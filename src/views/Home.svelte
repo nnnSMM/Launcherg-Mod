@@ -222,7 +222,14 @@
       {@const imageWidth = (() => {
         if (mostRecent.thumbnailWidth && mostRecent.thumbnailHeight) {
           const ratio = mostRecent.thumbnailWidth / mostRecent.thumbnailHeight;
-          return Math.sqrt(TARGET_AREA * ratio);
+          let w = Math.sqrt(TARGET_AREA * ratio);
+          let h = w / ratio;
+          const MAX_HEIGHT = 320;
+          if (h > MAX_HEIGHT) {
+            h = MAX_HEIGHT;
+            w = h * ratio;
+          }
+          return w;
         }
         return 192; // Default width (w-48)
       })()}
