@@ -3,6 +3,7 @@
     import { convertFileSrc } from "@tauri-apps/api/core";
     import type { Screenshot } from "@/lib/types";
     import { commandDeleteScreenshot } from "@/lib/command";
+    import ZoomableImage from "@/components/UI/ZoomableImage.svelte";
 
     export let screenshots: Screenshot[];
     export let initialIndex: number;
@@ -10,6 +11,7 @@
     let currentIndex = initialIndex;
     let currentScreenshot: Screenshot;
     let showDeleteConfirm = false;
+    let isZoomed = false;
 
     const dispatch = createEventDispatcher();
 
@@ -88,6 +90,7 @@
 
     <button
         class="absolute left-0 top-0 h-full px-6 flex items-center justify-center text-white bg-black/0 hover:bg-black/30 transition-all opacity-0 hover:opacity-100 z-40"
+        class:!hidden={isZoomed}
         on:click={prev}
     >
         <div class="i-material-symbols-chevron-left text-6xl drop-shadow-lg" />
@@ -95,20 +98,26 @@
 
     <button
         class="absolute right-0 top-0 h-full px-6 flex items-center justify-center text-white bg-black/0 hover:bg-black/30 transition-all opacity-0 hover:opacity-100 z-40"
+        class:!hidden={isZoomed}
         on:click={next}
     >
         <div class="i-material-symbols-chevron-right text-6xl drop-shadow-lg" />
     </button>
 
-    <div class="flex flex-col items-center max-w-[90vw] max-h-[90vh]">
-        <img
+    <div
+        class="flex flex-col items-center max-w-[90vw] max-h-[90vh] w-full h-[80vh]"
+    >
+        <ZoomableImage
+            bind:isZoomed
             src={convertFileSrc(currentScreenshot.filename)}
             alt={currentScreenshot.filename}
-            class="max-w-full max-h-[80vh] object-contain shadow-2xl rounded-lg"
+            class="max-w-full max-h-full shadow-2xl rounded-lg"
         />
 
         <div
-            class="mt-4 w-full flex items-center justify-between text-white relative z-50"
+            class="mt-4 w-full flex items-center justify-between text-white relative z-50 transition-opacity duration-200"
+            class:opacity-0={isZoomed}
+            class:pointer-events-none={isZoomed}
         >
             <div class="text-sm opacity-70">
                 {new Date(currentScreenshot.createdAt).toLocaleString()}

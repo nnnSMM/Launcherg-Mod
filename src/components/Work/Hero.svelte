@@ -7,6 +7,7 @@
     import { open } from "@tauri-apps/plugin-dialog";
     import { commandUpdateGameImage } from "@/lib/command";
     import ContextMenu from "@/components/UI/ContextMenu.svelte";
+    import ZoomableImage from "@/components/UI/ZoomableImage.svelte";
 
     export let element: CollectionElement;
     export let scrollY: number = 0;
@@ -173,7 +174,7 @@
     <!-- Fullscreen Image Viewer -->
     {#if showFullscreenImage}
         <div
-            class="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-8 cursor-pointer"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm"
             on:click={() => (showFullscreenImage = false)}
             on:keydown={(e) =>
                 (e.key === "Escape" || e.key === "Enter") &&
@@ -181,11 +182,15 @@
             role="button"
             tabindex="0"
         >
-            <img
-                src={bgImage}
-                alt={element.gamename}
-                class="w-auto max-h-screen object-contain"
-            />
+            <div
+                class="flex flex-col items-center max-w-[90vw] max-h-[90vh] w-full h-[80vh]"
+            >
+                <ZoomableImage
+                    src={bgImage}
+                    alt={element.gamename}
+                    class="max-w-full max-h-full shadow-2xl rounded-lg"
+                />
+            </div>
         </div>
     {/if}
 </div>
