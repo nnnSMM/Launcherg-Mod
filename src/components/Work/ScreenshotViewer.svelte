@@ -144,7 +144,6 @@
         >
             <div
                 class="bg-bg-secondary border border-border-primary rounded-lg shadow-2xl p-6 max-w-md w-full mx-4"
-                on:click|stopPropagation
             >
                 <h3 class="text-lg font-bold text-text-primary mb-2">
                     削除の確認
