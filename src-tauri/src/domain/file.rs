@@ -308,6 +308,146 @@ pub fn get_game_candidates_by_exe_path(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // ========================================
+    // not_game のテスト
+    // ========================================
+    #[test]
+    fn test_not_game_returns_true_for_installer() {
+        // Arrange & Act & Assert
+        assert!(not_game("インストール"));
+        assert!(not_game("アンインストール"));
+        assert!(not_game("install"));
+        assert!(not_game("uninstall"));
+    }
+
+    #[test]
+    fn test_not_game_returns_true_for_manual() {
+        assert!(not_game("マニュアル"));
+        assert!(not_game("はじめに"));
+        assert!(not_game("サポート"));
+    }
+
+    #[test]
+    fn test_not_game_returns_false_for_game() {
+        assert!(!not_game("game"));
+        assert!(!not_game("start"));
+        assert!(!not_game("サクラノ詩"));
+    }
+
+    #[test]
+    fn test_not_game_case_insensitive() {
+        // 大文字小文字を区別しない
+        assert!(not_game("INSTALL"));
+        assert!(not_game("Install"));
+    }
+
+    // ========================================
+    // remove_word のテスト
+    // ========================================
+    #[test]
+    fn test_remove_word_removes_launch_suffix() {
+        assert_eq!(remove_word("ゲームを起動"), "ゲーム");
+        assert_eq!(remove_word("ゲームの起動"), "ゲーム");
+    }
+
+    #[test]
+    fn test_remove_word_removes_brackets() {
+        assert_eq!(remove_word("「タイトル」"), "タイトル");
+    }
+
+    #[test]
+    fn test_remove_word_removes_dl_suffix() {
+        assert_eq!(remove_word("ゲームダウンロード版"), "ゲーム");
+        assert_eq!(remove_word("ゲームDL版"), "ゲーム");
+    }
+
+    #[test]
+    fn test_remove_word_no_change() {
+        assert_eq!(remove_word("普通のゲーム名"), "普通のゲーム名");
+    }
+
+    // ========================================
+    // normalize のテスト
+    // ========================================
+    #[test]
+    fn test_normalize_fullwidth_to_halfwidth() {
+        // 全角英字→半角
+        assert_eq!(normalize("ＡＢＣＤ"), "abcd");
+        assert_eq!(normalize("ａｂｃｄ"), "abcd");
+    }
+
+    #[test]
+    fn test_normalize_fullwidth_numbers() {
+        // 全角数字→半角
+        assert_eq!(normalize("１２３"), "123");
+    }
+
+    #[test]
+    fn test_normalize_mixed() {
+        assert_eq!(normalize("Ｈｅｌｌｏ１２３"), "hello123");
+    }
+
+    #[test]
+    fn test_normalize_japanese_unchanged() {
+        // 日本語はそのまま
+        assert_eq!(normalize("こんにちは"), "こんにちは");
+    }
+
+    // ========================================
+    // get_file_name_without_extension のテスト
+    // ========================================
+    #[test]
+    fn test_get_filename_windows_path() {
+        let result = get_file_name_without_extension("C:\\Games\\Game.exe");
+        assert_eq!(result, Some("Game".to_string()));
+    }
+
+    #[test]
+    fn test_get_filename_unix_path() {
+        let result = get_file_name_without_extension("/home/user/game.exe");
+        assert_eq!(result, Some("game".to_string()));
+    }
+
+    #[test]
+    fn test_get_filename_no_extension() {
+        let result = get_file_name_without_extension("README");
+        assert_eq!(result, Some("README".to_string()));
+    }
+
+    #[test]
+    fn test_get_filename_multiple_dots() {
+        let result = get_file_name_without_extension("game.v1.2.exe");
+        assert_eq!(result, Some("game.v1.2".to_string()));
+    }
+
+    // ========================================
+    // get_ini_value のテスト
+    // ========================================
+    #[test]
+    fn test_get_ini_value_found() {
+        let contents = "[InternetShortcut]\nURL=https://example.com\nIconFile=icon.ico";
+        let result = get_ini_value(contents, "IconFile");
+        assert_eq!(result, Some("icon.ico".to_string()));
+    }
+
+    #[test]
+    fn test_get_ini_value_not_found() {
+        let contents = "[InternetShortcut]\nURL=https://example.com";
+        let result = get_ini_value(contents, "IconFile");
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn test_get_ini_value_with_spaces() {
+        let contents = "IconFile = icon.ico";
+        let result = get_ini_value(contents, "IconFile");
+        assert_eq!(result, Some("icon.ico".to_string()));
+    }
+
+    // ========================================
+    // 既存テスト
+    // ========================================
     #[test]
     fn test_get_game_candidates_by_exe_path() {
         let res = get_game_candidates_by_exe_path(
@@ -322,6 +462,109 @@ mod tests {
         .unwrap();
         let pieces = res.first().unwrap();
         assert_eq!(pieces.id, 27123);
+    }
+
+    #[test]
+    fn test_get_game_candidates_empty_cache() {
+        let res =
+            get_game_candidates_by_exe_path(&vec![], "C:/Games/SomeGame/game.exe", 0.5, 3).unwrap();
+        assert!(res.is_empty());
+    }
+
+    #[test]
+    fn test_get_game_candidates_below_threshold() {
+        // 全く関係ないゲーム名 -> 閾値未満でヒットしない
+        let res = get_game_candidates_by_exe_path(
+            &vec![AllGameCacheOne::new(1, "まったく別のゲーム".to_string())],
+            "C:/Games/TotallyDifferent/game.exe",
+            0.9, // 高い閾値
+            3,
+        )
+        .unwrap();
+        // 閾値0.9を超えるマッチがない可能性
+        // (実際の結果はdistance計算次第だが、関係ないゲームなら空になるはず)
+        assert!(res.is_empty());
+    }
+
+    #[test]
+    fn test_get_game_candidates_multiple_candidates() {
+        let cache = vec![
+            AllGameCacheOne::new(1, "ゲームA".to_string()),
+            AllGameCacheOne::new(2, "ゲームB".to_string()),
+            AllGameCacheOne::new(3, "ゲームC".to_string()),
+        ];
+        // 親フォルダ名が "ゲームA" に近い場合
+        let res =
+            get_game_candidates_by_exe_path(&cache, "C:/Games/ゲームA/start.exe", 0.5, 5).unwrap();
+        // 少なくとも1件ヒットするはず
+        assert!(!res.is_empty());
+        // 最初の候補が "ゲームA" であること
+        assert_eq!(res.first().unwrap().id, 1);
+    }
+
+    #[test]
+    fn test_get_game_candidates_not_game_filter() {
+        // インストーラーやマニュアルは除外される
+        let cache = vec![AllGameCacheOne::new(1, "ゲームA".to_string())];
+        let res = get_game_candidates_by_exe_path(&cache, "C:/Games/ゲームA/install.exe", 0.5, 3)
+            .unwrap();
+        // "install" は not_game でtrue -> 空配列
+        assert!(res.is_empty());
+    }
+
+    // ========================================
+    // PlayHistory のテスト
+    // ========================================
+    #[test]
+    fn test_play_history_serialization() {
+        let history = PlayHistory {
+            minutes: 30.5,
+            start_date: "2023-12-25T10:00:00".to_string(),
+        };
+
+        let json = serde_json::to_string(&history).unwrap();
+        assert!(json.contains("\"minutes\":30.5"));
+        assert!(json.contains("\"startDate\":\"2023-12-25T10:00:00\"")); // camelCase
+    }
+
+    #[test]
+    fn test_play_history_deserialization() {
+        let json = r#"{"minutes":45.0,"startDate":"2024-01-01"}"#;
+        let history: PlayHistory = serde_json::from_str(json).unwrap();
+
+        assert_eq!(history.minutes, 45.0);
+        assert_eq!(history.start_date, "2024-01-01");
+    }
+
+    #[test]
+    fn test_play_history_jsonl_format() {
+        // 複数のPlayHistoryをJSONL形式でシリアライズ・デシリアライズ
+        let histories = vec![
+            PlayHistory {
+                minutes: 10.0,
+                start_date: "2023-01-01".to_string(),
+            },
+            PlayHistory {
+                minutes: 20.0,
+                start_date: "2023-01-02".to_string(),
+            },
+        ];
+
+        let jsonl: String = histories
+            .iter()
+            .map(|h| serde_json::to_string(h).unwrap())
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        // 各行をパースできることを確認
+        let parsed: Vec<PlayHistory> = jsonl
+            .lines()
+            .map(|line| serde_json::from_str(line).unwrap())
+            .collect();
+
+        assert_eq!(parsed.len(), 2);
+        assert_eq!(parsed[0].minutes, 10.0);
+        assert_eq!(parsed[1].minutes, 20.0);
     }
 }
 

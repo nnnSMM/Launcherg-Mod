@@ -54,3 +54,75 @@ impl TryFrom<CollectionElementTable> for CollectionElement {
         ))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::NaiveDate;
+
+    fn create_base_datetime() -> NaiveDateTime {
+        NaiveDate::from_ymd_opt(2023, 12, 25)
+            .unwrap()
+            .and_hms_opt(10, 0, 0)
+            .unwrap()
+    }
+
+    #[test]
+    fn test_collection_element_table_to_domain_conversion() {
+        let table = CollectionElementTable {
+            id: 123,
+            gamename: "テストゲーム".to_string(),
+            gamename_ruby: "てすとげーむ".to_string(),
+            brandname: "テストブランド".to_string(),
+            brandname_ruby: "てすとぶらんど".to_string(),
+            sellday: "2023-12-25".to_string(),
+            is_nukige: 0,
+            exe_path: Some("C:/Games/test.exe".to_string()),
+            lnk_path: None,
+            install_at: None,
+            last_play_at: None,
+            like_at: None,
+            play_status: 1,
+            total_play_time_seconds: 3600,
+            thumbnail_width: Some(256),
+            thumbnail_height: Some(256),
+            created_at: create_base_datetime(),
+            updated_at: create_base_datetime(),
+        };
+
+        let domain: CollectionElement = table.try_into().unwrap();
+
+        assert_eq!(domain.id.value, 123);
+        assert_eq!(domain.gamename, "テストゲーム");
+        assert_eq!(domain.is_nukige, false);
+        assert_eq!(domain.play_status, 1);
+        assert_eq!(domain.total_play_time_seconds, 3600);
+    }
+
+    #[test]
+    fn test_collection_element_table_is_nukige_conversion() {
+        let table = CollectionElementTable {
+            id: 456,
+            gamename: "Game".to_string(),
+            gamename_ruby: "".to_string(),
+            brandname: "Brand".to_string(),
+            brandname_ruby: "".to_string(),
+            sellday: "2024-01-01".to_string(),
+            is_nukige: 1,
+            exe_path: None,
+            lnk_path: None,
+            install_at: None,
+            last_play_at: None,
+            like_at: None,
+            play_status: 0,
+            total_play_time_seconds: 0,
+            thumbnail_width: None,
+            thumbnail_height: None,
+            created_at: create_base_datetime(),
+            updated_at: create_base_datetime(),
+        };
+
+        let domain: CollectionElement = table.try_into().unwrap();
+        assert!(domain.is_nukige);
+    }
+}

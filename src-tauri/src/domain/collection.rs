@@ -51,3 +51,72 @@ pub struct NewCollectionElementDetail {
     pub sellday: String,
     pub is_nukige: bool,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_new_collection_element_creation() {
+        let id = Id::new(123);
+        let element = NewCollectionElement::new(
+            id,
+            "テストゲーム".to_string(),
+            Some("C:/Games/test.exe".to_string()),
+            None,
+            None,
+        );
+
+        assert_eq!(element.id.value, 123);
+        assert_eq!(element.gamename, "テストゲーム");
+        assert_eq!(element.exe_path, Some("C:/Games/test.exe".to_string()));
+        assert!(element.lnk_path.is_none());
+        assert!(element.install_at.is_none());
+    }
+
+    #[test]
+    fn test_new_collection_element_detail_creation() {
+        let detail = NewCollectionElementDetail::new(
+            Id::new(456),
+            "てすとげーむ".to_string(),
+            "テストブランド".to_string(),
+            "てすとぶらんど".to_string(),
+            "2023-12-25".to_string(),
+            false,
+        );
+
+        assert_eq!(detail.collection_element_id.value, 456);
+        assert_eq!(detail.gamename_ruby, "てすとげーむ");
+        assert_eq!(detail.brandname, "テストブランド");
+        assert!(!detail.is_nukige);
+    }
+
+    #[test]
+    fn test_new_collection_element_detail_serialization() {
+        let detail = NewCollectionElementDetail::new(
+            Id::new(789),
+            "ruby".to_string(),
+            "Brand".to_string(),
+            "brand".to_string(),
+            "2024-01-01".to_string(),
+            true,
+        );
+
+        // JSON serializeができることを確認
+        let json = serde_json::to_string(&detail).unwrap();
+        assert!(json.contains("789"));
+        assert!(json.contains("ruby"));
+        assert!(json.contains("Brand"));
+
+        // deserializeも確認
+        let deserialized: NewCollectionElementDetail = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.collection_element_id.value, 789);
+        assert!(deserialized.is_nukige);
+    }
+
+    #[test]
+    fn test_new_collection_creation() {
+        let collection = NewCollection::new("マイコレクション".to_string());
+        assert_eq!(collection.name, "マイコレクション");
+    }
+}

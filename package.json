@@ -9,7 +9,9 @@
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "lint": "eslint --ext .js,.ts,.svelte,.cjs src --fix",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "test": "vitest",
+    "test:run": "vitest run"
   },
   "dependencies": {
     "@skyway-sdk/room": "^1.5.4",
@@ -40,6 +42,7 @@
     "@rgossiaux/svelte-headlessui": "^1.0.2",
     "@sveltejs/vite-plugin-svelte": "^2.0.0",
     "@tauri-apps/cli": "^2.0.0-beta.21",
+    "@testing-library/jest-dom": "^6.9.1",
     "@tsconfig/svelte": "^4.0.0",
     "@types/encoding-japanese": "^2.0.1",
     "@types/node": "^18.7.10",
@@ -56,6 +59,7 @@
     "autoprefixer": "^10.4.14",
     "eslint": "^8.41.0",
     "eslint-plugin-svelte": "^2.29.0",
+    "jsdom": "^27.4.0",
     "sass": "^1.62.1",
     "svelte": "^3.54.0",
     "svelte-check": "^3.0.0",
@@ -63,6 +67,7 @@
     "tslib": "^2.4.1",
     "typescript": "^5.0.0",
     "unocss": "^0.52.5",
-    "vite": "^4.2.1"
+    "vite": "^4.2.1",
+    "vitest": "^1.6.1"
   }
 }

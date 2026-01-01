@@ -1,5 +1,15 @@
 import { readFile } from "@tauri-apps/plugin-fs";
 
+export const getMimeTypeFromPath = (filePath: string): string => {
+  const lowerCasePath = filePath.toLowerCase();
+  if (lowerCasePath.endsWith(".png")) return "image/png";
+  if (lowerCasePath.endsWith(".jpg") || lowerCasePath.endsWith(".jpeg"))
+    return "image/jpeg";
+  if (lowerCasePath.endsWith(".gif")) return "image/gif";
+  if (lowerCasePath.endsWith(".webp")) return "image/webp";
+  throw new Error("Unsupported file type");
+};
+
 export const useChunk = () => {
   let currentChunkId = 0;
   // chunk id は頭につける都合上8bitで表現できるようにする
@@ -14,16 +24,7 @@ export const useChunk = () => {
   const createChunks = async (filePath: string) => {
     // ファイルをバイナリとして読み込む
     const data = await readFile(filePath);
-    const lowerCasePath = filePath.toLowerCase();
-    // MIME タイプを推定 (ここでは ".png" の場合 "image/png" としていますが、他の形式もサポートする場合は調整が必要)
-    const mimeType = (function () {
-      if (lowerCasePath.endsWith(".png")) return "image/png";
-      if (lowerCasePath.endsWith(".jpg") || lowerCasePath.endsWith(".jpeg"))
-        return "image/jpeg";
-      if (lowerCasePath.endsWith(".gif")) return "image/gif";
-      if (lowerCasePath.endsWith(".webp")) return "image/webp";
-      throw new Error("Unsupported file type");
-    })();
+    const mimeType = getMimeTypeFromPath(filePath);
     const chunkId = createNewChunkId();
 
     const totalChunkLength = Math.ceil(data.byteLength / CHUNK_DATA_SIZE);

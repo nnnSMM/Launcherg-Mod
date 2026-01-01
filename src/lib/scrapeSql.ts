@@ -1,6 +1,37 @@
 import { convertSpecialCharacters } from "@/lib/utils";
 import { fetch } from "@tauri-apps/plugin-http";
 
+export const parseQueryResultHtml = (
+  html: string,
+  colNums: number
+): string[][] => {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+
+  const rows: string[][] = [];
+  doc.querySelectorAll("#query_result_main tr").forEach((tr, i) => {
+    if (i === 0) {
+      return;
+    }
+    const row: string[] = [];
+    let isSkip = false;
+    for (let index = 0; index < colNums; index++) {
+      const scrapeIndex = index + 1;
+      const col = tr.querySelector(`td:nth-child(${scrapeIndex})`);
+      if (!col) {
+        isSkip = true;
+        break;
+      }
+      row.push(convertSpecialCharacters(col.innerHTML));
+    }
+    if (isSkip) {
+      return;
+    }
+    rows.push(row);
+  });
+  return rows;
+};
+
 export const scrapeSql = async (query: string, colNums: number) => {
   try {
     const formData = new FormData();
@@ -12,31 +43,7 @@ export const scrapeSql = async (query: string, colNums: number) => {
         body: formData,
       }
     );
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(await response.text(), "text/html");
-
-    const rows: string[][] = [];
-    doc.querySelectorAll("#query_result_main tr").forEach((tr, i) => {
-      if (i === 0) {
-        return;
-      }
-      const row: string[] = [];
-      let isSkip = false;
-      for (let index = 0; index < colNums; index++) {
-        const scrapeIndex = index + 1;
-        const col = tr.querySelector(`td:nth-child(${scrapeIndex})`);
-        if (!col) {
-          isSkip = true;
-          break;
-        }
-        row.push(convertSpecialCharacters(col.innerHTML));
-      }
-      if (isSkip) {
-        return;
-      }
-      rows.push(row);
-    });
-    return rows;
+    return parseQueryResultHtml(await response.text(), colNums);
   } catch (e) {
     console.error(e);
     return [];

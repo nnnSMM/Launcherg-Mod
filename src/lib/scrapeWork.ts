@@ -5,31 +5,33 @@ import { fetch } from "@tauri-apps/plugin-http";
 const BASE_REQUEST_PATH =
   "https://erogamescape.dyndns.org/~ap2/ero/toukei_kaiseki";
 
-const getCreator = (elm: HTMLElement) => {
+export const getCreator = (elm: HTMLElement) => {
   const creators: Creator[] = [];
   const aTags = elm.getElementsByTagName("a");
   for (let i = 0; i < aTags.length; i++) {
     const aTag = aTags[i];
+    const idStr =
+      aTag.getAttribute("href")?.replace("creater.php?creater=", "") ?? "0";
+    const id = isNaN(+idStr) ? 0 : +idStr;
     const creator: Creator = {
-      id: +(
-        aTag.getAttribute("href")?.replace("creater.php?creater=", "") ?? "0"
-      ),
+      id,
       name: convertSpecialCharacters(aTag.innerHTML),
     };
     creators.push(creator);
   }
   return creators;
 };
-const getVoiceActors = (elm: HTMLElement) => {
+export const getVoiceActors = (elm: HTMLElement) => {
   const creators: VoiceActor[] = [];
   const aTags = elm.getElementsByTagName("a");
   const spanTags = elm.getElementsByTagName("span");
   for (let i = 0; i < aTags.length; i++) {
     const aTag = aTags[i];
+    const idStr =
+      aTag.getAttribute("href")?.replace("creater.php?creater=", "") ?? "0";
+    const id = isNaN(+idStr) ? 0 : +idStr;
     const creator: Creator = {
-      id: +(
-        aTag.getAttribute("href")?.replace("creater.php?creater=", "") ?? "0"
-      ),
+      id,
       name: convertSpecialCharacters(aTag.innerHTML),
     };
     if (spanTags.length > i) {
@@ -40,15 +42,15 @@ const getVoiceActors = (elm: HTMLElement) => {
         importance: color?.includes("bold")
           ? 0
           : color?.includes("black")
-          ? 1
-          : 2,
+            ? 1
+            : 2,
       };
       creators.push(voiceActor);
     }
   }
   return creators;
 };
-const getMusics = (elements: HTMLCollectionOf<HTMLTableCellElement>) => {
+export const getMusics = (elements: HTMLCollectionOf<HTMLTableCellElement>) => {
   const musics: string[] = [];
   for (const elm of elements) {
     const aTag = elm.getElementsByTagName("a")[0];

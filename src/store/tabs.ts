@@ -10,7 +10,7 @@ export type Tab = {
   path: string; // ★ path を必須プロパティに変更 (設定タブも明確なパスを持つため)
 };
 
-const isValidTabType = (src: string): src is "works" | "memos" | "settings" => {
+export const isValidTabType = (src: string): src is "works" | "memos" | "settings" => {
   return src === "works" || src === "memos" || src === "settings";
 };
 

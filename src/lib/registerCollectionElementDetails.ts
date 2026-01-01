@@ -14,14 +14,14 @@ export const registerCollectionElementDetails = async () => {
     ", "
   )});`;
   const rows = await scrapeSql(query, 6);
-  await commandCreateElementDetails(
-    rows.map((row) => ({
-      collectionElementId: +row[0],
-      gamenameRuby: row[1],
-      sellday: row[2],
-      isNukige: row[3].includes("t"),
-      brandname: row[4],
-      brandnameRuby: row[5],
-    }))
-  );
+  await commandCreateElementDetails(rows.map(mapRowToElementDetail));
 };
+
+export const mapRowToElementDetail = (row: string[]) => ({
+  collectionElementId: +row[0],
+  gamenameRuby: row[1],
+  sellday: row[2],
+  isNukige: row[3].includes("t"),
+  brandname: row[4],
+  brandnameRuby: row[5],
+});

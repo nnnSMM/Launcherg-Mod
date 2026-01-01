@@ -44,3 +44,61 @@ impl PauseManager {
         Ok(*paused)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_new_creates_unpaused_not_tracking() {
+        let manager = PauseManager::new();
+        assert!(!manager.is_paused());
+        assert!(!manager.is_tracking());
+    }
+
+    #[test]
+    fn test_set_paused() {
+        let manager = PauseManager::new();
+
+        manager.set_paused(true);
+        assert!(manager.is_paused());
+
+        manager.set_paused(false);
+        assert!(!manager.is_paused());
+    }
+
+    #[test]
+    fn test_set_tracking_resets_pause_when_stopped() {
+        let manager = PauseManager::new();
+
+        manager.set_tracking(true);
+        manager.set_paused(true);
+        assert!(manager.is_paused());
+
+        manager.set_tracking(false);
+        assert!(!manager.is_paused());
+    }
+
+    #[test]
+    fn test_toggle_fails_when_not_tracking() {
+        let manager = PauseManager::new();
+
+        let result = manager.toggle();
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), "No active game tracking session");
+    }
+
+    #[test]
+    fn test_toggle_switches_pause_state() {
+        let manager = PauseManager::new();
+        manager.set_tracking(true);
+
+        let result1 = manager.toggle();
+        assert!(result1.is_ok());
+        assert!(result1.unwrap()); // false -> true
+
+        let result2 = manager.toggle();
+        assert!(result2.is_ok());
+        assert!(!result2.unwrap()); // true -> false
+    }
+}
