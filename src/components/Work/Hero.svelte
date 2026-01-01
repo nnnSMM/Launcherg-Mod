@@ -2,7 +2,10 @@
     import { convertFileSrc } from "@tauri-apps/api/core";
     import type { CollectionElement } from "@/lib/types";
     import { createEventDispatcher } from "svelte";
-    import { commandPlayGame } from "@/lib/command";
+    import {
+        commandPlayGame,
+        commandUpscaleCollectionElementThumbnails,
+    } from "@/lib/command";
 
     import { open } from "@tauri-apps/plugin-dialog";
     import { commandUpdateGameImage } from "@/lib/command";
@@ -56,6 +59,22 @@
                         selected.path,
                     );
                     window.location.reload();
+                }
+            },
+        },
+        {
+            label: "サムネイルを高画質化",
+            onSelect: async () => {
+                console.log("Starting upscale for element:", element.id);
+                try {
+                    await commandUpscaleCollectionElementThumbnails([
+                        element.id,
+                    ]);
+                    console.log("Upscale completed, reloading...");
+                    window.location.reload();
+                } catch (error) {
+                    console.error("Failed to upscale thumbnail:", error);
+                    alert("高画質化に失敗しました: " + String(error));
                 }
             },
         },

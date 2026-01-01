@@ -6,7 +6,9 @@ use tauri::AppHandle;
 
 use crate::domain::{
     self,
-    file::{get_icon_path, get_thumbnail_path},
+    file::{
+        get_icon_path, get_thumbnail_path, get_upscaled_thumbnail_path, has_upscaled_thumbnail,
+    },
 };
 
 #[derive(new, Serialize)]
@@ -35,6 +37,13 @@ pub struct CollectionElement {
 
 impl CollectionElement {
     pub fn from_domain(handle: &Arc<AppHandle>, st: domain::collection::CollectionElement) -> Self {
+        // 高画質版サムネイルが存在する場合は優先的に使用
+        let thumbnail = if has_upscaled_thumbnail(handle, &st.id) {
+            get_upscaled_thumbnail_path(handle, &st.id)
+        } else {
+            get_thumbnail_path(handle, &st.id)
+        };
+
         CollectionElement::new(
             st.id.value,
             st.gamename,
@@ -45,7 +54,7 @@ impl CollectionElement {
             st.is_nukige,
             st.exe_path,
             st.lnk_path,
-            get_thumbnail_path(handle, &st.id),
+            thumbnail,
             get_icon_path(handle, &st.id),
             st.install_at.and_then(|v| Some(v.to_rfc3339())),
             st.last_play_at.and_then(|v| Some(v.to_rfc3339())),

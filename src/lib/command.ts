@@ -167,6 +167,14 @@ export const commandUpdateCollectionElementThumbnails = async (
   });
 };
 
+export const commandUpscaleCollectionElementThumbnails = async (
+  ids: number[]
+) => {
+  return await invoke<void>("upscale_collection_element_thumbnails", {
+    ids,
+  });
+};
+
 export const commandUpdateGameImage = async (
   elementId: number,
   imageType: "icon" | "thumbnail",

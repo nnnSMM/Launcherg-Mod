@@ -378,6 +378,39 @@ pub async fn update_collection_element_thumbnails(
 }
 
 #[tauri::command]
+pub async fn upscale_collection_element_thumbnails(
+    handle: AppHandle,
+    ids: Vec<i32>,
+) -> Result<(), CommandError> {
+    use crate::domain::file::{get_thumbnail_path, upscale_thumbnail};
+
+    let handle = Arc::new(handle);
+    let mut handles = vec![];
+
+    for id in ids {
+        let element_id = Id::new(id);
+        let thumbnail_path = get_thumbnail_path(&handle, &element_id);
+
+        // 元画像が存在する場合のみ高画質化
+        if std::path::Path::new(&thumbnail_path).exists() {
+            match upscale_thumbnail(&handle, &element_id) {
+                Ok(join_handle) => handles.push(join_handle),
+                Err(e) => eprintln!("[upscale_thumbnail] {}: {}", id, e),
+            }
+        }
+    }
+
+    // すべての高画質化処理を待機
+    for join_handle in handles {
+        if let Err(e) = join_handle.await {
+            eprintln!("[upscale_thumbnail] join error: {}", e);
+        }
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
 pub async fn update_collection_element_icon(
     handle: AppHandle,
     modules: State<'_, Arc<Modules>>,

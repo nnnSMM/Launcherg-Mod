@@ -566,6 +566,30 @@ mod tests {
         assert_eq!(parsed[0].minutes, 10.0);
         assert_eq!(parsed[1].minutes, 20.0);
     }
+
+    // ========================================
+    // 高画質化サムネイル関連のテスト
+    // ========================================
+    #[test]
+    fn test_upscaled_thumbnails_directory_name() {
+        // 高画質化サムネイルのディレクトリ名が正しいことを確認
+        assert_eq!(super::UPSCALED_THUMBNAILS_ROOT_DIR, "thumbnails_upscaled");
+    }
+
+    #[test]
+    fn test_thumbnails_directory_name() {
+        // 元のサムネイルディレクトリ名が正しいことを確認
+        assert_eq!(super::THUMBNAILS_ROOT_DIR, "thumbnails");
+    }
+
+    #[test]
+    fn test_thumbnails_directories_are_different() {
+        // 元画像と高画質版のディレクトリが異なることを確認
+        assert_ne!(
+            super::THUMBNAILS_ROOT_DIR,
+            super::UPSCALED_THUMBNAILS_ROOT_DIR
+        );
+    }
 }
 
 const ICONS_ROOT_DIR: &str = "game-icons";
@@ -775,6 +799,99 @@ pub fn save_thumbnail(
         }
         Ok(())
     })
+}
+
+const UPSCALED_THUMBNAILS_ROOT_DIR: &str = "thumbnails_upscaled";
+
+/// 高画質化されたサムネイルのパスを取得
+pub fn get_upscaled_thumbnail_path(
+    handle: &Arc<AppHandle>,
+    collection_element_id: &Id<CollectionElement>,
+) -> String {
+    let dir = Path::new(&get_save_root_abs_dir(handle)).join(UPSCALED_THUMBNAILS_ROOT_DIR);
+    fs::create_dir_all(&dir).unwrap();
+    Path::new(&dir)
+        .join(format!("{}.png", collection_element_id.value))
+        .to_string_lossy()
+        .to_string()
+}
+
+/// 高画質版サムネイルが存在するかどうかを確認
+pub fn has_upscaled_thumbnail(
+    handle: &Arc<AppHandle>,
+    collection_element_id: &Id<CollectionElement>,
+) -> bool {
+    let path = get_upscaled_thumbnail_path(handle, collection_element_id);
+    std::path::Path::new(&path).exists()
+}
+
+/// サムネイルをArtCNNで高画質化
+/// 元画像（thumbnailsフォルダ）から高画質化して、thumbnails_upscaledフォルダに保存
+pub fn upscale_thumbnail(
+    handle: &Arc<AppHandle>,
+    collection_element_id: &Id<CollectionElement>,
+) -> anyhow::Result<JoinHandle<anyhow::Result<()>>> {
+    let input_path = get_thumbnail_path(handle, collection_element_id);
+    let output_path = get_upscaled_thumbnail_path(handle, collection_element_id);
+
+    // 入力ファイルが存在しない場合はエラー
+    if !std::path::Path::new(&input_path).exists() {
+        return Err(anyhow::anyhow!(
+            "Original thumbnail not found: {}",
+            input_path
+        ));
+    }
+
+    // 既に高画質化済みの場合はスキップ
+    if std::path::Path::new(&output_path).exists() {
+        return Ok(tauri::async_runtime::spawn(async { Ok(()) }));
+    }
+
+    // モデルのパス
+    let model_path = "E:\\MyArtCNN\\models\\8x64\\artcnn_model.pth".to_string();
+
+    let (mut rx, _) = handle
+        .shell()
+        .sidecar("artcnn_upscale")?
+        .args(vec![
+            "-i",
+            &input_path,
+            "-o",
+            &output_path,
+            "-m",
+            &model_path,
+            "--layers",
+            "8",
+            "--channels",
+            "64",
+            "--scale",
+            "2",
+        ])
+        .spawn()?;
+
+    let handle: JoinHandle<anyhow::Result<()>> = tauri::async_runtime::spawn(async move {
+        while let Some(event) = rx.recv().await {
+            match event {
+                CommandEvent::Terminated(status) => {
+                    if status.code == Some(0) {
+                        return Ok(());
+                    } else {
+                        return Err(anyhow::anyhow!(
+                            "ArtCNN failed with exit code: {:?}",
+                            status.code
+                        ));
+                    }
+                }
+                CommandEvent::Stderr(line) => {
+                    eprintln!("{}", String::from_utf8_lossy(&line));
+                }
+                _ => {}
+            }
+        }
+        Ok(())
+    });
+
+    Ok(handle)
 }
 
 pub async fn get_exe_path_from_lnk(path: &str) -> anyhow::Result<String> {
