@@ -6,9 +6,7 @@ use tauri::AppHandle;
 
 use crate::domain::{
     self,
-    file::{
-        get_icon_path, get_thumbnail_path, get_upscaled_thumbnail_path, has_upscaled_thumbnail,
-    },
+    file::{get_icon_path, get_thumbnail_path, get_upscale_level, get_upscaled_thumbnail_path},
 };
 
 #[derive(new, Serialize)]
@@ -33,12 +31,16 @@ pub struct CollectionElement {
     pub registered_at: String,
     pub thumbnail_width: Option<i32>,
     pub thumbnail_height: Option<i32>,
+    pub upscale_level: i32,
 }
 
 impl CollectionElement {
     pub fn from_domain(handle: &Arc<AppHandle>, st: domain::collection::CollectionElement) -> Self {
+        // 高画質化レベルを取得
+        let upscale_level = get_upscale_level(handle, &st.id);
+
         // 高画質版サムネイルが存在する場合は優先的に使用
-        let thumbnail = if has_upscaled_thumbnail(handle, &st.id) {
+        let thumbnail = if upscale_level > 0 {
             get_upscaled_thumbnail_path(handle, &st.id)
         } else {
             get_thumbnail_path(handle, &st.id)
@@ -64,6 +66,7 @@ impl CollectionElement {
             st.updated_at.to_rfc3339(),
             st.thumbnail_width,
             st.thumbnail_height,
+            upscale_level,
         )
     }
 }

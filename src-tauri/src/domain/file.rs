@@ -590,6 +590,69 @@ mod tests {
             super::UPSCALED_THUMBNAILS_ROOT_DIR
         );
     }
+
+    #[test]
+    fn test_format_upscaled_thumbnail_filename_2x() {
+        // 純粋関数: ファイル名生成（2x）
+        let filename = super::format_upscaled_thumbnail_filename(123, 2);
+        assert_eq!(filename, "123_2x.png");
+    }
+
+    #[test]
+    fn test_format_upscaled_thumbnail_filename_4x() {
+        // 純粋関数: ファイル名生成（4x）
+        let filename = super::format_upscaled_thumbnail_filename(456, 4);
+        assert_eq!(filename, "456_4x.png");
+    }
+
+    #[test]
+    fn test_format_upscaled_thumbnail_filename_various_ids() {
+        // 様々なIDでファイル名が正しく生成されることを確認
+        assert_eq!(super::format_upscaled_thumbnail_filename(1, 2), "1_2x.png");
+        assert_eq!(
+            super::format_upscaled_thumbnail_filename(99999, 4),
+            "99999_4x.png"
+        );
+    }
+
+    #[test]
+    fn test_calculate_next_scale_from_unprocessed() {
+        // 純粋関数: 未処理（0）→ 2x
+        assert_eq!(super::calculate_next_scale(0), 2);
+    }
+
+    #[test]
+    fn test_calculate_next_scale_from_2x() {
+        // 純粋関数: 2x → 4x
+        assert_eq!(super::calculate_next_scale(2), 4);
+    }
+
+    #[test]
+    fn test_calculate_next_scale_from_4x() {
+        // 純粋関数: 4x → 8x（理論上、現在は4xが上限だがロジックとしては正しい）
+        assert_eq!(super::calculate_next_scale(4), 8);
+    }
+
+    #[test]
+    fn test_should_skip_upscale_at_target() {
+        // 純粋関数: 目標と同じレベル → スキップ
+        assert!(super::should_skip_upscale(4, 4));
+        assert!(super::should_skip_upscale(2, 2));
+    }
+
+    #[test]
+    fn test_should_skip_upscale_above_target() {
+        // 純粋関数: 目標より高いレベル → スキップ
+        assert!(super::should_skip_upscale(4, 2));
+    }
+
+    #[test]
+    fn test_should_not_skip_upscale_below_target() {
+        // 純粋関数: 目標より低いレベル → 処理続行
+        assert!(!super::should_skip_upscale(0, 2));
+        assert!(!super::should_skip_upscale(0, 4));
+        assert!(!super::should_skip_upscale(2, 4));
+    }
 }
 
 const ICONS_ROOT_DIR: &str = "game-icons";
@@ -803,48 +866,111 @@ pub fn save_thumbnail(
 
 const UPSCALED_THUMBNAILS_ROOT_DIR: &str = "thumbnails_upscaled";
 
-/// 高画質化されたサムネイルのパスを取得
-pub fn get_upscaled_thumbnail_path(
+// ========================================
+// テスト可能な純粋関数
+// ========================================
+
+/// 高画質化サムネイルのファイル名を生成（純粋関数）
+fn format_upscaled_thumbnail_filename(id: i32, scale: i32) -> String {
+    format!("{}_{scale}x.png", id)
+}
+
+/// 次の高画質化スケールを計算（純粋関数）
+/// 0 → 2, 2 → 4
+fn calculate_next_scale(current_level: i32) -> i32 {
+    if current_level == 0 {
+        2
+    } else {
+        current_level * 2
+    }
+}
+
+/// 高画質化をスキップすべきかどうか判定（純粋関数）
+fn should_skip_upscale(current_level: i32, target_scale: i32) -> bool {
+    current_level >= target_scale
+}
+
+// ========================================
+// 高画質化サムネイル関連の公開関数
+// ========================================
+
+/// 指定した倍率の高画質化サムネイルのパスを取得
+pub fn get_upscaled_thumbnail_path_with_scale(
     handle: &Arc<AppHandle>,
     collection_element_id: &Id<CollectionElement>,
+    scale: i32,
 ) -> String {
     let dir = Path::new(&get_save_root_abs_dir(handle)).join(UPSCALED_THUMBNAILS_ROOT_DIR);
     fs::create_dir_all(&dir).unwrap();
     Path::new(&dir)
-        .join(format!("{}.png", collection_element_id.value))
+        .join(format_upscaled_thumbnail_filename(
+            collection_element_id.value,
+            scale,
+        ))
         .to_string_lossy()
         .to_string()
 }
 
-/// 高画質版サムネイルが存在するかどうかを確認
-pub fn has_upscaled_thumbnail(
+/// 高画質化されたサムネイルのパスを取得（最高の倍率を返す）
+pub fn get_upscaled_thumbnail_path(
     handle: &Arc<AppHandle>,
     collection_element_id: &Id<CollectionElement>,
-) -> bool {
-    let path = get_upscaled_thumbnail_path(handle, collection_element_id);
-    std::path::Path::new(&path).exists()
+) -> String {
+    let level = get_upscale_level(handle, collection_element_id);
+    if level > 0 {
+        get_upscaled_thumbnail_path_with_scale(handle, collection_element_id, level)
+    } else {
+        // 高画質版がない場合は元のサムネイルパスを返す
+        get_thumbnail_path(handle, collection_element_id)
+    }
+}
+
+/// 現在の高画質化レベルを取得（0: 未処理, 2: 2x済み, 4: 4x済み）
+pub fn get_upscale_level(
+    handle: &Arc<AppHandle>,
+    collection_element_id: &Id<CollectionElement>,
+) -> i32 {
+    // 4x → 2x の順でチェック（高い倍率を優先）
+    let path_4x = get_upscaled_thumbnail_path_with_scale(handle, collection_element_id, 4);
+    if std::path::Path::new(&path_4x).exists() {
+        return 4;
+    }
+    let path_2x = get_upscaled_thumbnail_path_with_scale(handle, collection_element_id, 2);
+    if std::path::Path::new(&path_2x).exists() {
+        return 2;
+    }
+    0
 }
 
 /// サムネイルをArtCNNで高画質化
-/// 元画像（thumbnailsフォルダ）から高画質化して、thumbnails_upscaledフォルダに保存
+/// target_scale: 目標倍率（2 または 4）
 pub fn upscale_thumbnail(
     handle: &Arc<AppHandle>,
     collection_element_id: &Id<CollectionElement>,
+    target_scale: i32,
 ) -> anyhow::Result<JoinHandle<anyhow::Result<()>>> {
-    let input_path = get_thumbnail_path(handle, collection_element_id);
-    let output_path = get_upscaled_thumbnail_path(handle, collection_element_id);
+    let current_level = get_upscale_level(handle, collection_element_id);
+
+    // 既に目標倍率以上の場合はスキップ
+    if should_skip_upscale(current_level, target_scale) {
+        return Ok(tauri::async_runtime::spawn(async { Ok(()) }));
+    }
+
+    // 入力パスを決定（前段階の画像を使用）
+    let input_path = if current_level == 0 {
+        get_thumbnail_path(handle, collection_element_id)
+    } else {
+        get_upscaled_thumbnail_path_with_scale(handle, collection_element_id, current_level)
+    };
+
+    // 次の倍率を計算
+    let next_scale = calculate_next_scale(current_level);
+    let output_path =
+        get_upscaled_thumbnail_path_with_scale(handle, collection_element_id, next_scale);
 
     // 入力ファイルが存在しない場合はエラー
     if !std::path::Path::new(&input_path).exists() {
-        return Err(anyhow::anyhow!(
-            "Original thumbnail not found: {}",
-            input_path
-        ));
-    }
-
-    // 既に高画質化済みの場合はスキップ
-    if std::path::Path::new(&output_path).exists() {
-        return Ok(tauri::async_runtime::spawn(async { Ok(()) }));
+        return Err(anyhow::anyhow!("Input thumbnail not found: {}", input_path));
     }
 
     // モデルのパス

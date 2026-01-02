@@ -168,10 +168,12 @@ export const commandUpdateCollectionElementThumbnails = async (
 };
 
 export const commandUpscaleCollectionElementThumbnails = async (
-  ids: number[]
-) => {
+  ids: number[],
+  targetScale: number
+): Promise<void> => {
   return await invoke<void>("upscale_collection_element_thumbnails", {
     ids,
+    targetScale,
   });
 };
 

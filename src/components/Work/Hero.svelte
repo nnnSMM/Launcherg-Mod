@@ -62,22 +62,39 @@
                 }
             },
         },
-        {
-            label: "サムネイルを高画質化",
-            onSelect: async () => {
-                console.log("Starting upscale for element:", element.id);
-                try {
-                    await commandUpscaleCollectionElementThumbnails([
-                        element.id,
-                    ]);
-                    console.log("Upscale completed, reloading...");
-                    window.location.reload();
-                } catch (error) {
-                    console.error("Failed to upscale thumbnail:", error);
-                    alert("高画質化に失敗しました: " + String(error));
-                }
-            },
-        },
+        // 高画質化メニュー（状態に応じて動的に生成）
+        ...(element.upscaleLevel < 4
+            ? [
+                  {
+                      label:
+                          element.upscaleLevel === 0
+                              ? "2xで高画質化"
+                              : "4xに高画質化",
+                      onSelect: async () => {
+                          const targetScale =
+                              element.upscaleLevel === 0 ? 2 : 4;
+                          console.log(
+                              `Starting ${targetScale}x upscale for element:`,
+                              element.id,
+                          );
+                          try {
+                              await commandUpscaleCollectionElementThumbnails(
+                                  [element.id],
+                                  targetScale,
+                              );
+                              console.log("Upscale completed, reloading...");
+                              window.location.reload();
+                          } catch (error) {
+                              console.error(
+                                  "Failed to upscale thumbnail:",
+                                  error,
+                              );
+                              alert("高画質化に失敗しました: " + String(error));
+                          }
+                      },
+                  },
+              ]
+            : []),
     ];
 
     const handlePlay = async (

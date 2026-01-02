@@ -73,6 +73,7 @@ export type CollectionElement = {
   thumbnailWidth: number | null;
   thumbnailHeight: number | null;
   updatedAt: string;
+  upscaleLevel: number;
 };
 
 export type CollectionElementsWithLabel = {

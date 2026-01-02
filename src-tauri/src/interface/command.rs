@@ -381,6 +381,7 @@ pub async fn update_collection_element_thumbnails(
 pub async fn upscale_collection_element_thumbnails(
     handle: AppHandle,
     ids: Vec<i32>,
+    target_scale: i32,
 ) -> Result<(), CommandError> {
     use crate::domain::file::{get_thumbnail_path, upscale_thumbnail};
 
@@ -393,7 +394,7 @@ pub async fn upscale_collection_element_thumbnails(
 
         // 元画像が存在する場合のみ高画質化
         if std::path::Path::new(&thumbnail_path).exists() {
-            match upscale_thumbnail(&handle, &element_id) {
+            match upscale_thumbnail(&handle, &element_id, target_scale) {
                 Ok(join_handle) => handles.push(join_handle),
                 Err(e) => eprintln!("[upscale_thumbnail] {}: {}", id, e),
             }
