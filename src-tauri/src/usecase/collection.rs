@@ -423,6 +423,26 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
             .collect())
     }
 
+    pub async fn get_all_screenshots(
+        &self,
+        _handle: &Arc<AppHandle>,
+    ) -> anyhow::Result<Vec<Screenshot>> {
+        let screenshots = self.repositories.screenshot_repository().get_all().await?;
+
+        let root_dir = self.save_root_dir.clone();
+
+        Ok(screenshots
+            .into_iter()
+            .map(|mut s| {
+                let game_dir = std::path::Path::new(&root_dir)
+                    .join("game-memos")
+                    .join(s.game_id.to_string());
+                s.filename = game_dir.join(&s.filename).to_string_lossy().to_string();
+                s
+            })
+            .collect())
+    }
+
     pub async fn import_screenshot(
         &self,
         _handle: &Arc<AppHandle>,

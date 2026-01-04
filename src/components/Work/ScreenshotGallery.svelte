@@ -9,14 +9,14 @@
         commandGetAppSetting,
         commandSetAppSetting,
         commandUpdateScreenshotsOrder,
+        commandOpenScreenshotWindow,
     } from "@/lib/command";
-    import ScreenshotViewer from "./ScreenshotViewer.svelte";
+    // ScreenshotViewer import removed
 
     export let gameId: number;
 
     let screenshots: Screenshot[] = [];
-    let viewerOpen = false;
-    let viewerInitialIndex = 0;
+    // viewerOpen state removed
     let gridSize = 200;
     let saveTimeout: number | null = null;
 
@@ -113,20 +113,14 @@
         }
     };
 
-    const openViewer = (index: number) => {
+    const openViewer = async (index: number) => {
         if (preventClick) {
             preventClick = false;
             return;
         }
         if (!isDragging) {
-            viewerInitialIndex = index;
-            viewerOpen = true;
+            await commandOpenScreenshotWindow(gameId, screenshots[index].id);
         }
-    };
-
-    const closeViewer = () => {
-        viewerOpen = false;
-        loadScreenshots();
     };
 
     // Long press and drag handlers
@@ -300,11 +294,3 @@
         </div>
     {/if}
 </div>
-
-{#if viewerOpen}
-    <ScreenshotViewer
-        bind:screenshots
-        initialIndex={viewerInitialIndex}
-        on:close={closeViewer}
-    />
-{/if}

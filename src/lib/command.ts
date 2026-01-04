@@ -227,3 +227,11 @@ export const commandUpdateCollectionElementPath = async (
 export const commandDeleteCollectionElementLogical = async (id: number) => {
   return await invoke<void>("delete_collection_element_logical", { id });
 };
+
+export const commandGetAllScreenshots = async () => {
+  return await invoke<Screenshot[]>("get_all_screenshots", {});
+};
+
+export const commandOpenScreenshotWindow = async (gameId?: number, initialScreenshotId?: number) => {
+  return await invoke<void>("open_screenshot_window", { gameId, initialScreenshotId });
+};

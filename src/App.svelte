@@ -15,6 +15,7 @@
   import { push } from "svelte-spa-router";
 
   import Overlay from "@/views/Overlay.svelte";
+  import ScreenshotWindow from "@/views/ScreenshotWindow.svelte";
 
   const windowLabel = getCurrentWindow().label;
 
@@ -28,6 +29,8 @@
 
 {#if windowLabel === "overlay"}
   <Overlay />
+{:else if windowLabel === "screenshot_window"}
+  <ScreenshotWindow />
 {:else}
   <main class="relative h-full w-full bg-bg-primary font-sans overflow-hidden">
     {#if $backgroundState.imageUrl}

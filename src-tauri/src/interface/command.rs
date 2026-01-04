@@ -20,8 +20,60 @@ use crate::{
     usecase::models::collection::CreateCollectionElementDetail,
 };
 use std::sync::{Arc, Mutex};
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, Emitter, Manager, State, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut};
+
+#[tauri::command]
+pub async fn open_screenshot_window(
+    handle: AppHandle,
+    game_id: Option<i32>,
+    initial_screenshot_id: Option<i32>,
+) -> Result<(), CommandError> {
+    println!(
+        "[open_screenshot_window] Called with game_id={:?}, initial_screenshot_id={:?}",
+        game_id, initial_screenshot_id
+    );
+
+    #[derive(serde::Serialize, Clone)]
+    struct WindowArgs {
+        game_id: Option<i32>,
+        initial_screenshot_id: Option<i32>,
+    }
+    let args = WindowArgs {
+        game_id,
+        initial_screenshot_id,
+    };
+
+    if let Some(window) = handle.get_webview_window("screenshot_window") {
+        println!("[open_screenshot_window] Window exists, showing and emitting event");
+        window.show().map_err(anyhow::Error::from)?;
+        window.set_focus().map_err(anyhow::Error::from)?;
+        let emit_result = window.emit("screenshot-window-args", args.clone());
+        println!("[open_screenshot_window] Emit result: {:?}", emit_result);
+        emit_result.map_err(anyhow::Error::from)?;
+    } else {
+        println!("[open_screenshot_window] Creating new window");
+        let json_args = serde_json::to_string(&args).unwrap_or_default();
+        let init_script = format!("window.__INITIAL_SCREENSHOT_ARGS__ = {};", json_args);
+
+        let window = WebviewWindowBuilder::new(
+            &handle,
+            "screenshot_window",
+            WebviewUrl::App("index.html".into()),
+        )
+        .title("Screenshots")
+        .inner_size(1200.0, 800.0)
+        .visible(false) // Create hidden to avoid flicker
+        .center() // Center on screen
+        .initialization_script(&init_script)
+        .build()
+        .map_err(anyhow::Error::from)?;
+
+        // Show the window after it's fully configured
+        window.show().map_err(anyhow::Error::from)?;
+    }
+    Ok(())
+}
 
 #[tauri::command]
 pub async fn update_shortcut_registration(
@@ -720,6 +772,17 @@ pub async fn get_game_screenshots(
     Ok(modules
         .collection_use_case()
         .get_game_screenshots(&Arc::new(app_handle), game_id)
+        .await?)
+}
+
+#[tauri::command]
+pub async fn get_all_screenshots(
+    modules: State<'_, Arc<Modules>>,
+    app_handle: tauri::AppHandle,
+) -> Result<Vec<Screenshot>, CommandError> {
+    Ok(modules
+        .collection_use_case()
+        .get_all_screenshots(&Arc::new(app_handle))
         .await?)
 }
 

@@ -52,8 +52,16 @@ fn main() {
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .on_window_event(|window, event| match event {
             tauri::WindowEvent::CloseRequested { api, .. } => {
-                window.hide().unwrap();
-                api.prevent_close();
+                // For screenshot_window, allow it to close (destroy)
+                // For other windows (main, overlay), just hide them
+                if window.label() == "screenshot_window" {
+                    // Allow the window to close normally (will be destroyed)
+                    println!("[main] screenshot_window close requested, allowing destroy");
+                } else {
+                    // Hide other windows instead of closing
+                    window.hide().unwrap();
+                    api.prevent_close();
+                }
             }
             _ => {}
         })
@@ -245,6 +253,8 @@ fn main() {
             command::toggle_pause_tracking,
             command::get_pause_state,
             command::get_game_screenshots,
+            command::get_all_screenshots,
+            command::open_screenshot_window,
             command::import_screenshot,
             command::delete_screenshot,
             command::update_screenshots_order,
