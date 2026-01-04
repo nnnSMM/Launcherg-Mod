@@ -22,8 +22,7 @@
     ],
     "createUpdaterArtifacts": "v1Compatible",
     "externalBin": [
-      "bin/extract-icon",
-      "bin/artcnn_upscale"
+      "bin/extract-icon"
     ]
   },
   "productName": "Launcherg",

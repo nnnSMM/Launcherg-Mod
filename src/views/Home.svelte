@@ -3,7 +3,6 @@
     commandGetCollectionElement,
     commandUpdateAllGameCache,
     commandUpdateCollectionElementThumbnails,
-    commandUpscaleCollectionElementThumbnails,
     commandPlayGame,
   } from "@/lib/command";
   import { convertFileSrc } from "@tauri-apps/api/core";
@@ -88,29 +87,6 @@
       console.error(e);
     } finally {
       disabledRefetchThumbnail = false;
-    }
-  };
-
-  let disabledUpscaleThumbnail = false;
-  const upscaleThumbnails = async () => {
-    try {
-      disabledUpscaleThumbnail = true;
-      // 4x未満のサムネイルを対象に高画質化
-      const ids = $flattenShown
-        .filter((v) => v.upscaleLevel < 4)
-        .map((v) => v.id);
-      if (ids.length === 0) {
-        showInfoToast("すべてのサムネイルが既に4xに高画質化されています");
-        return;
-      }
-      // 段階的に高画質化（2x → 4x）
-      await commandUpscaleCollectionElementThumbnails(ids, 4);
-      showInfoToast("サムネイルの高画質化が完了しました");
-    } catch (e) {
-      showErrorToast("サムネイルの高画質化に失敗しました");
-      console.error(e);
-    } finally {
-      disabledUpscaleThumbnail = false;
     }
   };
 
@@ -395,12 +371,6 @@
         text="サムネイルを再取得する"
         disabled={disabledRefetchThumbnail}
         on:click={refetchThumbnail}
-      />
-      <Button
-        leftIcon="i-material-symbols-auto-awesome-rounded"
-        text="サムネイルを高画質化"
-        disabled={disabledUpscaleThumbnail}
-        on:click={upscaleThumbnails}
       />
     </div>
   </div>
