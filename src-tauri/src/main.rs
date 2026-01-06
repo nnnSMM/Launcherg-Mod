@@ -52,11 +52,11 @@ fn main() {
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .on_window_event(|window, event| match event {
             tauri::WindowEvent::CloseRequested { api, .. } => {
-                // For screenshot_window, allow it to close (destroy)
+                // For screenshot_window, destroy it
                 // For other windows (main, overlay), just hide them
                 if window.label() == "screenshot_window" {
-                    // Allow the window to close normally (will be destroyed)
-                    println!("[main] screenshot_window close requested, allowing destroy");
+                    println!("[main] screenshot_window close requested, destroying");
+                    let _ = window.destroy();
                 } else {
                     // Hide other windows instead of closing
                     window.hide().unwrap();

@@ -3,7 +3,8 @@
   "description": "permissions that were migrated from v1",
   "local": true,
   "windows": [
-    "main"
+    "main",
+    "screenshot_window"
   ],
   "permissions": [
     "core:path:default",
@@ -17,6 +18,7 @@
     "fs:allow-write-file",
     "fs:allow-mkdir",
     "fs:allow-exists",
+    "fs:allow-stat",
     {
       "identifier": "fs:scope",
       "allow": [
