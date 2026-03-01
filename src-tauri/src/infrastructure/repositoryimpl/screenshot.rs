@@ -56,7 +56,7 @@ impl ScreenshotRepository for ScreenshotRepositoryImpl {
             SELECT id, game_id, filename, order_index, created_at
             FROM screenshots
             WHERE game_id = ?
-            ORDER BY order_index ASC
+            ORDER BY order_index DESC
             "#,
         )
         .bind(game_id.value)
