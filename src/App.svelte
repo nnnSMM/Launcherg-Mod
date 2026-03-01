@@ -12,7 +12,6 @@
   import { fade } from "svelte/transition";
 
   import { getCurrentWindow } from "@tauri-apps/api/window";
-  import { push } from "svelte-spa-router";
 
   import Overlay from "@/views/Overlay.svelte";
   import ScreenshotWindow from "@/views/ScreenshotWindow.svelte";
