@@ -36,7 +36,7 @@
             >
                 <img
                     src="/images/dummy_thumbnail.svg"
-                    alt="No Image"
+                    alt=""
                     class="w-full h-full object-cover opacity-50"
                 />
             </div>

@@ -1,5 +1,8 @@
 <script lang="ts">
-  import type { CollectionElement, PlayStatus as PlayStatusType } from "@/lib/types";
+  import type {
+    CollectionElement,
+    PlayStatus as PlayStatusType,
+  } from "@/lib/types";
   import type { Readable, Writable } from "svelte/store";
   import { onDestroy, onMount } from "svelte";
   import GameListItemSelectable from "@/components/PlayStatusBulkEditor/GameListItemSelectable.svelte";
@@ -22,7 +25,11 @@
   const bufferItems = 3;
 
   function updateVisibleRange() {
-    if (!$elementsStore || $elementsStore.length === 0 || !scrollContainerElement) {
+    if (
+      !$elementsStore ||
+      $elementsStore.length === 0 ||
+      !scrollContainerElement
+    ) {
       visibleItems = [];
       contentOffsetY = 0;
       totalContentHeight = 0;
@@ -32,10 +39,13 @@
     totalContentHeight = $elementsStore.length * itemHeight;
     viewportHeight = scrollContainerElement.clientHeight;
 
-    const startIndex = Math.max(0, Math.floor(scrollTop / itemHeight) - bufferItems);
+    const startIndex = Math.max(
+      0,
+      Math.floor(scrollTop / itemHeight) - bufferItems,
+    );
     const endIndex = Math.min(
       $elementsStore.length - 1,
-      Math.ceil((scrollTop + viewportHeight) / itemHeight) - 1 + bufferItems
+      Math.ceil((scrollTop + viewportHeight) / itemHeight) - 1 + bufferItems,
     );
 
     visibleItems = $elementsStore.slice(startIndex, endIndex + 1);
@@ -71,7 +81,6 @@
       }
     };
   });
-
 </script>
 
 <div
@@ -84,16 +93,21 @@
     style="height: {totalContentHeight}px;"
   >
     {#each visibleItems as game (game.id)}
-      {@const itemIndexInFullList = $elementsStore.findIndex(el => el.id === game.id)}
+      {@const itemIndexInFullList = $elementsStore.findIndex(
+        (el) => el.id === game.id,
+      )}
       {#if itemIndexInFullList !== -1}
         <div
           class="list-item-wrapper w-full absolute"
-          style="top: {itemIndexInFullList * itemHeight}px; left: 0; right: 0; height: {itemHeight}px;"
+          style="top: {itemIndexInFullList *
+            itemHeight}px; left: 0; right: 0; height: {itemHeight}px;"
         >
           <GameListItemSelectable
             {game}
             isSelected={$selectedIdsStore.has(game.id)}
-            previewTargetPlayStatus={$selectedIdsStore.has(game.id) ? previewTargetPlayStatus : undefined}
+            previewTargetPlayStatus={$selectedIdsStore.has(game.id)
+              ? previewTargetPlayStatus
+              : undefined}
             on:toggle={() => onToggleSelection(game.id)}
           />
         </div>

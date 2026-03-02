@@ -11,7 +11,6 @@
   export let isSelected: boolean = false;
   export let previewTargetPlayStatus: PlayStatusType | undefined = undefined;
 
-  export let columnWidth: number;
   export let itemHeight: number;
   export let targetImageWidth: number;
   export let imageDisplayHeight: number;
@@ -142,7 +141,7 @@
       >
         <img
           src="/images/dummy_thumbnail.svg"
-          alt="No Image"
+          alt=""
           class="w-full h-full object-cover opacity-50"
         />
       </div>

@@ -21,7 +21,11 @@
   import { backgroundState } from "@/store/background";
 
   import { query as textQueryStore } from "@/store/query";
-  import { currentSortOrder, currentAttributes } from "@/store/viewSettings";
+  import {
+    currentSortOrder,
+    currentAttributes,
+    toggleAttribute,
+  } from "@/store/viewSettings";
   import { FILTER_BY_ATTRIBUTE } from "@/components/Sidebar/searchAttributes";
   import { sort as sortElementsOriginal } from "@/components/Sidebar/sort";
   import {
@@ -29,6 +33,8 @@
     type Option as FilterOption,
   } from "@/lib/filter";
   import { useFilter as useTextQueryFilter } from "@/lib/filter";
+
+  import { selectAll, deselectAll, toggleAll } from "@/lib/selection";
 
   let allGamesFromApi = writable<CollectionElement[]>([]);
   let selectedGameIdsStore = writable(new Set<number>());
@@ -42,6 +48,8 @@
     "playStatusEditorViewMode",
     "masonry",
   );
+
+  let lastClickedGameId: number | null = null;
 
   onMount(async () => {
     // Clear background image
@@ -157,6 +165,24 @@
     });
   };
 
+  const handleSelectAll = () => {
+    selectedGameIdsStore.update((currentSet) =>
+      selectAll($processedDisplayGames, currentSet),
+    );
+  };
+
+  const handleDeselectAll = () => {
+    selectedGameIdsStore.update((currentSet) =>
+      deselectAll($processedDisplayGames, currentSet),
+    );
+  };
+
+  const handleToggleAll = () => {
+    selectedGameIdsStore.update((currentSet) =>
+      toggleAll($processedDisplayGames, currentSet),
+    );
+  };
+
   const handleTargetPlayStatusChange = (newStatus: PlayStatusType) => {
     targetPlayStatusStore.set(newStatus);
   };
@@ -255,23 +281,78 @@
   <div
     class="flex flex-wrap items-center justify-between gap-4 p-3 md:p-4 rounded-lg bg-bg-secondary sticky top-0 z-10 shadow"
   >
-    <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-      <div class="text-(body text-primary) font-medium whitespace-nowrap">
-        目標の状態:
+    <div class="flex flex-col gap-4">
+      <!-- 表示の絞り込み -->
+      <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+        <div
+          class="text-(body text-primary) font-medium whitespace-nowrap min-w-[5rem]"
+        >
+          表示の絞り込み:
+        </div>
+        <div class="flex gap-2 flex-wrap">
+          {#each playStatusOptions as option (option.value)}
+            {@const filterKey =
+              option.value === PlayStatus.Unplayed
+                ? "unplayed"
+                : option.value === PlayStatus.Playing
+                  ? "playing"
+                  : "cleared"}
+            {@const isActive = $currentAttributes.find(
+              (a) => a.key === filterKey,
+            )?.enabled}
+            <Button
+              text={option.label}
+              leftIcon={option.icon}
+              variant="normal"
+              on:click={() => toggleAttribute(filterKey)}
+              appendClass={`px-3 py-1 text-sm ${isActive ? "bg-[#D1D5DB] border-gray-600 dark:bg-[#4B5563] dark:border-gray-400 font-bold" : "text-text-primary bg-bg-button hover:bg-bg-button-hover border-border-primary"}`}
+            />
+          {/each}
+        </div>
       </div>
-      <div class="flex gap-2 flex-wrap">
-        {#each playStatusOptions as option (option.value)}
-          <Button
-            text={option.label}
-            leftIcon={option.icon}
-            variant={"normal"}
-            on:click={() => handleTargetPlayStatusChange(option.value)}
-            appendClass={`px-3 py-1 text-sm ${$targetPlayStatusStore === option.value ? option.activeStyleClasses : option.inactiveStyleClasses}`}
-          />
-        {/each}
+      <!-- 目標の状態設定 -->
+      <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+        <div
+          class="text-(body text-primary) font-medium whitespace-nowrap min-w-[5rem]"
+        >
+          目標の状態:
+        </div>
+        <div class="flex gap-2 flex-wrap">
+          {#each playStatusOptions as option (option.value)}
+            <Button
+              text={option.label}
+              leftIcon={option.icon}
+              variant={"normal"}
+              on:click={() => handleTargetPlayStatusChange(option.value)}
+              appendClass={`px-3 py-1 text-sm ${$targetPlayStatusStore === option.value ? option.activeStyleClasses : option.inactiveStyleClasses}`}
+            />
+          {/each}
+        </div>
       </div>
     </div>
     <div class="flex items-center gap-2">
+      <!-- 選択操作ボタン -->
+      <IconButton
+        icon="i-material-symbols-done-all-rounded"
+        on:click={handleSelectAll}
+        tooltip={{ content: "表示中のすべてを選択" }}
+        appendClass="!text-blue-500 hover:!bg-blue-100"
+      />
+      <IconButton
+        icon="i-material-symbols-remove-done-rounded"
+        on:click={handleDeselectAll}
+        tooltip={{ content: "表示中の選択をすべて解除" }}
+        appendClass="!text-red-500 hover:!bg-red-100"
+      />
+      <IconButton
+        icon="i-material-symbols-flip-to-back-outline-rounded"
+        on:click={handleToggleAll}
+        tooltip={{ content: "表示中の選択状態を反転" }}
+        appendClass="!text-orange-500 hover:!bg-orange-100"
+      />
+      <!-- セパレーター -->
+      <div class="w-px h-6 bg-border-primary mx-1"></div>
+      <!-- 表示モード切替 -->
       <IconButton
         icon="i-material-symbols-view-module-outline-rounded"
         on:click={() => viewModeStore.set("masonry")}
@@ -318,12 +399,11 @@
             elementsStore={displayGamesWithPreview}
             selectedIdsStore={selectedGameIdsStore}
             previewTargetPlayStatus={$targetPlayStatusStore}
-            onToggleSelection={(id) => toggleGameSelection(id)}
+            onToggleSelection={toggleGameSelection}
             {setVirtualHeight}
             {contentsScrollY}
             {contentsWidth}
             {containerHeight}
-            {contentsScrollTo}
             minItemWidth={216}
             itemGap={12}
             titleAreaHeight={70}

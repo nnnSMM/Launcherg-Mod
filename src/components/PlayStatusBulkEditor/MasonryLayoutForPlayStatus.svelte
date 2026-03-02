@@ -1,7 +1,10 @@
 <script lang="ts">
   import GameTileSelectable from "@/components/UI/GameTileSelectable.svelte";
   import { usePlayStatusVirtualScrollerMasonry } from "@/components/PlayStatusBulkEditor/usePlayStatusVirtualScrollerMasonry";
-  import type { CollectionElement, PlayStatus as PlayStatusType } from "@/lib/types";
+  import type {
+    CollectionElement,
+    PlayStatus as PlayStatusType,
+  } from "@/lib/types";
   import type { Readable, Writable } from "svelte/store";
 
   export let elementsStore: Readable<CollectionElement[]>;
@@ -13,9 +16,8 @@
   export let contentsWidth: Readable<number>;
   export let contentsScrollY: Readable<number>;
   export let containerHeight: Readable<number>;
-  export let contentsScrollTo: (v: number) => void;
 
-  export let minItemWidth: number = 16 * 10;    // タイル全体の目標最小幅
+  export let minItemWidth: number = 16 * 10; // タイル全体の目標最小幅
   export let itemGap: number = 12;
   // fixedThumbnailWidth は削除
   export let titleAreaHeight: number = 40;
@@ -33,8 +35,8 @@
       itemGap,
       tileInternalPadding, // ★フックに渡す
       titleAreaHeight,
-      placeholderAspectRatio
-    }
+      placeholderAspectRatio,
+    },
   );
 </script>
 
@@ -47,9 +49,10 @@
       <GameTileSelectable
         game={element}
         isSelected={$selectedIdsStore.has(element.id)}
-        previewTargetPlayStatus={$selectedIdsStore.has(element.id) ? previewTargetPlayStatus : undefined}
+        previewTargetPlayStatus={$selectedIdsStore.has(element.id)
+          ? previewTargetPlayStatus
+          : undefined}
         on:toggle={() => onToggleSelection(element.id)}
-        columnWidth={width}
         itemHeight={height}
         targetImageWidth={imgDisplayWidth}
         imageDisplayHeight={imgDisplayHeight}
