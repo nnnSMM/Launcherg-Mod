@@ -189,6 +189,27 @@
         if (e.key === "ArrowLeft") prev();
     };
 
+    // Selection Mode
+    let selectionMode = false;
+    let selectedIds: Set<number> = new Set();
+
+    const toggleSelectionMode = () => {
+        selectionMode = !selectionMode;
+        if (!selectionMode) {
+            selectedIds.clear();
+            selectedIds = selectedIds;
+        }
+    };
+
+    const handleToggleSelection = (id: number) => {
+        if (selectedIds.has(id)) {
+            selectedIds.delete(id);
+        } else {
+            selectedIds.add(id);
+        }
+        selectedIds = selectedIds;
+    };
+
     // Delete functionality
     const confirmDelete = () => {
         showDeleteConfirm = true;
@@ -199,23 +220,40 @@
     };
 
     const handleDelete = async () => {
-        if (!currentScreenshot) return;
         showDeleteConfirm = false;
-        try {
-            await commandDeleteScreenshot(currentScreenshot.id);
-            viewerScreenshots = viewerScreenshots.filter(
-                (s) => s.id !== currentScreenshot!.id,
-            );
-            allScreenshots = allScreenshots.filter(
-                (s) => s.id !== currentScreenshot!.id,
-            );
-            if (viewerScreenshots.length === 0) {
-                backToGrid();
-            } else if (currentIndex >= viewerScreenshots.length) {
-                currentIndex = viewerScreenshots.length - 1;
+
+        if (viewMode === "grid" && selectionMode) {
+            try {
+                for (const id of selectedIds) {
+                    await commandDeleteScreenshot(id);
+                }
+                const deletedIdsSet = new Set(selectedIds);
+                allScreenshots = allScreenshots.filter(
+                    (s) => !deletedIdsSet.has(s.id),
+                );
+                selectedIds.clear();
+                selectedIds = selectedIds;
+                selectionMode = false;
+            } catch (e) {
+                console.error("Failed to batch delete screenshots", e);
             }
-        } catch (e) {
-            console.error("Failed to delete screenshot", e);
+        } else if (currentScreenshot && viewMode === "viewer") {
+            try {
+                await commandDeleteScreenshot(currentScreenshot.id);
+                viewerScreenshots = viewerScreenshots.filter(
+                    (s) => s.id !== currentScreenshot!.id,
+                );
+                allScreenshots = allScreenshots.filter(
+                    (s) => s.id !== currentScreenshot!.id,
+                );
+                if (viewerScreenshots.length === 0) {
+                    backToGrid();
+                } else if (currentIndex >= viewerScreenshots.length) {
+                    currentIndex = viewerScreenshots.length - 1;
+                }
+            } catch (e) {
+                console.error("Failed to delete screenshot", e);
+            }
         }
     };
 
@@ -350,6 +388,36 @@
                     on:select={(e) => handleGameSelect(e.detail)}
                 />
             </div>
+
+            <div class="flex items-center gap-2">
+                {#if selectionMode}
+                    <button
+                        class="px-3 py-1.5 text-sm rounded bg-bg-tertiary text-text-primary hover:bg-bg-button transition-colors"
+                        on:click={toggleSelectionMode}
+                    >
+                        キャンセル
+                    </button>
+                    <button
+                        class="px-3 py-1.5 text-sm rounded transition-colors {selectedIds.size >
+                        0
+                            ? 'bg-red-500 text-white hover:bg-red-600'
+                            : 'bg-bg-tertiary text-text-secondary cursor-not-allowed opacity-50'}"
+                        on:click={confirmDelete}
+                        disabled={selectedIds.size === 0}
+                    >
+                        削除 ({selectedIds.size}件)
+                    </button>
+                {:else}
+                    <button
+                        class="px-3 py-1.5 text-sm rounded bg-bg-tertiary text-text-primary hover:bg-bg-button transition-colors flex items-center gap-1"
+                        on:click={toggleSelectionMode}
+                        title="一括編集"
+                    >
+                        <span class="i-material-symbols-checklist text-lg" />
+                        選択
+                    </button>
+                {/if}
+            </div>
         </div>
 
         <!-- Content -->
@@ -357,8 +425,11 @@
             <div class="h-full w-full overflow-y-auto p-4 custom-scrollbar">
                 <ScreenshotGrid
                     screenshots={filteredScreenshots}
+                    {selectionMode}
+                    {selectedIds}
                     on:reload={fetchData}
                     on:clickScreenshot={(e) => enterViewer(e.detail)}
+                    on:toggleSelection={(e) => handleToggleSelection(e.detail)}
                 />
             </div>
         </div>
@@ -381,7 +452,11 @@
                     削除の確認
                 </h3>
                 <p class="text-text-secondary mb-6">
-                    このスクリーンショットを削除してもよろしいですか？この操作は取り消せません。
+                    {#if selectionMode}
+                        選択した {selectedIds.size} 件のスクリーンショットを削除してもよろしいですか？この操作は取り消せません。
+                    {:else}
+                        このスクリーンショットを削除してもよろしいですか？この操作は取り消せません。
+                    {/if}
                 </p>
                 <div class="flex justify-end gap-3">
                     <button

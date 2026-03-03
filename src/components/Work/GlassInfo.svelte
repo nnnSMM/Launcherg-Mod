@@ -9,7 +9,7 @@
 </script>
 
 <div
-    class="backdrop-blur-md bg-black/10 border-t border-white/10 p-12 shadow-2xl space-y-6 -mt-8"
+    class="backdrop-blur-md bg-black/10 border-t border-white/10 p-6 lg:p-8 shadow-2xl space-y-6 -mt-8"
 >
     {#await seiya.getUrl(work.name) then seiyaUrl}
         <Actions id={work.id} name={element.gamename} {seiyaUrl} />

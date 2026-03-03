@@ -26,7 +26,9 @@
   };
 </script>
 
-<div class="border-(~ solid border-primary) rounded-xl">
+<div
+  class="border-(~ solid border-primary) bg-bg-secondary/30 shadow-sm rounded-xl overflow-hidden"
+>
   <div class="grid-(~ cols-[min-content_1fr])">
     <DetailRow label="シナリオ" noBorder>
       <div class="flex flex-wrap gap-4">
@@ -63,7 +65,7 @@
             <div class="flex gap-1 items-center max-w-full">
               <LinkText
                 href={encodeURI(
-                  `https://www.youtube.com/results?search_query=${work.name}+${title}`
+                  `https://www.youtube.com/results?search_query=${work.name}+${title}`,
                 )}
               >
                 <div class="flex gap-1 items-center">

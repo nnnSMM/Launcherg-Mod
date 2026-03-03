@@ -1,41 +1,23 @@
 <script lang="ts">
-    import { onMount } from "svelte";
+    import { onMount, createEventDispatcher } from "svelte";
     import { convertFileSrc } from "@tauri-apps/api/core";
     import { open } from "@tauri-apps/plugin-dialog";
     import type { Screenshot } from "@/lib/types";
     import {
         commandGetGameScreenshots,
         commandImportScreenshot,
-        commandGetAppSetting,
-        commandSetAppSetting,
-        commandUpdateScreenshotsOrder,
         commandOpenScreenshotWindow,
     } from "@/lib/command";
-    // ScreenshotViewer import removed
 
     export let gameId: number;
 
     let screenshots: Screenshot[] = [];
-    // viewerOpen state removed
-    let gridSize = 200;
-    let saveTimeout: number | null = null;
 
-    // Drag and drop state
-    let draggedIndex: number | null = null;
-    let dragOverIndex: number | null = null;
-    let longPressTimer: number | null = null;
-    let isDragging = false;
-    let preventClick = false;
+    // 表示する最新スクリーンショットの最大数
+    const PREVIEW_LIMIT = 4;
 
     onMount(async () => {
         await loadScreenshots();
-        await loadGridSize();
-
-        //  Window-level pointermove for drag detection
-        window.addEventListener("pointermove", handleWindowPointerMove);
-        return () => {
-            window.removeEventListener("pointermove", handleWindowPointerMove);
-        };
     });
 
     const loadScreenshots = async () => {
@@ -44,36 +26,6 @@
         } catch (e) {
             console.error("Failed to load screenshots", e);
         }
-    };
-
-    const loadGridSize = async () => {
-        try {
-            const size = await commandGetAppSetting("screenshot_grid_size");
-            if (size) {
-                const parsed = parseInt(size);
-                if (!isNaN(parsed)) {
-                    gridSize = parsed;
-                }
-            }
-        } catch (e) {
-            console.error("Failed to load grid size", e);
-        }
-    };
-
-    const saveGridSize = (size: number) => {
-        if (saveTimeout !== null) {
-            clearTimeout(saveTimeout);
-        }
-        saveTimeout = window.setTimeout(async () => {
-            try {
-                await commandSetAppSetting(
-                    "screenshot_grid_size",
-                    size.toString(),
-                );
-            } catch (e) {
-                console.error("Failed to save grid size", e);
-            }
-        }, 500);
     };
 
     const handleImport = async () => {
@@ -113,183 +65,102 @@
         }
     };
 
-    const openViewer = async (index: number) => {
-        if (preventClick) {
-            preventClick = false;
-            return;
-        }
-        if (!isDragging) {
-            await commandOpenScreenshotWindow(gameId, screenshots[index].id);
-        }
+    const openViewer = async (screenshotId?: number) => {
+        await commandOpenScreenshotWindow(gameId, screenshotId);
     };
 
-    // Long press and drag handlers
-    const handlePointerDown = (e: PointerEvent, index: number) => {
-        longPressTimer = window.setTimeout(() => {
-            isDragging = true;
-            draggedIndex = index;
-        }, 200);
-    };
-
-    const handleWindowPointerMove = (e: PointerEvent) => {
-        if (isDragging && draggedIndex !== null) {
-            const elements = document.elementsFromPoint(e.clientX, e.clientY);
-
-            for (const el of elements) {
-                const button = el.closest("[data-screenshot-index]");
-                if (button) {
-                    const index = parseInt(
-                        button.getAttribute("data-screenshot-index") || "-1",
-                    );
-                    if (index !== -1 && index !== dragOverIndex) {
-                        dragOverIndex = index;
-                    }
-                    break;
-                }
-            }
-        }
-    };
-
-    const handlePointerUp = async (e: PointerEvent) => {
-        if (longPressTimer !== null) {
-            clearTimeout(longPressTimer);
-            longPressTimer = null;
-        }
-
-        if (isDragging) {
-            preventClick = true;
-
-            if (
-                draggedIndex !== null &&
-                dragOverIndex !== null &&
-                draggedIndex !== dragOverIndex
-            ) {
-                const newScreenshots = [...screenshots];
-                const [removed] = newScreenshots.splice(draggedIndex, 1);
-                newScreenshots.splice(dragOverIndex, 0, removed);
-
-                const updates = newScreenshots.map((screenshot, index) => ({
-                    id: screenshot.id,
-                    orderIndex: index,
-                }));
-
-                try {
-                    await commandUpdateScreenshotsOrder(updates);
-                    screenshots = newScreenshots;
-                } catch (e) {
-                    console.error(
-                        "[Drag] Failed to update screenshot order",
-                        e,
-                    );
-                    await loadScreenshots();
-                }
-            }
-        }
-
-        isDragging = false;
-        draggedIndex = null;
-        dragOverIndex = null;
-    };
-
-    const handlePointerCancel = (e: PointerEvent) => {
-        if (longPressTimer !== null) {
-            clearTimeout(longPressTimer);
-            longPressTimer = null;
-        }
-
-        isDragging = false;
-        draggedIndex = null;
-        dragOverIndex = null;
-    };
-
-    $: {
-        if (gridSize) {
-            saveGridSize(gridSize);
-        }
-    }
+    $: previewScreenshots = [...screenshots]
+        .sort(
+            (a, b) =>
+                new Date(b.createdAt).getTime() -
+                new Date(a.createdAt).getTime(),
+        )
+        .slice(0, PREVIEW_LIMIT);
 </script>
 
-<svelte:window on:pointerup={handlePointerUp} />
-
-<div class="w-full p-4">
-    <div class="flex justify-between items-center mb-4">
-        <h2 class="text-xl font-bold text-text-primary">Screenshots</h2>
-        <div class="flex items-center gap-4">
-            <div class="flex items-center gap-2">
-                <label
-                    for="grid-size"
-                    class="text-sm text-text-secondary whitespace-nowrap"
-                >
-                    Grid Size:
-                </label>
-                <input
-                    id="grid-size"
-                    type="range"
-                    min="150"
-                    max="400"
-                    step="50"
-                    bind:value={gridSize}
-                    class="w-32"
-                />
-                <span class="text-sm text-text-secondary w-12"
-                    >{gridSize}px</span
-                >
-            </div>
+<div class="w-full bg-bg-secondary/30 p-2 lg:p-4">
+    <div class="flex flex-col gap-3 mb-4">
+        <h2 class="text-xl font-bold text-text-primary">
+            スクリーンショット <span
+                class="text-sm font-normal text-text-secondary ml-2"
+                >({screenshots.length})</span
+            >
+        </h2>
+        <div class="flex items-center gap-2">
             <button
                 on:click={handleImport}
-                class="flex items-center gap-2 px-4 py-2 bg-accent-accent text-white rounded hover:bg-accent-accent/80 transition-colors"
+                class="flex items-center gap-1 px-3 py-1.5 bg-bg-tertiary text-text-primary hover:bg-bg-button transition-colors text-sm rounded"
+                title="インポート"
             >
-                <div class="i-material-symbols-upload text-xl" />
-                Import
+                <div class="i-material-symbols-upload text-lg" />
+            </button>
+            <button
+                on:click={() => openViewer()}
+                class="flex items-center gap-1 px-3 py-1.5 bg-accent-accent text-white hover:bg-accent-accent/80 transition-colors text-sm whitespace-nowrap rounded"
+            >
+                <div class="i-material-symbols-open-in-new text-lg" />
+                すべて見る
             </button>
         </div>
     </div>
 
     {#if screenshots.length === 0}
-        <div class="text-center text-text-secondary py-8 text-sm">
-            まだスクリーンショットを撮影していません。Windows+Shift+SやWindows+PrintScreenを押して撮影してください。
+        <div
+            class="text-center text-text-secondary py-12 text-sm bg-bg-primary/50"
+        >
+            まだスクリーンショットを撮影していません。<br
+            />Windows+Shift+SやWindows+PrintScreenを押して撮影してください。
         </div>
     {:else}
-        <div
-            class="grid gap-4"
-            style="grid-template-columns: repeat(auto-fill, minmax({gridSize}px, 1fr));"
-        >
-            {#each screenshots as screenshot, i}
-                <button
-                    data-screenshot-index={i}
-                    class="relative aspect-video group overflow-hidden rounded-lg border transition-all {dragOverIndex ===
-                        i && isDragging
-                        ? 'border-accent-accent border-2 scale-105'
-                        : 'border-border-primary hover:border-accent-primary'} {draggedIndex ===
-                        i && isDragging
-                        ? 'opacity-50'
-                        : ''}"
-                    on:click={() => openViewer(i)}
-                    on:pointerdown={(e) => handlePointerDown(e, i)}
-                    on:pointercancel={handlePointerCancel}
-                    style="touch-action: none; cursor: {isDragging
-                        ? 'grabbing'
-                        : 'pointer'};"
-                >
-                    <img
-                        src={convertFileSrc(screenshot.filename)}
-                        alt={screenshot.filename}
-                        class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                        loading="lazy"
-                    />
-                    <div
-                        class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors"
-                    />
-                    {#if isDragging && draggedIndex === i}
+        <div class="grid grid-cols-2 gap-2">
+            {#each previewScreenshots as screenshot}
+                <div class="relative group/tooltip">
+                    <button
+                        class="w-full relative aspect-video group overflow-hidden transition-all cursor-pointer shadow-sm hover:shadow-md"
+                        on:click={() => openViewer(screenshot.id)}
+                    >
+                        <img
+                            src={convertFileSrc(screenshot.filename)}
+                            alt={screenshot.filename}
+                            class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                            loading="lazy"
+                        />
                         <div
-                            class="absolute inset-0 flex items-center justify-center bg-black/50"
+                            class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors"
+                        />
+                    </button>
+
+                    <!-- ホバー時ツールチップ -->
+                    <div
+                        class="pointer-events-none absolute right-[105%] top-1/2 -translate-y-1/2 z-50 w-96 opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all duration-75 group-hover/tooltip:duration-200 delay-0 group-hover/tooltip:delay-200"
+                    >
+                        <!-- 吹き出しの枠 -->
+                        <div
+                            class="bg-bg-primary border border-border-primary p-2 shadow-2xl"
                         >
-                            <div
-                                class="i-material-symbols-drag-indicator text-4xl text-white"
+                            <img
+                                src={convertFileSrc(screenshot.filename)}
+                                alt={screenshot.filename}
+                                class="w-full aspect-video object-cover mb-2"
+                                loading="lazy"
                             />
+                            <div
+                                class="text-xs text-text-secondary text-center font-mono"
+                            >
+                                {new Date(
+                                    screenshot.createdAt,
+                                ).toLocaleString()}
+                            </div>
                         </div>
-                    {/if}
-                </button>
+                        <!-- 吹き出しの三角形 (右向き) -->
+                        <div
+                            class="absolute top-1/2 -right-2 -translate-y-1/2 w-0 h-0 border-y-8 border-y-transparent border-l-8 border-l-border-primary"
+                        ></div>
+                        <div
+                            class="absolute top-1/2 -right-[7px] -translate-y-1/2 w-0 h-0 border-y-[7px] border-y-transparent border-l-[7px] border-l-bg-primary"
+                        ></div>
+                    </div>
+                </div>
             {/each}
         </div>
     {/if}

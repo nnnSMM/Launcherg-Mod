@@ -4,13 +4,19 @@
     import { createEventDispatcher } from "svelte";
 
     export let screenshots: Screenshot[];
+    export let selectionMode: boolean = false;
+    export let selectedIds: Set<number> = new Set();
 
     let gridSize = 300;
 
     const dispatch = createEventDispatcher();
 
     const handleClick = (screenshot: Screenshot) => {
-        dispatch("clickScreenshot", screenshot);
+        if (selectionMode) {
+            dispatch("toggleSelection", screenshot.id);
+        } else {
+            dispatch("clickScreenshot", screenshot);
+        }
     };
 </script>
 
@@ -32,20 +38,48 @@
     >
         {#each screenshots as screenshot}
             <button
-                class="relative aspect-video group overflow-hidden rounded-lg border border-border-primary bg-bg-secondary hover:border-accent-primary transition-all shadow-sm hover:shadow-md cursor-pointer"
+                class="relative aspect-video group overflow-hidden bg-bg-secondary transition-all shadow-sm hover:shadow-md cursor-pointer {selectionMode &&
+                selectedIds.has(screenshot.id)
+                    ? 'border-accent-primary border-2 scale-95 opacity-80'
+                    : ''}"
                 on:click={() => handleClick(screenshot)}
             >
+                {#if selectionMode}
+                    <div
+                        class="absolute top-2 left-2 z-10 transition-transform hover:scale-110"
+                    >
+                        <div
+                            class="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors {selectedIds.has(
+                                screenshot.id,
+                            )
+                                ? 'bg-accent-primary border-accent-primary'
+                                : 'bg-black/50 border-white/70'}"
+                        >
+                            {#if selectedIds.has(screenshot.id)}
+                                <div
+                                    class="i-material-symbols-check text-white text-sm"
+                                />
+                            {/if}
+                        </div>
+                    </div>
+                {/if}
                 <img
                     src={convertFileSrc(screenshot.filename)}
                     alt={screenshot.filename}
-                    class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    class="w-full h-full object-cover transition-transform duration-300 {selectionMode
+                        ? ''
+                        : 'group-hover:scale-105'}"
                     loading="lazy"
                 />
                 <div
-                    class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors"
+                    class="absolute inset-0 bg-black/0 {selectionMode
+                        ? ''
+                        : 'group-hover:bg-black/20'} transition-colors"
                 />
                 <div
-                    class="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex justify-between items-end"
+                    class="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent opacity-0 {selectionMode
+                        ? ''
+                        : 'group-hover:opacity-100'} transition-opacity flex justify-between items-end"
                 >
                     <div class="text-xs text-white/90 truncate font-mono">
                         {new Date(screenshot.createdAt).toLocaleString()}
