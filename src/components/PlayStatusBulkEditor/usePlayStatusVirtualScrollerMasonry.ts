@@ -1,5 +1,5 @@
 import type { CollectionElement } from "@/lib/types";
-import { writable, type Readable, derived } from "svelte/store";
+import { type Readable, derived } from "svelte/store";
 
 interface MasonryOptions {
   minItemWidth: number;
@@ -38,6 +38,52 @@ export const usePlayStatusVirtualScrollerMasonry = (
 
   const buffer = 5;
   const beamWidth = 50;
+
+  const hasCells = (layout: Layout): boolean => layout.some(col => col.length > 0);
+
+  type ElementState = {
+    id: number;
+    playStatus: CollectionElement["playStatus"];
+    thumbnail: CollectionElement["thumbnail"];
+    thumbnailWidth: CollectionElement["thumbnailWidth"];
+    thumbnailHeight: CollectionElement["thumbnailHeight"];
+  };
+
+  const toElementState = (element: CollectionElement): ElementState => ({
+    id: element.id,
+    playStatus: element.playStatus,
+    thumbnail: element.thumbnail,
+    thumbnailWidth: element.thumbnailWidth,
+    thumbnailHeight: element.thumbnailHeight,
+  });
+
+  const findFirstVisibleByBottom = (col: Cell[], scrollTop: number): number => {
+    let low = 0;
+    let high = col.length;
+    while (low < high) {
+      const mid = (low + high) >> 1;
+      if (col[mid].top + col[mid].height < scrollTop) {
+        low = mid + 1;
+      } else {
+        high = mid;
+      }
+    }
+    return low;
+  };
+
+  const findFirstByTop = (col: Cell[], targetTop: number): number => {
+    let low = 0;
+    let high = col.length;
+    while (low < high) {
+      const mid = (low + high) >> 1;
+      if (col[mid].top < targetTop) {
+        low = mid + 1;
+      } else {
+        high = mid;
+      }
+    }
+    return low;
+  };
 
   function calculateImageHeight(element: CollectionElement, imageWidth: number): number {
     if (element.thumbnailWidth && element.thumbnailHeight && element.thumbnailWidth > 0) {
@@ -191,16 +237,20 @@ export const usePlayStatusVirtualScrollerMasonry = (
 
   let prevColumns = 0;
   let prevLayout: Layout = [];
-  let prevElementContents: CollectionElement[] = []; // ★変更: 要素の内容を比較するためにIDだけでなく要素全体を保持（またはplayStatusだけでも良い）
-  let prevContainerWidth = 0;
+  let prevElementStates: ElementState[] = [];
 
   // ★変更: 要素の内容（特にplayStatus）が変わったかもチェックする
-  const didElementsDataChange = (currentElements: CollectionElement[], previousElements: CollectionElement[]): boolean => {
-    if (currentElements.length !== previousElements.length) return true;
+  const didElementsDataChange = (currentElements: CollectionElement[], previousStates: ElementState[]): boolean => {
+    if (currentElements.length !== previousStates.length) return true;
     for (let i = 0; i < currentElements.length; i++) {
-      if (currentElements[i].id !== previousElements[i].id ||
-          currentElements[i].playStatus !== previousElements[i].playStatus ||
-          currentElements[i].thumbnail !== previousElements[i].thumbnail // 他に影響するプロパティがあれば追加
+      const current = currentElements[i];
+      const previous = previousStates[i];
+      if (
+        current.id !== previous.id
+        || current.playStatus !== previous.playStatus
+        || current.thumbnail !== previous.thumbnail
+        || current.thumbnailWidth !== previous.thumbnailWidth
+        || current.thumbnailHeight !== previous.thumbnailHeight
       ) {
         return true;
       }
@@ -215,7 +265,7 @@ export const usePlayStatusVirtualScrollerMasonry = (
     [elements, contentsWidth],
     ([$elements, $contentsWidth], set) => {
       if (!$contentsWidth || $elements.length === 0) {
-        prevColumns = 0; prevLayout = []; prevElementContents = []; prevContainerWidth = 0;
+        prevColumns = 0; prevLayout = []; prevElementStates = [];
         set([]); return;
       }
 
@@ -224,9 +274,9 @@ export const usePlayStatusVirtualScrollerMasonry = (
       const newActualImgDisplayWidth = Math.max(1, newColumnWidth - (tileInternalPadding * 2));
 
       let resultLayout: Layout;
-      const elementsDataChanged = didElementsDataChange($elements, prevElementContents); // ★変更: 内容の変更をチェック
+      const elementsDataChanged = didElementsDataChange($elements, prevElementStates); // ★変更: 内容の変更をチェック
 
-      if (newNumColumns !== prevColumns || elementsDataChanged || prevLayout.flat().length === 0 ) {
+      if (newNumColumns !== prevColumns || elementsDataChanged || !hasCells(prevLayout) ) {
         const { layout } = calculateLayoutsWithBeamSearch($elements, $contentsWidth);
         resultLayout = layout;
       } else {
@@ -259,8 +309,7 @@ export const usePlayStatusVirtualScrollerMasonry = (
       }
       prevColumns = newNumColumns;
       prevLayout = resultLayout;
-      prevElementContents = $elements.map(el => ({...el})); // ★要素の内容をディープコピーして保持
-      prevContainerWidth = $contentsWidth;
+      prevElementStates = $elements.map(toElementState);
       set(resultLayout);
     },
     []
@@ -277,13 +326,6 @@ export const usePlayStatusVirtualScrollerMasonry = (
     setVirtualHeight(heights.length > 0 ? Math.max(...heights) : 0);
   });
 
-  layouts.subscribe(cols => {
-    const heights = cols.map(col =>
-      col.length > 0 ? col[col.length - 1].top + col[col.length - 1].height : 0
-    );
-    setVirtualHeight(heights.length > 0 ? Math.max(...heights) : 0);
-  });
-
   const calculateVisibleLayouts = (
     cols: Layout,
     scrollTop: number,
@@ -291,11 +333,11 @@ export const usePlayStatusVirtualScrollerMasonry = (
   ) => {
     const visible: Cell[] = [];
     cols.forEach(col => {
-      if (!col) return; // col が undefined の場合をスキップ
-      const first = col.findIndex(cell => cell.top + cell.height >= scrollTop);
-      let last = col.findIndex(cell => cell.top >= scrollTop + contentsHeight);
-      if (first === -1) return;
-      if (last === -1) last = col.length - 1;
+      if (col.length === 0) return;
+      const first = findFirstVisibleByBottom(col, scrollTop);
+      if (first >= col.length) return;
+      const lastByTop = findFirstByTop(col, scrollTop + contentsHeight);
+      const last = lastByTop >= col.length ? col.length - 1 : lastByTop;
       const start = Math.max(first - buffer, 0);
       const end = Math.min(last + buffer, col.length - 1);
       visible.push(...col.slice(start, end + 1));

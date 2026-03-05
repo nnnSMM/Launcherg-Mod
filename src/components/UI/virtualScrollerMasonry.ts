@@ -1,5 +1,5 @@
 import type { CollectionElement } from "@/lib/types";
-import { writable, type Readable, derived } from "svelte/store";
+import { type Readable, derived } from "svelte/store";
 
 const minItemWidth = 16 * 16;
 const itemGap = 16;
@@ -15,6 +15,36 @@ export type Cell = {
   element: CollectionElement;
 };
 export type Layout = Cell[][];
+
+const hasCells = (layout: Layout): boolean => layout.some(col => col.length > 0);
+
+const findFirstVisibleByBottom = (col: Cell[], scrollTop: number): number => {
+  let low = 0;
+  let high = col.length;
+  while (low < high) {
+    const mid = (low + high) >> 1;
+    if (col[mid].top + col[mid].height < scrollTop) {
+      low = mid + 1;
+    } else {
+      high = mid;
+    }
+  }
+  return low;
+};
+
+const findFirstByTop = (col: Cell[], targetTop: number): number => {
+  let low = 0;
+  let high = col.length;
+  while (low < high) {
+    const mid = (low + high) >> 1;
+    if (col[mid].top < targetTop) {
+      low = mid + 1;
+    } else {
+      high = mid;
+    }
+  }
+  return low;
+};
 
 // 戻り値を [最長列の高さ, 最大差] のペアに変更
 export function evaluateGreedy(
@@ -178,13 +208,12 @@ export const useVirtualScrollerMasonry = (
 
   // 要素リストが変更されたかチェックする関数
   const didElementsChange = (currentElements: CollectionElement[], previousIds: number[]): boolean => {
-    const currentIds = currentElements.map(el => el.id);
-    if (currentIds.length !== previousIds.length) {
+    if (currentElements.length !== previousIds.length) {
       return true; // 要素数が変わったら変更あり
     }
     // 要素数が同じなら、順序を含めてIDが一致するかチェック
-    for (let i = 0; i < currentIds.length; i++) {
-      if (currentIds[i] !== previousIds[i]) {
+    for (let i = 0; i < currentElements.length; i++) {
+      if (currentElements[i].id !== previousIds[i]) {
         return true; // IDまたは順序が異なれば変更あり
       }
     }
@@ -215,7 +244,7 @@ export const useVirtualScrollerMasonry = (
       const elementsChanged = didElementsChange($elements, prevElementIds);
 
       // 2. 列数が前回から確実に変わったか、または前回のレイアウトが空か？
-      if (newColumns !== prevColumns || elementsChanged || prevLayout.flat().length === 0) {
+      if (newColumns !== prevColumns || elementsChanged || !hasCells(prevLayout)) {
         // 列数が変わった -> ビームサーチでレイアウトを最初から再計算
         // calculateLayouts内で beamWidth=50 が使用される
         const { layout } = calculateLayouts($elements, $contentsWidth);
@@ -264,10 +293,14 @@ export const useVirtualScrollerMasonry = (
   );
 
   layouts.subscribe(cols => {
+    if (cols.length === 0) {
+      setVirtualHeight(0);
+      return;
+    }
     const heights = cols.map(col =>
       col.length > 0 ? col[col.length - 1].top + col[col.length - 1].height : 0
     );
-    setVirtualHeight(Math.max(...heights));
+    setVirtualHeight(heights.length > 0 ? Math.max(...heights) : 0);
   });
 
   const calculateVisibleLayouts = (
@@ -277,10 +310,11 @@ export const useVirtualScrollerMasonry = (
   ) => {
     const visible: Cell[] = [];
     cols.forEach(col => {
-      const first = col.findIndex(cell => cell.top + cell.height >= scrollTop);
-      let last = col.findIndex(cell => cell.top >= scrollTop + contentsHeight);
-      if (first === -1) return;
-      if (last === -1) last = col.length - 1;
+      if (col.length === 0) return;
+      const first = findFirstVisibleByBottom(col, scrollTop);
+      if (first >= col.length) return;
+      const lastByTop = findFirstByTop(col, scrollTop + contentsHeight);
+      const last = lastByTop >= col.length ? col.length - 1 : lastByTop;
       const start = Math.max(first - buffer, 0);
       const end = Math.min(last + buffer, col.length - 1);
       visible.push(...col.slice(start, end + 1));
