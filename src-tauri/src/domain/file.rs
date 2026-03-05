@@ -7,6 +7,7 @@ pub struct LnkMetadata {
 use std::{collections::HashMap, fs, path::Path, sync::Arc};
 
 use chrono::{DateTime, Local};
+use image::{codecs::jpeg::JpegEncoder, imageops::FilterType, ColorType, GenericImageView};
 use serde::{Deserialize, Serialize};
 use tauri::{async_runtime::JoinHandle, AppHandle};
 use tauri_plugin_shell::process::CommandEvent;
@@ -745,6 +746,79 @@ pub fn get_thumbnail_path(
         .join(format!("{}.png", collection_element_id.value))
         .to_string_lossy()
         .to_string()
+}
+
+const SCREENSHOTS_ROOT_DIR: &str = "game-memos";
+const SCREENSHOT_THUMBNAILS_DIR: &str = "thumbnails";
+const SCREENSHOT_THUMBNAIL_MAX_WIDTH: u32 = 640;
+const SCREENSHOT_THUMBNAIL_QUALITY: u8 = 78;
+
+pub fn get_screenshot_file_path(save_root_dir: &str, game_id: i32, filename: &str) -> std::path::PathBuf {
+    Path::new(save_root_dir)
+        .join(SCREENSHOTS_ROOT_DIR)
+        .join(game_id.to_string())
+        .join(filename)
+}
+
+pub fn get_screenshot_thumbnail_path(
+    save_root_dir: &str,
+    game_id: i32,
+    filename: &str,
+) -> std::path::PathBuf {
+    let dir = Path::new(save_root_dir)
+        .join(SCREENSHOTS_ROOT_DIR)
+        .join(game_id.to_string())
+        .join(SCREENSHOT_THUMBNAILS_DIR);
+
+    let safe_name = filename.replace(['\\', '/'], "_");
+    dir.join(format!("{safe_name}.thumb.jpg"))
+}
+
+pub fn ensure_screenshot_thumbnail(
+    save_root_dir: &str,
+    game_id: i32,
+    filename: &str,
+) -> anyhow::Result<Option<String>> {
+    let source_path = get_screenshot_file_path(save_root_dir, game_id, filename);
+    if !source_path.exists() {
+        return Ok(None);
+    }
+
+    let thumbnail_path = get_screenshot_thumbnail_path(save_root_dir, game_id, filename);
+    if thumbnail_path.exists() {
+        return Ok(Some(thumbnail_path.to_string_lossy().to_string()));
+    }
+
+    if let Some(parent) = thumbnail_path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+
+    let img = image::open(&source_path)?;
+    let (width, height) = img.dimensions();
+    let resized = if width > SCREENSHOT_THUMBNAIL_MAX_WIDTH {
+        let resized_height =
+            ((height as u64 * SCREENSHOT_THUMBNAIL_MAX_WIDTH as u64 + (width as u64 / 2))
+                / width as u64) as u32;
+        img.resize_exact(
+            SCREENSHOT_THUMBNAIL_MAX_WIDTH,
+            resized_height.max(1),
+            FilterType::Triangle,
+        )
+    } else {
+        img
+    };
+
+    let rgb = resized.to_rgb8();
+    let mut file = fs::File::create(&thumbnail_path)?;
+    let mut encoder = JpegEncoder::new_with_quality(&mut file, SCREENSHOT_THUMBNAIL_QUALITY);
+    encoder.encode(
+        &rgb,
+        rgb.width(),
+        rgb.height(),
+        ColorType::Rgb8,
+    )?;
+
+    Ok(Some(thumbnail_path.to_string_lossy().to_string()))
 }
 
 pub fn save_thumbnail(

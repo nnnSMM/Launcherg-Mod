@@ -55,9 +55,9 @@
                 }
             }
 
-            for (const path of paths) {
-                await commandImportScreenshot(gameId, path);
-            }
+            await Promise.all(
+                paths.map((path) => commandImportScreenshot(gameId, path)),
+            );
 
             await loadScreenshots();
         } catch (e) {
@@ -124,7 +124,10 @@
                         on:click={() => openViewer(screenshot)}
                     >
                         <img
-                            src={convertFileSrc(screenshot.filename)}
+                            src={convertFileSrc(
+                                screenshot.thumbnailFilename ??
+                                    screenshot.filename,
+                            )}
                             alt={screenshot.filename}
                             class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                             loading="lazy"

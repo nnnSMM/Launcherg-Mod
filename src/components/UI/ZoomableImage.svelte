@@ -30,11 +30,13 @@
     let fitScale = 1.0;
 
     let imgElement: HTMLImageElement;
+    let displayedSrc = "";
+    let activeSrc = "";
+    let srcRequestId = 0;
 
     const dispatch = createEventDispatcher();
 
-    // Reset interactive state when switching image source.
-    $: if (src) {
+    const resetInteractiveState = () => {
         naturalWidth = 0;
         naturalHeight = 0;
         scale = 1;
@@ -45,6 +47,90 @@
         wasDragged = false;
         isImagePositioned = false;
         hasInitialLayout = false;
+    };
+
+    const applyInitialLayout = (width: number, height: number): boolean => {
+        if (!width || !height || !containerWidth || !containerHeight) {
+            return false;
+        }
+
+        naturalWidth = width;
+        naturalHeight = height;
+
+        const scaleX = containerWidth / width;
+        const scaleY = containerHeight / height;
+        fitScale = Math.min(scaleX, scaleY);
+        minScale = fitScale;
+        scale = fitScale;
+        centerImage();
+
+        isImagePositioned = true;
+        hasInitialLayout = true;
+        void tick().then(() => {
+            dispatch("ready");
+        });
+
+        return true;
+    };
+
+    const swapDisplayedSource = (
+        nextSrc: string,
+        width: number,
+        height: number,
+    ) => {
+        resetInteractiveState();
+        const hasLayout = applyInitialLayout(width, height);
+        displayedSrc = nextSrc;
+
+        if (!hasLayout) {
+            naturalWidth = width;
+            naturalHeight = height;
+        }
+    };
+
+    const preloadAndSwap = async (nextSrc: string, requestId: number) => {
+        const preloadImage = new Image();
+        const { width, height } = await new Promise<{
+            width: number;
+            height: number;
+        }>((resolve) => {
+            const cleanup = () => {
+                preloadImage.onload = null;
+                preloadImage.onerror = null;
+            };
+
+            preloadImage.onload = () => {
+                cleanup();
+                resolve({
+                    width: preloadImage.naturalWidth,
+                    height: preloadImage.naturalHeight,
+                });
+            };
+
+            preloadImage.onerror = () => {
+                cleanup();
+                resolve({ width: 0, height: 0 });
+            };
+
+            preloadImage.src = nextSrc;
+        });
+
+        if (requestId !== srcRequestId || activeSrc !== nextSrc) return;
+        swapDisplayedSource(nextSrc, width, height);
+    };
+
+    $: if (!src) {
+        activeSrc = "";
+        displayedSrc = "";
+        resetInteractiveState();
+    } else if (src !== activeSrc) {
+        activeSrc = src;
+        const requestId = ++srcRequestId;
+        if (!displayedSrc) {
+            swapDisplayedSource(src, 0, 0);
+        } else {
+            void preloadAndSwap(src, requestId);
+        }
     }
 
     function resetZoom() {
@@ -203,7 +289,7 @@
     -->
     <img
         bind:this={imgElement}
-        {src}
+        src={displayedSrc}
         {alt}
         on:load={onImageLoad}
         class="absolute top-0 left-0 max-w-none max-h-none origin-top-left"

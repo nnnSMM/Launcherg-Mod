@@ -38,6 +38,7 @@ impl ScreenshotRepositoryImpl {
             id: row.get::<i64, _>("id") as i32,
             game_id: row.get::<i64, _>("game_id") as i32,
             filename: row.get("filename"),
+            thumbnail_filename: None,
             order_index: row.get::<i64, _>("order_index") as i32,
             created_at: created_at_jst,
         }

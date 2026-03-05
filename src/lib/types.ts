@@ -102,6 +102,7 @@ export type Screenshot = {
   id: number;
   gameId: number;
   filename: string;
+  thumbnailFilename: string | null;
   orderIndex: number;
   createdAt: string;
 };

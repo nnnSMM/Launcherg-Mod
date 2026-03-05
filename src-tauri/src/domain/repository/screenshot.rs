@@ -10,6 +10,7 @@ pub struct Screenshot {
     pub id: i32,
     pub game_id: i32,
     pub filename: String,
+    pub thumbnail_filename: Option<String>,
     pub order_index: i32,
     pub created_at: String,
 }
@@ -38,6 +39,7 @@ mod tests {
             id: 1,
             game_id: 100,
             filename: "screenshot_001.png".to_string(),
+            thumbnail_filename: None,
             order_index: 0,
             created_at: "2023-12-25T10:00:00".to_string(),
         };
@@ -54,6 +56,7 @@ mod tests {
             id: 42,
             game_id: 999,
             filename: "test.png".to_string(),
+            thumbnail_filename: None,
             order_index: 5,
             created_at: "2024-01-01".to_string(),
         };
@@ -62,6 +65,7 @@ mod tests {
         assert!(json.contains("\"id\":42"));
         assert!(json.contains("\"gameId\":999")); // camelCase
         assert!(json.contains("\"filename\":\"test.png\""));
+        assert!(json.contains("\"thumbnailFilename\":null"));
         assert!(json.contains("\"orderIndex\":5")); // camelCase
     }
 
@@ -71,6 +75,7 @@ mod tests {
             id: 1,
             game_id: 2,
             filename: "clone_test.png".to_string(),
+            thumbnail_filename: None,
             order_index: 3,
             created_at: "2024-01-01".to_string(),
         };

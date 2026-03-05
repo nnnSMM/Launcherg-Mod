@@ -29,6 +29,7 @@ pub struct WindowScreenshot {
     pub id: i32,
     pub game_id: i32,
     pub filename: String,
+    pub thumbnail_filename: Option<String>,
     pub order_index: i32,
     pub created_at: String,
 }

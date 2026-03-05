@@ -6,8 +6,15 @@
     export let screenshots: Screenshot[] = [];
     export let selectionMode: boolean = false;
     export let selectedIds: Set<number> = new Set();
+    export let scrollTop: number = 0;
+    export let viewportHeight: number = 0;
+    export let contentWidth: number = 0;
 
-    let gridSize = 300;
+    const minTileWidth = 300;
+    const gap = 16;
+    const overscanRows = 3;
+    const bottomPadding = 80;
+    const aspectRatio = 16 / 9;
 
     const dispatch = createEventDispatcher();
 
@@ -19,17 +26,67 @@
         }
     };
 
-    type DisplayScreenshot = {
+    type VisibleScreenshot = {
         screenshot: Screenshot;
         src: string;
         createdAtText: string;
+        top: number;
+        left: number;
+        isSelected: boolean;
     };
 
-    $: displayScreenshots = screenshots.map((screenshot): DisplayScreenshot => ({
-        screenshot,
-        src: convertFileSrc(screenshot.filename),
-        createdAtText: new Date(screenshot.createdAt).toLocaleString(),
-    }));
+    $: columnCount = Math.max(
+        1,
+        Math.floor((Math.max(contentWidth, minTileWidth) + gap) / (minTileWidth + gap)),
+    );
+    $: tileWidth = Math.floor(
+        (Math.max(contentWidth, minTileWidth) - gap * (columnCount - 1)) /
+            columnCount,
+    );
+    $: tileHeight = Math.floor(tileWidth / aspectRatio);
+    $: rowHeight = tileHeight + gap;
+    $: totalRows = Math.ceil(screenshots.length / columnCount);
+    $: virtualHeight = totalRows > 0
+        ? totalRows * rowHeight - gap + bottomPadding
+        : 0;
+    $: maxScrollTop = Math.max(
+        0,
+        (totalRows > 0 ? totalRows * rowHeight - gap : 0) -
+            Math.max(viewportHeight, 0),
+    );
+    $: clampedScrollTop = Math.min(Math.max(scrollTop, 0), maxScrollTop);
+    $: startRow = viewportHeight > 0
+        ? Math.max(0, Math.floor(clampedScrollTop / rowHeight) - overscanRows)
+        : 0;
+    $: endRow = viewportHeight > 0
+        ? Math.min(
+            totalRows - 1,
+            Math.ceil((clampedScrollTop + viewportHeight) / rowHeight) +
+                overscanRows,
+        )
+        : Math.max(0, totalRows - 1);
+    $: startIndex = startRow * columnCount;
+    $: endIndex = Math.min(
+        screenshots.length,
+        (endRow + 1) * columnCount,
+    );
+    $: visibleScreenshots = screenshots
+        .slice(startIndex, endIndex)
+        .map((screenshot, localIndex): VisibleScreenshot => {
+            const index = startIndex + localIndex;
+            const row = Math.floor(index / columnCount);
+            const col = index % columnCount;
+            return {
+                screenshot,
+                src: convertFileSrc(
+                    screenshot.thumbnailFilename ?? screenshot.filename,
+                ),
+                createdAtText: new Date(screenshot.createdAt).toLocaleString(),
+                top: row * rowHeight,
+                left: col * (tileWidth + gap),
+                isSelected: selectedIds.has(screenshot.id),
+            };
+        });
 </script>
 
 {#if screenshots.length === 0}
@@ -44,18 +101,15 @@
         </div>
     </div>
 {:else}
-    <div
-        class="grid gap-4 pb-20"
-        style="grid-template-columns: repeat(auto-fill, minmax({gridSize}px, 1fr));"
-    >
-        {#each displayScreenshots as item (item.screenshot.id)}
+    <div class="relative" style="height: {virtualHeight}px;">
+        {#each visibleScreenshots as item (item.screenshot.id)}
             {@const screenshot = item.screenshot}
-            {@const isSelected = selectedIds.has(screenshot.id)}
             <button
-                class="relative aspect-video group overflow-hidden bg-bg-secondary transition-all shadow-sm hover:shadow-md cursor-pointer {selectionMode &&
-                isSelected
+                class="absolute group overflow-hidden bg-bg-secondary transition-all shadow-sm hover:shadow-md cursor-pointer {selectionMode &&
+                item.isSelected
                     ? 'border-accent-primary border-2 scale-95 opacity-80'
                     : ''}"
+                style="left: {item.left}px; top: {item.top}px; width: {tileWidth}px; height: {tileHeight}px;"
                 on:click={() => handleClick(screenshot)}
             >
                 {#if selectionMode}
@@ -63,11 +117,11 @@
                         class="absolute top-2 left-2 z-10 transition-transform hover:scale-110"
                     >
                         <div
-                            class="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors {isSelected
+                            class="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors {item.isSelected
                                 ? 'bg-accent-primary border-accent-primary'
                                 : 'bg-black/50 border-white/70'}"
                         >
-                            {#if isSelected}
+                            {#if item.isSelected}
                                 <div
                                     class="i-material-symbols-check text-white text-sm"
                                 />
@@ -78,10 +132,11 @@
                 <img
                     src={item.src}
                     alt={screenshot.filename}
-                    class="w-full h-full object-cover transition-transform duration-300 {selectionMode
+                    class="absolute inset-0 w-full h-full object-cover transition-transform duration-300 {selectionMode
                         ? ''
                         : 'group-hover:scale-105'}"
                     loading="lazy"
+                    decoding="async"
                 />
                 <div
                     class="absolute inset-0 bg-black/0 {selectionMode

@@ -35,6 +35,11 @@
     let isBootstrapping = true;
     let fileSizeRequestId = 0;
     const fileSizeCache = new Map<number, number | null>();
+    let gridScrollContainer: HTMLDivElement | null = null;
+    let gridScrollTop = 0;
+    let gridViewportHeight = 0;
+    let gridContentWidth = 0;
+    let gridScrollRaf = 0;
 
     // Initial args from window creation
     type WindowArgs = {
@@ -116,6 +121,58 @@
         await tick();
         await currentWindowHandle.emit("screenshot-window-ready", { ready: true });
         hasEmittedInitialReady = true;
+    };
+
+    const observeGridContainer = (node: HTMLDivElement) => {
+        gridScrollContainer = node;
+
+        const px = (value: string): number => {
+            const parsed = Number.parseFloat(value);
+            return Number.isFinite(parsed) ? parsed : 0;
+        };
+
+        const updateMeasurements = () => {
+            const style = getComputedStyle(node);
+            const horizontalPadding =
+                px(style.paddingLeft) + px(style.paddingRight);
+            const verticalPadding = px(style.paddingTop) + px(style.paddingBottom);
+
+            gridViewportHeight = Math.max(0, node.clientHeight - verticalPadding);
+            gridContentWidth = Math.max(0, node.clientWidth - horizontalPadding);
+        };
+
+        const flushScroll = () => {
+            gridScrollRaf = 0;
+            gridScrollTop = node.scrollTop;
+        };
+
+        const onScroll = () => {
+            if (gridScrollRaf !== 0) return;
+            gridScrollRaf = requestAnimationFrame(flushScroll);
+        };
+
+        node.addEventListener("scroll", onScroll, { passive: true });
+        const resizeObserver = new ResizeObserver(() => {
+            updateMeasurements();
+        });
+        resizeObserver.observe(node);
+
+        updateMeasurements();
+        gridScrollTop = node.scrollTop;
+
+        return {
+            destroy() {
+                node.removeEventListener("scroll", onScroll);
+                resizeObserver.disconnect();
+                if (gridScrollRaf !== 0) {
+                    cancelAnimationFrame(gridScrollRaf);
+                    gridScrollRaf = 0;
+                }
+                if (gridScrollContainer === node) {
+                    gridScrollContainer = null;
+                }
+            },
+        };
     };
 
     onMount(async () => {
@@ -272,6 +329,10 @@
     const handleGameSelect = (id: number | null) => {
         selectedGameId = id;
         viewMode = "grid";
+        if (gridScrollContainer) {
+            gridScrollContainer.scrollTop = 0;
+        }
+        gridScrollTop = 0;
     };
 
     $: gamesById = new Map(allGames.map((g) => [g.id, g]));
@@ -551,12 +612,17 @@
 
         <!-- Content -->
         <div class="flex-1 min-h-0 relative">
-            <div class="h-full w-full overflow-y-auto p-4 custom-scrollbar">
+            <div
+                class="h-full w-full overflow-y-auto p-4 custom-scrollbar"
+                use:observeGridContainer
+            >
                 <ScreenshotGrid
                     screenshots={filteredScreenshots}
                     {selectionMode}
                     {selectedIds}
-                    on:reload={fetchData}
+                    scrollTop={gridScrollTop}
+                    viewportHeight={gridViewportHeight}
+                    contentWidth={gridContentWidth}
                     on:clickScreenshot={(e) => enterViewer(e.detail)}
                     on:toggleSelection={(e) => handleToggleSelection(e.detail)}
                 />

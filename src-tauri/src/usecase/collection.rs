@@ -16,7 +16,8 @@ use crate::{
     domain::{
         collection::{CollectionElement, NewCollectionElement, NewCollectionElementDetail},
         file::{
-            get_icon_path, get_lnk_metadatas, get_thumbnail_path, save_icon_to_png, save_thumbnail,
+            ensure_screenshot_thumbnail, get_icon_path, get_lnk_metadatas,
+            get_screenshot_thumbnail_path, get_thumbnail_path, save_icon_to_png, save_thumbnail,
         },
         repository::collection::CollectionRepository,
         repository::screenshot::{Screenshot, ScreenshotRepository},
@@ -417,7 +418,22 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
         Ok(screenshots
             .into_iter()
             .map(|mut s| {
-                s.filename = game_dir.join(&s.filename).to_string_lossy().to_string();
+                let relative_filename = s.filename.clone();
+                s.filename = game_dir
+                    .join(&relative_filename)
+                    .to_string_lossy()
+                    .to_string();
+                s.thumbnail_filename =
+                    match ensure_screenshot_thumbnail(&root_dir, s.game_id, &relative_filename) {
+                        Ok(path) => path,
+                        Err(e) => {
+                            eprintln!(
+                                "[get_game_screenshots] ensure_screenshot_thumbnail failed: {}",
+                                e
+                            );
+                            None
+                        }
+                    };
                 s
             })
             .collect())
@@ -434,10 +450,25 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
         Ok(screenshots
             .into_iter()
             .map(|mut s| {
+                let relative_filename = s.filename.clone();
                 let game_dir = std::path::Path::new(&root_dir)
                     .join("game-memos")
                     .join(s.game_id.to_string());
-                s.filename = game_dir.join(&s.filename).to_string_lossy().to_string();
+                s.filename = game_dir
+                    .join(&relative_filename)
+                    .to_string_lossy()
+                    .to_string();
+                s.thumbnail_filename =
+                    match ensure_screenshot_thumbnail(&root_dir, s.game_id, &relative_filename) {
+                        Ok(path) => path,
+                        Err(e) => {
+                            eprintln!(
+                                "[get_all_screenshots] ensure_screenshot_thumbnail failed: {}",
+                                e
+                            );
+                            None
+                        }
+                    };
                 s
             })
             .collect())
@@ -471,6 +502,10 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
         let dest_path = dest_dir.join(&filename);
         std::fs::copy(path, &dest_path)?;
 
+        if let Err(e) = ensure_screenshot_thumbnail(&self.save_root_dir, game_id, &filename) {
+            eprintln!("[import_screenshot] ensure_screenshot_thumbnail failed: {}", e);
+        }
+
         self.repositories
             .screenshot_repository()
             .insert(&Id::new(game_id), &filename)
@@ -499,13 +534,20 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
             .await?;
 
         // Delete file
+        let screenshot_filename = screenshot.filename.clone();
         let file_path = std::path::Path::new(&self.save_root_dir)
             .join("game-memos")
             .join(screenshot.game_id.to_string())
-            .join(screenshot.filename);
+            .join(&screenshot_filename);
 
         if file_path.exists() {
             std::fs::remove_file(file_path)?;
+        }
+
+        let thumbnail_path =
+            get_screenshot_thumbnail_path(&self.save_root_dir, screenshot.game_id, &screenshot_filename);
+        if thumbnail_path.exists() {
+            let _ = std::fs::remove_file(thumbnail_path);
         }
 
         Ok(())
