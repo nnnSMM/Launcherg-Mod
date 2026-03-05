@@ -232,6 +232,14 @@ export const commandGetAllScreenshots = async () => {
   return await invoke<Screenshot[]>("get_all_screenshots", {});
 };
 
-export const commandOpenScreenshotWindow = async (gameId?: number, initialScreenshotId?: number) => {
-  return await invoke<void>("open_screenshot_window", { gameId, initialScreenshotId });
+export const commandOpenScreenshotWindow = async (
+  gameId?: number,
+  initialScreenshotId?: number,
+  initialScreenshot?: Screenshot,
+) => {
+  return await invoke<void>("open_screenshot_window", {
+    gameId,
+    initialScreenshotId,
+    initialScreenshot,
+  });
 };

@@ -65,8 +65,12 @@
         }
     };
 
-    const openViewer = async (screenshotId?: number) => {
-        await commandOpenScreenshotWindow(gameId, screenshotId);
+    const openViewer = async (screenshot?: Screenshot) => {
+        await commandOpenScreenshotWindow(
+            gameId,
+            screenshot?.id,
+            screenshot,
+        );
     };
 
     $: previewScreenshots = [...screenshots]
@@ -117,7 +121,7 @@
                 <div class="relative group/tooltip">
                     <button
                         class="w-full relative aspect-video group overflow-hidden transition-all cursor-pointer shadow-sm hover:shadow-md"
-                        on:click={() => openViewer(screenshot.id)}
+                        on:click={() => openViewer(screenshot)}
                     >
                         <img
                             src={convertFileSrc(screenshot.filename)}

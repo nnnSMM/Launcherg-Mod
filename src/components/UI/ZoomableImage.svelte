@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { createEventDispatcher, onMount } from "svelte";
+    import { createEventDispatcher, tick } from "svelte";
 
     export let src: string;
     export let alt: string = "";
@@ -21,6 +21,8 @@
     let startX = 0;
     let startY = 0;
     let wasDragged = false;
+    let isImagePositioned = false;
+    let hasInitialLayout = false;
 
     // Limits
     let minScale = 0.1;
@@ -31,26 +33,27 @@
 
     const dispatch = createEventDispatcher();
 
-    // Reset when src changes
+    // Reset interactive state when switching image source.
     $: if (src) {
-        resetZoom();
+        naturalWidth = 0;
+        naturalHeight = 0;
+        scale = 1;
+        translateX = 0;
+        translateY = 0;
+        isZoomed = false;
+        isDragging = false;
+        wasDragged = false;
+        isImagePositioned = false;
+        hasInitialLayout = false;
     }
 
     function resetZoom() {
-        if (!naturalWidth || !containerWidth) return;
+        if (!naturalWidth || !containerWidth || !containerHeight) return;
 
         // Calculate fit scale
         const scaleX = containerWidth / naturalWidth;
         const scaleY = containerHeight / naturalHeight;
-        fitScale = Math.min(scaleX, scaleY, 1.0); // Never fit larger than 1.0 initially? Or allowing strictly fit? Usually Fit means fit.
-        // If image is smaller than container, fitScale might be 1.0 or we might center it at 1.0.
-        // Let's assume fit means "contain".
         fitScale = Math.min(scaleX, scaleY);
-
-        // If image is smaller than screen, we probably still want init scale to be min(scaleX, scaleY) if we want "contain",
-        // but typically if image < screen, we show 1.0.
-        // User asked "Initial shrinking state not 100%".
-        // If image is huge, fitScale < 1.0.
 
         minScale = fitScale;
         scale = fitScale;
@@ -60,7 +63,7 @@
     }
 
     function centerImage() {
-        if (!naturalWidth || !containerWidth) return;
+        if (!naturalWidth || !containerWidth || !containerHeight) return;
         translateX = (containerWidth - naturalWidth * scale) / 2;
         translateY = (containerHeight - naturalHeight * scale) / 2;
     }
@@ -69,8 +72,24 @@
         if (imgElement) {
             naturalWidth = imgElement.naturalWidth;
             naturalHeight = imgElement.naturalHeight;
-            resetZoom();
         }
+    }
+
+    // Wait until both image and container are measurable, then show fitted image.
+    $: if (
+        naturalWidth &&
+        naturalHeight &&
+        containerWidth &&
+        containerHeight &&
+        !hasInitialLayout
+    ) {
+        resetZoom();
+        isImagePositioned = true;
+        hasInitialLayout = true;
+
+        tick().then(() => {
+            dispatch("ready");
+        });
     }
 
     // Reactive update for resize
@@ -105,7 +124,7 @@
         const oldScale = scale;
         // Clamp
         let newScale = scale * multiplier;
-        newScale = Math.min(Math.max(minScale, newScale), 8.0);
+        newScale = Math.min(Math.max(minScale, newScale), maxScale);
 
         if (newScale <= minScale * 1.01) {
             newScale = minScale;
@@ -187,7 +206,8 @@
         {src}
         {alt}
         on:load={onImageLoad}
-        class="absolute top-0 left-0 max-w-none max-h-none origin-top-left transition-transform duration-75 ease-out"
+        class="absolute top-0 left-0 max-w-none max-h-none origin-top-left"
+        class:invisible={!isImagePositioned}
         class:cursor-grab={isZoomed && !isDragging}
         class:cursor-grabbing={isDragging}
         style="transform: translate({translateX}px, {translateY}px) scale({scale})"

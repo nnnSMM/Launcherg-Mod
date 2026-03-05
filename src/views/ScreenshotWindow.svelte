@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { onMount } from "svelte";
+    import { onMount, tick } from "svelte";
     import type { Screenshot, CollectionElement } from "@/lib/types";
     import {
         commandGetAllScreenshots,
@@ -25,11 +25,20 @@
     let currentFileSize: number | null = null;
     let isZoomed = false;
     let showDeleteConfirm = false;
+    let currentWindowHandle: Awaited<
+        ReturnType<typeof import("@tauri-apps/api/window").getCurrentWindow>
+    > | null = null;
+    let hasEmittedInitialReady = false;
+    let viewerImageReady = false;
+    let lastReadyScreenshotId: number | null = null;
+    let readyFallbackTimer: ReturnType<typeof setTimeout> | null = null;
+    let isBootstrapping = true;
 
     // Initial args from window creation
     type WindowArgs = {
         game_id: number | null;
         initial_screenshot_id: number | null;
+        initial_screenshot: Screenshot | null;
     };
 
     const fetchData = async (): Promise<Screenshot[]> => {
@@ -59,8 +68,15 @@
             selectedGameId = args.game_id;
         }
 
-        // If initial_screenshot_id is provided, switch to viewer mode
-        if (args.initial_screenshot_id) {
+        // Fast path: show clicked screenshot immediately.
+        if (args.initial_screenshot) {
+            viewerScreenshots = [args.initial_screenshot];
+            currentIndex = 0;
+            viewMode = "viewer";
+        }
+
+        // Resolve full list once data is loaded.
+        if (args.initial_screenshot_id && screenshots.length > 0) {
             const target = screenshots.find(
                 (s) => s.id === args.initial_screenshot_id,
             );
@@ -77,35 +93,103 @@
                 currentIndex = idx >= 0 ? idx : 0;
                 viewMode = "viewer";
             }
+        } else if (args.initial_screenshot && screenshots.length > 0) {
+            const currentFiltered = selectedGameId
+                ? screenshots.filter((s) => s.gameId === selectedGameId)
+                : screenshots;
+            const idx = currentFiltered.findIndex(
+                (s) => s.id === args.initial_screenshot!.id,
+            );
+            if (idx >= 0) {
+                viewerScreenshots = currentFiltered;
+                currentIndex = idx;
+                viewMode = "viewer";
+            }
         }
     };
 
+
+    const emitInitialReady = async () => {
+        if (hasEmittedInitialReady || !currentWindowHandle || isBootstrapping) return;
+        await tick();
+        await currentWindowHandle.emit("screenshot-window-ready", { ready: true });
+        hasEmittedInitialReady = true;
+    };
+
     onMount(async () => {
-        const freshScreenshots = await fetchData();
-
-        // Check for initial args set by backend script injection
-        const w = window as any;
-        if (w.__INITIAL_SCREENSHOT_ARGS__) {
-            handleArgs(w.__INITIAL_SCREENSHOT_ARGS__, freshScreenshots);
-            w.__INITIAL_SCREENSHOT_ARGS__ = null;
-        }
-
         // Use getCurrentWindow().listen for window-specific events
         const { getCurrentWindow } = await import("@tauri-apps/api/window");
         const currentWindow = getCurrentWindow();
+        currentWindowHandle = currentWindow;
+        readyFallbackTimer = setTimeout(() => {
+            if (viewMode !== "viewer") {
+                void emitInitialReady();
+            }
+        }, 2000);
 
         const unlisten = await currentWindow.listen<WindowArgs>(
             "screenshot-window-args",
             async (event) => {
+                if (event.payload.initial_screenshot) {
+                    handleArgs(event.payload, []);
+                    await tick();
+                    await currentWindow.emit("screenshot-window-args-applied", {
+                        applied: true,
+                    });
+                }
+
                 const freshData = await fetchData();
                 handleArgs(event.payload, freshData);
+                await tick();
+                await currentWindow.emit("screenshot-window-args-applied", {
+                    applied: true,
+                });
             },
         );
 
+        // Check for initial args set by backend script injection
+        const w = window as any;
+        const initialArgs =
+            (w.__INITIAL_SCREENSHOT_ARGS__ as WindowArgs | null) ?? null;
+        if (initialArgs) {
+            handleArgs(initialArgs, []);
+            w.__INITIAL_SCREENSHOT_ARGS__ = null;
+            if (initialArgs.initial_screenshot) {
+                isBootstrapping = false;
+            }
+        }
+
+        const freshScreenshots = await fetchData();
+        if (initialArgs) {
+            handleArgs(initialArgs, freshScreenshots);
+        }
+
+        isBootstrapping = false;
+
         return () => {
+            if (readyFallbackTimer) {
+                clearTimeout(readyFallbackTimer);
+                readyFallbackTimer = null;
+            }
             unlisten();
         };
     });
+
+    $: {
+        const currentId = currentScreenshot?.id ?? null;
+        if (currentId !== lastReadyScreenshotId) {
+            lastReadyScreenshotId = currentId;
+            viewerImageReady = false;
+        }
+    }
+
+    $: if (!hasEmittedInitialReady && currentWindowHandle && !isBootstrapping) {
+        if (viewMode !== "viewer") {
+            void emitInitialReady();
+        } else if (currentScreenshot && viewerImageReady) {
+            void emitInitialReady();
+        }
+    }
 
     $: filteredScreenshots = selectedGameId
         ? allScreenshots.filter((s) => s.gameId === selectedGameId)
@@ -154,6 +238,10 @@
     const backToGrid = () => {
         viewMode = "grid";
         isZoomed = false;
+    };
+
+    const handleViewerImageReady = () => {
+        viewerImageReady = true;
     };
 
     const handleGameSelect = (id: number | null) => {
@@ -270,7 +358,9 @@
 <div
     class="h-screen w-screen bg-bg-primary text-text-primary flex flex-col overflow-hidden"
 >
-    {#if viewMode === "viewer" && currentScreenshot}
+    {#if isBootstrapping}
+        <div class="flex-1 min-h-0 bg-black" />
+    {:else if viewMode === "viewer" && currentScreenshot}
         <!-- Viewer Mode -->
         <!-- Header -->
         <div
@@ -340,6 +430,7 @@
                 src={convertFileSrc(currentScreenshot.filename)}
                 alt={currentScreenshot.filename}
                 class="max-w-full max-h-full"
+                on:ready={handleViewerImageReady}
             />
         </div>
 

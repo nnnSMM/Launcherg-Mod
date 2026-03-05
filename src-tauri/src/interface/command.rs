@@ -20,34 +20,53 @@ use crate::{
     usecase::models::collection::CreateCollectionElementDetail,
 };
 use std::sync::{Arc, Mutex};
-use tauri::{AppHandle, Emitter, Manager, State, WebviewUrl, WebviewWindowBuilder};
+use tauri::{AppHandle, Emitter, Listener, Manager, State, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut};
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WindowScreenshot {
+    pub id: i32,
+    pub game_id: i32,
+    pub filename: String,
+    pub order_index: i32,
+    pub created_at: String,
+}
 
 #[tauri::command]
 pub async fn open_screenshot_window(
     handle: AppHandle,
     game_id: Option<i32>,
     initial_screenshot_id: Option<i32>,
+    initial_screenshot: Option<WindowScreenshot>,
 ) -> Result<(), CommandError> {
     println!(
-        "[open_screenshot_window] Called with game_id={:?}, initial_screenshot_id={:?}",
-        game_id, initial_screenshot_id
+        "[open_screenshot_window] Called with game_id={:?}, initial_screenshot_id={:?}, has_initial_screenshot={}",
+        game_id,
+        initial_screenshot_id,
+        initial_screenshot.is_some()
     );
 
     #[derive(serde::Serialize, Clone)]
     struct WindowArgs {
         game_id: Option<i32>,
         initial_screenshot_id: Option<i32>,
+        initial_screenshot: Option<WindowScreenshot>,
     }
     let args = WindowArgs {
         game_id,
         initial_screenshot_id,
+        initial_screenshot,
     };
 
     if let Some(window) = handle.get_webview_window("screenshot_window") {
-        println!("[open_screenshot_window] Window exists, showing and emitting event");
-        window.show().map_err(anyhow::Error::from)?;
-        window.set_focus().map_err(anyhow::Error::from)?;
+        println!("[open_screenshot_window] Window exists, applying args before showing");
+        let window_for_ready = window.clone();
+        window.once("screenshot-window-args-applied", move |_| {
+            let _ = window_for_ready.show();
+            let _ = window_for_ready.set_focus();
+        });
+        let _ = window.hide();
         let emit_result = window.emit("screenshot-window-args", args.clone());
         println!("[open_screenshot_window] Emit result: {:?}", emit_result);
         emit_result.map_err(anyhow::Error::from)?;
@@ -69,8 +88,12 @@ pub async fn open_screenshot_window(
         .build()
         .map_err(anyhow::Error::from)?;
 
-        // Show the window after it's fully configured
-        window.show().map_err(anyhow::Error::from)?;
+        // Show the window only after frontend initial layout is ready.
+        let window_for_ready = window.clone();
+        window.once("screenshot-window-ready", move |_| {
+            let _ = window_for_ready.show();
+            let _ = window_for_ready.set_focus();
+        });
     }
     Ok(())
 }
