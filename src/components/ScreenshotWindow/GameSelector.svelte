@@ -9,9 +9,12 @@
     let open = false;
     let searchQuery = "";
 
-    $: filteredGames = games.filter((g) =>
-        g.gamename.toLowerCase().includes(searchQuery.toLowerCase()),
-    );
+    $: normalizedSearchQuery = searchQuery.trim().toLowerCase();
+    $: filteredGames = normalizedSearchQuery
+        ? games.filter((g) =>
+            g.gamename.toLowerCase().includes(normalizedSearchQuery),
+        )
+        : games;
 
     const select = (id: number | null) => {
         dispatch("select", id);
@@ -39,8 +42,9 @@
         };
     }
 
-    $: selectedGameName = selectedGameId
-        ? games.find((g) => g.id === selectedGameId)?.gamename
+    $: gameNameById = new Map(games.map((g) => [g.id, g.gamename]));
+    $: selectedGameName = selectedGameId !== null
+        ? (gameNameById.get(selectedGameId) ?? "All Games")
         : "All Games";
 </script>
 
@@ -81,24 +85,10 @@
 
             <div class="overflow-y-auto flex-1 p-1">
                 <button
-                    class="w-full text-left px-3 py-2 rounded text-sm transition-colors flex items-center mb-1"
-                    style={selectedGameId === null
-                        ? "background-color: #3b82f6; color: white; font-weight: bold;"
-                        : "background-color: transparent; color: #e0e0e0;"}
+                    class="game-option w-full text-left px-3 py-2 rounded text-sm transition-colors flex items-center mb-1 {selectedGameId === null
+                        ? 'game-option-selected'
+                        : ''}"
                     on:click={() => select(null)}
-                    on:mouseenter={(e) => {
-                        if (selectedGameId !== null) {
-                            e.currentTarget.style.backgroundColor = "#3b82f6";
-                            e.currentTarget.style.color = "white";
-                        }
-                    }}
-                    on:mouseleave={(e) => {
-                        if (selectedGameId !== null) {
-                            e.currentTarget.style.backgroundColor =
-                                "transparent";
-                            e.currentTarget.style.color = "#e0e0e0";
-                        }
-                    }}
                 >
                     <span class="i-material-symbols-apps mr-2" />
                     All Games
@@ -115,25 +105,10 @@
 
                 {#each filteredGames as game}
                     <button
-                        class="w-full text-left px-3 py-2 rounded text-sm transition-colors truncate"
-                        style={selectedGameId === game.id
-                            ? "background-color: #3b82f6; color: white; font-weight: bold;"
-                            : "background-color: transparent; color: #e0e0e0;"}
+                        class="game-option w-full text-left px-3 py-2 rounded text-sm transition-colors truncate {selectedGameId === game.id
+                            ? 'game-option-selected'
+                            : ''}"
                         on:click={() => select(game.id)}
-                        on:mouseenter={(e) => {
-                            if (selectedGameId !== game.id) {
-                                e.currentTarget.style.backgroundColor =
-                                    "#3b82f6";
-                                e.currentTarget.style.color = "white";
-                            }
-                        }}
-                        on:mouseleave={(e) => {
-                            if (selectedGameId !== game.id) {
-                                e.currentTarget.style.backgroundColor =
-                                    "transparent";
-                                e.currentTarget.style.color = "#e0e0e0";
-                            }
-                        }}
                         title={game.gamename}
                     >
                         {game.gamename}
@@ -143,3 +118,21 @@
         </div>
     {/if}
 </div>
+
+<style>
+    .game-option {
+        background-color: transparent;
+        color: #e0e0e0;
+    }
+
+    .game-option:hover {
+        background-color: #3b82f6;
+        color: white;
+    }
+
+    .game-option-selected {
+        background-color: #3b82f6;
+        color: white;
+        font-weight: bold;
+    }
+</style>

@@ -3,7 +3,7 @@
     import type { Screenshot } from "@/lib/types";
     import { createEventDispatcher } from "svelte";
 
-    export let screenshots: Screenshot[];
+    export let screenshots: Screenshot[] = [];
     export let selectionMode: boolean = false;
     export let selectedIds: Set<number> = new Set();
 
@@ -18,6 +18,18 @@
             dispatch("clickScreenshot", screenshot);
         }
     };
+
+    type DisplayScreenshot = {
+        screenshot: Screenshot;
+        src: string;
+        createdAtText: string;
+    };
+
+    $: displayScreenshots = screenshots.map((screenshot): DisplayScreenshot => ({
+        screenshot,
+        src: convertFileSrc(screenshot.filename),
+        createdAtText: new Date(screenshot.createdAt).toLocaleString(),
+    }));
 </script>
 
 {#if screenshots.length === 0}
@@ -36,10 +48,12 @@
         class="grid gap-4 pb-20"
         style="grid-template-columns: repeat(auto-fill, minmax({gridSize}px, 1fr));"
     >
-        {#each screenshots as screenshot}
+        {#each displayScreenshots as item (item.screenshot.id)}
+            {@const screenshot = item.screenshot}
+            {@const isSelected = selectedIds.has(screenshot.id)}
             <button
                 class="relative aspect-video group overflow-hidden bg-bg-secondary transition-all shadow-sm hover:shadow-md cursor-pointer {selectionMode &&
-                selectedIds.has(screenshot.id)
+                isSelected
                     ? 'border-accent-primary border-2 scale-95 opacity-80'
                     : ''}"
                 on:click={() => handleClick(screenshot)}
@@ -49,13 +63,11 @@
                         class="absolute top-2 left-2 z-10 transition-transform hover:scale-110"
                     >
                         <div
-                            class="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors {selectedIds.has(
-                                screenshot.id,
-                            )
+                            class="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors {isSelected
                                 ? 'bg-accent-primary border-accent-primary'
                                 : 'bg-black/50 border-white/70'}"
                         >
-                            {#if selectedIds.has(screenshot.id)}
+                            {#if isSelected}
                                 <div
                                     class="i-material-symbols-check text-white text-sm"
                                 />
@@ -64,7 +76,7 @@
                     </div>
                 {/if}
                 <img
-                    src={convertFileSrc(screenshot.filename)}
+                    src={item.src}
                     alt={screenshot.filename}
                     class="w-full h-full object-cover transition-transform duration-300 {selectionMode
                         ? ''
@@ -82,7 +94,7 @@
                         : 'group-hover:opacity-100'} transition-opacity flex justify-between items-end"
                 >
                     <div class="text-xs text-white/90 truncate font-mono">
-                        {new Date(screenshot.createdAt).toLocaleString()}
+                        {item.createdAtText}
                     </div>
                 </div>
             </button>

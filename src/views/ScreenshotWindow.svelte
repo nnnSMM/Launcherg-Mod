@@ -33,6 +33,8 @@
     let lastReadyScreenshotId: number | null = null;
     let readyFallbackTimer: ReturnType<typeof setTimeout> | null = null;
     let isBootstrapping = true;
+    let fileSizeRequestId = 0;
+    const fileSizeCache = new Map<number, number | null>();
 
     // Initial args from window creation
     type WindowArgs = {
@@ -195,6 +197,15 @@
         ? allScreenshots.filter((s) => s.gameId === selectedGameId)
         : allScreenshots;
 
+    $: {
+        const validIds = new Set(allScreenshots.map((s) => s.id));
+        for (const id of fileSizeCache.keys()) {
+            if (!validIds.has(id)) {
+                fileSizeCache.delete(id);
+            }
+        }
+    }
+
     // Update currentScreenshot when index or screenshots change
     $: {
         if (viewerScreenshots.length > 0) {
@@ -202,28 +213,42 @@
                 currentIndex = viewerScreenshots.length - 1;
             if (currentIndex < 0) currentIndex = 0;
             currentScreenshot = viewerScreenshots[currentIndex];
-            // Fetch file size
-            if (currentScreenshot) {
-                console.log(
-                    "[ScreenshotWindow] Getting file size for:",
-                    currentScreenshot.filename,
-                );
-                stat(currentScreenshot.filename)
-                    .then((s) => {
-                        console.log("[ScreenshotWindow] File size:", s.size);
-                        currentFileSize = s.size;
-                    })
-                    .catch((e) => {
-                        console.error(
-                            "[ScreenshotWindow] Failed to get file size:",
-                            e,
-                        );
-                        currentFileSize = null;
-                    });
-            }
         } else if (viewMode === "viewer") {
             backToGrid();
         }
+    }
+
+    $: if (currentScreenshot) {
+        const cached = fileSizeCache.get(currentScreenshot.id);
+        if (cached !== undefined) {
+            currentFileSize = cached;
+        } else {
+            currentFileSize = null;
+            const requestId = ++fileSizeRequestId;
+            const screenshotId = currentScreenshot.id;
+            const filename = currentScreenshot.filename;
+            stat(filename)
+                .then((s) => {
+                    fileSizeCache.set(screenshotId, s.size);
+                    if (
+                        requestId === fileSizeRequestId
+                        && currentScreenshot?.id === screenshotId
+                    ) {
+                        currentFileSize = s.size;
+                    }
+                })
+                .catch(() => {
+                    fileSizeCache.set(screenshotId, null);
+                    if (
+                        requestId === fileSizeRequestId
+                        && currentScreenshot?.id === screenshotId
+                    ) {
+                        currentFileSize = null;
+                    }
+                });
+        }
+    } else {
+        currentFileSize = null;
     }
 
     const enterViewer = (targetScreenshot: Screenshot) => {
@@ -249,14 +274,24 @@
         viewMode = "grid";
     };
 
+    $: gamesById = new Map(allGames.map((g) => [g.id, g]));
+
     $: currentGame = currentScreenshot
-        ? allGames.find((g) => g.id === currentScreenshot!.gameId)
+        ? (gamesById.get(currentScreenshot.gameId) ?? null)
         : null;
 
     $: currentGameName = currentGame?.gamename || null;
 
     $: currentGameIcon = currentGame?.icon
         ? convertFileSrc(currentGame.icon)
+        : null;
+
+    $: currentScreenshotSrc = currentScreenshot
+        ? convertFileSrc(currentScreenshot.filename)
+        : null;
+
+    $: currentScreenshotCreatedAtText = currentScreenshot
+        ? new Date(currentScreenshot.createdAt).toLocaleString("ja-JP")
         : null;
 
     // Viewer navigation
@@ -312,13 +347,17 @@
 
         if (viewMode === "grid" && selectionMode) {
             try {
-                for (const id of selectedIds) {
-                    await commandDeleteScreenshot(id);
-                }
-                const deletedIdsSet = new Set(selectedIds);
+                const idsToDelete = [...selectedIds];
+                await Promise.all(
+                    idsToDelete.map((id) => commandDeleteScreenshot(id)),
+                );
+                const deletedIdsSet = new Set(idsToDelete);
                 allScreenshots = allScreenshots.filter(
                     (s) => !deletedIdsSet.has(s.id),
                 );
+                for (const id of deletedIdsSet) {
+                    fileSizeCache.delete(id);
+                }
                 selectedIds.clear();
                 selectedIds = selectedIds;
                 selectionMode = false;
@@ -328,6 +367,7 @@
         } else if (currentScreenshot && viewMode === "viewer") {
             try {
                 await commandDeleteScreenshot(currentScreenshot.id);
+                fileSizeCache.delete(currentScreenshot.id);
                 viewerScreenshots = viewerScreenshots.filter(
                     (s) => s.id !== currentScreenshot!.id,
                 );
@@ -427,7 +467,7 @@
 
             <ZoomableImage
                 bind:isZoomed
-                src={convertFileSrc(currentScreenshot.filename)}
+                src={currentScreenshotSrc ?? convertFileSrc(currentScreenshot.filename)}
                 alt={currentScreenshot.filename}
                 class="max-w-full max-h-full"
                 on:ready={handleViewerImageReady}
@@ -441,9 +481,7 @@
             class:pointer-events-none={isZoomed}
         >
             <div class="text-sm text-[#8b8b8b]">
-                撮影: {new Date(currentScreenshot.createdAt).toLocaleString(
-                    "ja-JP",
-                )}
+                撮影: {currentScreenshotCreatedAtText}
                 {#if currentFileSize !== null}
                     <span class="mx-2">•</span>
                     {formatFileSize(currentFileSize)}
