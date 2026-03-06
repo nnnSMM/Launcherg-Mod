@@ -43,7 +43,7 @@ impl WString for &str {
     }
 }
 
-const NOT_GAME_EQUALLY_WORD: [&str; 1] = ["bgi"];
+const NOT_GAME_EQUALLY_WORD: [&str; 3] = ["bgi", "siglusengine", "nscripter"];
 
 const NOT_GAME_TERMS: [&str; 16] = [
     "マニュアル",
@@ -63,15 +63,20 @@ const NOT_GAME_TERMS: [&str; 16] = [
     "公式サイト",
     "ホームページ",
 ];
-/// ファイル名がゲーム以外のファイルかどうかを判定
-fn not_game(filename: &str) -> bool {
+/// ファイル名がインストーラーやマニュアル等に該当するか（完全に除外すべきワード）
+fn not_game_strictly(filename: &str) -> bool {
     let filename_lower = filename.to_lowercase();
     NOT_GAME_TERMS
         .iter()
         .any(|term| filename_lower.contains(term))
-        || NOT_GAME_EQUALLY_WORD
-            .iter()
-            .any(|word| filename_lower == *word)
+}
+
+/// ファイル名がBGI等の汎用エンジン名か（ファイル名マッチのみスキップ、親フォルダ推定は継続）
+fn is_engine_name(filename: &str) -> bool {
+    let filename_lower = filename.to_lowercase();
+    NOT_GAME_EQUALLY_WORD
+        .iter()
+        .any(|word| filename_lower == *word)
 }
 
 const REMOVE_WORDS: [&str; 9] = [
@@ -234,6 +239,7 @@ pub fn get_game_candidates_by_exe_path(
     threshould: f32,
     candidate_limit: usize,
 ) -> anyhow::Result<AllGameCache> {
+    // 親フォルダ名（直接の親）
     let parent = Path::new(&filepath)
         .parent()
         .and_then(|v| {
@@ -242,15 +248,29 @@ pub fn get_game_candidates_by_exe_path(
         })
         .ok_or(anyhow::anyhow!("can not get parent"))?;
 
+    // 祖父母フォルダ名／ブランド名相当のフォルダ（親の親）
+    let grandparent = Path::new(&filepath)
+        .parent()
+        .and_then(|p| p.parent())
+        .and_then(|v| {
+            v.file_name()
+                .and_then(|name| Some(normalize(&name.to_string_lossy().to_string())))
+        });
+
     let filename: String =
         get_file_name_without_extension(filepath).ok_or(anyhow::anyhow!("can not get filename"))?;
     let filename = normalize(&filename);
-    if not_game(&filename) {
+
+    // インストーラー・マニュアル等は親フォルダ名に関わらず完全除外
+    if not_game_strictly(&filename) {
         return Ok(vec![]);
     }
-    let filename = remove_word(&filename);
 
-    let is_skip_filename_check = filename == "game" || filename == "start";
+    // BGI・SiglusEngine等の汎用エンジン名はファイル名判定のみスキップ、親フォルダ名判定は継続
+    let is_skip_filename_check =
+        is_engine_name(&filename) || filename == "game" || filename == "start";
+
+    let filename = remove_word(&filename);
 
     let mut distance_pairs = vec![];
 
@@ -278,7 +298,12 @@ pub fn get_game_candidates_by_exe_path(
             val = val.max(get_comparable_distance(&filename, &pair.gamename));
         }
 
+        // 親フォルダ名でゲーム名と比較
         val = val.max(get_comparable_distance(&parent, &pair.gamename));
+        // 祖父母フォルダ名でゲーム名と比較（ブランド名フォルダの下にゲームフォルダがある場合のケア）
+        if let Some(ref gp) = grandparent {
+            val = val.max(get_comparable_distance(gp, &pair.gamename));
+        }
         if val > threshould {
             distance_pairs.push((pair.clone(), val));
         }
@@ -316,31 +341,31 @@ mod tests {
     #[test]
     fn test_not_game_returns_true_for_installer() {
         // Arrange & Act & Assert
-        assert!(not_game("インストール"));
-        assert!(not_game("アンインストール"));
-        assert!(not_game("install"));
-        assert!(not_game("uninstall"));
+        assert!(not_game_strictly("インストール"));
+        assert!(not_game_strictly("アンインストール"));
+        assert!(not_game_strictly("install"));
+        assert!(not_game_strictly("uninstall"));
     }
 
     #[test]
     fn test_not_game_returns_true_for_manual() {
-        assert!(not_game("マニュアル"));
-        assert!(not_game("はじめに"));
-        assert!(not_game("サポート"));
+        assert!(not_game_strictly("マニュアル"));
+        assert!(not_game_strictly("はじめに"));
+        assert!(not_game_strictly("サポート"));
     }
 
     #[test]
     fn test_not_game_returns_false_for_game() {
-        assert!(!not_game("game"));
-        assert!(!not_game("start"));
-        assert!(!not_game("サクラノ詩"));
+        assert!(!not_game_strictly("game"));
+        assert!(!not_game_strictly("start"));
+        assert!(!not_game_strictly("サクラノ詩"));
     }
 
     #[test]
     fn test_not_game_case_insensitive() {
         // 大文字小文字を区別しない
-        assert!(not_game("INSTALL"));
-        assert!(not_game("Install"));
+        assert!(not_game_strictly("INSTALL"));
+        assert!(not_game_strictly("Install"));
     }
 
     // ========================================
@@ -455,7 +480,13 @@ mod tests {
             &vec![AllGameCacheOne::new(
                 27123,
                 "pieces/渡り鳥のソムニウム".to_string(),
-            )],
+            )]
+            .into_iter()
+            .map(|pair| AllGameCacheOne {
+                id: pair.id,
+                gamename: normalize(&pair.gamename),
+            })
+            .collect(),
             "W:/others/software/Whirlpool/pieces/pieces.exe",
             0.5,
             3,
@@ -511,6 +542,54 @@ mod tests {
             .unwrap();
         // "install" は not_game でtrue -> 空配列
         assert!(res.is_empty());
+    }
+
+    // ========================================
+    // 汎用エンジン名ファイルでの親フォルダ名推定のテスト（新規）
+    // ========================================
+
+    // RED: BGI.exeはnot_game対象だが、親フォルダ名「サクラノ詩」から正しく推定できるべき
+    #[test]
+    fn test_get_game_candidates_bgi_from_parent_folder() {
+        let cache = vec![AllGameCacheOne::new(
+            4529,
+            "サクラノ詩 -樻の森の上を舞う-".to_string(),
+        )];
+        // パス：e:\VisualNovel\架\サクラノ詩\BGI.exe
+        let res = get_game_candidates_by_exe_path(
+            &cache,
+            "E:\\VisualNovel\\架\\サクラノ詩\\BGI.exe",
+            0.8,
+            1,
+        )
+        .unwrap();
+        assert!(
+            !res.is_empty(),
+            "BGI.exeの親フォルダからサクラノ詩が推定できるべき"
+        );
+        assert_eq!(res.first().unwrap().id, 4529);
+    }
+
+    // RED: SiglusEngine.exe はnot_game対象ではないが、親フォルダ名から正しく推定できるべき
+    #[test]
+    fn test_get_game_candidates_siglusengine_from_parent_folder() {
+        let cache = vec![AllGameCacheOne::new(
+            29016,
+            "summer pockets reflection blue".to_string(),
+        )];
+        // パス：e:\VisualNovel\key\Summer Pockets REFLECTION BLUE\SiglusEngine.exe
+        let res = get_game_candidates_by_exe_path(
+            &cache,
+            "E:\\VisualNovel\\key\\Summer Pockets REFLECTION BLUE\\SiglusEngine.exe",
+            0.8,
+            1,
+        )
+        .unwrap();
+        assert!(
+            !res.is_empty(),
+            "SiglusEngine.exeの親フォルダからSummer Pocketsが推定できるべき"
+        );
+        assert_eq!(res.first().unwrap().id, 29016);
     }
 
     // ========================================
@@ -753,7 +832,11 @@ const SCREENSHOT_THUMBNAILS_DIR: &str = "thumbnails";
 const SCREENSHOT_THUMBNAIL_MAX_WIDTH: u32 = 640;
 const SCREENSHOT_THUMBNAIL_QUALITY: u8 = 78;
 
-pub fn get_screenshot_file_path(save_root_dir: &str, game_id: i32, filename: &str) -> std::path::PathBuf {
+pub fn get_screenshot_file_path(
+    save_root_dir: &str,
+    game_id: i32,
+    filename: &str,
+) -> std::path::PathBuf {
     Path::new(save_root_dir)
         .join(SCREENSHOTS_ROOT_DIR)
         .join(game_id.to_string())
@@ -796,9 +879,9 @@ pub fn ensure_screenshot_thumbnail(
     let img = image::open(&source_path)?;
     let (width, height) = img.dimensions();
     let resized = if width > SCREENSHOT_THUMBNAIL_MAX_WIDTH {
-        let resized_height =
-            ((height as u64 * SCREENSHOT_THUMBNAIL_MAX_WIDTH as u64 + (width as u64 / 2))
-                / width as u64) as u32;
+        let resized_height = ((height as u64 * SCREENSHOT_THUMBNAIL_MAX_WIDTH as u64
+            + (width as u64 / 2))
+            / width as u64) as u32;
         img.resize_exact(
             SCREENSHOT_THUMBNAIL_MAX_WIDTH,
             resized_height.max(1),
@@ -811,12 +894,7 @@ pub fn ensure_screenshot_thumbnail(
     let rgb = resized.to_rgb8();
     let mut file = fs::File::create(&thumbnail_path)?;
     let mut encoder = JpegEncoder::new_with_quality(&mut file, SCREENSHOT_THUMBNAIL_QUALITY);
-    encoder.encode(
-        &rgb,
-        rgb.width(),
-        rgb.height(),
-        ColorType::Rgb8,
-    )?;
+    encoder.encode(&rgb, rgb.width(), rgb.height(), ColorType::Rgb8)?;
 
     Ok(Some(thumbnail_path.to_string_lossy().to_string()))
 }

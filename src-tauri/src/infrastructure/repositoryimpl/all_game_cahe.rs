@@ -16,8 +16,9 @@ impl AllGameCacheRepository for RepositoryImpl<AllGameCache> {
         ids: Vec<i32>,
     ) -> anyhow::Result<Vec<AllGameCacheOneWithThumbnailUrl>> {
         let pool = self.pool.0.clone();
-        let mut builder =
-            sqlx::query_builder::QueryBuilder::new("SELECT * from all_game_caches WHERE id IN (");
+        let mut builder = sqlx::query_builder::QueryBuilder::new(
+            "SELECT id, gamename, thumbnail_url from all_game_caches WHERE id IN (",
+        );
         let mut separated = builder.separated(", ");
         for id in ids.iter() {
             separated.push_bind(id);
