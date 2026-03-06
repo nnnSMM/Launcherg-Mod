@@ -55,12 +55,16 @@ export const scrapeAllGame = async (idCursor = 0) => {
   return idGameNamePairs;
 };
 
+import { systemStatus } from "@/store/systemStatus";
+
 export const initializeAllGameCache = async () => {
+  systemStatus.set({ isInitializing: true, message: "ゲームデータベースの状態を確認しています..." });
   let objValue: AllGameCacheOne[] = [];
   try {
     const lastUpdated = await commandGetAllGameCacheLastUpdated();
     const now = new Date();
     if (now.getTime() - lastUpdated.date.getTime() > 1000 * 60 * 60 * 24 * 1) {
+      systemStatus.update(s => ({ ...s, message: "不足しているゲーム情報を取得しています..." }));
       objValue = await scrapeAllGame(lastUpdated.id + 1);
     }
   } catch (e) {
@@ -68,6 +72,7 @@ export const initializeAllGameCache = async () => {
       "all_game_cache の取得に失敗しました。おそらく初期化されていないため初期化します。"
     );
     console.warn(e);
+    systemStatus.update(s => ({ ...s, message: "ゲームデータベースを初期化しています（初回のみ数分かかります）..." }));
     const response = await fetch(
       "https://raw.githubusercontent.com/ryoha000/launcherg/main/script/all_games.json",
       { method: "GET" }
@@ -77,7 +82,14 @@ export const initializeAllGameCache = async () => {
       (acc, cur) => (acc > cur.id ? acc : cur.id),
       0
     );
+    systemStatus.update(s => ({ ...s, message: "最新のゲーム情報を同期しています..." }));
     objValue = [...initValue, ...(await scrapeAllGame(maxId + 1))];
   }
-  await commandUpdateAllGameCache(objValue);
+
+  if (objValue.length > 0) {
+    systemStatus.update(s => ({ ...s, message: "データベースを更新しています..." }));
+    await commandUpdateAllGameCache(objValue);
+  }
+
+  systemStatus.set({ isInitializing: false, message: "" });
 };

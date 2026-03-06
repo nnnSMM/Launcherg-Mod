@@ -15,6 +15,7 @@
 
   import Overlay from "@/views/Overlay.svelte";
   import ScreenshotWindow from "@/views/ScreenshotWindow.svelte";
+  import InitializationOverlay from "@/components/UI/InitializationOverlay.svelte";
 
   const windowLabel = getCurrentWindow().label;
 
@@ -54,6 +55,7 @@
         </Layout>
       {/await}
       <ImportDropFiles />
+      <InitializationOverlay />
     </div>
   </main>
 {/if}

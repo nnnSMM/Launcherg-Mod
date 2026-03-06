@@ -229,10 +229,49 @@ impl<R: ExplorersExt> FileUseCase<R> {
             .map(|v| (v.id, v.gamename))
             .collect();
 
+        // LNKファイルのターゲットを事前に解決し、ターゲットが存在しないものを除外
+        let (lnk_files, exe_files): (Vec<String>, Vec<String>) =
+            files.into_iter().partition(|path| {
+                path.to_lowercase().ends_with("lnk") || path.to_lowercase().ends_with("url")
+            });
+
+        // キーを String にコピーして lnk_files の借用を解除
+        let lnk_metadatas: HashMap<String, _> = {
+            let lnk_refs: Vec<&str> = lnk_files.iter().map(|s| s.as_str()).collect();
+            get_lnk_metadatas(lnk_refs)?
+                .into_iter()
+                .map(|(k, v)| (k.to_string(), v))
+                .collect()
+        };
+
+        // ターゲットが存在しないLNKファイルを除外
+        let mut skipped_count = 0usize;
+        let filtered_files: Vec<String> = exe_files
+            .into_iter()
+            .chain(lnk_files.into_iter().filter(|lnk_path| {
+                let is_valid = lnk_metadatas
+                    .get(lnk_path.as_str())
+                    .map_or(false, |meta| std::path::Path::new(&meta.path).exists());
+                if !is_valid {
+                    skipped_count += 1;
+                }
+                is_valid
+            }))
+            .collect();
+
+        // 除外したファイル分のプログレスカウンタをインクリメント
+        if skipped_count > 0 {
+            if let Ok(cb) = process_each_game_file_callback.lock() {
+                for _ in 0..skipped_count {
+                    let _ = cb();
+                }
+            }
+        }
+
         let (exe_id_path_vec, lnk_id_path_vec): (Vec<(i32, String)>, Vec<(i32, String)>) = self
             .concurrency_get_path_game_map(
                 normalized_all_games,
-                files,
+                filtered_files,
                 process_each_game_file_callback,
             )
             .await?
@@ -244,17 +283,6 @@ impl<R: ExplorersExt> FileUseCase<R> {
             start,
             ".lnk, .exe ファイルのゲームとの紐づけが完了しました。",
         )?;
-
-        let lnk_path_vec: Vec<&str> = lnk_id_path_vec
-            .iter()
-            .map(|(_, lnk_path)| lnk_path.as_str())
-            .collect();
-        let lnk_metadatas = get_lnk_metadatas(lnk_path_vec)?;
-        if lnk_id_path_vec.len() != lnk_metadatas.len() {
-            emit_progress(format!(
-                "lnk ファイルの数と lnk のターゲットファイルの数が一致しません。リンクファイル数: {}, ターゲットファイル数: {}", lnk_id_path_vec.len(), lnk_metadatas.len()
-            ))?;
-        }
 
         let mut collection_elements = vec![];
         let mut save_icon_tasks = vec![];
@@ -278,14 +306,14 @@ impl<R: ExplorersExt> FileUseCase<R> {
         for (id, lnk_path) in lnk_id_path_vec.iter() {
             let id = Id::new(*id);
             let install_at;
-            // icon
+            // icon (lnk_metadatas は既に事前解決済み)
             if let Some(metadata) = lnk_metadatas.get(lnk_path.as_str()) {
-                let task;
-                if metadata.icon.to_lowercase().ends_with("ico") {
-                    task = save_icon_to_png(handle, &metadata.icon, &id)?;
+                let icon_path = if !metadata.icon.is_empty() {
+                    &metadata.icon
                 } else {
-                    task = save_icon_to_png(handle, &metadata.path, &id)?;
-                }
+                    &metadata.path
+                };
+                let task = save_icon_to_png(handle, icon_path, &id)?;
                 save_icon_tasks.push(task);
 
                 install_at = get_file_created_at_sync(&metadata.path);

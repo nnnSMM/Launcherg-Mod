@@ -2,6 +2,8 @@ pub struct File {}
 pub struct LnkMetadata {
     pub path: String,
     pub icon: String,
+    #[allow(dead_code)]
+    pub icon_index: i32,
 }
 
 use std::{collections::HashMap, fs, path::Path, sync::Arc};
@@ -171,6 +173,22 @@ fn get_ini_value(contents: &str, key: &str) -> Option<String> {
     }
 }
 
+fn expand_env_vars(path: &str) -> String {
+    use windows::Win32::System::Environment::ExpandEnvironmentStringsW;
+    let input = path.to_wide_null_terminated();
+    let mut buffer: Vec<u16> = vec![0; 261];
+    unsafe {
+        let size = ExpandEnvironmentStringsW(PCWSTR::from_raw(input.as_ptr()), Some(&mut buffer));
+        if size > 261 {
+            buffer = vec![0; size as usize];
+            ExpandEnvironmentStringsW(PCWSTR::from_raw(input.as_ptr()), Some(&mut buffer));
+        }
+        PCWSTR::from_raw(buffer.as_ptr())
+            .to_string()
+            .unwrap_or_else(|_| path.to_string())
+    }
+}
+
 pub fn get_lnk_metadatas(lnk_file_paths: Vec<&str>) -> anyhow::Result<HashMap<&str, LnkMetadata>> {
     let mut metadatas = HashMap::new();
 
@@ -193,15 +211,22 @@ pub fn get_lnk_metadatas(lnk_file_paths: Vec<&str>) -> anyhow::Result<HashMap<&s
                 )?;
 
                 shell_link.GetPath(target_path_slice, &mut WIN32_FIND_DATAW::default(), 0)?;
-                let path = PCWSTR::from_raw(target_path_vec.as_mut_ptr())
-                    .to_string()?
-                    .clone();
-                shell_link.GetIconLocation(target_path_slice, &mut 0)?;
-                let icon = PCWSTR::from_raw(target_path_vec.as_mut_ptr())
-                    .to_string()?
-                    .clone();
+                let path =
+                    expand_env_vars(&PCWSTR::from_raw(target_path_vec.as_mut_ptr()).to_string()?);
 
-                metadatas.insert(file_path, LnkMetadata { path, icon });
+                let mut icon_index = 0i32;
+                shell_link.GetIconLocation(target_path_slice, &mut icon_index)?;
+                let icon =
+                    expand_env_vars(&PCWSTR::from_raw(target_path_vec.as_mut_ptr()).to_string()?);
+
+                metadatas.insert(
+                    file_path,
+                    LnkMetadata {
+                        path,
+                        icon,
+                        icon_index,
+                    },
+                );
             } else if file_path.to_lowercase().ends_with("url") {
                 let icon_file = get_url_file_icon_path(file_path)?;
 
@@ -209,7 +234,8 @@ pub fn get_lnk_metadatas(lnk_file_paths: Vec<&str>) -> anyhow::Result<HashMap<&s
                     file_path,
                     LnkMetadata {
                         path: file_path.to_string(),
-                        icon: icon_file.unwrap_or_default(),
+                        icon: expand_env_vars(&icon_file.unwrap_or_default()),
+                        icon_index: 0,
                     },
                 );
             } else {
@@ -660,6 +686,22 @@ pub fn get_icon_path(
         .to_string_lossy()
         .to_string()
 }
+
+pub fn find_icon_in_dir_recursive(file_path: &str) -> Option<String> {
+    let path = Path::new(file_path);
+    let parent = path.parent()?;
+
+    for entry in WalkDir::new(parent).into_iter().flatten() {
+        let p = entry.path();
+        if p.is_file()
+            && p.extension()
+                .map_or(false, |ext| ext.to_string_lossy().to_lowercase() == "ico")
+        {
+            return Some(p.to_string_lossy().to_string());
+        }
+    }
+    None
+}
 pub fn save_icon_to_png(
     handle: &Arc<AppHandle>,
     file_path: &str,
@@ -677,6 +719,12 @@ pub fn save_icon_to_png(
     if is_ico {
         return save_ico_to_png(file_path, &save_png_path);
     }
+
+    // EXE/LNKなどの場合、子孫フォルダ含め .ico があればそれを優先
+    if let Some(sibling_ico) = find_icon_in_dir_recursive(file_path) {
+        return save_ico_to_png(&sibling_ico, &save_png_path);
+    }
+
     if Path::new(file_path).exists() {
         return save_exe_file_png(handle, file_path, &save_png_path);
     }
@@ -759,30 +807,45 @@ pub fn save_exe_file_png(
     save_png_path: &str,
 ) -> anyhow::Result<JoinHandle<anyhow::Result<()>>> {
     let save_png_path_cloned = save_png_path.to_string();
-    let (mut rx, _) = handle
-        .shell()
-        .sidecar("extract-icon")?
-        .args(vec!["48", file_path, save_png_path])
-        .spawn()?;
+    let file_path_cloned = file_path.to_string();
+    let handle_cloned = handle.clone();
 
-    let handle: JoinHandle<anyhow::Result<()>> = tauri::async_runtime::spawn(async move {
+    let join_handle: JoinHandle<anyhow::Result<()>> = tauri::async_runtime::spawn(async move {
+        let spawn_result = handle_cloned
+            .shell()
+            .sidecar("extract-icon")
+            .and_then(|cmd| {
+                cmd.args(vec!["48", &file_path_cloned, &save_png_path_cloned])
+                    .spawn()
+            });
+
+        let (mut rx, _child) = match spawn_result {
+            Ok(v) => v,
+            Err(e) => {
+                eprintln!("[save_exe_file_png] extract-icon spawn failed: {}", e);
+                return save_default_icon(&save_png_path_cloned)?.await?;
+            }
+        };
+
         while let Some(event) = rx.recv().await {
             match event {
-                CommandEvent::Stdout(_) | CommandEvent::Stderr(_) => {
-                    // アイコンが存在すればOK、なければデフォルトを保存
+                CommandEvent::Terminated(_) => {
                     if std::path::Path::new(&save_png_path_cloned).exists() {
                         return Ok(());
                     }
                     return save_default_icon(&save_png_path_cloned)?.await?;
                 }
-                CommandEvent::Terminated(_) => return Ok(()),
                 _ => {}
             }
         }
-        Err(anyhow::anyhow!("extract-icon is not terminated"))
+        // イベントループが終了してもTerminatedが来なかった場合
+        if std::path::Path::new(&save_png_path_cloned).exists() {
+            return Ok(());
+        }
+        save_default_icon(&save_png_path_cloned)?.await?
     });
 
-    Ok(handle)
+    Ok(join_handle)
 }
 
 const PLAY_HISTORIES_ROOT_DIR: &str = "play-histories";

@@ -1,4 +1,4 @@
-pub mod all_game_cahe;
+pub mod all_game_cache;
 pub mod collection;
 pub mod driver;
 pub mod explored_cache;
