@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use derive_new::new;
 use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
-use tauri::AppHandle;
+use tauri::{AppHandle, Emitter};
 
 use crate::domain::repository::repositories::RepositoriesExt;
 use crate::domain::repository::screenshot::ScreenshotRepository;
@@ -106,7 +106,10 @@ impl<R: RepositoriesExt + Send + Sync + 'static> ScreenshotWatcher<R> {
                                         )
                                         .await
                                         {
-                                            Ok(_) => {}
+                                            Ok(_) => {
+                                                // 通知イベントを発火
+                                                let _ = handle.emit("collection-element-updated", game_id.value);
+                                            }
                                             Err(e) => eprintln!(
                                                 "ScreenshotWatcher: Failed to copy screenshot: {}",
                                                 e

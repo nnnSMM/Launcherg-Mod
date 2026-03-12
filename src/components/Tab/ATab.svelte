@@ -91,8 +91,4 @@
     -moz-user-select: none;
     -ms-user-select: none;
   }
-  .placeholder-style {
-  }
-  .ghost-appearance {
-  }
 </style>

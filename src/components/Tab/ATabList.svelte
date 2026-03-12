@@ -158,7 +158,7 @@
 
   $: if ($selected !== -1) {
     tick().then(() => {
-      const el = tabElements[$selected];
+      const el = tabElements[$selected] as HTMLElement & { scrollIntoView: (options: any) => void };
       if (el) {
         el.scrollIntoView({ behavior: "instant", inline: "nearest" });
       }

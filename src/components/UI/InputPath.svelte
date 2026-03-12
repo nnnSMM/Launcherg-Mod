@@ -25,7 +25,7 @@
         : [],
       directory,
     });
-    if (selected === null || Array.isArray(selected)) {
+    if (typeof selected !== "string") {
       return;
     }
     path = selected;

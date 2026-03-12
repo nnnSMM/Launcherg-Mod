@@ -10,9 +10,9 @@
   export let variant:
     | "success"
     | "primary"
-    | "secondary"
     | "warning"
-    | "error" = "success";
+    | "error"
+    | "normal" = "success";
 
   const dispather = createEventDispatcher<{
     play: { isAdmin: boolean | undefined };

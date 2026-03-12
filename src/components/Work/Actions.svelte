@@ -258,8 +258,10 @@
           on:close={() => close(null)}
           on:selectChange={() => (isOpenImportManually = true)}
           on:selectDelete={() => (isOpenDelete = true)}
-          on:selectOpen={() =>
-            commandOpenFolder(element.exePath ?? element.lnkPath)}
+          on:selectOpen={() => {
+            const path = element?.exePath ?? element?.lnkPath;
+            if (path) commandOpenFolder(path);
+          }}
           on:selectOtherInfomation={() => (isOpenOtherInformation = true)}
           on:selectShortcut={setAsShortcutGame}
         />

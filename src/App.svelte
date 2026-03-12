@@ -24,6 +24,22 @@
   onMount(async () => {
     initialize();
     initializeAllGameCache();
+
+    // F5とCtrl+Rによるリロードを無効化
+    const handleKeydown = (e: KeyboardEvent) => {
+      if (
+        e.key === "F5" ||
+        (e.ctrlKey && e.key === "r") ||
+        (e.metaKey && e.key === "r")
+      ) {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener("keydown", handleKeydown);
+    
+    return () => {
+      window.removeEventListener("keydown", handleKeydown);
+    };
   });
 </script>
 

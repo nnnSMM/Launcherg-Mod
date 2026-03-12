@@ -5,29 +5,62 @@
   import { sidebarCollectionElements } from "@/store/sidebarCollectionElements";
   import { commandGetCollectionElement } from "@/lib/command";
   import type { CollectionElement, Work as WorkType } from "@/lib/types";
+  import { listen } from "@tauri-apps/api/event";
 
   export let params: { id: string };
 
+  let currentWork: WorkType | null = null;
+  let currentElement: CollectionElement | null = null;
+  let errorMsg: string | null = null;
+
+  const loadData = async (id: number) => {
+    try {
+      errorMsg = null;
+      const w = await works.get(id);
+      if (!w) throw new Error("Work not found");
+      const e = await commandGetCollectionElement(w.id);
+      currentWork = w;
+      currentElement = e;
+    } catch (e: any) {
+      errorMsg = e.message;
+    }
+  };
+
+  $: if (params.id) {
+    currentWork = null;
+    currentElement = null;
+    loadData(+params.id);
+  }
+
   onMount(() => {
     sidebarCollectionElements.refetch();
-  });
 
-  $: workAndElementPromise = (async () => {
-    const work = await works.get(+params.id);
-    if (!work) {
-      throw new Error("Work not found");
-    }
-    const element = await commandGetCollectionElement(work.id);
-    return { work, element };
-  })();
+    const unlisten = listen<number>("collection-element-updated", (event) => {
+      if (event.payload === +params.id) {
+        // UIの再構築を防ぐため、プロパティの静かな更新のみ行う
+        (async () => {
+          if (currentWork) {
+            const e = await commandGetCollectionElement(currentWork.id);
+            currentElement = e;
+          }
+        })();
+      }
+      // サイドバーのプレイ時間等も最新化
+      sidebarCollectionElements.refetch();
+    });
+
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  });
 </script>
 
-{#await workAndElementPromise then { work, element }}
-  <div class="w-full h-full">
-    <Work {work} {element} />
-  </div>
-{:catch error}
+{#if errorMsg}
   <div class="p-4 text-text-error">
-    Error loading game data: {error.message}
+    Error loading game data: {errorMsg}
   </div>
-{/await}
+{:else if currentWork && currentElement}
+  <div class="w-full h-full">
+    <Work work={currentWork} element={currentElement} />
+  </div>
+{/if}

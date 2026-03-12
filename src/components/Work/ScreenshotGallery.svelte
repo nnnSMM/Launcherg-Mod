@@ -2,6 +2,7 @@
     import { onMount, createEventDispatcher } from "svelte";
     import { convertFileSrc } from "@tauri-apps/api/core";
     import { open } from "@tauri-apps/plugin-dialog";
+    import { listen } from "@tauri-apps/api/event";
     import type { Screenshot } from "@/lib/types";
     import {
         commandGetGameScreenshots,
@@ -18,6 +19,16 @@
 
     onMount(async () => {
         await loadScreenshots();
+
+        const unlisten = listen<number>("collection-element-updated", (event) => {
+            if (event.payload === gameId) {
+                loadScreenshots();
+            }
+        });
+
+        return () => {
+            unlisten.then((fn) => fn());
+        };
     });
 
     const loadScreenshots = async () => {
@@ -117,7 +128,7 @@
         </div>
     {:else}
         <div class="grid grid-cols-2 gap-2">
-            {#each previewScreenshots as screenshot}
+            {#each previewScreenshots as screenshot (screenshot.id)}
                 <div class="relative group/tooltip">
                     <button
                         class="w-full relative aspect-video group overflow-hidden transition-all cursor-pointer shadow-sm hover:shadow-md"

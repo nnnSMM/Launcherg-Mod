@@ -44,7 +44,8 @@
         });
         if (typeof selected?.path === "string") {
           await commandUpdateGameImage(element.id, "thumbnail", selected.path);
-          window.location.reload();
+          // サムネイル変更後、画像の再フェッチを促すためupdatedAtを更新
+          element.updatedAt = new Date().toISOString();
         }
       },
     },

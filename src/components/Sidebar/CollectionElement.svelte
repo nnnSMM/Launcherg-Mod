@@ -46,7 +46,8 @@
             "icon",
             selected.path,
           );
-          window.location.reload();
+          // アイコン変更後、画像の再フェッチを促すためupdatedAtを更新
+          collectionElement.updatedAt = new Date().toISOString();
         }
       },
     },
