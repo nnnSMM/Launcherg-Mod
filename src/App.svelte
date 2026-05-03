@@ -15,6 +15,7 @@
 
   import Overlay from "@/views/Overlay.svelte";
   import ScreenshotWindow from "@/views/ScreenshotWindow.svelte";
+  import TrayMenu from "@/views/TrayMenu.svelte";
   import InitializationOverlay from "@/components/UI/InitializationOverlay.svelte";
 
   const windowLabel = getCurrentWindow().label;
@@ -47,6 +48,8 @@
   <Overlay />
 {:else if windowLabel === "screenshot_window"}
   <ScreenshotWindow />
+{:else if windowLabel === "tray_menu"}
+  <TrayMenu />
 {:else}
   <main class="relative h-full w-full bg-bg-primary font-sans overflow-hidden">
     {#if $backgroundState.imageUrl}

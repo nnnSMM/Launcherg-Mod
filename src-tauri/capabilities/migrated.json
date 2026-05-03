@@ -4,7 +4,8 @@
   "local": true,
   "windows": [
     "main",
-    "screenshot_window"
+    "screenshot_window",
+    "tray_menu"
   ],
   "permissions": [
     "core:path:default",

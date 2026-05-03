@@ -6,21 +6,72 @@ mod infrastructure;
 mod interface;
 mod usecase;
 
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
+use std::time::Duration;
 
 use interface::{
     command,
     module::{Modules, ModulesExt},
 };
 use tauri::{
-    menu::{IsMenuItem, Menu, MenuItem, Submenu},
-    tray::{MouseButton, TrayIconBuilder, TrayIconEvent},
-    AppHandle, Emitter, Listener, Manager, Wry,
+    tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
+    AppHandle, Emitter, Listener, Manager, PhysicalPosition, WebviewUrl, WebviewWindowBuilder,
 };
 use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 use tauri_plugin_log::{Target, TargetKind};
 use tauri_plugin_window_state::StateFlags;
+
+const TRAY_MENU_WIDTH: f64 = 312.0;
+const TRAY_MENU_HEIGHT: f64 = 448.0;
+const LEFT_CLICK_TRAY_MENU_DELAY: Duration = Duration::from_millis(280);
+/// If no trailing `Click` arrives after `DoubleClick`, clear suppress so a later single-click still works.
+const SUPPRESS_LEFT_MENU_RESET_AFTER_DOUBLE_CLICK: Duration = Duration::from_millis(400);
+
+/// Left single-click opens the tray menu after a delay; double-click bumps this to cancel it.
+struct TrayLeftClickMenuToken {
+    generation: AtomicU64,
+    /// After double-click, Windows may emit a trailing left `Click` (Up) that would open the menu;
+    /// consume it here instead of scheduling.
+    suppress_next_left_menu_open: AtomicBool,
+}
+
+impl TrayLeftClickMenuToken {
+    fn new() -> Self {
+        Self {
+            generation: AtomicU64::new(0),
+            suppress_next_left_menu_open: AtomicBool::new(false),
+        }
+    }
+
+    fn begin_left_click_schedule(&self) -> u64 {
+        self.generation.fetch_add(1, Ordering::SeqCst) + 1
+    }
+
+    fn invalidate_scheduled_menu(&self) {
+        self.generation.fetch_add(1, Ordering::SeqCst);
+    }
+
+    fn generation_matches(&self, expected: u64) -> bool {
+        self.generation.load(Ordering::SeqCst) == expected
+    }
+
+    fn arm_suppress_next_left_menu_open(&self) {
+        self.suppress_next_left_menu_open
+            .store(true, Ordering::SeqCst);
+    }
+
+    fn take_suppress_next_left_menu_open(&self) -> bool {
+        self.suppress_next_left_menu_open
+            .swap(false, Ordering::SeqCst)
+    }
+
+    fn clear_suppress_next_left_menu_open(&self) {
+        self.suppress_next_left_menu_open
+            .store(false, Ordering::SeqCst);
+    }
+}
 
 fn main() {
     tauri::Builder::default()
@@ -64,7 +115,7 @@ fn main() {
         .on_window_event(|window, event| match event {
             tauri::WindowEvent::CloseRequested { api, .. } => {
                 // For screenshot_window, destroy it
-                // For other windows (main, overlay), just hide them
+                // For other windows (main, overlay, tray_menu), just hide them
                 if window.label() == "screenshot_window" {
                     println!("[main] screenshot_window close requested, destroying");
                     let _ = window.destroy();
@@ -73,6 +124,9 @@ fn main() {
                     window.hide().unwrap();
                     api.prevent_close();
                 }
+            }
+            tauri::WindowEvent::Focused(false) if window.label() == "tray_menu" => {
+                let _ = window.hide();
             }
             _ => {}
         })
@@ -99,99 +153,77 @@ fn main() {
             let modules = Arc::new(tauri::async_runtime::block_on(Modules::new(&app.handle())));
             app.manage(modules);
 
-            let menu = tauri::async_runtime::block_on(build_tray_menu(app.handle())).unwrap();
+            app.manage(TrayLeftClickMenuToken::new());
+
+            create_tray_menu_window(app.handle())?;
 
             let _tray = TrayIconBuilder::with_id("main-tray")
                 .icon(app.default_window_icon().unwrap().clone())
                 .tooltip("Launcherg")
-                .menu(&menu)
-                .on_menu_event(move |app, event| {
-                    let app_handle = app.clone();
-                    let event_id = event.id().as_ref().to_string();
-                    tauri::async_runtime::spawn(async move {
-                        let modules = app_handle.state::<Arc<Modules>>();
-                        match event_id.as_str() {
-                            "quit" => {
-                                app_handle.exit(0);
-                            }
-                            "show_main_window" => {
-                                if let Err(e) = show_main_window(&app_handle) {
-                                    eprintln!("Failed to show main window: {}", e);
-                                }
-                            }
-                            "launch_shortcut_game" => {
-                                if let Ok(Some(game_id_str)) = modules
-                                    .collection_use_case()
-                                    .get_app_setting("shortcut_game_id".to_string())
-                                    .await
-                                {
-                                    if let Ok(game_id) = game_id_str.parse::<i32>() {
-                                        if let Err(e) = modules
-                                            .collection_use_case()
-                                            .play_game_and_track(app_handle.clone().into(), game_id)
-                                            .await
-                                        {
-                                            eprintln!("Error playing game: {}", e);
-                                        }
-                                    }
-                                }
-                            }
-                            _ if event_id.starts_with("play_game_") => {
-                                if let Some(id_str) = event_id.strip_prefix("play_game_") {
-                                    if let Ok(game_id) = id_str.parse::<i32>() {
-                                        if let Err(e) = modules
-                                            .collection_use_case()
-                                            .play_game_and_track(app_handle.clone().into(), game_id)
-                                            .await
-                                        {
-                                            eprintln!("Error playing game: {}", e);
-                                        }
-                                    }
-                                }
-                            }
-                            _ => {}
-                        }
-                    });
-                })
                 .show_menu_on_left_click(false)
                 .on_tray_icon_event(|tray, event| {
-                    if let TrayIconEvent::DoubleClick {
-                        button: MouseButton::Left,
-                        ..
-                    } = event
-                    {
-                        let app = tray.app_handle();
-                        if let Err(e) = show_main_window(app) {
-                            eprintln!("Failed to show main window from tray: {}", e);
+                    let app = tray.app_handle();
+                    match event {
+                        TrayIconEvent::DoubleClick { button, .. } => {
+                            if matches!(button, MouseButton::Left) {
+                                let token_state = app.state::<TrayLeftClickMenuToken>();
+                                token_state.invalidate_scheduled_menu();
+                                token_state.arm_suppress_next_left_menu_open();
+                                if let Err(e) = show_main_window(&app) {
+                                    eprintln!("Failed to show main window from tray double-click: {}", e);
+                                }
+                                let app_reset = app.clone();
+                                tauri::async_runtime::spawn(async move {
+                                    tokio::time::sleep(SUPPRESS_LEFT_MENU_RESET_AFTER_DOUBLE_CLICK)
+                                        .await;
+                                    app_reset
+                                        .state::<TrayLeftClickMenuToken>()
+                                        .clear_suppress_next_left_menu_open();
+                                });
+                            }
                         }
+                        TrayIconEvent::Click {
+                            position,
+                            button,
+                            button_state,
+                            ..
+                        } => {
+                            if button_state != MouseButtonState::Up {
+                                return;
+                            }
+                            match button {
+                                MouseButton::Right => {
+                                    if let Err(e) = toggle_tray_menu_window(&app, position) {
+                                        eprintln!("Failed to toggle tray menu: {}", e);
+                                    }
+                                }
+                                MouseButton::Left => {
+                                    let token_state = app.state::<TrayLeftClickMenuToken>();
+                                    if token_state.take_suppress_next_left_menu_open() {
+                                        return;
+                                    }
+                                    let generation = token_state.begin_left_click_schedule();
+                                    let app_clone = app.clone();
+                                    tauri::async_runtime::spawn(async move {
+                                        tokio::time::sleep(LEFT_CLICK_TRAY_MENU_DELAY).await;
+                                        let token_state = app_clone.state::<TrayLeftClickMenuToken>();
+                                        if !token_state.generation_matches(generation) {
+                                            return;
+                                        }
+                                        if let Err(e) =
+                                            toggle_tray_menu_window(&app_clone, position)
+                                        {
+                                            eprintln!("Failed to toggle tray menu: {}", e);
+                                        }
+                                    });
+                                }
+                                _ => {}
+                            }
+                        }
+                        _ => {}
                     }
                 })
                 .build(app)?;
-
-            let app_handle = app.handle().clone();
-            app.listen("shortcut-game-changed", move |_event| {
-                let app_handle = app_handle.clone();
-                tauri::async_runtime::spawn(async move {
-                    if let Ok(menu) = build_tray_menu(&app_handle).await {
-                        if let Some(tray) = app_handle.tray_by_id("main-tray") {
-                            let _ = tray.set_menu(Some(menu));
-                        }
-                    }
-                });
-            });
-
-            // ゲームプレイ終了時にトレイメニューを更新
-            let app_handle = app.handle().clone();
-            app.listen("recent-games-changed", move |_event| {
-                let app_handle = app_handle.clone();
-                tauri::async_runtime::spawn(async move {
-                    if let Ok(menu) = build_tray_menu(&app_handle).await {
-                        if let Some(tray) = app_handle.tray_by_id("main-tray") {
-                            let _ = tray.set_menu(Some(menu));
-                        }
-                    }
-                });
-            });
 
             let app_handle = app.handle().clone();
             app.listen("single-instance", move |_event| {
@@ -277,98 +309,12 @@ fn main() {
             command::update_screenshots_order,
             command::update_collection_element_path,
             command::delete_collection_element_logical,
+            command::show_main_window,
+            command::hide_tray_menu,
+            command::quit_app,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
-}
-
-async fn build_tray_menu(app_handle: &AppHandle) -> anyhow::Result<Menu<Wry>> {
-    let modules: tauri::State<Arc<Modules>> = app_handle.state();
-
-    let launch_shortcut_game_label = {
-        if let Ok(Some(game_id_str)) = modules
-            .collection_use_case()
-            .get_app_setting("shortcut_game_id".to_string())
-            .await
-        {
-            if let Ok(game_id) = game_id_str.parse::<i32>() {
-                if let Ok(game) = modules
-                    .collection_use_case()
-                    .get_element_by_element_id(&crate::domain::Id::new(game_id))
-                    .await
-                {
-                    format!("{} を起動", game.gamename)
-                } else {
-                    "ショートカットのゲームを起動".to_string()
-                }
-            } else {
-                "ショートカットのゲームを起動".to_string()
-            }
-        } else {
-            "ショートカットのゲームを起動".to_string()
-        }
-    };
-
-    let show_main_window_i = MenuItem::with_id(
-        app_handle,
-        "show_main_window",
-        "ウィンドウの表示",
-        true,
-        None::<&str>,
-    )?;
-    let launch_shortcut_game_i = MenuItem::with_id(
-        app_handle,
-        "launch_shortcut_game",
-        &launch_shortcut_game_label,
-        true,
-        None::<&str>,
-    )?;
-    let quit_i = MenuItem::with_id(app_handle, "quit", "終了", true, None::<&str>)?;
-
-    // 最近プレイしたゲームのサブメニューを作成
-    let recent_games_submenu = {
-        let handle_arc = Arc::new(app_handle.clone());
-        let mut all_games = modules
-            .collection_use_case()
-            .get_all_elements(&handle_arc)
-            .await
-            .unwrap_or_default();
-
-        all_games.sort_by(|a, b| b.last_play_at.cmp(&a.last_play_at));
-        let recent_games = all_games
-            .into_iter()
-            .filter(|g| g.last_play_at.is_some())
-            .take(10);
-
-        let mut recent_games_items = vec![];
-        for game in recent_games {
-            let game_item = MenuItem::with_id(
-                app_handle,
-                format!("play_game_{}", game.id.value),
-                &game.gamename,
-                true,
-                None::<&str>,
-            )?;
-            recent_games_items.push(game_item);
-        }
-        let recent_item_refs: Vec<&dyn IsMenuItem<_>> = recent_games_items
-            .iter()
-            .map(|i| i as &dyn IsMenuItem<_>)
-            .collect();
-        Submenu::with_items(app_handle, "最近プレイしたゲーム", true, &recent_item_refs)?
-    };
-
-    let menu = Menu::with_items(
-        app_handle,
-        &[
-            &show_main_window_i,
-            &launch_shortcut_game_i,
-            &recent_games_submenu,
-            &quit_i,
-        ],
-    )?;
-
-    Ok(menu)
 }
 
 fn show_main_window(app_handle: &AppHandle) -> tauri::Result<()> {
@@ -378,5 +324,107 @@ fn show_main_window(app_handle: &AppHandle) -> tauri::Result<()> {
         window.set_focus()?;
     }
 
+    if let Some(window) = app_handle.get_webview_window("tray_menu") {
+        let _ = window.hide();
+    }
+
     Ok(())
+}
+
+fn create_tray_menu_window(app_handle: &AppHandle) -> tauri::Result<()> {
+    if app_handle.get_webview_window("tray_menu").is_some() {
+        return Ok(());
+    }
+
+    WebviewWindowBuilder::new(
+        app_handle,
+        "tray_menu",
+        WebviewUrl::App("index.html".into()),
+    )
+    .title("Launcherg Menu")
+    .inner_size(TRAY_MENU_WIDTH, TRAY_MENU_HEIGHT)
+    .resizable(false)
+    .decorations(false)
+    .transparent(true)
+    .always_on_top(true)
+    .skip_taskbar(true)
+    .visible(false)
+    .build()?;
+
+    Ok(())
+}
+
+fn toggle_tray_menu_window(
+    app_handle: &AppHandle,
+    position: PhysicalPosition<f64>,
+) -> tauri::Result<()> {
+    let Some(window) = app_handle.get_webview_window("tray_menu") else {
+        return Ok(());
+    };
+
+    if window.is_visible()? {
+        window.hide()?;
+        return Ok(());
+    }
+
+    let (x, y) = tray_menu_position(app_handle, position)?;
+    window.set_position(PhysicalPosition::new(x, y))?;
+    window.show()?;
+    window.set_focus()?;
+
+    Ok(())
+}
+
+fn tray_menu_position(
+    app_handle: &AppHandle,
+    position: PhysicalPosition<f64>,
+) -> tauri::Result<(i32, i32)> {
+    let menu_width = TRAY_MENU_WIDTH as i32;
+    let menu_height = TRAY_MENU_HEIGHT as i32;
+    let px = position.x.round() as i32;
+    let py = position.y.round() as i32;
+
+    let monitor = app_handle
+        .available_monitors()?
+        .into_iter()
+        .find(|monitor| {
+            let origin = monitor.position();
+            let size = monitor.size();
+            px >= origin.x
+                && px <= origin.x + size.width as i32
+                && py >= origin.y
+                && py <= origin.y + size.height as i32
+        })
+        .or(app_handle.primary_monitor()?);
+
+    if let Some(monitor) = monitor {
+        let origin = monitor.position();
+        let size = monitor.size();
+        let left = origin.x;
+        let top = origin.y;
+        let right = origin.x + size.width as i32;
+        let bottom = origin.y + size.height as i32;
+
+        let x = clamp_position(px - menu_width + 24, left + 8, right - menu_width - 8);
+        let preferred_y = py - menu_height - 12;
+        let fallback_y = py + 12;
+        let y = if preferred_y < top + 8 {
+            fallback_y
+        } else {
+            preferred_y
+        };
+        let y = clamp_position(y, top + 8, bottom - menu_height - 8);
+
+        Ok((x, y))
+    } else {
+        Ok((px - menu_width + 24, py - menu_height - 12))
+    }
+}
+
+fn clamp_position(value: i32, min: i32, max: i32) -> i32 {
+    if min > max {
+        min
+    } else {
+        value.clamp(min, max)
+    }
 }

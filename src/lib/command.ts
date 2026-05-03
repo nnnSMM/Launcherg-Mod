@@ -243,3 +243,19 @@ export const commandOpenScreenshotWindow = async (
     initialScreenshot,
   });
 };
+
+export const commandLaunchShortcutGame = async () => {
+  return await invoke<void>("launch_shortcut_game", {});
+};
+
+export const commandShowMainWindow = async () => {
+  return await invoke<void>("show_main_window", {});
+};
+
+export const commandHideTrayMenu = async () => {
+  return await invoke<void>("hide_tray_menu", {});
+};
+
+export const commandQuitApp = async () => {
+  return await invoke<void>("quit_app", {});
+};

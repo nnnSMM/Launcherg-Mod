@@ -877,3 +877,32 @@ pub async fn delete_collection_element_logical(
         .delete_collection_element_logical(&Id::new(id))
         .await?)
 }
+
+#[tauri::command]
+pub fn show_main_window(handle: AppHandle) -> Result<(), CommandError> {
+    if let Some(window) = handle.get_webview_window("main") {
+        let _ = window.unminimize();
+        window.show().map_err(anyhow::Error::from)?;
+        window.set_focus().map_err(anyhow::Error::from)?;
+    }
+
+    if let Some(window) = handle.get_webview_window("tray_menu") {
+        let _ = window.hide();
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+pub fn hide_tray_menu(handle: AppHandle) -> Result<(), CommandError> {
+    if let Some(window) = handle.get_webview_window("tray_menu") {
+        window.hide().map_err(anyhow::Error::from)?;
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+pub fn quit_app(handle: AppHandle) {
+    handle.exit(0);
+}
