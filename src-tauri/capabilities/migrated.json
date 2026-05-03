@@ -64,6 +64,7 @@
     "global-shortcut:allow-unregister",
     "global-shortcut:allow-unregister-all",
     "global-shortcut:allow-is-registered",
-    "autostart:default"
+    "autostart:default",
+    "window-state:default"
   ]
 }

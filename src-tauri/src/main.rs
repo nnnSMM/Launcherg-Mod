@@ -148,6 +148,12 @@ fn main() {
                 let _ = window.hide();
             }
 
+            // Hide main window decorations (official title bar) here instead of tauri.conf.json
+            // to fix window size saving issues on Windows.
+            if let Some(window) = handle.get_webview_window("main") {
+                let _ = window.set_decorations(false);
+            }
+
             // Modulesの初期化を先に行う
             let modules = Arc::new(tauri::async_runtime::block_on(Modules::new(&app.handle())));
             app.manage(modules);
