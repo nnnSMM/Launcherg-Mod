@@ -16,13 +16,17 @@
   export let imageDisplayHeight: number;
   export let tilePadding: number = 8;
 
-  const bgColorUnselected = "#E5E7EB";
-  const bgColorSelected = "#E5E7EB";
-  const bgColorUnselectedHover = "#CBD5E1";
-  const bgColorSelectedHover = "#CBD5E1";
+  /* アプリのダークサーフェスに合わせる（従来のライトグレーは浮いて見えるため） */
+  const bgColorUnselected = "#21262d";
+  const bgColorSelected = "#2d333b";
+  const bgColorUnselectedHover = "#30363d";
+  const bgColorSelectedHover = "#373e47";
 
-  const textColorNormalBase = "#374151"; // 非選択時の基本文字色
-  const textColorSelected = "#1f2937"; // 選択時の文字色
+  /* 背景 #21262d 上で判読性と抑えたトーンのバランス */
+  const textColorTitleNormal = "#8b949e";
+  const textColorTitleSelected = "#e6edf3";
+  const textColorMetaNormal = "#6e7681";
+  const textColorMetaSelected = "#adbac7";
 
   const dispatch = createEventDispatcher<{ toggle: void }>();
 
@@ -101,17 +105,11 @@
     }
   })();
 
-  $: iconFillColor = isSelected
-    ? currentStatusInfo.selectedIconColor
-    : currentStatusInfo.baseColorCode;
-  $: textFillColor = isSelected
-    ? textColorSelected
-    : currentStatusInfo.baseColorCode;
+  /* 状態色は枠・バッジに任せ、タイトルは常に抑えたトーン */
+  $: textFillColor = isSelected ? textColorTitleSelected : textColorTitleNormal;
   $: textFillColorForLabel = isSelected
-    ? textColorSelected
-    : currentStatusInfo.baseColorCode === "#A0AEC0"
-      ? textColorNormalBase
-      : currentStatusInfo.baseColorCode; // 未プレイ時は少し薄めに
+    ? textColorMetaSelected
+    : textColorMetaNormal;
 </script>
 
 <button

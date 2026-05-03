@@ -77,9 +77,9 @@
 
   let isHovered = false;
 
-  const bgColorUnselected = "#E5E7EB";
-  const bgColorSelected = "#E5E7EB";
-  const bgColorHover = "#CBD5E1";
+  const bgColorUnselected = "#21262d";
+  const bgColorSelected = "#2d333b";
+  const bgColorHover = "#30363d";
 
   $: currentBgColor = isSelected ? bgColorSelected : bgColorUnselected;
   $: currentHoverBgColor = isHovered ? bgColorHover : currentBgColor;
@@ -95,19 +95,15 @@
     }
   })();
 
-  const textColorNormalBase = "#374151";
-  const textColorSelected = "#1f2937";
+  const textColorTitleNormal = "#8b949e";
+  const textColorTitleSelected = "#e6edf3";
+  const textColorMetaNormal = "#6e7681";
+  const textColorMetaSelected = "#adbac7";
 
-  $: textFillColor = isSelected
-    ? textColorSelected
-    : currentStatusInfo.baseColorCode === "#A0AEC0"
-      ? textColorNormalBase
-      : currentStatusInfo.baseColorCode;
+  $: textFillColor = isSelected ? textColorTitleSelected : textColorTitleNormal;
   $: textFillColorForLabel = isSelected
-    ? textColorSelected
-    : currentStatusInfo.baseColorCode === "#A0AEC0"
-      ? textColorNormalBase
-      : currentStatusInfo.baseColorCode;
+    ? textColorMetaSelected
+    : textColorMetaNormal;
 </script>
 
 <button
@@ -123,12 +119,10 @@
   title={`${game.gamename}\n現在の状態: ${currentStatusInfo.label}`}
 >
   <div
-    class="flex-shrink-0 w-10 h-10 mr-3 rounded-md overflow-hidden bg-gray-200 dark:bg-gray-700 flex items-center justify-center border border-gray-300 dark:border-gray-600"
+    class="flex-shrink-0 w-10 h-10 mr-3 rounded-md overflow-hidden bg-bg-secondary flex items-center justify-center border border-border-primary"
   >
     {#if imageHasError || !game.icon}
-      <div
-        class="i-material-symbols-image-not-supported-outline text-3xl text-gray-400 dark:text-gray-500"
-      ></div>
+      <div class="i-material-symbols-image-not-supported-outline text-3xl text-ui-tertiary"></div>
     {:else}
       <img
         src={imageSrcToDisplay}
@@ -141,13 +135,10 @@
   </div>
 
   <div class="flex-1 min-w-0">
-    <p
-      class="text-sm font-medium text-gray-800 dark:text-gray-100 truncate"
-      style="color: {textFillColor};"
-    >
+    <p class="text-sm font-medium truncate" style="color: {textFillColor};">
       {game.gamename}
     </p>
-    <p class="text-xs opacity-90" style="color: {textFillColorForLabel};">
+    <p class="text-xs leading-snug" style="color: {textFillColorForLabel};">
       {currentStatusInfo.label}
     </p>
   </div>
@@ -159,9 +150,7 @@
         style="color: {currentStatusInfo.baseColorCode};"
       ></div>
     {:else}
-      <div
-        class="i-material-symbols-circle-outline w-5 h-5 text-gray-300 dark:text-gray-600 group-hover:text-gray-400 dark:group-hover:text-gray-500"
-      ></div>
+      <div class="i-material-symbols-circle-outline w-5 h-5 text-ui-tertiary opacity-80"></div>
     {/if}
   </div>
 </button>

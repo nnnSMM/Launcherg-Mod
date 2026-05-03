@@ -361,11 +361,11 @@
     }
 
     &:hover:not(.tray-recent-row--busy) .tray-recent-name {
-      color: #9da7b2 !important;
+      color: #cdd9e5 !important;
     }
 
     &:hover:not(.tray-recent-row--busy) .tray-recent-meta {
-      color: #6e7681 !important;
+      color: #9dacbc !important;
     }
 
     &:active:not(.tray-recent-row--busy) {
@@ -384,7 +384,7 @@
     font-size: 0.8rem;
     line-height: 1.45;
     font-weight: 500;
-    color: #6a7380 !important;
+    color: #8b949e !important;
   }
 
   .tray-recent-meta {
@@ -392,7 +392,7 @@
     margin-top: 1px;
     font-size: 0.72rem;
     line-height: 1.4;
-    color: #545d68 !important;
+    color: #6e7681 !important;
   }
 
   /* 三角アイコンはアクセント青のまま（変更不要とのこと） */

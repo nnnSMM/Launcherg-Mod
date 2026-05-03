@@ -254,7 +254,7 @@
       activeStyleClasses:
         "bg-gray-400 !hover:bg-gray-300 text-white border-gray-400",
       inactiveStyleClasses:
-        "text-text-primary bg-bg-button hover:bg-bg-button-hover border-border-primary",
+        "text-text-secondary bg-bg-button hover:bg-bg-button-hover border-border-primary",
     },
     {
       label: "プレイ中",
@@ -263,7 +263,7 @@
       activeStyleClasses:
         "bg-blue-500 !hover:bg-blue-400 text-white border-blue-500",
       inactiveStyleClasses:
-        "text-text-primary bg-bg-button hover:bg-bg-button-hover border-border-primary",
+        "text-text-secondary bg-bg-button hover:bg-bg-button-hover border-border-primary",
     },
     {
       label: "クリア済み",
@@ -272,7 +272,7 @@
       activeStyleClasses:
         "bg-green-700 !hover:bg-green-600 text-white border-green-700",
       inactiveStyleClasses:
-        "text-text-primary bg-bg-button hover:bg-bg-button-hover border-border-primary",
+        "text-text-secondary bg-bg-button hover:bg-bg-button-hover border-border-primary",
     },
   ];
 </script>
@@ -285,7 +285,7 @@
       <!-- 表示の絞り込み -->
       <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
         <div
-          class="text-(body text-primary) font-medium whitespace-nowrap min-w-[5rem]"
+          class="text-(body text-secondary) font-medium whitespace-nowrap min-w-[5rem]"
         >
           表示の絞り込み:
         </div>
@@ -305,7 +305,7 @@
               leftIcon={option.icon}
               variant="normal"
               on:click={() => toggleAttribute(filterKey)}
-              appendClass={`px-3 py-1 text-sm ${isActive ? "bg-[#D1D5DB] border-gray-600 dark:bg-[#4B5563] dark:border-gray-400 font-bold" : "text-text-primary bg-bg-button hover:bg-bg-button-hover border-border-primary"}`}
+              appendClass={`px-3 py-1 text-sm ${isActive ? "bg-bg-tertiary border-border-button-hover text-text-secondary font-bold" : "text-text-secondary bg-bg-button hover:bg-bg-button-hover border-border-primary"}`}
             />
           {/each}
         </div>
@@ -313,7 +313,7 @@
       <!-- 目標の状態設定 -->
       <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
         <div
-          class="text-(body text-primary) font-medium whitespace-nowrap min-w-[5rem]"
+          class="text-(body text-secondary) font-medium whitespace-nowrap min-w-[5rem]"
         >
           目標の状態:
         </div>
@@ -336,19 +336,19 @@
         icon="i-material-symbols-done-all-rounded"
         on:click={handleSelectAll}
         tooltip={{ content: "表示中のすべてを選択" }}
-        appendClass="!text-blue-500 hover:!bg-blue-100"
+        appendClass="!text-accent-accent hover:!bg-bg-button-hover"
       />
       <IconButton
         icon="i-material-symbols-remove-done-rounded"
         on:click={handleDeselectAll}
         tooltip={{ content: "表示中の選択をすべて解除" }}
-        appendClass="!text-red-500 hover:!bg-red-100"
+        appendClass="!text-accent-error hover:!bg-bg-button-hover"
       />
       <IconButton
         icon="i-material-symbols-flip-to-back-outline-rounded"
         on:click={handleToggleAll}
         tooltip={{ content: "表示中の選択状態を反転" }}
-        appendClass="!text-orange-500 hover:!bg-orange-100"
+        appendClass="!text-accent-warning hover:!bg-bg-button-hover"
       />
       <!-- セパレーター -->
       <div class="w-px h-6 bg-border-primary mx-1"></div>
@@ -357,13 +357,13 @@
         icon="i-material-symbols-view-module-outline-rounded"
         on:click={() => viewModeStore.set("masonry")}
         tooltip={{ content: "タイル表示" }}
-        appendClass={$viewModeStore === "masonry" ? "!bg-[#C0C0C0]" : ""}
+        appendClass={$viewModeStore === "masonry" ? "!bg-bg-button-hover" : ""}
       />
       <IconButton
         icon="i-material-symbols-view-list-outline-rounded"
         on:click={() => viewModeStore.set("list")}
         tooltip={{ content: "リスト表示" }}
-        appendClass={$viewModeStore === "list" ? "!bg-[#C0C0C0]" : ""}
+        appendClass={$viewModeStore === "list" ? "!bg-bg-button-hover" : ""}
       />
       <Button
         text={`選択中 (${$selectedGameIdsStore.size}) を設定`}
@@ -377,11 +377,11 @@
   </div>
 
   {#if isLoading && $allGamesFromApi.length === 0}
-    <div class="flex-1 flex items-center justify-center text-(lg text-primary)">
+    <div class="flex-1 flex items-center justify-center text-(lg text-secondary)">
       読み込み中...
     </div>
   {:else if $allGamesFromApi.length === 0}
-    <div class="flex-1 flex items-center justify-center text-(lg text-primary)">
+    <div class="flex-1 flex items-center justify-center text-(lg text-secondary)">
       登録されているゲームがありません。
     </div>
   {:else}
