@@ -42,9 +42,27 @@ a:hover {
 }
 
 *:focus,
-*:active {
+*:active,
+*:focus-visible,
+*:focus-within,
+button,
+button:focus,
+button:active,
+button:focus-visible,
+a,
+a:focus,
+a:active,
+a:focus-visible,
+*:focus::after,
+*:active::after,
+*:focus::before,
+*:active::before {
   outline: none !important;
+  outline: 0 !important;
   box-shadow: none !important;
+  border: none !important;
+  border-width: 0 !important;
+  -webkit-tap-highlight-color: transparent !important;
 }
 
 .tippy-box[data-theme~='default'] {

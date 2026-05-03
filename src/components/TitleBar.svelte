@@ -84,7 +84,7 @@
       <div class="flex items-center justify-center h-full pl-2 pr-1 pointer-events-none">
         <img src={Icon} alt="launcherg icon" class="h-4" />
       </div>
-      <a href="/" use:link class="flex items-center px-2 h-full cursor-pointer outline-none text-text-secondary hover:text-text-primary transition-colors text-[13px] font-medium" tabindex="-1">
+      <a href="/" use:link class="flex items-center px-2 h-full cursor-pointer outline-none border-none text-text-secondary hover:text-text-primary transition-colors text-[13px] font-medium" tabindex="-1">
         ホーム
       </a>
       
@@ -107,7 +107,7 @@
         一括編集
       </button>
 
-      <a href="https://github.com/nnnSMM/Launcherg-Mod/blob/main/USAGE.md" target="_blank" rel="noopener noreferrer" class="flex items-center px-2 h-full cursor-pointer outline-none text-text-secondary hover:text-text-primary transition-colors text-[13px] font-medium" tabindex="-1">
+      <a href="https://github.com/nnnSMM/Launcherg-Mod/blob/main/USAGE.md" target="_blank" rel="noopener noreferrer" class="flex items-center px-2 h-full cursor-pointer outline-none border-none text-text-secondary hover:text-text-primary transition-colors text-[13px] font-medium" tabindex="-1">
         ヘルプ
       </a>
     {/if}
@@ -146,3 +146,18 @@
     on:cancel={() => (isOpenImportManually = false)}
   />
 {/if}
+
+<style>
+  button, a {
+    outline: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    -webkit-user-drag: none;
+    user-select: none;
+  }
+  button:focus, a:focus, button:active, a:active {
+    outline: none !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+</style>
