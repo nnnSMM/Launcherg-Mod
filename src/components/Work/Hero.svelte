@@ -195,7 +195,7 @@
 
 <svelte:window bind:innerWidth />
 
-<div class="relative w-full min-h-[60vh] min-h-[300px] group flex flex-col">
+<div class="relative w-full min-h-[60vh] min-h-[300px] group flex flex-col pointer-events-none">
     <!-- Background Image -->
     <!-- Background Image with Parallax -->
     <!-- SVGフィルター定義: インクのにじみ効果（静的） -->
@@ -242,7 +242,7 @@
         </div>
         <!-- グラデーション (下からフェードアウト) - 範囲を広げてより緩やかに -->
         <div
-            class="absolute bottom-0 left-0 right-0 h-[95%] bg-gradient-to-t from-bg-primary/80 via-bg-primary/20 to-transparent"
+            class="absolute bottom-0 left-0 right-0 h-[95%] bg-gradient-to-t from-bg-primary/80 via-bg-primary/20 to-transparent pointer-events-none"
         />
     </div>
 
@@ -277,7 +277,7 @@
         </div>
 
         <!-- Bottom: Title Section -->
-        <div class="pointer-events-auto">
+        <div class="pointer-events-none">
             {#if element.playStatus === 2}
                 <div
                     class="inline-block px-3 py-1 rounded-full bg-accent-success/30 text-accent-success text-sm font-bold mb-4 border border-accent-success/100"
@@ -309,7 +309,7 @@
     <!-- Fullscreen Image Viewer -->
     {#if showFullscreenImage}
         <div
-            class="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm pointer-events-auto"
             on:click={() => (showFullscreenImage = false)}
             on:keydown={(e) =>
                 (e.key === "Escape" || e.key === "Enter") &&

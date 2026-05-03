@@ -41,10 +41,6 @@ a:hover {
   text-decoration: none;
 }
 
-*:focus,
-*:active,
-*:focus-visible,
-*:focus-within,
 button,
 button:focus,
 button:active,
@@ -52,11 +48,7 @@ button:focus-visible,
 a,
 a:focus,
 a:active,
-a:focus-visible,
-*:focus::after,
-*:active::after,
-*:focus::before,
-*:active::before {
+a:focus-visible {
   outline: none !important;
   outline: 0 !important;
   box-shadow: none !important;
