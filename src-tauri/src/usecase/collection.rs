@@ -2,7 +2,7 @@ use std::{fs, sync::Arc};
 
 use chrono::Local;
 use derive_new::new;
-use tauri::AppHandle;
+use tauri::{AppHandle, Emitter};
 
 use tokio::time::Duration;
 
@@ -511,6 +511,9 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
             .insert(&Id::new(game_id), &filename)
             .await?;
 
+        // Emit notification
+        let _ = _handle.emit("collection-element-updated", game_id);
+
         Ok(())
     }
 
@@ -544,11 +547,15 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
             std::fs::remove_file(file_path)?;
         }
 
+        let game_id = screenshot.game_id;
         let thumbnail_path =
-            get_screenshot_thumbnail_path(&self.save_root_dir, screenshot.game_id, &screenshot_filename);
+            get_screenshot_thumbnail_path(&self.save_root_dir, game_id, &screenshot_filename);
         if thumbnail_path.exists() {
             let _ = std::fs::remove_file(thumbnail_path);
         }
+
+        // Emit notification
+        let _ = _handle.emit("collection-element-updated", game_id);
 
         Ok(())
     }
