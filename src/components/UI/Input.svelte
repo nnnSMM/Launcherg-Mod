@@ -24,7 +24,7 @@
     <div class="text-(text-primary body) font-medium mb-1">{label}</div>
   {/if}
   <div
-    class="w-full border-(2px solid transparent) focus-within:border-accent-accent rounded transition-all"
+    class="w-full border-(2px solid border-primary) rounded transition-all focus-within:border-accent-accent"
   >
     <input
       bind:this={input}
@@ -32,7 +32,7 @@
       type="text"
       on:input={(e) => dispatcher("update", { value: e.currentTarget.value })}
       {placeholder}
-      class="w-full border border-(border-primary solid) rounded bg-bg-primary p-(x-3 y-1) text-(input text-primary) transition-all focus:border-transparent placeholder-ui-tertiary"
+      class="w-full border-none outline-none rounded bg-bg-primary p-(x-3 y-1) text-(input text-primary) transition-all placeholder-ui-tertiary"
     />
   </div>
 </label>

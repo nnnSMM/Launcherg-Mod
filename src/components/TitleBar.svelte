@@ -123,14 +123,14 @@
   </div>
 
   <!-- window controls -->
-  <div class="absolute top-0 right-0 flex h-8 items-start">
-    <button tabindex="-1" on:click={minimize} class="w-11 h-8 flex items-center justify-center bg-transparent hover:bg-bg-tertiary transition-colors text-text-secondary hover:text-text-primary outline-none border-none focus:outline-none focus-visible:outline-none">
+  <div class="absolute top-0 right-0 flex {heightClass} items-start">
+    <button tabindex="-1" on:click={minimize} class="w-11 {heightClass} flex items-center justify-center bg-transparent hover:bg-bg-tertiary transition-colors text-text-secondary hover:text-text-primary outline-none border-none focus:outline-none focus-visible:outline-none">
       <div class="i-material-symbols:remove text-lg"></div>
     </button>
-    <button tabindex="-1" on:click={toggleMaximize} class="w-11 h-8 flex items-center justify-center bg-transparent hover:bg-bg-tertiary transition-colors text-text-secondary hover:text-text-primary outline-none border-none focus:outline-none focus-visible:outline-none">
+    <button tabindex="-1" on:click={toggleMaximize} class="w-11 {heightClass} flex items-center justify-center bg-transparent hover:bg-bg-tertiary transition-colors text-text-secondary hover:text-text-primary outline-none border-none focus:outline-none focus-visible:outline-none">
       <div class={isMaximized ? "i-material-symbols:filter-none text-[14px]" : "i-material-symbols:check-box-outline-blank text-base"}></div>
     </button>
-    <button tabindex="-1" on:click={closeWindow} class="w-11 h-8 flex items-center justify-center bg-transparent hover:bg-accent-error transition-colors text-text-secondary hover:text-text-white outline-none border-none focus:outline-none focus-visible:outline-none">
+    <button tabindex="-1" on:click={closeWindow} class="w-11 {heightClass} flex items-center justify-center bg-transparent hover:bg-accent-error transition-colors text-text-secondary hover:text-text-white outline-none border-none focus:outline-none focus-visible:outline-none">
       <div class="i-material-symbols:close text-lg"></div>
     </button>
   </div>

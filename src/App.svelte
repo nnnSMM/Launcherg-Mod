@@ -53,7 +53,7 @@
   <TrayMenu />
 {:else}
   <main class="relative h-full w-full bg-bg-primary font-sans overflow-hidden flex flex-col">
-    <TitleBar />
+    <TitleBar heightClass="h-8" />
     {#if $backgroundState.imageUrl}
       <div
         transition:fade={{ duration: 300 }}
