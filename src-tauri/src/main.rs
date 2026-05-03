@@ -20,6 +20,7 @@ use tauri::{
 use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 use tauri_plugin_log::{Target, TargetKind};
+use tauri_plugin_window_state::StateFlags;
 
 fn main() {
     tauri::Builder::default()
@@ -49,7 +50,17 @@ fn main() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_clipboard_manager::init())
-        .plugin(tauri_plugin_window_state::Builder::default().build())
+        .plugin(
+            tauri_plugin_window_state::Builder::default()
+                .with_state_flags(
+                    StateFlags::SIZE
+                        | StateFlags::POSITION
+                        | StateFlags::MAXIMIZED
+                        | StateFlags::DECORATIONS
+                        | StateFlags::FULLSCREEN,
+                )
+                .build(),
+        )
         .on_window_event(|window, event| match event {
             tauri::WindowEvent::CloseRequested { api, .. } => {
                 // For screenshot_window, destroy it
@@ -103,6 +114,11 @@ fn main() {
                             "quit" => {
                                 app_handle.exit(0);
                             }
+                            "show_main_window" => {
+                                if let Err(e) = show_main_window(&app_handle) {
+                                    eprintln!("Failed to show main window: {}", e);
+                                }
+                            }
                             "launch_shortcut_game" => {
                                 if let Ok(Some(game_id_str)) = modules
                                     .collection_use_case()
@@ -145,10 +161,8 @@ fn main() {
                     } = event
                     {
                         let app = tray.app_handle();
-                        let window = app.get_webview_window("main").unwrap();
-                        if !window.is_visible().unwrap() {
-                            window.show().unwrap();
-                            window.set_focus().unwrap();
+                        if let Err(e) = show_main_window(app) {
+                            eprintln!("Failed to show main window from tray: {}", e);
                         }
                     }
                 })
@@ -181,11 +195,14 @@ fn main() {
 
             let app_handle = app.handle().clone();
             app.listen("single-instance", move |_event| {
-                if let Some(window) = app_handle.get_webview_window("main") {
-                    window.show().unwrap();
-                    window.set_focus().unwrap();
+                if let Err(e) = show_main_window(&app_handle) {
+                    eprintln!("Failed to show main window for single instance: {}", e);
                 }
             });
+
+            if let Err(e) = show_main_window(app.handle()) {
+                eprintln!("Failed to show main window on startup: {}", e);
+            }
 
             let handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
@@ -292,6 +309,13 @@ async fn build_tray_menu(app_handle: &AppHandle) -> anyhow::Result<Menu<Wry>> {
         }
     };
 
+    let show_main_window_i = MenuItem::with_id(
+        app_handle,
+        "show_main_window",
+        "ウィンドウの表示",
+        true,
+        None::<&str>,
+    )?;
     let launch_shortcut_game_i = MenuItem::with_id(
         app_handle,
         "launch_shortcut_game",
@@ -336,8 +360,23 @@ async fn build_tray_menu(app_handle: &AppHandle) -> anyhow::Result<Menu<Wry>> {
 
     let menu = Menu::with_items(
         app_handle,
-        &[&launch_shortcut_game_i, &recent_games_submenu, &quit_i],
+        &[
+            &show_main_window_i,
+            &launch_shortcut_game_i,
+            &recent_games_submenu,
+            &quit_i,
+        ],
     )?;
 
     Ok(menu)
+}
+
+fn show_main_window(app_handle: &AppHandle) -> tauri::Result<()> {
+    if let Some(window) = app_handle.get_webview_window("main") {
+        let _ = window.unminimize();
+        window.show()?;
+        window.set_focus()?;
+    }
+
+    Ok(())
 }
