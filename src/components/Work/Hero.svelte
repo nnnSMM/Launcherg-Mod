@@ -232,7 +232,7 @@
         >
             <canvas
                 bind:this={canvasEl}
-                class="blur-[3px] opacity-90"
+                class="blur-[2px] opacity-100"
                 style="display: block; width: 100%; height: 100%;"
             />
             <!-- 背景色オーバーレイ: 画像と同じ速度でスクロール -->
@@ -242,19 +242,19 @@
         </div>
         <!-- グラデーション (下からフェードアウト) - 範囲を広げてより緩やかに -->
         <div
-            class="absolute bottom-0 left-0 right-0 h-[95%] bg-gradient-to-t from-bg-primary/90 via-bg-primary/70 to-transparent"
+            class="absolute bottom-0 left-0 right-0 h-[95%] bg-gradient-to-t from-bg-primary/80 via-bg-primary/20 to-transparent"
         />
     </div>
 
     <!-- Content -->
-    <div class="relative z-10 flex-1 flex flex-col justify-between pt-12 px-12 pb-24">
+    <div class="relative z-10 flex-1 flex flex-col justify-between pt-12 px-12 pb-24 pointer-events-none">
         <!-- Top: Title Section -->
-        <div class="flex items-start justify-between gap-12">
+        <div class="flex items-start justify-between gap-12 pointer-events-none">
             <div class="flex-1"></div>
 
             <!-- Right Side: Floating Cover Art -->
             <div
-                class="shrink-0 hidden lg:block"
+                class="shrink-0 hidden lg:block pointer-events-auto"
                 style="width: {imageWidth}px;"
                 on:contextmenu={handleContextMenu}
             >
@@ -277,7 +277,7 @@
         </div>
 
         <!-- Bottom: Title Section -->
-        <div>
+        <div class="pointer-events-auto">
             {#if element.playStatus === 2}
                 <div
                     class="inline-block px-3 py-1 rounded-full bg-accent-success/30 text-accent-success text-sm font-bold mb-4 border border-accent-success/100"

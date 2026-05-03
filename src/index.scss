@@ -41,8 +41,10 @@ a:hover {
   text-decoration: none;
 }
 
-* {
-  outline: none;
+*:focus,
+*:active {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 .tippy-box[data-theme~='default'] {
@@ -218,5 +220,4 @@ textarea,
 img,
 a {
   -webkit-user-drag: none;
-  user-drag: none;
 }
