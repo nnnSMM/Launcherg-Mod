@@ -242,7 +242,7 @@
         </div>
         <!-- グラデーション (下からフェードアウト) - 範囲を広げてより緩やかに -->
         <div
-            class="absolute bottom-0 left-0 right-0 h-[95%] bg-gradient-to-t from-bg-primary/80 via-bg-primary/20 to-transparent pointer-events-none"
+            class="absolute bottom-0 left-0 right-0 h-[95%] bg-gradient-to-t from-bg-primary via-bg-primary/30 to-transparent pointer-events-none"
         />
     </div>
 
