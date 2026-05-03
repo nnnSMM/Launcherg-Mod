@@ -1,5 +1,7 @@
 html,
 body {
+  user-select: none;
+  -webkit-user-select: none;
   height: 100%;
   margin: 0;
   padding: 0;
@@ -201,4 +203,20 @@ a:hover {
 
 .editor-preview {
   background: #000;
+}
+
+/* Allow text selection for input elements */
+input,
+textarea,
+[contenteditable="true"],
+.CodeMirror {
+  user-select: auto;
+  -webkit-user-select: auto;
+}
+
+/* Disable ghost dragging for images and links globally */
+img,
+a {
+  -webkit-user-drag: none;
+  user-drag: none;
 }
