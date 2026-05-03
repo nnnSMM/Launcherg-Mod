@@ -107,7 +107,6 @@ fn main() {
                     StateFlags::SIZE
                         | StateFlags::POSITION
                         | StateFlags::MAXIMIZED
-                        | StateFlags::DECORATIONS
                         | StateFlags::FULLSCREEN,
                 )
                 .build(),

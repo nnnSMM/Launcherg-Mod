@@ -17,6 +17,7 @@
   import ScreenshotWindow from "@/views/ScreenshotWindow.svelte";
   import TrayMenu from "@/views/TrayMenu.svelte";
   import InitializationOverlay from "@/components/UI/InitializationOverlay.svelte";
+  import TitleBar from "@/components/TitleBar.svelte";
 
   const windowLabel = getCurrentWindow().label;
 
@@ -51,7 +52,8 @@
 {:else if windowLabel === "tray_menu"}
   <TrayMenu />
 {:else}
-  <main class="relative h-full w-full bg-bg-primary font-sans overflow-hidden">
+  <main class="relative h-full w-full bg-bg-primary font-sans overflow-hidden flex flex-col">
+    <TitleBar />
     {#if $backgroundState.imageUrl}
       <div
         transition:fade={{ duration: 300 }}
@@ -59,7 +61,7 @@
         style="background-image: url({$backgroundState.imageUrl});"
       />
     {/if}
-    <div class="relative h-full w-full z-10">
+    <div class="relative flex-1 w-full z-10 min-h-0">
       {#await setDetailPromise then _}
         <Layout>
           {#key $location}

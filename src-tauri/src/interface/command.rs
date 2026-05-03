@@ -85,6 +85,7 @@ pub async fn open_screenshot_window(
         .inner_size(1200.0, 800.0)
         .visible(false) // Create hidden to avoid flicker
         .center() // Center on screen
+        .decorations(false)
         .initialization_script(&init_script)
         .build()
         .map_err(anyhow::Error::from)?;

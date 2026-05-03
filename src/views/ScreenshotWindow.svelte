@@ -11,6 +11,7 @@
     import ScreenshotGrid from "@/components/ScreenshotWindow/ScreenshotGrid.svelte";
     import GameSelector from "@/components/ScreenshotWindow/GameSelector.svelte";
     import ZoomableImage from "@/components/UI/ZoomableImage.svelte";
+    import TitleBar from "@/components/TitleBar.svelte";
 
     let allScreenshots: Screenshot[] = [];
     let allGames: CollectionElement[] = [];
@@ -459,6 +460,7 @@
 <div
     class="h-screen w-screen bg-bg-primary text-text-primary flex flex-col overflow-hidden"
 >
+    <TitleBar />
     {#if isBootstrapping}
         <div class="flex-1 min-h-0 bg-black" />
     {:else if viewMode === "viewer" && currentScreenshot}
