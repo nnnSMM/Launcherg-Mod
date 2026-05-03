@@ -141,11 +141,11 @@
     if (ele) {
       const toolbar = ele.querySelector<HTMLElement>(".editor-toolbar");
       if (toolbar) {
-        toolbar.style.backgroundColor = "rgba(45, 51, 59, 0.9)"; // bg-secondary/90
+        toolbar.style.backgroundColor = "#2d333b"; // bg-secondary
       }
       const codeMirror = ele.querySelector<HTMLElement>(".CodeMirror");
       if (codeMirror) {
-        codeMirror.style.backgroundColor = "rgba(34, 39, 46, 0.9)"; // bg-primary/90
+        codeMirror.style.backgroundColor = "#22272e"; // bg-primary
       }
     }
     ele?.addEventListener("paste", onPaste);
@@ -184,6 +184,6 @@
   };
 </script>
 
-<div class="w-full h-full min-w-0" bind:clientHeight={height}>
+<div class="w-full h-full min-w-0 bg-bg-primary flex flex-col" bind:clientHeight={height}>
   <textarea id="mde" use:mde />
 </div>

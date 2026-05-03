@@ -10,12 +10,7 @@
   export let element: CollectionElement;
 
   onMount(() => {
-    if (element && element.thumbnail) {
-      backgroundState.set({
-        imageUrl: convertFileSrc(element.thumbnail),
-        opacity: 0.2,
-      });
-    }
+    // Background is now handled by Hero.svelte internally
   });
   let scrollY = 0;
 

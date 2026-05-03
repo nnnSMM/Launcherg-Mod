@@ -87,7 +87,7 @@
 <svelte:window on:mousemove={onMouseMove} on:mouseup={onMouseUp} />
 
 <div
-  class="h-full min-h-0 relative border-(r-1px solid border-primary) glass !bg-bg-primary/40 flex-shrink-0 overflow-hidden"
+  class="h-full min-h-0 relative border-(r-1px solid border-primary) bg-bg-secondary flex-shrink-0 overflow-hidden"
   class:transition-all={!isResizing}
   style="width: {$showSidebar ? `${$sidebarWidth}px` : '3rem'};"
 >

@@ -87,6 +87,110 @@
         // Width = Sqrt(Area * Ratio)
         return Math.sqrt(TARGET_AREA * ratio);
     })();
+
+    // Canvasで「下だけ引き伸ばし」を実現
+    import { onMount } from "svelte";
+    let canvasEl: HTMLCanvasElement;
+    let containerEl: HTMLDivElement;
+
+    async function renderBgToCanvas() {
+        if (!canvasEl || !containerEl || !bgImage) return;
+
+        const rect = containerEl.getBoundingClientRect();
+        const w = Math.round(rect.width);
+        const h = Math.round(rect.height);
+        if (!w || !h) return;
+
+        canvasEl.width = w;
+        canvasEl.height = h;
+
+        const ctx = canvasEl.getContext('2d');
+        if (!ctx) return;
+
+        const img = new Image();
+        img.src = bgImage;
+        try {
+            await new Promise<void>((resolve, reject) => {
+                img.onload = () => resolve();
+                img.onerror = () => reject();
+            });
+        } catch {
+            return;
+        }
+
+        const scale = w / img.naturalWidth;
+        const renderedH = Math.round(img.naturalHeight * scale);
+
+        // 画像を全幅で描画
+        ctx.filter = 'none';
+        ctx.drawImage(img, 0, 0, w, renderedH);
+
+        // コンテナが画像より高い場合、伸ばした画像を3x3ミラータイルでシームレスにしてからにじみを適用
+        if (h > renderedH) {
+            const flipH = h - renderedH;
+            const iw = img.naturalWidth;
+            const ih = img.naturalHeight;
+            const srcStripRows = Math.max(1, Math.ceil(ih * 0.05));
+
+            // Step 0: 伸ばした部分をオフスクリーンに描画（これがタイルの単位）
+            const off0 = document.createElement('canvas');
+            off0.width = w;
+            off0.height = flipH;
+            const off0Ctx = off0.getContext('2d');
+            if (!off0Ctx) return;
+            off0Ctx.drawImage(img, 0, ih - srcStripRows, iw, srcStripRows, 0, 0, w, flipH);
+
+            // Step 1: off0を使って3x3ミラータイルを作成（中央=オリジナル、外側=反転）
+            const off1 = document.createElement('canvas');
+            off1.width = w * 3;
+            off1.height = flipH * 3;
+            const off1Ctx = off1.getContext('2d');
+            if (!off1Ctx) return;
+
+            for (let row = 0; row < 3; row++) {
+                for (let col = 0; col < 3; col++) {
+                    const flipX = col !== 1; // 外側の列は水平反転
+                    const flipY = row !== 1; // 外側の行は垂直反転（中央行はそのまま）
+                    off1Ctx.save();
+                    off1Ctx.translate(
+                        col * w + (flipX ? w : 0),
+                        row * flipH + (flipY ? flipH : 0)
+                    );
+                    off1Ctx.scale(flipX ? -1 : 1, flipY ? -1 : 1);
+                    off1Ctx.drawImage(off0, 0, 0);
+                    off1Ctx.restore();
+                }
+            }
+
+            // Step 2: 3x3全体にインクにじみフィルターを適用
+            const off2 = document.createElement('canvas');
+            off2.width = w * 3;
+            off2.height = flipH * 3;
+            const off2Ctx = off2.getContext('2d');
+            if (!off2Ctx) return;
+            off2Ctx.filter = 'url(#ink-water)';
+            off2Ctx.drawImage(off1, 0, 0);
+            off2Ctx.filter = 'none';
+
+            // Step 3: 中央タイル（w × flipH）だけをメインキャンバスに転写
+            ctx.drawImage(
+                off2,
+                w, flipH,       // 中央タイルの開始座標
+                w, flipH,       // 中央タイルのサイズ
+                0, renderedH,   // メインキャンバスの配置先
+                w, flipH
+            );
+        }
+    }
+
+    onMount(() => {
+        const observer = new ResizeObserver(() => renderBgToCanvas());
+        if (containerEl) observer.observe(containerEl);
+        renderBgToCanvas();
+        return () => observer.disconnect();
+    });
+
+    $: bgImage, (() => { if (canvasEl) renderBgToCanvas(); })();
 </script>
 
 <svelte:window bind:innerWidth />
@@ -94,26 +198,56 @@
 <div class="relative w-full min-h-[60vh] min-h-[300px] group flex flex-col">
     <!-- Background Image -->
     <!-- Background Image with Parallax -->
-    <div class="absolute inset-0 z-0 overflow-hidden rounded-b-xl">
+    <!-- SVGフィルター定義: インクのにじみ効果（静的） -->
+    <svg style="position: absolute; width: 0; height: 0; overflow: hidden;">
+        <defs>
+            <filter id="ink-water" x="-50%" y="-50%" width="200%" height="200%" color-interpolation-filters="sRGB">
+                <feTurbulence
+                    type="turbulence"
+                    baseFrequency="0.008 0.006"
+                    numOctaves="4"
+                    seed="8"
+                    result="turbulence"
+                />
+                <feDisplacementMap
+                    in="SourceGraphic"
+                    in2="turbulence"
+                    scale="180"
+                    xChannelSelector="R"
+                    yChannelSelector="G"
+                    result="displaced"
+                />
+                <!-- 変位後にブラーをかけて隣接ピクセルを混合・平均化 -->
+                <feGaussianBlur in="displaced" stdDeviation="40" />
+            </filter>
+        </defs>
+    </svg>
+
+    <div class="absolute top-0 left-0 right-0 h-[calc(100%+800px)] z-0 overflow-hidden pointer-events-none">
         <div
-            class="w-full h-[100%] -mt"
+            bind:this={containerEl}
+            class="w-full h-full overflow-hidden"
             style="transform: translateY({scrollY *
                 0.65}px); will-change: transform;"
         >
-            <img
-                src={bgImage}
-                alt={element.gamename}
-                class="w-full h-full object-cover object-top opacity-100 blur-sm"
-                on:error={handleImageError}
+            <canvas
+                bind:this={canvasEl}
+                class="blur-[3px] opacity-90"
+                style="display: block; width: 100%; height: 100%;"
+            />
+            <!-- 背景色オーバーレイ: 画像と同じ速度でスクロール -->
+            <div
+                class="absolute bottom-0 left-0 right-0 h-[60%] bg-bg-primary/55"
             />
         </div>
+        <!-- グラデーション (下からフェードアウト) - 範囲を広げてより緩やかに -->
         <div
-            class="absolute inset-0 bg-gradient-to-t from-bg-primary/20 via-bg-primary/0 to-transparent"
+            class="absolute bottom-0 left-0 right-0 h-[95%] bg-gradient-to-t from-bg-primary/90 via-bg-primary/70 to-transparent"
         />
     </div>
 
     <!-- Content -->
-    <div class="relative z-10 flex-1 flex flex-col justify-between p-12">
+    <div class="relative z-10 flex-1 flex flex-col justify-between pt-12 px-12 pb-24">
         <!-- Top: Title Section -->
         <div class="flex items-start justify-between gap-12">
             <div class="flex-1"></div>
