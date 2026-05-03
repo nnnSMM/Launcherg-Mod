@@ -460,26 +460,21 @@
 <div
     class="h-screen w-screen bg-bg-primary text-text-primary flex flex-col overflow-hidden"
 >
-    <TitleBar />
     {#if isBootstrapping}
+        <TitleBar variant="screenshot" heightClass="h-12" />
         <div class="flex-1 min-h-0 bg-black" />
     {:else if viewMode === "viewer" && currentScreenshot}
-        <!-- Viewer Mode -->
-        <!-- Header -->
-        <div
-            class="h-12 flex items-center px-4 shrink-0 bg-[#1a1a1c] border-b border-[#333] justify-between z-10"
-        >
-            <button
-                class="flex items-center space-x-1 px-3 py-1.5 rounded bg-[#333] text-white hover:bg-[#444] transition-colors"
-                on:click={backToGrid}
-            >
-                <span class="i-material-symbols-chevron-left text-lg" />
-                <span>戻る</span>
-            </button>
-
-            <div
-                class="flex items-center space-x-2 absolute left-1/2 transform -translate-x-1/2"
-            >
+        <TitleBar variant="screenshot" heightClass="h-12">
+            <div slot="left" class="flex items-center pl-1 pr-4 shrink-0">
+                <button
+                    class="flex items-center gap-0 px-1 py-1.5 cursor-pointer outline-none bg-transparent border-none text-white/60 hover:text-white/80 transition-colors text-[16px] font-medium h-fit"
+                    on:click={backToGrid}
+                >
+                    <span class="i-material-symbols-chevron-left text-2xl" />
+                    <span>戻る</span>
+                </button>
+            </div>
+            <div slot="center" class="flex items-center space-x-2 pointer-events-none">
                 {#if currentGameIcon}
                     <img
                         src={currentGameIcon}
@@ -495,9 +490,8 @@
                     >{currentGameName || "すべてのメディア"}</span
                 >
             </div>
+        </TitleBar>
 
-            <div></div>
-        </div>
 
         <!-- Image Content -->
         <div
@@ -563,11 +557,8 @@
         </div>
     {:else}
         <!-- Grid Mode -->
-        <!-- Header -->
-        <div
-            class="h-14 border-b border-border-primary flex items-center px-4 shrink-0 bg-bg-secondary justify-between z-10"
-        >
-            <div class="flex items-center space-x-3">
+        <TitleBar variant="screenshot" heightClass="h-14">
+            <div slot="left" class="flex items-center space-x-3 px-4 shrink-0">
                 <span class="text-accent-primary font-bold"
                     >スクリーンショット</span
                 >
@@ -581,16 +572,16 @@
                 />
             </div>
 
-            <div class="flex items-center gap-2">
+            <div slot="right" class="flex items-center gap-2 pr-2 shrink-0">
                 {#if selectionMode}
                     <button
-                        class="px-3 py-1.5 text-sm rounded bg-bg-tertiary text-text-primary hover:bg-bg-button transition-colors"
+                        class="px-3 py-1.5 text-sm rounded bg-bg-tertiary text-text-primary hover:bg-bg-button transition-colors h-fit"
                         on:click={toggleSelectionMode}
                     >
                         キャンセル
                     </button>
                     <button
-                        class="px-3 py-1.5 text-sm rounded transition-colors {selectedIds.size >
+                        class="px-3 py-1.5 text-sm rounded transition-colors h-fit {selectedIds.size >
                         0
                             ? 'bg-red-500 text-white hover:bg-red-600'
                             : 'bg-bg-tertiary text-text-secondary cursor-not-allowed opacity-50'}"
@@ -601,7 +592,7 @@
                     </button>
                 {:else}
                     <button
-                        class="px-3 py-1.5 text-sm rounded bg-bg-tertiary text-text-primary hover:bg-bg-button transition-colors flex items-center gap-1"
+                        class="px-3 py-1.5 text-sm rounded bg-bg-tertiary text-text-primary hover:bg-bg-button transition-colors flex items-center gap-1 h-fit"
                         on:click={toggleSelectionMode}
                         title="一括編集"
                     >
@@ -610,7 +601,7 @@
                     </button>
                 {/if}
             </div>
-        </div>
+        </TitleBar>
 
         <!-- Content -->
         <div class="flex-1 min-h-0 relative">
