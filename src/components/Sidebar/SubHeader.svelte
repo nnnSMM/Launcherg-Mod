@@ -1,68 +1,20 @@
 <script lang="ts">
-  import ImportAutomatically from "@/components/Sidebar/ImportAutomatically.svelte";
-  import ImportManually from "@/components/Sidebar/ImportManually.svelte";
-  import ImportPopover from "@/components/Sidebar/ImportPopover.svelte";
-  import APopover from "@/components/UI/APopover.svelte";
-  import Button from "@/components/UI/Button.svelte";
-  import { commandUpsertCollectionElement } from "@/lib/command";
-  import { registerCollectionElementDetails } from "@/lib/registerCollectionElementDetails";
-  import { showErrorToast, showInfoToast } from "@/lib/toast";
-  import type { AllGameCacheOne } from "@/lib/types";
-  import { sidebarCollectionElements } from "@/store/sidebarCollectionElements";
-
-  let isOpenImportAutomatically = false;
-  let isOpenImportManually = false;
-
-  const importManually = async (arg: {
-    exePath: string | null;
-    lnkPath: string | null;
-    gameCache: AllGameCacheOne;
-  }) => {
-    try {
-      await commandUpsertCollectionElement(arg);
-
-      try {
-        await registerCollectionElementDetails();
-      } catch (e) {
-        console.error("Failed to fetch extended game details:", e);
-      }
-
-      showInfoToast(`${arg.gameCache.gamename}を登録しました。`);
-    } catch (e) {
-      console.error("Failed to add game to collection:", e);
-      showInfoToast(`${arg.gameCache.gamename}を登録しました。`);
-    } finally {
-      await sidebarCollectionElements.refetch();
-      isOpenImportManually = false;
-    }
-  };
+  import { showSidebar } from "@/store/showSidebar";
 </script>
 
-<div class="mt-4 w-full px-2 flex items-center">
-  <div class="text-(text-primary body) font-bold pl-2 mr-auto">
+<div class="mt-4 w-full px-2 flex items-center min-w-0">
+  <div class="text-(text-primary body) font-bold pl-2 mr-auto truncate min-w-0">
     登録したゲーム
   </div>
-  <APopover panelClass="right-0" let:close>
-    <Button
-      text="Add"
-      leftIcon="i-material-symbols-computer-outline-rounded"
-      appendClass="ml-auto !bg-transparent !border-white/10 hover:!bg-white/10"
-      slot="button"
+  <div
+    class="ml-1 p-1 rounded cursor-pointer hover:bg-white/10"
+    on:click={() => showSidebar.set(false)}
+    role="button"
+    tabindex="-1"
+    on:keydown={(e) => e.key === "Enter" && showSidebar.set(false)}
+  >
+    <div
+      class="i-material-symbols-left-panel-close-outline w-6 h-6 color-text-primary"
     />
-    <ImportPopover
-      on:close={() => close(null)}
-      on:startAuto={() => (isOpenImportAutomatically = true)}
-      on:startManual={() => (isOpenImportManually = true)}
-    />
-  </APopover>
+  </div>
 </div>
-{#if isOpenImportAutomatically}
-  <ImportAutomatically bind:isOpen={isOpenImportAutomatically} />
-{/if}
-{#if isOpenImportManually}
-  <ImportManually
-    bind:isOpen={isOpenImportManually}
-    on:confirm={(e) => importManually(e.detail)}
-    on:cancel={() => (isOpenImportManually = false)}
-  />
-{/if}

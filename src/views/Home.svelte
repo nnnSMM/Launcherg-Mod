@@ -43,14 +43,6 @@
 
   import Skeleton from "@/components/UI/Skeleton.svelte";
 
-  const memoRegex = /^smde_memo-(\d+)$/;
-  const memoPromises = Promise.all(
-    Object.keys(localStorage)
-      .map((v) => +(v.match(memoRegex)?.[1] ?? "0"))
-      .filter((v) => v)
-      .map((v) => commandGetCollectionElement(v)),
-  );
-
   let isOpenGettingStarted = true;
 
   const loading = sidebarCollectionElements.loading;
@@ -128,10 +120,6 @@
   let:contentsScrollTo
 >
   <div class="space-y-8 mb-2" slot="header">
-    <div class="flex items-center gap-2 w-full">
-      <img src={Icon} alt="launcherg icon" class="h-12" />
-      <div class="font-logo text-(8 text-primary)">Launcherg</div>
-    </div>
 
     <div class="grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-6">
       {#if $loading}
@@ -155,45 +143,6 @@
             持っているゲームをこのランチャーに登録してみましょう。左のサイドバーにある「Add」ボタンから自動で追加できます。
           </Card>
         {/if}
-
-        <Card title="Help">
-          <div class="flex-(~ col) gap-2">
-            <LinkText
-              href="https://youtu.be/GCTj6eRRgAM?si=WRFuBgNErwTJsNnk"
-              text="1分でわかる Launcherg"
-            />
-            <LinkText
-              href="https://ryoha000.hatenablog.com/entry/2023/09/24/003605"
-              text="よくある Q&A"
-            />
-          </div>
-        </Card>
-
-        <Card title="Memo">
-          {#await memoPromises then elements}
-            {#if elements.length === 0 && $sidebarCollectionElements.length !== 0}
-              <div class="text-(text-tertiary body)">
-                このアプリにはメモ機能があります。サイドバーからゲームを選択して「Memo」ボタンを押すことでそのゲームについてメモを取ることができます。
-              </div>
-            {:else if elements.length === 0}
-              <div class="text-(text-tertiary body)">
-                メモはまだありません。
-              </div>
-            {:else}
-              <div class="gap-1 flex-(~ col)">
-                {#each elements as element (element.id)}
-                  <a
-                    use:link
-                    href="/memos/{element.id}?gamename={element.gamename}"
-                    class="text-(text-link body2) hover:underline-(1px text-link)"
-                  >
-                    メモ - {element.gamename}
-                  </a>
-                {/each}
-              </div>
-            {/if}
-          {/await}
-        </Card>
       {/if}
     </div>
 

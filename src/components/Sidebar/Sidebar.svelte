@@ -11,7 +11,6 @@
     useFilter,
   } from "@/lib/filter";
   import Search from "@/components/Sidebar/Search.svelte";
-  import Header from "@/components/Sidebar/Header.svelte";
   import { showSidebar } from "@/store/showSidebar";
   import MinimalSidebar from "@/components/Sidebar/MinimalSidebar.svelte";
   import { fly } from "svelte/transition";
@@ -61,21 +60,46 @@
   const shown = sidebarCollectionElements.shown;
 
   $: shown.set(search($filtered, $currentAttributes, $currentSortOrder));
+
+  import { localStorageWritable } from "@/lib/utils";
+  const sidebarWidth = localStorageWritable("sidebar-width", 320);
+
+  let isResizing = false;
+
+  function startResize(e: MouseEvent) {
+    isResizing = true;
+    e.preventDefault();
+  }
+
+  function onMouseMove(e: MouseEvent) {
+    if (!isResizing) return;
+    let newWidth = e.clientX;
+    if (newWidth < 200) newWidth = 200; // min width
+    if (newWidth > 800) newWidth = 800; // max width
+    sidebarWidth.set(newWidth);
+  }
+
+  function onMouseUp() {
+    isResizing = false;
+  }
 </script>
 
+<svelte:window on:mousemove={onMouseMove} on:mouseup={onMouseUp} />
+
 <div
-  class="h-full min-h-0 relative border-(r-1px solid border-primary) transition-all glass !bg-bg-primary/40"
-  class:w-80={$showSidebar}
-  class:w-12={!$showSidebar}
+  class="h-full min-h-0 relative border-(r-1px solid border-primary) glass !bg-bg-primary/40 flex-shrink-0 overflow-hidden"
+  class:transition-all={!isResizing}
+  style="width: {$showSidebar ? `${$sidebarWidth}px` : '3rem'};"
 >
   {#if $showSidebar}
-    <div class="absolute inset-0" transition:fly={{ x: -40, duration: 150 }}>
+    <div class="absolute inset-0 min-w-0 flex flex-col" transition:fly={{ x: -40, duration: 150 }}>
       <div
-        class="min-h-0 relative w-full h-full grid-(~ rows-[min-content_min-content_min-content_1fr])"
+        class="min-h-0 min-w-0 w-full flex-1 grid-(~ rows-[min-content_min-content_1fr])"
       >
-        <Header />
-        <SubHeader />
-        <div class="w-full mt-2 px-2">
+        <div class="min-w-0 w-full">
+          <SubHeader />
+        </div>
+        <div class="w-full mt-2 px-2 min-w-0">
           <Search
             bind:query={$query}
             bind:order={$currentSortOrder}
@@ -84,13 +108,18 @@
             on:toggleAttributeEnabled={(e) => toggleAttribute(e.detail.key)}
           />
         </div>
-        <div class="mt-1 min-h-0">
+        <div class="mt-1 min-h-0 min-w-0 w-full">
           <CollectionElements
             collectionElement={$shown}
             on:update={() => sidebarCollectionElements.refetch()}
           />
         </div>
       </div>
+      <!-- svelte-ignore a11y-no-static-element-interactions -->
+      <div
+        class="absolute top-0 right-0 w-1.5 h-full cursor-col-resize hover:bg-accent-primary/50 transition-colors z-50 -mr-[1px]"
+        on:mousedown={startResize}
+      ></div>
     </div>
   {:else}
     <div class="absolute inset-0" transition:fly={{ x: 40, duration: 150 }}>

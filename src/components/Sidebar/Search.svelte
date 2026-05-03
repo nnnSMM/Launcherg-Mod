@@ -37,11 +37,26 @@
     isShowForwardOther = right > 0;
   };
   let scrollableOther: SvelteComponent;
+  // playStatusAttributes 用のスクロール制御
+  let isShowBackPlay = false;
+  let isShowForwardPlay = true;
+  const onScrollPlay = (e: Event) => {
+    const element = e.target as HTMLElement;
+    const rect = element.getBoundingClientRect();
+    const width = element.scrollWidth;
+
+    const left = element.scrollLeft;
+    const right = width - rect.width - left;
+
+    isShowBackPlay = left > 0;
+    isShowForwardPlay = right > 0;
+  };
+  let scrollablePlay: SvelteComponent;
 </script>
 
-<div class="space-y-2 w-full">
-  <div class="flex items-center gap-2">
-    <div class="flex-1">
+<div class="space-y-2 w-full min-w-0">
+  <div class="flex items-center gap-2 min-w-0">
+    <div class="flex-1 min-w-0">
       <SearchInput
         bind:value={query}
         placeholder="Filter by title, brand and more"
@@ -68,14 +83,34 @@
 
   <!-- プレイ状況ボタンセクション -->
   {#if playStatusAttributes && playStatusAttributes.length > 0}
-    <div class="flex flex-wrap items-center gap-2 pb-1">
-      {#each playStatusAttributes as attribute (attribute.key)}
-        <SearchAttribute
-          {attribute}
-          on:click={() =>
-            dispatcher("toggleAttributeEnabled", { key: attribute.key })}
-        />
-      {/each}
+    <div class="relative min-w-0">
+      <div
+        class="hide-scrollbar"
+        style="mask-image: linear-gradient(to right, {isShowBackPlay
+          ? 'transparent, black 120px'
+          : 'black 0px'}, {isShowForwardPlay
+          ? 'black calc(100% - 120px), transparent'
+          : 'black 100%'}); -webkit-mask-image: linear-gradient(to right, {isShowBackPlay
+          ? 'transparent, black 120px'
+          : 'black 0px'}, {isShowForwardPlay
+          ? 'black calc(100% - 120px), transparent'
+          : 'black 100%'});"
+      >
+        <ScrollableHorizontal
+          on:scroll={(e) => onScrollPlay(e.detail.event)}
+          bind:this={scrollablePlay}
+        >
+          <div class="flex items-center gap-2 pb-1">
+            {#each playStatusAttributes as attribute (attribute.key)}
+              <SearchAttribute
+                {attribute}
+                on:click={() =>
+                  dispatcher("toggleAttributeEnabled", { key: attribute.key })}
+              />
+            {/each}
+          </div>
+        </ScrollableHorizontal>
+      </div>
     </div>
   {/if}
 

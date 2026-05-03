@@ -1,9 +1,46 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { getCurrentWindow } from '@tauri-apps/api/window';
+  import Icon from "/icon.png";
+  import { link } from "svelte-spa-router";
+  import { openSettingsTab, openShortcutSettingsTab } from "@/store/tabs";
+  import ButtonBase from "@/components/UI/ButtonBase.svelte";
+  import APopover from "@/components/UI/APopover.svelte";
+  import ImportPopover from "@/components/Sidebar/ImportPopover.svelte";
+  import ImportAutomatically from "@/components/Sidebar/ImportAutomatically.svelte";
+  import ImportManually from "@/components/Sidebar/ImportManually.svelte";
+  import { commandUpsertCollectionElement } from "@/lib/command";
+  import { registerCollectionElementDetails } from "@/lib/registerCollectionElementDetails";
+  import { showErrorToast, showInfoToast } from "@/lib/toast";
+  import type { AllGameCacheOne } from "@/lib/types";
+  import { sidebarCollectionElements } from "@/store/sidebarCollectionElements";
 
   const appWindow = getCurrentWindow();
   let isMaximized = false;
+  let isOpenImportAutomatically = false;
+  let isOpenImportManually = false;
+
+  const importManually = async (arg: {
+    exePath: string | null;
+    lnkPath: string | null;
+    gameCache: AllGameCacheOne;
+  }) => {
+    try {
+      await commandUpsertCollectionElement(arg);
+      try {
+        await registerCollectionElementDetails();
+      } catch (e) {
+        console.error("Failed to fetch extended game details:", e);
+      }
+      showInfoToast(`${arg.gameCache.gamename}を登録しました。`);
+    } catch (e) {
+      console.error("Failed to add game to collection:", e);
+      showInfoToast(`${arg.gameCache.gamename}を登録しました。`);
+    } finally {
+      await sidebarCollectionElements.refetch();
+      isOpenImportManually = false;
+    }
+  };
 
   onMount(async () => {
     isMaximized = await appWindow.isMaximized();
@@ -40,10 +77,40 @@
 </script>
 
 <div class="h-8 bg-bg-secondary flex justify-between items-center select-none w-full z-50 shrink-0">
+  <div class="flex items-center h-full">
+    <div class="flex items-center justify-center h-full pl-2 pr-1 pointer-events-none">
+      <img src={Icon} alt="launcherg icon" class="h-4" />
+    </div>
+    <a href="/" use:link class="flex items-center px-2 h-full cursor-pointer outline-none text-text-secondary hover:text-text-primary transition-colors text-[13px] font-medium" tabindex="-1">
+      ホーム
+    </a>
+    
+    <APopover panelClass="left-0" let:close>
+      <button slot="button" class="flex items-center px-2 h-full cursor-pointer outline-none focus:outline-none focus-visible:outline-none bg-transparent border-none text-text-secondary hover:text-text-primary transition-colors text-[13px] font-medium">
+        ゲーム追加
+      </button>
+      <ImportPopover
+        on:close={() => close(null)}
+        on:startAuto={() => (isOpenImportAutomatically = true)}
+        on:startManual={() => (isOpenImportManually = true)}
+      />
+    </APopover>
+
+    <button on:click={openShortcutSettingsTab} class="flex items-center px-2 h-full cursor-pointer outline-none focus:outline-none focus-visible:outline-none bg-transparent border-none text-text-secondary hover:text-text-primary transition-colors text-[13px] font-medium">
+      ショートカット
+    </button>
+
+    <button on:click={openSettingsTab} class="flex items-center px-2 h-full cursor-pointer outline-none focus:outline-none focus-visible:outline-none bg-transparent border-none text-text-secondary hover:text-text-primary transition-colors text-[13px] font-medium">
+      一括編集
+    </button>
+
+    <a href="https://github.com/nnnSMM/Launcherg-Mod/blob/main/USAGE.md" target="_blank" rel="noopener noreferrer" class="flex items-center px-2 h-full cursor-pointer outline-none text-text-secondary hover:text-text-primary transition-colors text-[13px] font-medium" tabindex="-1">
+      ヘルプ
+    </a>
+  </div>
+
   <!-- svelte-ignore a11y-no-static-element-interactions -->
-  <div on:mousedown={startDragging} class="flex items-center pl-3 h-full flex-1 cursor-default">
-    <!-- Icon or Title can go here -->
-    <span class="text-text-secondary text-sm font-bold pointer-events-none">Launcherg</span>
+  <div on:mousedown={startDragging} class="flex items-center justify-center h-full flex-1 cursor-default">
   </div>
   <div class="flex h-full">
     <button tabindex="-1" on:click={minimize} class="w-11 h-full flex items-center justify-center bg-transparent hover:bg-bg-tertiary transition-colors text-text-secondary hover:text-text-primary outline-none border-none focus:outline-none focus-visible:outline-none">
@@ -57,3 +124,14 @@
     </button>
   </div>
 </div>
+
+{#if isOpenImportAutomatically}
+  <ImportAutomatically bind:isOpen={isOpenImportAutomatically} />
+{/if}
+{#if isOpenImportManually}
+  <ImportManually
+    bind:isOpen={isOpenImportManually}
+    on:confirm={(e) => importManually(e.detail)}
+    on:cancel={() => (isOpenImportManually = false)}
+  />
+{/if}
