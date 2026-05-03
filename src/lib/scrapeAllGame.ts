@@ -58,13 +58,23 @@ export const scrapeAllGame = async (idCursor = 0) => {
 import { systemStatus } from "@/store/systemStatus";
 
 export const initializeAllGameCache = async () => {
-  systemStatus.set({ isInitializing: true, message: "ゲームデータベースの状態を確認しています..." });
+  systemStatus.set({
+    isInitializing: true,
+    title: "ゲームデータベースを確認しています",
+    message: "ゲームデータベースの状態を確認しています...",
+    detail: "確認が完了するまで、アプリケーションの操作を制限しています。",
+  });
   let objValue: AllGameCacheOne[] = [];
   try {
     const lastUpdated = await commandGetAllGameCacheLastUpdated();
     const now = new Date();
     if (now.getTime() - lastUpdated.date.getTime() > 1000 * 60 * 60 * 24 * 1) {
-      systemStatus.update(s => ({ ...s, message: "不足しているゲーム情報を取得しています..." }));
+      systemStatus.update((s) => ({
+        ...s,
+        title: "ゲーム情報を同期しています",
+        message: "不足しているゲーム情報を取得しています...",
+        detail: "同期が完了するまで、アプリケーションの操作を制限しています。",
+      }));
       objValue = await scrapeAllGame(lastUpdated.id + 1);
     }
   } catch (e) {
@@ -72,7 +82,13 @@ export const initializeAllGameCache = async () => {
       "all_game_cache の取得に失敗しました。おそらく初期化されていないため初期化します。"
     );
     console.warn(e);
-    systemStatus.update(s => ({ ...s, message: "ゲームデータベースを初期化しています（初回のみ数分かかります）..." }));
+    systemStatus.update((s) => ({
+      ...s,
+      title: "ゲームデータベースを初期化しています",
+      message: "ゲームデータベースを初期化しています（初回のみ数分かかります）...",
+      detail:
+        "ゲームデータベースの準備が完了するまで、アプリケーションの操作を制限しています。",
+    }));
     const response = await fetch(
       "https://raw.githubusercontent.com/ryoha000/launcherg/main/script/all_games.json",
       { method: "GET" }
@@ -82,14 +98,24 @@ export const initializeAllGameCache = async () => {
       (acc, cur) => (acc > cur.id ? acc : cur.id),
       0
     );
-    systemStatus.update(s => ({ ...s, message: "最新のゲーム情報を同期しています..." }));
+    systemStatus.update((s) => ({
+      ...s,
+      title: "ゲーム情報を同期しています",
+      message: "最新のゲーム情報を同期しています...",
+      detail: "同期が完了するまで、アプリケーションの操作を制限しています。",
+    }));
     objValue = [...initValue, ...(await scrapeAllGame(maxId + 1))];
   }
 
   if (objValue.length > 0) {
-    systemStatus.update(s => ({ ...s, message: "データベースを更新しています..." }));
+    systemStatus.update((s) => ({
+      ...s,
+      title: "データベースを更新しています",
+      message: "データベースを更新しています...",
+      detail: "更新が完了するまで、アプリケーションの操作を制限しています。",
+    }));
     await commandUpdateAllGameCache(objValue);
   }
 
-  systemStatus.set({ isInitializing: false, message: "" });
+  systemStatus.set({ isInitializing: false, title: "", message: "", detail: "" });
 };

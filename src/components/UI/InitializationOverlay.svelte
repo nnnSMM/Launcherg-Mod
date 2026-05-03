@@ -2,7 +2,7 @@
   import { systemStatus } from "@/store/systemStatus";
   import { fade } from "svelte/transition";
 
-  $: ({ isInitializing, message } = $systemStatus);
+  $: ({ isInitializing, title, message, detail } = $systemStatus);
 </script>
 
 {#if isInitializing}
@@ -21,7 +21,7 @@
 
       <!-- Message Header -->
       <h2 class="mb-3 text-h2 font-bold text-text-primary tracking-tight">
-        初期化しています
+        {title || "処理中です"}
       </h2>
 
       <!-- Progress Message -->
@@ -31,7 +31,7 @@
 
       <!-- Sub text -->
       <p class="mt-8 text-caption text-text-tertiary">
-        ゲームデータベースの準備が完了するまで、アプリケーションの操作を制限しています。
+        {detail || "処理が完了するまで、アプリケーションの操作を制限しています。"}
       </p>
     </div>
   </div>
