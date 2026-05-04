@@ -11,6 +11,13 @@
 
     export let element: CollectionElement;
     export let scrollY: number = 0;
+    export let offset: number = 0;
+    export let actualRenderedH: number = 0;
+    export let heroHeight: number = 0;
+
+    let innerHeight = 0;
+    $: defaultNegativeMargin = Math.min(Math.max(48, innerHeight * 0.08), 96);
+    $: glassTopY = heroHeight - defaultNegativeMargin - offset;
 
     const dispatch = createEventDispatcher();
 
@@ -23,6 +30,34 @@
         const img = e.target as HTMLImageElement;
         img.src = "/images/dummy_thumbnail.svg";
     };
+
+    let heroWidth = 0;
+
+    let loadedImage: HTMLImageElement | null = null;
+    let isImageLoading = false;
+
+    // 画像を事前にロードしてキャッシュしておく
+    $: if (bgImage) {
+        preloadImage(bgImage);
+    }
+
+    async function preloadImage(src: string) {
+        isImageLoading = true;
+        const img = new Image();
+        img.src = src;
+        try {
+            await new Promise<void>((resolve, reject) => {
+                img.onload = () => resolve();
+                img.onerror = () => reject();
+            });
+            loadedImage = img;
+            renderBgToCanvas();
+        } catch (e) {
+            console.error("Failed to preload hero image:", e);
+        } finally {
+            isImageLoading = false;
+        }
+    }
 
     let menu = {
         isOpen: false,
@@ -93,8 +128,8 @@
     let canvasEl: HTMLCanvasElement;
     let containerEl: HTMLDivElement;
 
-    async function renderBgToCanvas() {
-        if (!canvasEl || !containerEl || !bgImage) return;
+    function renderBgToCanvas() {
+        if (!canvasEl || !containerEl || !loadedImage) return;
 
         const rect = containerEl.getBoundingClientRect();
         const w = Math.round(rect.width);
@@ -107,19 +142,14 @@
         const ctx = canvasEl.getContext('2d');
         if (!ctx) return;
 
-        const img = new Image();
-        img.src = bgImage;
-        try {
-            await new Promise<void>((resolve, reject) => {
-                img.onload = () => resolve();
-                img.onerror = () => reject();
-            });
-        } catch {
-            return;
-        }
-
+        const img = loadedImage;
         const scale = w / img.naturalWidth;
         const renderedH = Math.round(img.naturalHeight * scale);
+
+        // 実際の画像の高さを親（WorkLayout）に渡す
+        if (Math.abs(actualRenderedH - renderedH) > 0.5) {
+            actualRenderedH = renderedH;
+        }
 
         // 画像を全幅で描画
         ctx.filter = 'none';
@@ -193,9 +223,13 @@
     $: bgImage, (() => { if (canvasEl) renderBgToCanvas(); })();
 </script>
 
-<svelte:window bind:innerWidth />
+<svelte:window bind:innerWidth bind:innerHeight />
 
-<div class="relative w-full min-h-[60vh] min-h-[300px] group flex flex-col pointer-events-none">
+<div 
+    bind:clientWidth={heroWidth}
+    bind:clientHeight={heroHeight}
+    class="relative w-full min-h-[60vh] min-h-[300px] group flex flex-col pointer-events-none"
+>
     <!-- Background Image -->
     <!-- Background Image with Parallax -->
     <!-- SVGフィルター定義: インクのにじみ効果（静的） -->
@@ -235,14 +269,15 @@
                 class="blur-[2px] opacity-100"
                 style="display: block; width: 100%; height: 100%;"
             />
-            <!-- 背景色オーバーレイ: 画像と同じ速度でスクロール -->
+            <!-- 背景色オーバーレイ: 画像端とGlass端の「より高い方」から開始して、可読性を確保 -->
             <div
-                class="absolute bottom-0 left-0 right-0 h-[60%] bg-bg-primary/55"
+                class="absolute left-0 right-0 bg-bg-primary/55"
+                style="top: {Math.min(actualRenderedH, glassTopY) + 20}px; bottom: 0;"
             />
         </div>
         <!-- グラデーション (下からフェードアウト) - 範囲を広げてより緩やかに -->
         <div
-            class="absolute bottom-0 left-0 right-0 h-[95%] bg-gradient-to-t from-bg-primary via-bg-primary/30 to-transparent pointer-events-none"
+            class="absolute bottom-0 left-0 right-0 h-[95%] bg-gradient-to-t from-bg-primary via-bg-primary/0 to-transparent pointer-events-none"
         />
     </div>
 
@@ -277,7 +312,10 @@
         </div>
 
         <!-- Bottom: Title Section -->
-        <div class="pointer-events-none">
+        <div 
+            class="pointer-events-none transition-transform duration-300 ease-out"
+            style="transform: translateY(-{offset}px);"
+        >
             {#if element.playStatus === 2}
                 <div
                     class="inline-block px-3 py-1 rounded-full bg-accent-success/30 text-accent-success text-sm font-bold mb-4 border border-accent-success/100"
