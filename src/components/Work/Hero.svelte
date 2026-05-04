@@ -151,13 +151,17 @@
             actualRenderedH = renderedH;
         }
 
-        // 画像を全幅で描画
-        ctx.filter = 'none';
-        ctx.drawImage(img, 0, 0, w, renderedH);
+        // 引き延ばしを開始する位置（Glassの上端+100pxのバッファと画像末端の「より高い方」）
+        const bleedStartY = Math.min(renderedH, glassTopY + 100);
 
-        // コンテナが画像より高い場合、伸ばした画像を3x3ミラータイルでシームレスにしてからにじみを適用
-        if (h > renderedH) {
-            const flipH = h - renderedH;
+        // 画像をアスペクト比を維持したまま全幅で描画（引き延ばし開始点までをクロップ）
+        ctx.filter = 'none';
+        const sourceHeight = bleedStartY / scale;
+        ctx.drawImage(img, 0, 0, img.naturalWidth, sourceHeight, 0, 0, w, bleedStartY);
+
+        // コンテナの底まで引き延ばす必要がある場合
+        if (h > bleedStartY) {
+            const flipH = h - bleedStartY;
             const iw = img.naturalWidth;
             const ih = img.naturalHeight;
             const srcStripRows = Math.max(1, Math.ceil(ih * 0.05));
@@ -207,7 +211,7 @@
                 off2,
                 w, flipH,       // 中央タイルの開始座標
                 w, flipH,       // 中央タイルのサイズ
-                0, renderedH,   // メインキャンバスの配置先
+                0, bleedStartY, // メインキャンバスの配置先（引き延ばし開始点）
                 w, flipH
             );
         }
@@ -220,7 +224,7 @@
         return () => observer.disconnect();
     });
 
-    $: bgImage, (() => { if (canvasEl) renderBgToCanvas(); })();
+    $: bgImage, glassTopY, (() => { if (canvasEl) renderBgToCanvas(); })();
 </script>
 
 <svelte:window bind:innerWidth bind:innerHeight />
@@ -272,7 +276,7 @@
             <!-- 背景色オーバーレイ: 画像端とGlass端の「より高い方」から開始して、可読性を確保 -->
             <div
                 class="absolute left-0 right-0 bg-bg-primary/55"
-                style="top: {Math.min(actualRenderedH, glassTopY) + 20}px; bottom: 0;"
+                style="top: {Math.min(actualRenderedH, glassTopY) + 30}px; bottom: 0;"
             />
         </div>
         <!-- グラデーション (下からフェードアウト) - 範囲を広げてより緩やかに -->

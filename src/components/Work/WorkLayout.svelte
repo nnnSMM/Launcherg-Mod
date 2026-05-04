@@ -16,6 +16,9 @@
 
   // 画像が Hero コンテナより短い場合に、コンテンツを持ち上げるためのオフセットを計算
   $: offset = Math.max(0, heroHeight - actualRenderedH);
+
+  // 下限（画像の下端）を守りつつ、40px 下に下げるための有効オフセット
+  $: effectiveOffset = Math.max(0, offset - 40);
 </script>
 
 <svelte:window bind:innerHeight />
@@ -24,13 +27,13 @@
   <Hero 
     {element} 
     {scrollY} 
-    {offset} 
+    offset={effectiveOffset} 
     bind:actualRenderedH 
     bind:heroHeight
   />
   <div 
     class="w-full max-w-[1600px] mx-auto transition-transform duration-300 ease-out"
-    style="margin-top: -{offset + defaultNegativeMargin}px;"
+    style="margin-top: -{effectiveOffset + defaultNegativeMargin}px;"
   >
     <GlassInfo {work} {element} />
   </div>
