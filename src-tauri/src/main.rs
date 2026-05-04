@@ -77,7 +77,7 @@ fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_autostart::init(
             MacosLauncher::LaunchAgent,
-            None,
+            Some(vec!["--autostart"]),
         ))
         .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
             app.emit("single-instance", ()).unwrap();
@@ -133,9 +133,9 @@ fn main() {
             #[cfg(desktop)]
             {
                 let autostart_manager = app.autolaunch();
-                if !autostart_manager.is_enabled().unwrap() {
-                    let _ = autostart_manager.enable();
-                }
+                // 常に enable() を呼び、インストーラーが登録した引数なしエントリを
+                // --autostart 付きのエントリで上書きする（次回起動以降に有効）
+                let _ = autostart_manager.enable();
             }
 
             let handle = app.handle().clone();
@@ -237,8 +237,12 @@ fn main() {
                 }
             });
 
-            if let Err(e) = show_main_window(app.handle()) {
-                eprintln!("Failed to show main window on startup: {}", e);
+            // スタートアップ起動（PC起動時の自動起動）の場合はウィンドウを表示しない
+            let is_autostart = std::env::args().any(|arg| arg == "--autostart");
+            if !is_autostart {
+                if let Err(e) = show_main_window(app.handle()) {
+                    eprintln!("Failed to show main window on startup: {}", e);
+                }
             }
 
             let handle = app.handle().clone();
