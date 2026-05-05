@@ -120,7 +120,6 @@
   let:contentsScrollTo
 >
   <div class="space-y-8 mb-2" slot="header">
-
     <div class="grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-6">
       {#if $loading}
         <div class="p-6 rounded-xl glass space-y-3">
@@ -137,12 +136,10 @@
             <Skeleton width="50%" height="1rem" />
           </div>
         </div>
-      {:else}
-        {#if $sidebarCollectionElements.length === 0 && isOpenGettingStarted}
-          <Card title="Getting started">
-            持っているゲームをこのランチャーに登録してみましょう。左のサイドバーにある「Add」ボタンから自動で追加できます。
-          </Card>
-        {/if}
+      {:else if $sidebarCollectionElements.length === 0 && isOpenGettingStarted}
+        <Card title="Getting started">
+          持っているゲームをこのランチャーに登録してみましょう。画面左上にある「ゲーム追加」ボタンから追加できます。また、実行ファイルをこの画面に直接ドラッグ＆ドロップすることでも登録可能です。
+        </Card>
       {/if}
     </div>
 

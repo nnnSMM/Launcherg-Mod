@@ -38,7 +38,7 @@
       }
     };
     window.addEventListener("keydown", handleKeydown);
-    
+
     return () => {
       window.removeEventListener("keydown", handleKeydown);
     };
@@ -52,7 +52,9 @@
 {:else if windowLabel === "tray_menu"}
   <TrayMenu />
 {:else}
-  <main class="relative h-full w-full bg-bg-primary font-sans overflow-hidden flex flex-col">
+  <main
+    class="relative h-full w-full bg-bg-primary font-sans overflow-hidden flex flex-col"
+  >
     <TitleBar heightClass="h-8" />
     {#if $backgroundState.imageUrl}
       <div
