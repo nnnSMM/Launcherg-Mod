@@ -2,8 +2,6 @@
 
 ## How to use
 
-https://youtu.be/SZnOkYNIeG0
-
 詳細な使い方は [USAGE.md](./USAGE.md) をご覧ください。
 
 ## privacy policy
