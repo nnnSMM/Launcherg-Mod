@@ -11,7 +11,8 @@
     "lint": "eslint --ext .js,.ts,.svelte,.cjs src --fix",
     "tauri": "tauri",
     "test": "vitest",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "graph:check": "node script/validate-skill-graph.mjs"
   },
   "dependencies": {
     "@skyway-sdk/room": "^1.5.4",

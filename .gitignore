@@ -16,6 +16,9 @@ dist-ssr
 .vscode/*
 !.vscode/extensions.json
 .idea
+docs/skill-graph/.obsidian/
+docs/skill-graph/Launcherg-Mod/.obsidian/
+Launcherg-Mod/.obsidian/
 .DS_Store
 *.suo
 *.ntvs*
