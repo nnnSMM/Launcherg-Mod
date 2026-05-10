@@ -45,6 +45,9 @@
           "url": "https://raw.githubusercontent.com/ryoha000/launcherg/*"
         },
         {
+          "url": "https://api.vndb.org/kana/*"
+        },
+        {
           "url": "https://launcherg.ryoha.moe/*"
         },
         {

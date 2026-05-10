@@ -23,6 +23,10 @@ const SHORTCUT_SETTINGS_TAB_ID = -101;
 const SHORTCUT_SETTINGS_PATH = "/settings/shortcut";
 const SHORTCUT_SETTINGS_TITLE = "ショートカット設定";
 
+const DISPLAY_SETTINGS_TAB_ID = -102;
+const DISPLAY_SETTINGS_PATH = "/settings/display";
+const DISPLAY_SETTINGS_TITLE = "表示設定";
+
 const createTabs = () => {
   const [tabs, getTabs] = createLocalStorageWritable<Tab[]>("tabs", []);
   const [selected, getSelected] = createLocalStorageWritable("tab-selected", -1);
@@ -86,6 +90,8 @@ const createTabs = () => {
       tabToSelectIndex = findOrCreateSettingsTab(PLAY_STATUS_EDITOR_TAB_ID, PLAY_STATUS_EDITOR_PATH, PLAY_STATUS_EDITOR_TITLE);
     } else if (location === SHORTCUT_SETTINGS_PATH && tabTypeSegment === "settings") {
       tabToSelectIndex = findOrCreateSettingsTab(SHORTCUT_SETTINGS_TAB_ID, SHORTCUT_SETTINGS_PATH, SHORTCUT_SETTINGS_TITLE);
+    } else if (location === DISPLAY_SETTINGS_PATH && tabTypeSegment === "settings") {
+      tabToSelectIndex = findOrCreateSettingsTab(DISPLAY_SETTINGS_TAB_ID, DISPLAY_SETTINGS_PATH, DISPLAY_SETTINGS_TITLE);
     } else if (tabTypeSegment === "works" || tabTypeSegment === "memos") {
       if (!entityId || isNaN(entityId)) {
         console.error("Missing or invalid entityId for works/memos tab at location:", location);
@@ -278,6 +284,10 @@ const createTabs = () => {
     openSpecificSettingsTab(SHORTCUT_SETTINGS_TAB_ID, SHORTCUT_SETTINGS_PATH, SHORTCUT_SETTINGS_TITLE);
   };
 
+  const openDisplaySettingsTab = () => {
+    openSpecificSettingsTab(DISPLAY_SETTINGS_TAB_ID, DISPLAY_SETTINGS_PATH, DISPLAY_SETTINGS_TITLE);
+  };
+
   return {
     tabs,
     selected,
@@ -288,6 +298,7 @@ const createTabs = () => {
     reorderTabs,
     openSettingsTab,
     openShortcutSettingsTab,
+    openDisplaySettingsTab,
   };
 };
 
@@ -301,6 +312,7 @@ interface TabsStore {
   reorderTabs: (oldIndex: number, newIndex: number) => void;
   openSettingsTab: () => void;
   openShortcutSettingsTab: () => void;
+  openDisplaySettingsTab: () => void;
 }
 
 const createdTabs: TabsStore = createTabs();
@@ -315,4 +327,5 @@ export const {
   reorderTabs,
   openSettingsTab,
   openShortcutSettingsTab,
+  openDisplaySettingsTab,
 } = createdTabs;

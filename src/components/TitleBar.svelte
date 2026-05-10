@@ -5,7 +5,11 @@
   import { getCurrentWindow } from '@tauri-apps/api/window';
   import Icon from "/icon.png";
   import { link } from "svelte-spa-router";
-  import { openSettingsTab, openShortcutSettingsTab } from "@/store/tabs";
+  import {
+    openDisplaySettingsTab,
+    openSettingsTab,
+    openShortcutSettingsTab,
+  } from "@/store/tabs";
   import ButtonBase from "@/components/UI/ButtonBase.svelte";
   import APopover from "@/components/UI/APopover.svelte";
   import ImportPopover from "@/components/Sidebar/ImportPopover.svelte";
@@ -16,6 +20,7 @@
   import { showErrorToast, showInfoToast } from "@/lib/toast";
   import type { AllGameCacheOne } from "@/lib/types";
   import { sidebarCollectionElements } from "@/store/sidebarCollectionElements";
+  import { enqueueVndbScreenshotPrefetch } from "@/lib/useVndbScreenshots";
 
   const appWindow = getCurrentWindow();
   let isMaximized = false;
@@ -40,6 +45,12 @@
       showInfoToast(`${arg.gameCache.gamename}を登録しました。`);
     } finally {
       await sidebarCollectionElements.refetch();
+      const imported = sidebarCollectionElements
+        .value()
+        .find((v) => v.id === arg.gameCache.id);
+      if (imported) {
+        enqueueVndbScreenshotPrefetch([imported]);
+      }
       isOpenImportManually = false;
     }
   };
@@ -101,6 +112,10 @@
 
       <button on:click={openShortcutSettingsTab} class="flex items-center px-2 h-full cursor-pointer outline-none focus:outline-none focus-visible:outline-none bg-transparent border-none text-text-secondary hover:text-text-primary transition-colors text-[13px] font-medium">
         ショートカット
+      </button>
+
+      <button on:click={openDisplaySettingsTab} class="flex items-center px-2 h-full cursor-pointer outline-none focus:outline-none focus-visible:outline-none bg-transparent border-none text-text-secondary hover:text-text-primary transition-colors text-[13px] font-medium">
+        表示
       </button>
 
       <button on:click={openSettingsTab} class="flex items-center px-2 h-full cursor-pointer outline-none focus:outline-none focus-visible:outline-none bg-transparent border-none text-text-secondary hover:text-text-primary transition-colors text-[13px] font-medium">

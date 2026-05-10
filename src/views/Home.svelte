@@ -1,6 +1,6 @@
 <script lang="ts">
   import {
-    commandGetCollectionElement,
+    commandGetAppSetting,
     commandUpdateAllGameCache,
     commandUpdateCollectionElementThumbnails,
     commandPlayGame,
@@ -25,14 +25,34 @@
   import { onMount, tick } from "svelte";
   import { backgroundState } from "@/store/background";
   import { startProcessMap } from "@/store/startProcessMap";
+  import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
   let scrollable: RecentlyPlayedScroller;
+  let shortcutGameId: number | null = null;
+  let unlistenShortcutGameChanged: UnlistenFn | null = null;
 
   onMount(() => {
     backgroundState.set({
       imageUrl: null,
       opacity: 0,
     });
+
+    const loadShortcutGameId = async () => {
+      const savedShortcutGameId = await commandGetAppSetting("shortcut_game_id");
+      const parsed = Number(savedShortcutGameId);
+      shortcutGameId = Number.isFinite(parsed) ? parsed : null;
+    };
+
+    void loadShortcutGameId();
+    void listen("shortcut-game-changed", () => {
+      void loadShortcutGameId();
+    }).then((unlisten) => {
+      unlistenShortcutGameChanged = unlisten;
+    });
+
+    return () => {
+      unlistenShortcutGameChanged?.();
+    };
   });
 
   $: if ($recentlyPlayed && scrollable) {
@@ -50,6 +70,10 @@
   const flattenShown = derived(shown, ($shown) =>
     $shown.flatMap((v) => v.elements),
   );
+  $: shortcutGame =
+    shortcutGameId === null
+      ? null
+      : $sidebarCollectionElements.find((v) => v.id === shortcutGameId) ?? null;
 
   const recentlyPlayed = derived(flattenShown, ($flattenShown) =>
     $flattenShown
@@ -160,14 +184,12 @@
           {/each}
         </div>
       </div>
-    {:else if $recentlyPlayed.length > 0}
-      {@const mostRecent = $recentlyPlayed[0]}
-      {@const recentHistory = $recentlyPlayed.slice(1)}
+    {:else if shortcutGame || $recentlyPlayed.length > 0}
       {@const TARGET_AREA =
         innerWidth < 768 ? 50000 : innerWidth < 1280 ? 70000 : 100000}
       {@const imageWidth = (() => {
-        if (mostRecent.thumbnailWidth && mostRecent.thumbnailHeight) {
-          const ratio = mostRecent.thumbnailWidth / mostRecent.thumbnailHeight;
+        if (shortcutGame?.thumbnailWidth && shortcutGame.thumbnailHeight) {
+          const ratio = shortcutGame.thumbnailWidth / shortcutGame.thumbnailHeight;
           let w = Math.sqrt(TARGET_AREA * ratio);
           let h = w / ratio;
           const MAX_HEIGHT = 320;
@@ -180,85 +202,91 @@
         return 192; // Default width (w-48)
       })()}
 
-      <!-- Hero Section for Most Recent Game -->
-      <div
-        role="button"
-        tabindex="0"
-        on:click={() =>
-          push(`/works/${mostRecent.id}?gamename=${mostRecent.gamename}`)}
-        on:keydown={(e) =>
-          e.key === "Enter" &&
-          push(`/works/${mostRecent.id}?gamename=${mostRecent.gamename}`)}
-        class="relative w-full h-[400px] rounded-2xl overflow-hidden group mb-8 block cursor-pointer"
-      >
-        <!-- Background Image -->
-        <div class="absolute inset-0 z-0">
-          {#if mostRecent.thumbnail}
-            <img
-              src={`${convertFileSrc(mostRecent.thumbnail)}?v=${mostRecent.updatedAt}`}
-              alt={mostRecent.gamename}
-              class="w-full h-full object-cover opacity-60 blur-md scale-105 transition-transform duration-700 group-hover:scale-110"
+      {#if shortcutGame}
+        {@const heroGame = shortcutGame}
+        <!-- Hero Section for Shortcut Game -->
+        <div
+          role="button"
+          tabindex="0"
+          on:click={() =>
+            push(`/works/${heroGame.id}?gamename=${heroGame.gamename}`)}
+          on:keydown={(e) =>
+            e.key === "Enter" &&
+            push(`/works/${heroGame.id}?gamename=${heroGame.gamename}`)}
+          class="relative w-full h-[400px] rounded-2xl overflow-hidden group mb-8 block cursor-pointer"
+        >
+          <!-- Background Image -->
+          <div class="absolute inset-0 z-0">
+            {#if heroGame.thumbnail}
+              <img
+                src={`${convertFileSrc(heroGame.thumbnail)}?v=${heroGame.updatedAt}`}
+                alt={heroGame.gamename}
+                class="w-full h-full object-cover opacity-60 blur-md scale-105 transition-transform duration-700 group-hover:scale-110"
+              />
+            {:else}
+              <div class="w-full h-full bg-bg-secondary/50" />
+            {/if}
+            <div
+              class="absolute inset-0 bg-gradient-to-t from-bg-primary via-bg-primary/50 to-transparent"
             />
-          {:else}
-            <div class="w-full h-full bg-bg-secondary/50" />
-          {/if}
-          <div
-            class="absolute inset-0 bg-gradient-to-t from-bg-primary via-bg-primary/50 to-transparent"
-          />
-          <div
-            class="absolute inset-0 bg-gradient-to-r from-bg-primary/80 via-transparent to-transparent"
-          />
-        </div>
-
-        <!-- Content -->
-        <div class="relative z-10 h-full flex items-end p-8 gap-8">
-          <!-- Cover Art -->
-
-          <div
-            class="shrink-0 rounded-lg overflow-hidden shadow-2xl transform transition-transform duration-300 group-hover:-translate-y-2"
-            style="width: {imageWidth}px;"
-          >
-            <img
-              src={mostRecent.thumbnail
-                ? `${convertFileSrc(mostRecent.thumbnail)}?v=${mostRecent.updatedAt}`
-                : ""}
-              alt="Cover"
-              class="w-full h-auto"
+            <div
+              class="absolute inset-0 bg-gradient-to-r from-bg-primary/80 via-transparent to-transparent"
             />
           </div>
 
-          <!-- Info -->
-          <div class="flex-1 mb-2">
-            <div class="flex items-center gap-3 mb-2">
-              <span class="text-text-tertiary text-sm">
-                Last played: {formatLastPlayed(mostRecent.lastPlayAt)}
-              </span>
-            </div>
+          <!-- Content -->
+          <div class="relative z-10 h-full flex items-end p-8 gap-8">
+            <!-- Cover Art -->
 
-            <h2
-              class="text-4xl font-bold text-white mb-6 drop-shadow-lg line-clamp-2"
+            <div
+              class="shrink-0 rounded-lg overflow-hidden shadow-2xl transform transition-transform duration-300 group-hover:-translate-y-2"
+              style="width: {imageWidth}px;"
             >
-              {mostRecent.gamename}
-            </h2>
-
-            <div class="flex gap-4">
-              <Button
-                text="Play Now"
-                leftIcon="i-material-symbols-play-arrow-rounded"
-                variant="accent"
-                appendClass="!px-8 !py-3 !text-lg shadow-lg shadow-accent-accent/20"
-                on:click={(e) => {
-                  e.stopPropagation();
-                  handlePlay(mostRecent.id);
-                }}
+              <img
+                src={heroGame.thumbnail
+                  ? `${convertFileSrc(heroGame.thumbnail)}?v=${heroGame.updatedAt}`
+                  : ""}
+                alt="Cover"
+                class="w-full h-auto"
               />
             </div>
+
+            <!-- Info -->
+            <div class="flex-1 mb-2">
+              <div class="flex items-center gap-3 mb-2">
+                <span class="text-text-tertiary text-sm">
+                  ショートカット
+                  {#if heroGame.lastPlayAt}
+                    / Last played: {formatLastPlayed(heroGame.lastPlayAt)}
+                  {/if}
+                </span>
+              </div>
+
+              <h2
+                class="text-4xl font-bold text-white mb-6 drop-shadow-lg line-clamp-2"
+              >
+                {heroGame.gamename}
+              </h2>
+
+              <div class="flex gap-4">
+                <Button
+                  text="Play Now"
+                  leftIcon="i-material-symbols-play-arrow-rounded"
+                  variant="accent"
+                  appendClass="!px-8 !py-3 !text-lg shadow-lg shadow-accent-accent/20"
+                  on:click={(e) => {
+                    e.stopPropagation();
+                    handlePlay(heroGame.id);
+                  }}
+                />
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      {/if}
 
       <!-- Recent History Scroller -->
-      {#if recentHistory.length > 0}
+      {#if $recentlyPlayed.length > 0}
         <div class="space-y-2">
           <div class="flex items-center">
             <h3 class="text-(text-primary h3) font-medium mr-auto">
@@ -271,7 +299,7 @@
           </div>
           <div class="relative">
             <RecentlyPlayedScroller bind:this={scrollable}>
-              {#each recentHistory as element (element.id)}
+              {#each $recentlyPlayed as element (element.id)}
                 {@const isPortrait =
                   element.thumbnailHeight &&
                   element.thumbnailWidth &&

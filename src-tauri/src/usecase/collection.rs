@@ -20,6 +20,7 @@ use crate::{
             get_screenshot_thumbnail_path, get_thumbnail_path, save_icon_to_png, save_thumbnail,
         },
         repository::collection::CollectionRepository,
+        repository::collection::VndbScreenshotCache,
         repository::screenshot::{Screenshot, ScreenshotRepository},
         Id,
     },
@@ -397,6 +398,26 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
         self.repositories
             .collection_repository()
             .set_app_setting(key, value)
+            .await
+    }
+
+    pub async fn get_vndb_screenshot_cache(
+        &self,
+        collection_element_id: i32,
+    ) -> anyhow::Result<Option<VndbScreenshotCache>> {
+        self.repositories
+            .collection_repository()
+            .get_vndb_screenshot_cache(collection_element_id)
+            .await
+    }
+
+    pub async fn upsert_vndb_screenshot_cache(
+        &self,
+        cache: VndbScreenshotCache,
+    ) -> anyhow::Result<()> {
+        self.repositories
+            .collection_repository()
+            .upsert_vndb_screenshot_cache(cache)
             .await
     }
 

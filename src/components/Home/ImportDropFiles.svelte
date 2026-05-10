@@ -7,6 +7,7 @@
   import { showErrorToast, showInfoToast } from "@/lib/toast";
   import { sidebarCollectionElements } from "@/store/sidebarCollectionElements";
   import type { AllGameCacheOne } from "@/lib/types";
+  import { enqueueVndbScreenshotPrefetch } from "@/lib/useVndbScreenshots";
 
   const handleDropFiles = (files: string[]) => {
     importFileDropPaths = [];
@@ -75,6 +76,12 @@
     await commandUpsertCollectionElement(arg);
     await registerCollectionElementDetails();
     await sidebarCollectionElements.refetch();
+    const imported = sidebarCollectionElements
+      .value()
+      .find((v) => v.id === arg.gameCache.id);
+    if (imported) {
+      enqueueVndbScreenshotPrefetch([imported]);
+    }
     showInfoToast(`${arg.gameCache.gamename}を登録しました。`);
     isOpenImportFileDrop = false;
     setTimeout(next, 0);

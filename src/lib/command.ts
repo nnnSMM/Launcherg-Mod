@@ -4,6 +4,7 @@ import type {
   CollectionElementDetail,
   PlayStatus,
   Screenshot,
+  VndbScreenshotCache,
 } from "@/lib/types";
 import { invoke } from "@tauri-apps/api/core";
 
@@ -186,6 +187,20 @@ export const commandSetAppSetting = async (
   value: string | null
 ) => {
   return await invoke<void>("set_app_setting", { key, value });
+};
+
+export const commandGetVndbScreenshotCache = async (
+  collectionElementId: number
+) => {
+  return await invoke<VndbScreenshotCache | null>("get_vndb_screenshot_cache", {
+    collectionElementId,
+  });
+};
+
+export const commandUpsertVndbScreenshotCache = async (
+  cache: VndbScreenshotCache
+) => {
+  return await invoke<void>("upsert_vndb_screenshot_cache", { cache });
 };
 
 export const commandTogglePauseTracking = async () => {

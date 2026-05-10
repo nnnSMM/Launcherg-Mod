@@ -106,3 +106,23 @@ export type Screenshot = {
   orderIndex: number;
   createdAt: string;
 };
+
+export type VndbScreenshot = {
+  id: string;
+  url: string;
+  thumbnail: string;
+  dims: [number, number] | null;
+  thumbnailDims: [number, number] | null;
+  sexual: number;
+  violence: number;
+  languages: string[];
+};
+
+export type VndbScreenshotCache = {
+  collectionElementId: number;
+  vndbId: string | null;
+  matchedTitle: string | null;
+  screenshotsJson: string;
+  fetchedAt: string;
+  status: "ok" | "not_found" | "error";
+};

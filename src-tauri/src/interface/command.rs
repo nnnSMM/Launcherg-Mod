@@ -14,6 +14,7 @@ use crate::{
             get_exe_path_from_lnk, get_file_created_at_sync, get_icon_path, get_lnk_metadatas,
             get_thumbnail_path, normalize,
         },
+        repository::collection::VndbScreenshotCache as DomainVndbScreenshotCache,
         Id,
     },
     usecase::error::UseCaseError,
@@ -32,6 +33,43 @@ pub struct WindowScreenshot {
     pub thumbnail_filename: Option<String>,
     pub order_index: i32,
     pub created_at: String,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VndbScreenshotCache {
+    pub collection_element_id: i32,
+    pub vndb_id: Option<String>,
+    pub matched_title: Option<String>,
+    pub screenshots_json: String,
+    pub fetched_at: String,
+    pub status: String,
+}
+
+impl From<DomainVndbScreenshotCache> for VndbScreenshotCache {
+    fn from(value: DomainVndbScreenshotCache) -> Self {
+        Self {
+            collection_element_id: value.collection_element_id,
+            vndb_id: value.vndb_id,
+            matched_title: value.matched_title,
+            screenshots_json: value.screenshots_json,
+            fetched_at: value.fetched_at,
+            status: value.status,
+        }
+    }
+}
+
+impl From<VndbScreenshotCache> for DomainVndbScreenshotCache {
+    fn from(value: VndbScreenshotCache) -> Self {
+        Self {
+            collection_element_id: value.collection_element_id,
+            vndb_id: value.vndb_id,
+            matched_title: value.matched_title,
+            screenshots_json: value.screenshots_json,
+            fetched_at: value.fetched_at,
+            status: value.status,
+        }
+    }
 }
 
 #[tauri::command]
@@ -504,6 +542,29 @@ pub async fn get_app_setting(
     key: String,
 ) -> Result<Option<String>, CommandError> {
     Ok(modules.collection_use_case().get_app_setting(key).await?)
+}
+
+#[tauri::command]
+pub async fn get_vndb_screenshot_cache(
+    modules: State<'_, Arc<Modules>>,
+    collection_element_id: i32,
+) -> Result<Option<VndbScreenshotCache>, CommandError> {
+    Ok(modules
+        .collection_use_case()
+        .get_vndb_screenshot_cache(collection_element_id)
+        .await?
+        .map(Into::into))
+}
+
+#[tauri::command]
+pub async fn upsert_vndb_screenshot_cache(
+    modules: State<'_, Arc<Modules>>,
+    cache: VndbScreenshotCache,
+) -> Result<(), CommandError> {
+    Ok(modules
+        .collection_use_case()
+        .upsert_vndb_screenshot_cache(cache.into())
+        .await?)
 }
 
 #[tauri::command]

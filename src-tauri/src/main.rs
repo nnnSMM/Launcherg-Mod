@@ -305,6 +305,8 @@ fn main() {
             command::update_game_image,
             command::get_app_setting,
             command::set_app_setting,
+            command::get_vndb_screenshot_cache,
+            command::upsert_vndb_screenshot_cache,
             command::launch_shortcut_game,
             command::update_shortcut_registration,
             command::update_pause_shortcut_registration,

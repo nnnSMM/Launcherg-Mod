@@ -14,6 +14,7 @@
   import ModalBase from "@/components/UI/ModalBase.svelte";
   import { fade } from "svelte/transition";
   import { registerCollectionElementDetails } from "@/lib/registerCollectionElementDetails";
+  import { enqueueVndbScreenshotPrefetch } from "@/lib/useVndbScreenshots";
   import InputPath from "@/components/UI/InputPath.svelte";
 
   let isLoading = false;
@@ -61,12 +62,16 @@
   };
   const confirm = async () => {
     isLoading = true;
+    const beforeIds = new Set(sidebarCollectionElements.value().map((v) => v.id));
     const res = await commandCreateElementsInPc(
       getPaths().map((v) => v.path),
       useCache,
     );
     await registerCollectionElementDetails();
     await sidebarCollectionElements.refetch();
+    enqueueVndbScreenshotPrefetch(
+      sidebarCollectionElements.value().filter((v) => !beforeIds.has(v.id)),
+    );
 
     isLoading = false;
 

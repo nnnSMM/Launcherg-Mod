@@ -50,6 +50,7 @@
       if (savedPauseShortcutKey) {
         pauseShortcutKey = savedPauseShortcutKey;
       }
+
     } catch (error) {
       console.error("Error loading settings:", error);
     } finally {
@@ -120,6 +121,7 @@
       showErrorToast(`設定の保存に失敗しました: ${error}`);
     }
   }
+
 
   // Reactive auto-save
   $: selectedGameId, updateShortcutGame();
@@ -215,6 +217,7 @@
           />
         </div>
       </Card>
+
     </div>
   {/if}
 </div>

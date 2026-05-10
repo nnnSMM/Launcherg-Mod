@@ -5,7 +5,7 @@ use sqlx::{query, query_as, QueryBuilder, Row};
 use super::{models::collection::CollectionElementTable, repository::RepositoryImpl};
 use crate::domain::{
     collection::{CollectionElement, NewCollectionElement, NewCollectionElementDetail},
-    repository::collection::CollectionRepository,
+    repository::collection::{CollectionRepository, VndbScreenshotCache},
     Id,
 };
 
@@ -350,6 +350,58 @@ impl CollectionRepository for RepositoryImpl<CollectionElement> {
                 .execute(&*pool)
                 .await?;
         }
+        Ok(())
+    }
+
+    async fn get_vndb_screenshot_cache(
+        &self,
+        collection_element_id: i32,
+    ) -> anyhow::Result<Option<VndbScreenshotCache>> {
+        let pool = self.pool.0.clone();
+        let row = query(
+            "SELECT collection_element_id, vndb_id, matched_title, screenshots_json, fetched_at, status
+            FROM vndb_screenshot_caches
+            WHERE collection_element_id = ?",
+        )
+        .bind(collection_element_id)
+        .fetch_optional(&*pool)
+        .await?;
+
+        Ok(row.map(|row| VndbScreenshotCache {
+            collection_element_id: row.get::<i64, _>("collection_element_id") as i32,
+            vndb_id: row.get("vndb_id"),
+            matched_title: row.get("matched_title"),
+            screenshots_json: row.get("screenshots_json"),
+            fetched_at: row
+                .get::<Option<String>, _>("fetched_at")
+                .unwrap_or_default(),
+            status: row.get("status"),
+        }))
+    }
+
+    async fn upsert_vndb_screenshot_cache(
+        &self,
+        cache: VndbScreenshotCache,
+    ) -> anyhow::Result<()> {
+        let pool = self.pool.0.clone();
+        query(
+            "INSERT INTO vndb_screenshot_caches
+                (collection_element_id, vndb_id, matched_title, screenshots_json, fetched_at, status)
+            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, ?)
+            ON CONFLICT(collection_element_id) DO UPDATE SET
+                vndb_id = excluded.vndb_id,
+                matched_title = excluded.matched_title,
+                screenshots_json = excluded.screenshots_json,
+                fetched_at = CURRENT_TIMESTAMP,
+                status = excluded.status",
+        )
+        .bind(cache.collection_element_id)
+        .bind(cache.vndb_id)
+        .bind(cache.matched_title)
+        .bind(cache.screenshots_json)
+        .bind(cache.status)
+        .execute(&*pool)
+        .await?;
         Ok(())
     }
 
