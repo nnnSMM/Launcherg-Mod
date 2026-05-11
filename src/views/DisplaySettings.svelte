@@ -119,7 +119,7 @@
           <Checkbox bind:value={showSensitiveVndbScreenshots} />
           <div>
             <div class="text-(text-primary body) font-medium">
-              刺激の強いVNDBスクリーンショットも表示する
+              刺激の強いスクリーンショットも表示する
             </div>
             <div class="text-(text-tertiary body2)">
               オフの場合、性的・暴力表現フラグが高い画像はホームのホバープレビューから除外します。
