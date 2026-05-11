@@ -6,10 +6,10 @@ use derive_new::new;
 use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
 use tauri::{AppHandle, Emitter};
 
+use crate::domain::file::ensure_screenshot_thumbnail;
 use crate::domain::repository::repositories::RepositoriesExt;
 use crate::domain::repository::screenshot::ScreenshotRepository;
 use crate::domain::Id;
-use crate::domain::file::ensure_screenshot_thumbnail;
 
 #[derive(new, Clone)]
 pub struct ScreenshotWatcher<R: RepositoriesExt> {
@@ -108,7 +108,10 @@ impl<R: RepositoriesExt + Send + Sync + 'static> ScreenshotWatcher<R> {
                                         {
                                             Ok(_) => {
                                                 // 通知イベントを発火
-                                                let _ = handle.emit("collection-element-updated", game_id.value);
+                                                let _ = handle.emit(
+                                                    "collection-element-updated",
+                                                    game_id.value,
+                                                );
                                             }
                                             Err(e) => eprintln!(
                                                 "ScreenshotWatcher: Failed to copy screenshot: {}",
@@ -159,7 +162,9 @@ async fn copy_screenshot<R: RepositoriesExt>(
     let dest_path = dest_dir.join(&filename);
     std::fs::copy(src_path, &dest_path)?;
 
-    if let Err(e) = ensure_screenshot_thumbnail(&get_save_root_abs_dir(handle), game_id.value, &filename) {
+    if let Err(e) =
+        ensure_screenshot_thumbnail(&get_save_root_abs_dir(handle), game_id.value, &filename)
+    {
         eprintln!(
             "ScreenshotWatcher: Failed to generate thumbnail for {}: {}",
             filename, e

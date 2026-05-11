@@ -46,8 +46,9 @@ const createTabs = () => {
 
   const routeLoaded = (event: RouteLoadedEvent) => {
     const location = event.detail.location;
-    localStorage.setItem("last-path", location);
     const params = event.detail.params;
+
+    localStorage.setItem("last-path", location);
 
     if (location === "/") {
       selected.set(-1);
@@ -194,6 +195,9 @@ const createTabs = () => {
 
   const initialize = () => {
     const lastPath = localStorage.getItem("last-path");
+    if (lastPath?.startsWith("/discover")) {
+      localStorage.removeItem("last-path");
+    }
     // If we have a last path, and the current path is the root
     // (which is the default when reopening the app), then navigate.
     if (lastPath && window.location.pathname === "/") {

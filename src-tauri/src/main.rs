@@ -18,13 +18,14 @@ use tauri::{
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     AppHandle, Emitter, Listener, Manager, PhysicalPosition, WebviewUrl, WebviewWindowBuilder,
 };
-use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
+use tauri_plugin_autostart::ManagerExt;
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 use tauri_plugin_log::{Target, TargetKind};
-use tauri_plugin_window_state::StateFlags;
+use tauri_plugin_window_state::{AppHandleExt, StateFlags};
 
 const TRAY_MENU_WIDTH: f64 = 312.0;
 const TRAY_MENU_HEIGHT: f64 = 448.0;
+const APP_AUTOSTART_NAME: &str = "Launcherg";
 const LEFT_CLICK_TRAY_MENU_DELAY: Duration = Duration::from_millis(280);
 /// If no trailing `Click` arrives after `DoubleClick`, clear suppress so a later single-click still works.
 const SUPPRESS_LEFT_MENU_RESET_AFTER_DOUBLE_CLICK: Duration = Duration::from_millis(400);
@@ -75,10 +76,12 @@ impl TrayLeftClickMenuToken {
 
 fn main() {
     tauri::Builder::default()
-        .plugin(tauri_plugin_autostart::init(
-            MacosLauncher::LaunchAgent,
-            Some(vec!["--autostart"]),
-        ))
+        .plugin(
+            tauri_plugin_autostart::Builder::new()
+                .app_name(APP_AUTOSTART_NAME)
+                .arg("--autostart")
+                .build(),
+        )
         .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
             app.emit("single-instance", ()).unwrap();
         }))
@@ -103,12 +106,7 @@ fn main() {
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(
             tauri_plugin_window_state::Builder::default()
-                .with_state_flags(
-                    StateFlags::SIZE
-                        | StateFlags::POSITION
-                        | StateFlags::MAXIMIZED
-                        | StateFlags::FULLSCREEN,
-                )
+                .with_state_flags(window_state_flags())
                 .build(),
         )
         .on_window_event(|window, event| match event {
@@ -119,6 +117,9 @@ fn main() {
                     println!("[main] screenshot_window close requested, destroying");
                     let _ = window.destroy();
                 } else {
+                    if window.label() == "main" {
+                        save_current_window_state(window.app_handle());
+                    }
                     // Hide other windows instead of closing
                     window.hide().unwrap();
                     api.prevent_close();
@@ -135,7 +136,12 @@ fn main() {
                 let autostart_manager = app.autolaunch();
                 // 常に enable() を呼び、インストーラーが登録した引数なしエントリを
                 // --autostart 付きのエントリで上書きする（次回起動以降に有効）
-                let _ = autostart_manager.enable();
+                if let Err(e) = autostart_manager.enable() {
+                    eprintln!("Failed to enable autostart: {}", e);
+                }
+                if let Err(e) = ensure_windows_autostart_entry(app) {
+                    eprintln!("Failed to repair Windows autostart entry: {}", e);
+                }
             }
 
             let handle = app.handle().clone();
@@ -175,7 +181,10 @@ fn main() {
                                 token_state.invalidate_scheduled_menu();
                                 token_state.arm_suppress_next_left_menu_open();
                                 if let Err(e) = show_main_window(&app) {
-                                    eprintln!("Failed to show main window from tray double-click: {}", e);
+                                    eprintln!(
+                                        "Failed to show main window from tray double-click: {}",
+                                        e
+                                    );
                                 }
                                 let app_reset = app.clone();
                                 tauri::async_runtime::spawn(async move {
@@ -211,7 +220,8 @@ fn main() {
                                     let app_clone = app.clone();
                                     tauri::async_runtime::spawn(async move {
                                         tokio::time::sleep(LEFT_CLICK_TRAY_MENU_DELAY).await;
-                                        let token_state = app_clone.state::<TrayLeftClickMenuToken>();
+                                        let token_state =
+                                            app_clone.state::<TrayLeftClickMenuToken>();
                                         if !token_state.generation_matches(generation) {
                                             return;
                                         }
@@ -298,6 +308,7 @@ fn main() {
             command::get_all_game_cache_last_updated,
             command::update_all_game_cache,
             command::get_game_candidates,
+            command::search_all_game_cache,
             command::get_exe_path_by_lnk,
             command::get_game_cache_by_id,
             command::save_screenshot_by_pid,
@@ -321,6 +332,7 @@ fn main() {
             command::update_collection_element_path,
             command::delete_collection_element_logical,
             command::show_main_window,
+            command::save_main_window_state,
             command::hide_tray_menu,
             command::quit_app,
         ])
@@ -339,6 +351,66 @@ fn show_main_window(app_handle: &AppHandle) -> tauri::Result<()> {
         let _ = window.hide();
     }
 
+    Ok(())
+}
+
+fn window_state_flags() -> StateFlags {
+    StateFlags::SIZE | StateFlags::POSITION | StateFlags::MAXIMIZED | StateFlags::FULLSCREEN
+}
+
+fn save_current_window_state(app_handle: &AppHandle) {
+    if let Some(window) = app_handle.get_webview_window("main") {
+        if window.is_minimized().unwrap_or(false) {
+            let _ = window.unminimize();
+        }
+    }
+
+    let _ = app_handle.save_window_state(window_state_flags());
+}
+
+#[cfg(windows)]
+fn ensure_windows_autostart_entry<R: tauri::Runtime>(app: &tauri::App<R>) -> anyhow::Result<()> {
+    use winreg::enums::{RegType::REG_BINARY, HKEY_CURRENT_USER, KEY_SET_VALUE};
+    use winreg::{RegKey, RegValue};
+
+    const RUN_KEY: &str = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run";
+    const STARTUP_APPROVED_RUN_KEY: &str =
+        "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run";
+    const STARTUP_APPROVED_ENABLED: [u8; 12] = [
+        0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    ];
+
+    let exe_path = std::env::current_exe()?;
+    let command = format!("\"{}\" --autostart", exe_path.display());
+    let legacy_app_name = app.package_info().name.as_str();
+    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+
+    let run_key = hkcu.open_subkey_with_flags(RUN_KEY, KEY_SET_VALUE)?;
+    run_key.set_value(APP_AUTOSTART_NAME, &command)?;
+    if legacy_app_name != APP_AUTOSTART_NAME {
+        let _ = run_key.delete_value(legacy_app_name);
+    }
+
+    if let Ok(startup_approved_key) =
+        hkcu.open_subkey_with_flags(STARTUP_APPROVED_RUN_KEY, KEY_SET_VALUE)
+    {
+        startup_approved_key.set_raw_value(
+            APP_AUTOSTART_NAME,
+            &RegValue {
+                vtype: REG_BINARY,
+                bytes: STARTUP_APPROVED_ENABLED.to_vec(),
+            },
+        )?;
+        if legacy_app_name != APP_AUTOSTART_NAME {
+            let _ = startup_approved_key.delete_value(legacy_app_name);
+        }
+    }
+
+    Ok(())
+}
+
+#[cfg(not(windows))]
+fn ensure_windows_autostart_entry<R: tauri::Runtime>(_app: &tauri::App<R>) -> anyhow::Result<()> {
     Ok(())
 }
 

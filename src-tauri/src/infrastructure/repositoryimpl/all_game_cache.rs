@@ -36,6 +36,57 @@ impl AllGameCacheRepository for RepositoryImpl<AllGameCache> {
             })
             .collect())
     }
+    async fn search(
+        &self,
+        query: String,
+        limit: i64,
+        offset: i64,
+    ) -> anyhow::Result<Vec<AllGameCacheOneWithThumbnailUrl>> {
+        let pool = self.pool.0.clone();
+        let trimmed = query.trim().to_string();
+        let tokens = trimmed
+            .split_whitespace()
+            .filter(|token| !token.is_empty())
+            .collect::<Vec<_>>();
+        let mut builder = QueryBuilder::<sqlx::Sqlite>::new(
+            "SELECT id, gamename, thumbnail_url FROM all_game_caches",
+        );
+
+        if !tokens.is_empty() {
+            builder.push(" WHERE ");
+            let mut separated = builder.separated(" AND ");
+            for token in tokens {
+                separated.push("gamename LIKE ");
+                separated.push_bind(format!("%{}%", token));
+            }
+        }
+
+        if trimmed.is_empty() {
+            builder.push(" ORDER BY id DESC");
+        } else {
+            builder.push(" ORDER BY CASE WHEN gamename = ");
+            builder.push_bind(trimmed.clone());
+            builder.push(" THEN 0 WHEN gamename LIKE ");
+            builder.push_bind(format!("{}%", trimmed));
+            builder.push(" THEN 1 ELSE 2 END, LENGTH(gamename) ASC, id DESC");
+        }
+        builder.push(" LIMIT ");
+        builder.push_bind(limit);
+        builder.push(" OFFSET ");
+        builder.push_bind(offset);
+
+        let query = builder.build();
+        Ok(query
+            .fetch_all(&*pool)
+            .await?
+            .into_iter()
+            .map(|v| AllGameCacheOneWithThumbnailUrl {
+                id: v.get(0),
+                gamename: v.get(1),
+                thumbnail_url: v.get(2),
+            })
+            .collect())
+    }
     async fn get_all(&self) -> anyhow::Result<AllGameCache> {
         let pool = self.pool.0.clone();
         Ok(

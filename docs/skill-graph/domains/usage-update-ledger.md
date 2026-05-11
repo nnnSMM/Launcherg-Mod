@@ -23,6 +23,42 @@ links:
 
 ## Pending Items
 
+### 探す画面と高機能検索
+
+- status: pending
+- target sections: はじめに / ゲームを探す / 注意事項
+- summary: タイトルバーに「探す」を追加し、ErogameScapeを使って日本向けPCゲームの新作、発売予定、トレンド、おすすめ、中央値順、短編の棚と検索専用ページを表示する。
+- details:
+  - 「探す」画面は購入機能を持たず、新しい作品を見つけてErogameScapeで確認するための場所にする。
+  - トレンド、おすすめ、新着順、発売予定、中央値順、短編の横スクロール棚を表示する。
+  - 検索後は専用ページへ移動し、キーワード、ブランド、発売年、長さ、中央値、データ数、画像あり、所持済み表示、発見状態、並び順で絞り込める。
+  - 所持済みの可能性がある作品はローカルライブラリ名から判定してバッジ表示する。
+  - 発見状態は「気になる」「対象外」として専用SQLite DBへ保存する。
+  - 発売予定と最近のおすすめはErogameScape本体ページの並びを優先し、取得できない場合は固定SQLに戻す。
+  - ErogameScape SQLフォームと本体ページの結果はキャッシュし、呼び出しは直列化して過剰アクセスを避ける。
+- screenshot needed:
+  - 探す画面の各棚が見えている状態。
+  - 検索専用ページで複数フィルタを使っている状態。
+- suggested image names:
+  - `images/discover_home.png`
+  - `images/discover_search.png`
+
+### ライトモード
+
+- status: pending
+- target sections: 設定
+- summary: 表示設定からダークモードとライトモードを切り替えられる。
+- details:
+  - 既定は従来に近いダークモードにする。
+  - ライトモード選択時は背景、カード、入力欄、トースト、スクロールバーなどの基本色を明るい配色へ切り替える。
+  - 設定はアプリ設定として保存し、次回起動時に復元する。
+- screenshot needed:
+  - 表示設定のテーマ切り替え。
+  - ライトモードのホーム画面または探す画面。
+- suggested image names:
+  - `images/display_theme.png`
+  - `images/light_mode_discover.png`
+
 ### VNDBホバープレビュー
 
 - status: pending

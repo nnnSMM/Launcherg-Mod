@@ -1,3 +1,103 @@
+html {
+  color-scheme: dark;
+
+  --color-accent-accent: 72, 122, 249;
+  --color-accent-primary: 72, 122, 249;
+  --color-accent-primary-hover: 90, 136, 255;
+  --color-accent-success: 52, 125, 57;
+  --color-accent-edit: 17, 99, 41;
+  --color-accent-warning: 198, 144, 38;
+  --color-accent-error: 234, 78, 96;
+  --color-bg-primary: 22, 27, 34;
+  --color-bg-secondary: 33, 38, 45;
+  --color-bg-tertiary: 48, 54, 61;
+  --color-bg-disabled: 24, 24, 24;
+  --color-bg-button: 55, 62, 71;
+  --color-bg-button-hover: 68, 76, 86;
+  --color-bg-backdrop: 13, 17, 23;
+  --color-bg-success-disabled: rgba(35, 134, 54, 0.6);
+  --color-bg-success-hover: 70, 149, 74;
+  --color-bg-warning: 55, 51, 42;
+  --color-bg-t-primary: 173, 186, 199;
+  --color-bg-t-secondary: 205, 217, 229;
+  --color-bg-t-tertiary: 118, 131, 144;
+  --color-ui-tertiary: 99, 110, 123;
+  --color-border-primary: rgba(205, 217, 229, 0.1);
+  --color-border-button: 205, 217, 229;
+  --color-border-button-hover: 118, 131, 144;
+  --color-border-warning: 174, 124, 20;
+  --color-border-success-disabled: rgba(35, 134, 54, 0.6);
+  --color-text-primary: 230, 237, 243;
+  --color-text-secondary: 208, 215, 222;
+  --color-text-tertiary: 139, 148, 158;
+  --color-text-link: 68, 147, 248;
+  --color-text-white: 255, 255, 255;
+  --color-text-disabled: 72, 79, 88;
+  --color-text-success-disabled: rgba(255, 255, 255, 0.5);
+  --color-text-b-primary: 34, 39, 46;
+  --color-text-b-secondary: 45, 51, 59;
+  --color-text-b-tertiary: 50, 57, 66;
+  --color-scrollbar-thumb: 85, 96, 109;
+  --color-scrollbar-thumb-hover: 176, 187, 201;
+  --color-tooltip-bg: 99, 110, 123;
+  --color-tooltip-text: 195, 207, 219;
+  --color-editor-bg: 34, 39, 46;
+  --color-editor-border: 68, 76, 86;
+  --color-editor-active: 45, 51, 59;
+  --color-toast-bg: 34, 39, 46;
+  --color-toast-text: 173, 186, 199;
+}
+
+html[data-theme="light"] {
+  color-scheme: light;
+
+  --color-accent-accent: 47, 111, 235;
+  --color-accent-primary: 47, 111, 235;
+  --color-accent-primary-hover: 31, 95, 207;
+  --color-accent-success: 46, 125, 50;
+  --color-accent-edit: 31, 122, 58;
+  --color-accent-warning: 154, 103, 0;
+  --color-accent-error: 207, 51, 72;
+  --color-bg-primary: 246, 248, 250;
+  --color-bg-secondary: 255, 255, 255;
+  --color-bg-tertiary: 234, 238, 242;
+  --color-bg-disabled: 216, 222, 228;
+  --color-bg-button: 240, 243, 246;
+  --color-bg-button-hover: 230, 235, 240;
+  --color-bg-backdrop: 255, 255, 255;
+  --color-bg-success-disabled: rgba(46, 125, 50, 0.22);
+  --color-bg-success-hover: 58, 145, 64;
+  --color-bg-warning: 255, 244, 214;
+  --color-bg-t-primary: 87, 96, 106;
+  --color-bg-t-secondary: 36, 41, 47;
+  --color-bg-t-tertiary: 110, 119, 129;
+  --color-ui-tertiary: 110, 119, 129;
+  --color-border-primary: rgba(36, 41, 47, 0.14);
+  --color-border-button: 140, 149, 159;
+  --color-border-button-hover: 87, 96, 106;
+  --color-border-warning: 191, 135, 0;
+  --color-border-success-disabled: rgba(46, 125, 50, 0.35);
+  --color-text-primary: 36, 41, 47;
+  --color-text-secondary: 61, 68, 77;
+  --color-text-tertiary: 110, 119, 129;
+  --color-text-link: 9, 105, 218;
+  --color-text-white: 255, 255, 255;
+  --color-text-disabled: 140, 149, 159;
+  --color-text-success-disabled: rgba(36, 41, 47, 0.55);
+  --color-text-b-primary: 255, 255, 255;
+  --color-text-b-secondary: 246, 248, 250;
+  --color-text-b-tertiary: 234, 238, 242;
+  --color-scrollbar-thumb: 175, 184, 193;
+  --color-scrollbar-thumb-hover: 110, 119, 129;
+  --color-tooltip-bg: 87, 96, 106;
+  --color-tooltip-text: 255, 255, 255;
+  --color-editor-bg: 255, 255, 255;
+  --color-editor-border: 208, 215, 222;
+  --color-editor-active: 240, 243, 246;
+  --color-toast-bg: 255, 255, 255;
+  --color-toast-text: 36, 41, 47;
+}
+
 html,
 body {
   user-select: none;
@@ -13,7 +113,7 @@ body {
   }
 
   ::-webkit-scrollbar-thumb {
-    background-color: #55606d;
+    background-color: rgb(var(--color-scrollbar-thumb));
     height: 3rem;
     width: 5rem;
     border-radius: 999px;
@@ -21,7 +121,7 @@ body {
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background-color: #b0bbc9;
+    background-color: rgb(var(--color-scrollbar-thumb-hover));
   }
 }
 
@@ -59,11 +159,11 @@ a:focus-visible {
 
 .tippy-box[data-theme~='default'] {
   >.tippy-arrow {
-    color: #636e7b;
+    color: rgb(var(--color-tooltip-bg));
   }
 
-  background-color: #636e7b;
-  color: #c3cfdb;
+  background-color: rgb(var(--color-tooltip-bg));
+  color: rgb(var(--color-tooltip-text));
 }
 
 .tippy-box[data-theme~='image-bg'] {
@@ -93,7 +193,7 @@ a:focus-visible {
 
 .simplebar-vertical {
   >.simplebar-scrollbar::before {
-    background-color: #636e7b;
+    background-color: rgb(var(--color-scrollbar-thumb));
   }
 }
 
@@ -101,7 +201,7 @@ a:focus-visible {
   height: 0.25rem !important;
 
   >.simplebar-scrollbar::before {
-    background-color: #636e7b;
+    background-color: rgb(var(--color-scrollbar-thumb));
     bottom: 0;
   }
 }
@@ -126,25 +226,25 @@ a:focus-visible {
 .EasyMDEContainer>.editor-toolbar {
   border-color: transparent;
   border-bottom-width: 1px;
-  border-bottom-color: #444c56;
+  border-bottom-color: rgb(var(--color-editor-border));
 
   * {
-    color: #adbac7;
+    color: rgb(var(--color-text-secondary));
   }
 
   i.separator {
-    border-left: 1px solid #444c56;
-    border-right: 1px solid #444c56;
+    border-left: 1px solid rgb(var(--color-editor-border));
+    border-right: 1px solid rgb(var(--color-editor-border));
   }
 
   button:hover {
-    background-color: #2d333b;
-    border-color: #444c56;
+    background-color: rgb(var(--color-editor-active));
+    border-color: rgb(var(--color-editor-border));
   }
 
   button.active {
-    background-color: #2d333b;
-    border-color: #444c56;
+    background-color: rgb(var(--color-editor-active));
+    border-color: rgb(var(--color-editor-border));
   }
 }
 
@@ -188,33 +288,33 @@ a:focus-visible {
 }
 
 .CodeMirror.cm-s-easymde.CodeMirror-wrap {
-  color: #adbac7;
+  color: rgb(var(--color-text-secondary));
   border-width: 0;
-  border-color: #444c56;
-  background-color: #22272e;
+  border-color: rgb(var(--color-editor-border));
+  background-color: rgb(var(--color-editor-bg));
   flex: 1;
 }
 
 .EasyMDEContainer .cm-s-easymde .CodeMirror-cursor {
-  border-color: #adbac7;
+  border-color: rgb(var(--color-text-secondary));
 }
 
 .EasyMDEContainer .CodeMirror-selected {
-  background: #2d333b !important;
+  background: rgb(var(--color-editor-active)) !important;
 }
 
 .editor-toolbar {
-  border-top: 1px solid #333;
-  border-left: 1px solid #333;
-  border-right: 1px solid #333;
+  border-top: 1px solid rgb(var(--color-editor-border));
+  border-left: 1px solid rgb(var(--color-editor-border));
+  border-right: 1px solid rgb(var(--color-editor-border));
 }
 
 .editor-toolbar.fullscreen {
-  background: #000;
+  background: rgb(var(--color-editor-bg));
 }
 
 .editor-preview {
-  background: #000;
+  background: rgb(var(--color-editor-bg));
 }
 
 /* Allow text selection for input elements */

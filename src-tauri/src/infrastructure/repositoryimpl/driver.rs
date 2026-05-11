@@ -43,6 +43,7 @@ impl Db {
         let mut conf = Config::new(ConfigDbType::Sqlite).set_db_path(&db_filename);
         embedded::migrations::runner()
             .set_abort_divergent(false)
+            .set_abort_missing(false)
             .run(&mut conf)
             .unwrap();
 

@@ -1,9 +1,9 @@
 .toastify {
     padding: 12px 20px;
-    color: #adbac7;
+    color: rgb(var(--color-toast-text));
     display: block;
     box-shadow: 0 3px 6px -1px rgba(0, 0, 0, 0.12);
-    background-color: #22272e;
+    background-color: rgb(var(--color-toast-bg));
     position: fixed;
     opacity: 0;
     transition: all 0.4s cubic-bezier(0.215, 0.61, 0.355, 1);
@@ -21,7 +21,7 @@
 .toast-close {
     background: transparent;
     border: 0;
-    color: #adbac7;
+    color: rgb(var(--color-toast-text));
     cursor: pointer;
     font-family: inherit;
     font-size: 1em;

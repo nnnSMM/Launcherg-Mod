@@ -35,6 +35,17 @@ impl<R: RepositoriesExt> AllGameCacheUseCase<R> {
             .get_by_ids(ids)
             .await
     }
+    pub async fn search(
+        &self,
+        query: String,
+        limit: i64,
+        offset: i64,
+    ) -> anyhow::Result<Vec<AllGameCacheOneWithThumbnailUrl>> {
+        self.repositories
+            .all_game_cache_repository()
+            .search(query, limit, offset)
+            .await
+    }
     pub async fn get_all_game_cache(&self) -> anyhow::Result<AllGameCache> {
         self.repositories
             .all_game_cache_repository()

@@ -8,9 +8,8 @@ import type {
   VndbScreenshot,
   VndbScreenshotCache,
 } from "@/lib/types";
-import { fetch } from "@tauri-apps/plugin-http";
+import { requestVndbJson } from "@/lib/vndbRequest";
 
-const VNDB_API_URL = "https://api.vndb.org/kana/vn";
 const CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const CACHE_SCHEMA_VERSION = 3;
 const SENSITIVE_THRESHOLD = 1.5;
@@ -371,18 +370,12 @@ const getCache = async (collectionElementId: number): Promise<CacheLookup> => {
 const requestVndb = async (
   collectionElement: CollectionElement,
 ): Promise<VndbScreenshotCache> => {
-  const response = await fetch(VNDB_API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(createVndbRequestBody(collectionElement)),
-  });
-
-  if (!response.ok) {
-    throw new Error(`VNDB request failed: ${response.status}`);
-  }
-
+  const response = await requestVndbJson<VndbApiResponse>(
+    "/vn",
+    createVndbRequestBody(collectionElement),
+  );
   const parsed = parseVndbScreenshots(
-    (await response.json()) as VndbApiResponse,
+    response,
     collectionElement,
   );
   const cache: VndbScreenshotCache = {

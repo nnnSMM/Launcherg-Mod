@@ -190,7 +190,7 @@
   <!-- Hero背景からページ背景色へ繋ぐグラデーション（下部を不透明化して白い露出を防ぐ） -->
   <div 
     class="absolute inset-0 pointer-events-none z-5"
-    style="background: linear-gradient(to bottom, transparent 0%, transparent 40vh, rgba(22, 27, 34, 0.65) 100vh, rgba(22, 27, 34, 0.65) 100%);"
+    style="background: linear-gradient(to bottom, transparent 0%, transparent 40vh, rgba(var(--color-bg-primary), 0.65) 100vh, rgba(var(--color-bg-primary), 0.65) 100%);"
   />
 
   <Hero 

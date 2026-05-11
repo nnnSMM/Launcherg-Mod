@@ -18,12 +18,14 @@
   import TrayMenu from "@/views/TrayMenu.svelte";
   import InitializationOverlay from "@/components/UI/InitializationOverlay.svelte";
   import TitleBar from "@/components/TitleBar.svelte";
+  import { theme } from "@/store/theme";
 
   const windowLabel = getCurrentWindow().label;
 
   $: setDetailPromise = registerCollectionElementDetails();
 
   onMount(async () => {
+    void theme.initialize();
     initialize();
     initializeAllGameCache();
 

@@ -11,6 +11,12 @@ pub trait AllGameCacheRepository {
         &self,
         ids: Vec<i32>,
     ) -> anyhow::Result<Vec<AllGameCacheOneWithThumbnailUrl>>;
+    async fn search(
+        &self,
+        query: String,
+        limit: i64,
+        offset: i64,
+    ) -> anyhow::Result<Vec<AllGameCacheOneWithThumbnailUrl>>;
     async fn get_all(&self) -> anyhow::Result<AllGameCache>;
     async fn get_last_updated(&self) -> anyhow::Result<(i32, DateTime<Local>)>;
     async fn update(&self, cache: Vec<NewAllGameCacheOne>) -> anyhow::Result<()>;

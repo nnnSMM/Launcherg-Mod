@@ -15,7 +15,10 @@
   import ImportPopover from "@/components/Sidebar/ImportPopover.svelte";
   import ImportAutomatically from "@/components/Sidebar/ImportAutomatically.svelte";
   import ImportManually from "@/components/Sidebar/ImportManually.svelte";
-  import { commandUpsertCollectionElement } from "@/lib/command";
+  import {
+    commandSaveMainWindowState,
+    commandUpsertCollectionElement,
+  } from "@/lib/command";
   import { registerCollectionElementDetails } from "@/lib/registerCollectionElementDetails";
   import { showErrorToast, showInfoToast } from "@/lib/toast";
   import type { AllGameCacheOne } from "@/lib/types";
@@ -67,8 +70,18 @@
     };
   });
 
-  function minimize() {
+  async function saveMainWindowStateIfNeeded() {
+    if (variant !== "main") return;
+    try {
+      await commandSaveMainWindowState();
+    } catch (e) {
+      console.error("Failed to save window state:", e);
+    }
+  }
+
+  async function minimize() {
     console.log("minimize clicked");
+    await saveMainWindowStateIfNeeded();
     appWindow.minimize().catch(console.error);
   }
 
@@ -77,8 +90,9 @@
     appWindow.toggleMaximize().catch(console.error);
   }
 
-  function closeWindow() {
+  async function closeWindow() {
     console.log("close clicked");
+    await saveMainWindowStateIfNeeded();
     appWindow.close().catch(console.error);
   }
 
@@ -98,7 +112,6 @@
       <a href="/" use:link class="flex items-center px-2 h-full cursor-pointer outline-none border-none text-text-secondary hover:text-text-primary transition-colors text-[13px] font-medium" tabindex="-1">
         ホーム
       </a>
-      
       <APopover panelClass="left-0" let:close>
         <button slot="button" class="flex items-center px-2 h-full cursor-pointer outline-none focus:outline-none focus-visible:outline-none bg-transparent border-none text-text-secondary hover:text-text-primary transition-colors text-[13px] font-medium">
           ゲーム追加

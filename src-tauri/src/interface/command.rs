@@ -23,6 +23,7 @@ use crate::{
 use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, Emitter, Listener, Manager, State, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut};
+use tauri_plugin_window_state::{AppHandleExt, StateFlags};
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -764,6 +765,24 @@ pub async fn get_game_candidates(
 }
 
 #[tauri::command]
+pub async fn search_all_game_cache(
+    modules: State<'_, Arc<Modules>>,
+    query: String,
+    limit: i64,
+    offset: i64,
+) -> Result<Vec<AllGameCacheOne>, CommandError> {
+    let limit = limit.clamp(1, 240);
+    let offset = offset.max(0);
+    Ok(modules
+        .all_game_cache_use_case()
+        .search(query, limit, offset)
+        .await?
+        .into_iter()
+        .map(|v| v.into())
+        .collect())
+}
+
+#[tauri::command]
 pub async fn get_exe_path_by_lnk(filepath: String) -> Result<String, CommandError> {
     Ok(get_exe_path_from_lnk(&filepath).await?)
 }
@@ -955,6 +974,27 @@ pub fn show_main_window(handle: AppHandle) -> Result<(), CommandError> {
     Ok(())
 }
 
+fn window_state_flags() -> StateFlags {
+    StateFlags::SIZE | StateFlags::POSITION | StateFlags::MAXIMIZED | StateFlags::FULLSCREEN
+}
+
+fn save_current_window_state(handle: &AppHandle) -> anyhow::Result<()> {
+    if let Some(window) = handle.get_webview_window("main") {
+        if window.is_minimized().unwrap_or(false) {
+            let _ = window.unminimize();
+        }
+    }
+
+    handle
+        .save_window_state(window_state_flags())
+        .map_err(anyhow::Error::from)
+}
+
+#[tauri::command]
+pub fn save_main_window_state(handle: AppHandle) -> Result<(), CommandError> {
+    save_current_window_state(&handle).map_err(CommandError::from)
+}
+
 #[tauri::command]
 pub fn hide_tray_menu(handle: AppHandle) -> Result<(), CommandError> {
     if let Some(window) = handle.get_webview_window("tray_menu") {
@@ -966,5 +1006,6 @@ pub fn hide_tray_menu(handle: AppHandle) -> Result<(), CommandError> {
 
 #[tauri::command]
 pub fn quit_app(handle: AppHandle) {
+    let _ = save_current_window_state(&handle);
     handle.exit(0);
 }

@@ -138,6 +138,18 @@ export const commandGetGameCandidates = async (filepath: string) => {
   });
 };
 
+export const commandSearchAllGameCache = async (
+  query: string,
+  limit: number,
+  offset: number,
+) => {
+  return await invoke<AllGameCacheOne[]>("search_all_game_cache", {
+    query,
+    limit,
+    offset,
+  });
+};
+
 export const commandGetExePathByLnk = async (filepath: string) => {
   return await invoke<string>("get_exe_path_by_lnk", {
     filepath,
@@ -269,6 +281,10 @@ export const commandShowMainWindow = async () => {
 
 export const commandHideTrayMenu = async () => {
   return await invoke<void>("hide_tray_menu", {});
+};
+
+export const commandSaveMainWindowState = async () => {
+  return await invoke<void>("save_main_window_state", {});
 };
 
 export const commandQuitApp = async () => {

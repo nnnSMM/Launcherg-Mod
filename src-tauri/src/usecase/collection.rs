@@ -524,7 +524,10 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
         std::fs::copy(path, &dest_path)?;
 
         if let Err(e) = ensure_screenshot_thumbnail(&self.save_root_dir, game_id, &filename) {
-            eprintln!("[import_screenshot] ensure_screenshot_thumbnail failed: {}", e);
+            eprintln!(
+                "[import_screenshot] ensure_screenshot_thumbnail failed: {}",
+                e
+            );
         }
 
         self.repositories

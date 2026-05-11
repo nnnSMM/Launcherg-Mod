@@ -379,10 +379,7 @@ impl CollectionRepository for RepositoryImpl<CollectionElement> {
         }))
     }
 
-    async fn upsert_vndb_screenshot_cache(
-        &self,
-        cache: VndbScreenshotCache,
-    ) -> anyhow::Result<()> {
+    async fn upsert_vndb_screenshot_cache(&self, cache: VndbScreenshotCache) -> anyhow::Result<()> {
         let pool = self.pool.0.clone();
         query(
             "INSERT INTO vndb_screenshot_caches

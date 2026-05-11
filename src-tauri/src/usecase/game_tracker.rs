@@ -349,8 +349,10 @@ impl<R: RepositoriesExt + Send + Sync + 'static> GameProcessMonitor<R> {
                         .collection_repository()
                         .add_play_time_seconds(&Id::new(self.element_id), duration)
                         .await;
-                    
-                    let _ = self.handle.emit("collection-element-updated", self.element_id);
+
+                    let _ = self
+                        .handle
+                        .emit("collection-element-updated", self.element_id);
                 }
                 last_check_time = now;
             } else {

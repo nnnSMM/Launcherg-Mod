@@ -3,9 +3,7 @@ use std::marker::PhantomData;
 use std::sync::Arc;
 
 use crate::domain::{
-    all_game_cache::AllGameCache,
-    collection::CollectionElement,
-    explored_cache::ExploredCache,
+    all_game_cache::AllGameCache, collection::CollectionElement, explored_cache::ExploredCache,
 };
 
 use super::driver::Db;
