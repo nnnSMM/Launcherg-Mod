@@ -74,7 +74,7 @@
       />
       {#if candidates.length !== 0}
         <div class="space-y-1 pl-2">
-          <h4 class="text-(text-primary body) font-medium mb-1">候補</h4>
+          <h4 class="text-text-primary text-body font-medium mb-1">候補</h4>
           <div class="w-full">
             {#each candidates as [id, gamename] (id)}
               <button
@@ -84,7 +84,7 @@
                 on:click={() => clickCandidate(id)}
               >
                 <div
-                  class="text-(text-secondary left body2) overflow-ellipsis whitespace-nowrap overflow-hidden w-full"
+                  class="text-text-secondary text-left text-body2 overflow-ellipsis whitespace-nowrap overflow-hidden w-full"
                 >
                   {gamename}
                 </div>

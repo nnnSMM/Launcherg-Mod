@@ -4,14 +4,14 @@
 </script>
 
 <div
-  class="p-4 border-(solid border-primary) whitespace-nowrap text-(body2 text-primary) {noBorder
+  class="p-4 border-solid border-border-primary whitespace-nowrap text-body2 text-text-primary {noBorder
     ? 'border-0px'
     : 'border-t-1px'}"
 >
   {label}
 </div>
 <div
-  class="p-4 border-(solid border-primary) text-(body2 text-link) {noBorder
+  class="p-4 border-solid border-border-primary text-body2 text-text-link {noBorder
     ? 'border-0px'
     : 'border-t-1px'}"
 >

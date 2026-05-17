@@ -14,7 +14,7 @@
 
 <div>
   <div
-    class="font-bold text-(text-primary body3) p-(l-4 r-2 y-2) flex items-center gap-4"
+    class="font-bold text-text-primary text-body3 p-l-4 p-r-2 p-y-2 flex items-center gap-4"
   >
     <div class="whitespace-nowrap">Select game option</div>
     <button

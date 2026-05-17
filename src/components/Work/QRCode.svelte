@@ -35,14 +35,14 @@
     </div>
     {#if readyPromise}
       {#await readyPromise}
-        <div class="flex-(~ col) items-center justify-center gap-5 w-full p-12">
+        <div class="flex flex-col items-center justify-center gap-5 w-full p-12">
           <div
-            class="w-20 h-20 border-(12px solid #D9D9D9 t-#2D2D2D t-rounded) rounded-full animate-spin"
+            class="w-20 h-20 border-12px border-solid border-#D9D9D9 border-t-#2D2D2D border-t-rounded rounded-full animate-spin"
           />
-          <div class="text-(text-primary h3) font-bold">処理中</div>
+          <div class="text-text-primary text-h3 font-bold">処理中</div>
         </div>
       {:then value}
-        <div class="flex-(~ col) justify-center items-center gap-4">
+        <div class="flex flex-col justify-center items-center gap-4">
           <button
             on:click={() => copyUrlToClipboard(value)}
             class="flex hover:bg-bg-button rounded px-4 py-1 items-center gap-4 bg-inherit"

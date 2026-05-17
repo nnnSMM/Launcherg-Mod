@@ -112,7 +112,7 @@
                 on:contextmenu={handleContextMenu}
             >
                 <div
-                    class="rounded-lg overflow-hidden shadow-2xl border border-white/10 transform transition-transform hover:scale-105 duration-300 cursor-pointer"
+                    class="rounded-lg overflow-hidden shadow-2xl border border-border-primary transform transition-transform hover:scale-105 duration-300 cursor-pointer"
                     on:click={() => (showFullscreenImage = true)}
                     on:keydown={(e) =>
                         e.key === "Enter" && (showFullscreenImage = true)}

@@ -87,14 +87,14 @@
 <svelte:window on:mousemove={onMouseMove} on:mouseup={onMouseUp} />
 
 <div
-  class="h-full min-h-0 relative border-(r-1px solid border-primary) bg-bg-secondary flex-shrink-0 overflow-hidden"
+  class="h-full min-h-0 relative border-r-1px border-solid border-border-primary bg-bg-secondary flex-shrink-0 overflow-hidden"
   class:transition-all={!isResizing}
   style="width: {$showSidebar ? `${$sidebarWidth}px` : '3rem'};"
 >
   {#if $showSidebar}
     <div class="absolute inset-0 min-w-0 flex flex-col" transition:fly={{ x: -40, duration: 150 }}>
       <div
-        class="min-h-0 min-w-0 w-full flex-1 grid-(~ rows-[min-content_min-content_1fr])"
+        class="min-h-0 min-w-0 w-full flex-1 grid grid-rows-[min-content_min-content_1fr]"
       >
         <div class="min-w-0 w-full">
           <SubHeader />

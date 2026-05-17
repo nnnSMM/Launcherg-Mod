@@ -85,7 +85,7 @@
         />
       {:else}
         <div
-          class="text-(body text-primary) font-bold px-6 rounded border bg-bg-primary w-full h-full flex items-center justify-center bg-bg-secondary"
+          class="text-body text-text-primary font-bold px-6 rounded border bg-bg-primary w-full h-full flex items-center justify-center bg-bg-secondary"
         >
           <img
             src="/images/dummy_thumbnail.svg"

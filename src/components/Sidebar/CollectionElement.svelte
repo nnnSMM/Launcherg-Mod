@@ -66,7 +66,7 @@
   {/if}
   <a
     href={`/works/${collectionElement.id}?gamename=${collectionElement.gamename}`}
-    class="flex-(~ 1) w-full items-center gap-3"
+    class="flex flex-1 w-full items-center gap-3"
     use:link
   >
     <img

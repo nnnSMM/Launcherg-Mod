@@ -3,7 +3,7 @@
 </script>
 
 <div class="mt-4 w-full px-2 flex items-center min-w-0">
-  <div class="text-(text-primary body) font-bold pl-2 mr-auto truncate min-w-0">
+  <div class="text-text-primary text-body font-bold pl-2 mr-auto truncate min-w-0">
     登録したゲーム
   </div>
   <div

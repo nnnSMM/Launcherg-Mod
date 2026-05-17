@@ -41,29 +41,29 @@
     switch (variant) {
       case "normal":
         buttonVariantClass =
-          "bg-bg-button border-(~ border-button opacity-10 solid) text-text-primary hover:(border-border-button-hover bg-bg-button-hover)";
+          "bg-bg-button border border-border-button border-opacity-10 border-solid text-text-primary hover:border-border-button-hover hover:bg-bg-button-hover";
         break;
       case "accent":
         buttonVariantClass =
-          "bg-bg-button border-(~ border-button opacity-10 solid) text-accent-accent hover:(border-accent-accent bg-accent-accent text-text-secondary)";
+          "bg-bg-button border border-border-button border-opacity-10 border-solid text-accent-accent hover:border-accent-accent hover:bg-accent-accent hover:text-text-secondary";
         break;
       case "error":
         buttonVariantClass =
-          "bg-bg-button border-(~ border-button opacity-10 solid) text-accent-error hover:(border-accent-error bg-accent-error text-text-secondary)";
+          "bg-bg-button border border-border-button border-opacity-10 border-solid text-accent-error hover:border-accent-error hover:bg-accent-error hover:text-text-secondary";
         break;
       case "success":
         buttonVariantClass = disabled
-          ? "bg-bg-success-disabled border-(~ solid border-success-disabled) text-text-success-disabled"
-          : "bg-accent-success border-(~ solid accent-success) text-text-white hover:bg-bg-success-hover";
+          ? "bg-bg-success-disabled border border-solid border-border-success-disabled text-text-success-disabled"
+          : "bg-accent-success border border-solid border-accent-success text-text-white hover:bg-bg-success-hover";
         break;
       case "warning":
         buttonVariantClass =
-          "bg-bg-button border-(~ border-button opacity-10 solid) text-accent-warning hover:(border-accent-warning bg-accent-warning text-text-secondary)";
+          "bg-bg-button border border-border-button border-opacity-10 border-solid text-accent-warning hover:border-accent-warning hover:bg-accent-warning hover:text-text-secondary";
         break;
       case "primary":
         buttonVariantClass = disabled
-          ? "bg-bg-button border-(~ solid border-button) text-text-tertiary"
-          : "bg-accent-primary border-(~ solid accent-primary) text-text-white hover:bg-accent-primary-hover";
+          ? "bg-bg-button border border-solid border-border-button text-text-tertiary"
+          : "bg-accent-primary border border-solid border-accent-primary text-text-white hover:bg-accent-primary-hover";
         break;
       default:
         const _: never = variant;

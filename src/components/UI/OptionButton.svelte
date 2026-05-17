@@ -7,8 +7,8 @@
 
 <button
   on:click
-  class="p-(x-4 y-2) flex items-center bg-transparent transition-all hover:(bg-bg-button-hover) w-full {withBorderTop &&
-    'border-(t-1px solid border-primary)'}"
+  class="p-x-4 p-y-2 flex items-center bg-transparent transition-all hover:bg-bg-button-hover w-full {withBorderTop &&
+    'border-t-1px border-solid border-border-primary'}"
 >
   {#if showIcon}
     <div
@@ -16,7 +16,7 @@
       class:i-material-symbols-check-small-rounded={selected}
     />
   {/if}
-  <div class="text-(text-primary body2) font-bold whitespace-nowrap">
+  <div class="text-text-primary text-body2 font-bold whitespace-nowrap">
     {text}
   </div>
 </button>

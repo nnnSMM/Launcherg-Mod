@@ -146,7 +146,7 @@
   >
     <div class="space-y-8">
       <div class="space-y-4">
-        <div class="text-(text-primary h4) font-medium">
+        <div class="text-text-primary text-h4 font-medium">
           自動追加するフォルダ
         </div>
         <form
@@ -187,15 +187,15 @@
         </form>
       </div>
       <div class="space-y-2">
-        <div class="text-(text-primary h4) font-medium">オプション</div>
+        <div class="text-text-primary text-h4 font-medium">オプション</div>
         <!-- svelte-ignore a11y-label-has-associated-control -->
         <label class="flex gap-2 cursor-pointer">
           <Checkbox bind:value={useCache} />
           <div>
-            <div class="text-(text-primary body) font-medium">
+            <div class="text-text-primary text-body font-medium">
               前回のスキャン以降に追加されたファイルのみを対象にする
             </div>
-            <div class="text-(text-tertiary body2)">
+            <div class="text-text-tertiary text-body2">
               自動追加が初回の場合このオプションは意味を持ちません。このオプションがオフの場合、自動追加は2分程度かかる場合があります。
             </div>
           </div>
@@ -206,13 +206,13 @@
 {:else if isLoading}
   <div transition:fade={{ delay: 150 }}>
     <ModalBase isOpen={true} panelClass="max-w-82">
-      <div class="flex-(~ col) items-center justify-center gap-5 w-full p-12">
+      <div class="flex flex-col items-center justify-center gap-5 w-full p-12">
         <div
-          class="w-20 h-20 border-(12px solid #D9D9D9 t-#2D2D2D t-rounded) rounded-full animate-spin"
+          class="w-20 h-20 border-12px border-solid border-#D9D9D9 border-t-#2D2D2D border-t-rounded rounded-full animate-spin"
         />
-        <div class="text-(text-primary h3) font-bold">処理中</div>
+        <div class="text-text-primary text-h3 font-bold">処理中</div>
         {#if processFileNums}
-          <div class="text-(text-primary body) font-medium">
+          <div class="text-text-primary text-body font-medium">
             処理したファイル: {processedFileNums}/{processFileNums}
           </div>
         {/if}

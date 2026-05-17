@@ -29,18 +29,18 @@
   }>();
 </script>
 
-<div class="max-h-80 overflow-hidden flex-(~ col)">
+<div class="max-h-80 overflow-hidden flex flex-col">
   {#if title}
-    <div class="flex items-center gap-8 border-(b-1px border-primary solid)">
+    <div class="flex items-center gap-8 border-b-1px border-border-primary border-solid">
       <div
-        class="whitespace-nowrap p-(x-4 y-2) text-(body2 text-primary) font-bold"
+        class="whitespace-nowrap p-x-4 p-y-2 text-body2 text-text-primary font-bold"
       >
         {title}
       </div>
     </div>
   {/if}
   {#if enableFilter}
-    <div class="p-2 border-(b-1px border-primary solid)">
+    <div class="p-2 border-b-1px border-border-primary border-solid">
       <Input
         bind:value={$localQuery}
         placeholder={filterPlaceholder}
@@ -48,13 +48,13 @@
       />
     </div>
   {/if}
-  <div class="flex flex-(col) overflow-y-auto min-h-full">
+  <div class="flex flex-col overflow-y-auto min-h-full">
     {#each $filtered as option, i (option)}
       <button
         class={`${value === option.value ? "bg-bg-tertiary" : "bg-transparent"}
-                p-(x-4 y-1) ${
+                p-x-4 p-y-1 ${
                   options.length - 1 !== i
-                    ? "border-(b-1px solid border-primary)"
+                    ? "border-b-1px border-solid border-border-primary"
                     : ""
                 } hover:bg-bg-tertiary w-full flex items-center gap-2 transition-all cursor-pointer`}
         on:click={() => {
@@ -71,7 +71,7 @@
               option.value}
           />
         {/if}
-        <div class="text-(body2 text-primary) font-medium">
+        <div class="text-body2 text-text-primary font-medium">
           {option.label}
         </div>
       </button>
@@ -79,11 +79,11 @@
   </div>
   {#if bottomCreateButtonText}
     <button
-      class="bg-transparent hover:bg-bg-tertiary transition-all w-full p-(l-4 r-5 y-2) flex items-center border-(t-1px solid border-primary)"
+      class="bg-transparent hover:bg-bg-tertiary transition-all w-full p-l-4 p-r-5 p-y-2 flex items-center border-t-1px border-solid border-border-primary"
       on:click={() => dispatcher("create")}
     >
       <div class="w-5 h-5 i-iconoir-plus color-text-primary" />
-      <div class="text-(text-primary body2 left) font-bold whitespace-nowrap">
+      <div class="text-text-primary text-body2 text-left font-bold whitespace-nowrap">
         {bottomCreateButtonText}
       </div>
     </button>

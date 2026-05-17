@@ -14,11 +14,11 @@
   const getVoiceActorClass = (importance: VoiceActor["importance"]) => {
     switch (importance) {
       case VoiceActorImportance.Main:
-        return "text-(body3 text-secondary) font-bold";
+        return "text-body3 text-text-secondary font-bold";
       case VoiceActorImportance.Sub:
-        return "text-(body3 text-primary)";
+        return "text-body3 text-text-primary";
       case VoiceActorImportance.Mob:
-        return "text-(body3 text-tertiary)";
+        return "text-body3 text-text-tertiary";
       default:
         const _: never = importance;
         break;
@@ -27,9 +27,9 @@
 </script>
 
 <div
-  class="border-(~ solid border-primary) bg-bg-secondary/30 shadow-sm rounded-xl overflow-hidden"
+  class="border border-solid border-border-primary bg-bg-secondary/30 shadow-sm rounded-xl overflow-hidden"
 >
-  <div class="grid-(~ cols-[min-content_1fr])">
+  <div class="grid grid-cols-[min-content_1fr]">
     <DetailRow label="シナリオ" noBorder>
       <div class="flex flex-wrap gap-4">
         {#each work.creators.writers as v (v.id)}

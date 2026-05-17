@@ -50,27 +50,27 @@
   title={isConfirmingPhysicalDelete ? "本当に削除しますか？" : "Delete game"}
   withContentPadding={false}
   autofocusCloseButton
-  headerClass="border-b-(border-warning opacity-40) "
+  headerClass="border-b-border-warning border-b-opacity-40 "
 >
   <div
-    class="bg-bg-warning border-(b-1px solid border-warning opacity-40) flex gap-2 p-(x-4 y-5)"
+    class="bg-bg-warning border-b-1px border-solid border-border-warning border-opacity-40 flex gap-2 p-x-4 p-y-5"
   >
     <div
       class="w-6 h-6 i-material-symbols-warning-outline-rounded color-accent-warning"
     />
     <div class="space-y-1">
       {#if isConfirmingPhysicalDelete}
-        <div class="text-(body text-primary) font-medium">
+        <div class="text-body text-text-primary font-medium">
           この操作は取り消せません
         </div>
-        <div class="text-(body2 text-primary)">
+        <div class="text-body2 text-text-primary">
           プレイ履歴、スクリーンショット、設定など、このゲームに関する全てのデータが完全に削除されます。本当によろしいですか？
         </div>
       {:else}
-        <div class="text-(body text-primary) font-medium">
+        <div class="text-body text-text-primary font-medium">
           このゲームの削除方法を選択してください
         </div>
-        <div class="text-(body2 text-primary)">
+        <div class="text-body2 text-text-primary">
           <ul class="list-disc pl-4 space-y-1">
             <li>
               <b>未インストール状態にする</b>:

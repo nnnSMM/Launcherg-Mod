@@ -1,0 +1,1507 @@
+{
+  "20988": {
+    "id": 20988,
+    "name": "紙の上の魔法使い",
+    "brandId": 4368,
+    "brandName": "ウグイスカグラ",
+    "sellday": "2014-12-19",
+    "imgUrl": "https://pics.dmm.co.jp/digital/pcgame/nightingale_0001/nightingale_0001pl.jpg",
+    "officialHomePage": "https://kagura.rdy.jp/kamimaho/",
+    "statistics": {
+      "median": 83,
+      "count": 1139,
+      "average": 81,
+      "playTime": "25時間"
+    },
+    "creators": {
+      "illustrators": [
+        {
+          "id": 21639,
+          "name": "桐葉(すしめかぶ)"
+        }
+      ],
+      "writers": [
+        {
+          "id": 16759,
+          "name": "ルクル"
+        }
+      ],
+      "voiceActors": [
+        {
+          "id": 14472,
+          "name": "姫原ゆう",
+          "role": "(伏見 理央)",
+          "importance": 0
+        },
+        {
+          "id": 17952,
+          "name": "花澤さくら",
+          "role": "(日向 かなた)",
+          "importance": 0
+        },
+        {
+          "id": 5950,
+          "name": "御苑生メイ",
+          "role": "(月社 妃)",
+          "importance": 0
+        },
+        {
+          "id": 14943,
+          "name": "橘まお",
+          "role": "(遊行寺 夜子)",
+          "importance": 0
+        },
+        {
+          "id": 6275,
+          "name": "小倉結衣",
+          "role": "(クリソベリル)",
+          "importance": 1
+        },
+        {
+          "id": 21162,
+          "name": "野上結生",
+          "role": "(本城 奏)",
+          "importance": 1
+        },
+        {
+          "id": 21161,
+          "name": "八幡七味",
+          "role": "(本城 岬)",
+          "importance": 1
+        },
+        {
+          "id": 7686,
+          "name": "原田友貴",
+          "role": "(遊行寺 汀)",
+          "importance": 1
+        },
+        {
+          "id": 5832,
+          "name": "芹園みや",
+          "role": "(遊行寺 闇子)",
+          "importance": 1
+        }
+      ]
+    },
+    "musics": [
+      "nostalgia"
+    ]
+  },
+  "25861": {
+    "id": 25861,
+    "name": "金色ラブリッチェ",
+    "brandId": 114,
+    "brandName": "SAGA PLANETS",
+    "sellday": "2017-12-22",
+    "imgUrl": "https://pics.dmm.co.jp/digital/pcgame/vsat_0229/vsat_0229pl.jpg",
+    "officialHomePage": "https://sagapla.net/works/kinkoi/",
+    "statistics": {
+      "median": 84,
+      "count": 1865,
+      "average": 83,
+      "playTime": "25時間"
+    },
+    "creators": {
+      "illustrators": [
+        {
+          "id": 57,
+          "name": "有末つかさ"
+        },
+        {
+          "id": 4114,
+          "name": "ほんたにかなえ(森部)"
+        },
+        {
+          "id": 14439,
+          "name": "とらのすけ"
+        },
+        {
+          "id": 29597,
+          "name": "ぴこぴこぐらむ"
+        },
+        {
+          "id": 69,
+          "name": "長浜めぐみ(ささかまめぐみ)"
+        },
+        {
+          "id": 19328,
+          "name": "ひさまくまこ"
+        }
+      ],
+      "writers": [
+        {
+          "id": 15371,
+          "name": "さかき傘"
+        },
+        {
+          "id": 13306,
+          "name": "にっし～"
+        }
+      ],
+      "voiceActors": [
+        {
+          "id": 12475,
+          "name": "あじ秋刀魚",
+          "role": "(エロイナ・ディ・カバリェロ・イスタ)",
+          "importance": 0
+        },
+        {
+          "id": 26962,
+          "name": "猫村ゆき",
+          "role": "(シルヴィア・ル・クルスクラウン・ソルティレージュ・シスア)",
+          "importance": 0
+        },
+        {
+          "id": 16417,
+          "name": "小鳥居夕花",
+          "role": "(僧間 理亜)",
+          "importance": 0
+        },
+        {
+          "id": 14848,
+          "name": "遥そら",
+          "role": "(妃 玲奈)",
+          "importance": 0
+        },
+        {
+          "id": 31704,
+          "name": "土屋粘",
+          "role": "(栗生 茜)",
+          "importance": 0
+        },
+        {
+          "id": 23844,
+          "name": "相模一樹",
+          "role": "(イロエ・ディ・カバリェロ・イスタ)",
+          "importance": 1
+        },
+        {
+          "id": 20183,
+          "name": "綾音まこ",
+          "role": "(エスキナ)",
+          "importance": 1
+        },
+        {
+          "id": 15203,
+          "name": "秋野花",
+          "role": "(カミナル・ル・プルテア・ソルティレージュ・シスア)",
+          "importance": 1
+        },
+        {
+          "id": 6719,
+          "name": "植木亨",
+          "role": "(ボラルコーチェ)",
+          "importance": 1
+        },
+        {
+          "id": 23095,
+          "name": "梅宮ここ",
+          "role": "(加賀 愛子)",
+          "importance": 1
+        },
+        {
+          "id": 5903,
+          "name": "風音",
+          "role": "(城ヶ崎 絢華)",
+          "importance": 1
+        },
+        {
+          "id": 5855,
+          "name": "遠野そよぎ",
+          "role": "(市松 千恵華)",
+          "importance": 1
+        },
+        {
+          "id": 7690,
+          "name": "島田友樹",
+          "role": "(竜造寺)",
+          "importance": 1
+        },
+        {
+          "id": 15915,
+          "name": "ゆうひ",
+          "role": "(縞 投良)",
+          "importance": 1
+        },
+        {
+          "id": 14334,
+          "name": "柊唯也",
+          "role": "(西郷 隆)",
+          "importance": 1
+        },
+        {
+          "id": 33558,
+          "name": "鯉太郎",
+          "role": "(鹿苑寺 菊千代)",
+          "importance": 1
+        }
+      ]
+    },
+    "musics": [
+      "Golden Mission",
+      "shining! our life",
+      "あの輝きを忘れない"
+    ]
+  },
+  "26245": {
+    "id": 26245,
+    "name": "さくら、もゆ。 -as the Night's, Reincarnation-",
+    "brandId": 2763,
+    "brandName": "FAVORITE",
+    "sellday": "2019-01-31",
+    "imgUrl": "https://pics.dmm.co.jp/digital/pcgame/favorite_0011/favorite_0011pl.jpg",
+    "officialHomePage": "https://www.favo-soft.jp/soft/product/sakura/",
+    "statistics": {
+      "median": 90,
+      "count": 1109,
+      "average": 86,
+      "playTime": "46時間"
+    },
+    "creators": {
+      "illustrators": [
+        {
+          "id": 2218,
+          "name": "司田カズヒロ"
+        },
+        {
+          "id": 2814,
+          "name": "なつめえり"
+        },
+        {
+          "id": 15496,
+          "name": "ヒラサト(比良里、平賀まつり)"
+        },
+        {
+          "id": 4758,
+          "name": "ミズタマ"
+        }
+      ],
+      "writers": [
+        {
+          "id": 11380,
+          "name": "漆原雪人(霧島行人)"
+        }
+      ],
+      "voiceActors": [
+        {
+          "id": 26545,
+          "name": "夏和小",
+          "role": "(クロ、ましろ)",
+          "importance": 0
+        },
+        {
+          "id": 26713,
+          "name": "要しおり",
+          "role": "(夜月 姫織)",
+          "importance": 0
+        },
+        {
+          "id": 26962,
+          "name": "猫村ゆき",
+          "role": "(杏藤 千和)",
+          "importance": 0
+        },
+        {
+          "id": 33092,
+          "name": "南るお",
+          "role": "(柊 ハル)",
+          "importance": 0
+        },
+        {
+          "id": 9184,
+          "name": "富士爆発",
+          "role": "(ソル、遠矢)",
+          "importance": 1
+        },
+        {
+          "id": 15295,
+          "name": "白雪碧",
+          "role": "(ナナ)",
+          "importance": 1
+        },
+        {
+          "id": 16286,
+          "name": "ほうでん亭センマイ",
+          "role": "(ナハト)",
+          "importance": 1
+        },
+        {
+          "id": 27981,
+          "name": "花宮すずね",
+          "role": "(兎蛙 あず咲)",
+          "importance": 1
+        },
+        {
+          "id": 28215,
+          "name": "井伊筋肉",
+          "role": "(兎蛙 智仁)",
+          "importance": 1
+        },
+        {
+          "id": 27982,
+          "name": "双葉まりか",
+          "role": "(冬月 十夜)",
+          "importance": 1
+        },
+        {
+          "id": 16276,
+          "name": "桃山いおん",
+          "role": "(陽向井 あさひ)",
+          "importance": 1
+        }
+      ]
+    },
+    "musics": [
+      "さくら、Reincarnation",
+      "輪廻",
+      "終わらない物語",
+      "花あかりの時",
+      "さくら、もゆ。"
+    ]
+  },
+  "27059": {
+    "id": 27059,
+    "name": "アメイジング・グレイス -What color is your attribute?-",
+    "brandId": 5078,
+    "brandName": "きゃべつそふと",
+    "sellday": "2018-11-30",
+    "imgUrl": "https://pics.dmm.co.jp/digital/pcgame/cabbage_0003/cabbage_0003pl.jpg",
+    "officialHomePage": "https://cabbage-soft.com/products/amagra/",
+    "statistics": {
+      "median": 85,
+      "count": 1662,
+      "average": 85,
+      "playTime": "25時間"
+    },
+    "creators": {
+      "illustrators": [
+        {
+          "id": 4209,
+          "name": "梱枝りこ"
+        },
+        {
+          "id": 33366,
+          "name": "よねぞう"
+        }
+      ],
+      "writers": [
+        {
+          "id": 1734,
+          "name": "しげた"
+        },
+        {
+          "id": 19766,
+          "name": "冬茜トム"
+        }
+      ],
+      "voiceActors": [
+        {
+          "id": 33326,
+          "name": "桜田紅",
+          "role": "(キリエ)",
+          "importance": 0
+        },
+        {
+          "id": 19695,
+          "name": "よもぎすふれ",
+          "role": "(コトハ)",
+          "importance": 0
+        },
+        {
+          "id": 13828,
+          "name": "藤咲ウサ",
+          "role": "(サクヤ)",
+          "importance": 0
+        },
+        {
+          "id": 33222,
+          "name": "月白まひる",
+          "role": "(ユネ)",
+          "importance": 0
+        },
+        {
+          "id": 20587,
+          "name": "本間かいな",
+          "role": "(ギドウ)",
+          "importance": 1
+        },
+        {
+          "id": 33342,
+          "name": "桜上水琥珀",
+          "role": "(シスター・リリィ)",
+          "importance": 1
+        },
+        {
+          "id": 28501,
+          "name": "赤兎馬",
+          "role": "(ヨウジ)",
+          "importance": 1
+        },
+        {
+          "id": 23096,
+          "name": "相模恋",
+          "role": "(リンカ)",
+          "importance": 1
+        },
+        {
+          "id": 18153,
+          "name": "木下くわがた丸",
+          "role": "(店長)",
+          "importance": 1
+        },
+        {
+          "id": 33665,
+          "name": "しらはまなみ",
+          "role": "(その他)",
+          "importance": 2
+        },
+        {
+          "id": 33666,
+          "name": "明梨友良",
+          "role": "(その他)",
+          "importance": 2
+        }
+      ]
+    },
+    "musics": [
+      "コールドボイス",
+      "夜明けの虹を越えて"
+    ]
+  },
+  "28941": {
+    "id": 28941,
+    "name": "白昼夢の青写真",
+    "brandId": 4809,
+    "brandName": "Laplacian",
+    "sellday": "2020-09-25",
+    "imgUrl": "https://pics.dmm.co.jp/digital/pcgame/hobe_0494/hobe_0494pl.jpg",
+    "officialHomePage": "https://laplacian.jp/yonagi/",
+    "statistics": {
+      "median": 90,
+      "count": 1398,
+      "average": 88,
+      "playTime": "22時間"
+    },
+    "creators": {
+      "illustrators": [
+        {
+          "id": 26051,
+          "name": "霜降"
+        },
+        {
+          "id": 28132,
+          "name": "ぺれっと(玉兎B)"
+        }
+      ],
+      "writers": [
+        {
+          "id": 26050,
+          "name": "緒乃ワサビ"
+        },
+        {
+          "id": 2509,
+          "name": "モーリー"
+        },
+        {
+          "id": 16972,
+          "name": "御導はるか"
+        },
+        {
+          "id": 30459,
+          "name": "飯田泰貴(あけお、Akeo)"
+        },
+        {
+          "id": 31286,
+          "name": "はまぐり孤之助"
+        }
+      ],
+      "voiceActors": [
+        {
+          "id": 20349,
+          "name": "春乃いろは",
+          "role": "(有島 祥子、キキ、松風 梓姫、出雲)",
+          "importance": 0
+        },
+        {
+          "id": 6686,
+          "name": "神代岬",
+          "role": "(波多野 凛、オリヴィア・ベリー、桃ノ内 すもも、世凪)",
+          "importance": 0
+        },
+        {
+          "id": 5950,
+          "name": "御苑生メイ",
+          "role": "(エリザベス女王、飴井 アンナ、母)",
+          "importance": 1
+        },
+        {
+          "id": 11960,
+          "name": "杉崎亮",
+          "role": "(ジョン・シェイクスピア、遊馬)",
+          "importance": 1
+        },
+        {
+          "id": 29946,
+          "name": "インプレッサ次郎",
+          "role": "(トーマス・モーリス)",
+          "importance": 1
+        },
+        {
+          "id": 24498,
+          "name": "牛蛙キタロウ",
+          "role": "(ハロルド・スペンサー、スペンサー嵐山、親方)",
+          "importance": 1
+        },
+        {
+          "id": 28129,
+          "name": "電卓也",
+          "role": "(渡辺 光夫、クリストファー・マーロウ、入麻)",
+          "importance": 1
+        },
+        {
+          "id": 17610,
+          "name": "秋本ねりね",
+          "role": "(里桜)",
+          "importance": 1
+        },
+        {
+          "id": 33313,
+          "name": "奏谷しはる",
+          "role": "(女子学生)",
+          "importance": 2
+        }
+      ]
+    },
+    "musics": [
+      "Into Gray",
+      "クラムボン",
+      "恋するキリギリス",
+      "冷たい壁のむこうに",
+      "凪いだ海のように",
+      "夏のタイムカプセル",
+      "ブルカニロ",
+      "夜明けの片隅で"
+    ]
+  },
+  "30122": {
+    "id": 30122,
+    "name": "冥契のルペルカリア",
+    "brandId": 4368,
+    "brandName": "ウグイスカグラ",
+    "sellday": "2021-02-26",
+    "imgUrl": "https://pics.dmm.co.jp/digital/pcgame/nightingale_0005/nightingale_0005pl.jpg",
+    "officialHomePage": "https://kagura.rdy.jp/lupercalia/",
+    "statistics": {
+      "median": 83,
+      "count": 582,
+      "average": 82,
+      "playTime": "19時間"
+    },
+    "creators": {
+      "illustrators": [
+        {
+          "id": 21639,
+          "name": "桐葉(すしめかぶ)"
+        },
+        {
+          "id": 36135,
+          "name": "Ruki"
+        },
+        {
+          "id": 17370,
+          "name": "萩野小唄"
+        }
+      ],
+      "writers": [
+        {
+          "id": 16759,
+          "name": "ルクル"
+        }
+      ],
+      "voiceActors": [
+        {
+          "id": 25694,
+          "name": "小波すず",
+          "role": "(匂宮 めぐり)",
+          "importance": 0
+        },
+        {
+          "id": 29820,
+          "name": "梅木ちはる",
+          "role": "(天使 奈々菜)",
+          "importance": 0
+        },
+        {
+          "id": 5950,
+          "name": "御苑生メイ",
+          "role": "(折原 氷狐)",
+          "importance": 0
+        },
+        {
+          "id": 13831,
+          "name": "奏雨",
+          "role": "(架橋 琥珀)",
+          "importance": 0
+        },
+        {
+          "id": 17952,
+          "name": "花澤さくら",
+          "role": "(箱鳥 理世)",
+          "importance": 0
+        },
+        {
+          "id": 35143,
+          "name": "東シヅ",
+          "role": "(倉科 双葉)",
+          "importance": 1
+        },
+        {
+          "id": 11524,
+          "name": "荒川虎鉄(TAK)",
+          "role": "(匂宮 王海)",
+          "importance": 1
+        },
+        {
+          "id": 36133,
+          "name": "霜月咲空",
+          "role": "(天使 美嘉)",
+          "importance": 1
+        },
+        {
+          "id": 31887,
+          "name": "ナオト†サンクチュアリ",
+          "role": "(天使 零時)",
+          "importance": 1
+        },
+        {
+          "id": 31751,
+          "name": "椨もんじゃ",
+          "role": "(天樂 来々)",
+          "importance": 1
+        },
+        {
+          "id": 32427,
+          "name": "鏑木真",
+          "role": "(椎名 朧)",
+          "importance": 1
+        },
+        {
+          "id": 36134,
+          "name": "大山茉子",
+          "role": "(瀬和 美波)",
+          "importance": 1
+        },
+        {
+          "id": 31857,
+          "name": "飴川紫乃",
+          "role": "(白坂 ハナ)",
+          "importance": 1
+        },
+        {
+          "id": 17330,
+          "name": "歩サラ",
+          "role": "(龍木 悠苑)",
+          "importance": 1
+        }
+      ]
+    },
+    "musics": [
+      "ライムライトの残火"
+    ]
+  },
+  "31106": {
+    "id": 31106,
+    "name": "創作彼女の恋愛公式",
+    "brandId": 7038,
+    "brandName": "Aino+Links",
+    "sellday": "2021-11-26",
+    "imgUrl": "https://pics.dmm.co.jp/digital/pcgame/akbs_0127/akbs_0127pl.jpg",
+    "officialHomePage": "http://ainolinks.com/",
+    "statistics": {
+      "median": 80,
+      "count": 740,
+      "average": 79,
+      "playTime": "20時間"
+    },
+    "creators": {
+      "illustrators": [
+        {
+          "id": 2698,
+          "name": "有葉"
+        },
+        {
+          "id": 29316,
+          "name": "九条だんぼ"
+        }
+      ],
+      "writers": [
+        {
+          "id": 24738,
+          "name": "工藤啓介"
+        }
+      ],
+      "voiceActors": [
+        {
+          "id": 15302,
+          "name": "くすはらゆい(楠原ゆい)",
+          "role": "(凪間 ゆめみ)",
+          "importance": 0
+        },
+        {
+          "id": 30417,
+          "name": "明羽杏子",
+          "role": "(彩瀬 逢桜)",
+          "importance": 0
+        },
+        {
+          "id": 17353,
+          "name": "夏峰いろは(倉田ありあ)",
+          "role": "(月見坂 桐葉)",
+          "importance": 0
+        },
+        {
+          "id": 36974,
+          "name": "葉月ひかり",
+          "role": "(雪妃 エレナ)",
+          "importance": 0
+        },
+        {
+          "id": 5855,
+          "name": "遠野そよぎ",
+          "role": "(凪間 ちなみ)",
+          "importance": 1
+        },
+        {
+          "id": 32111,
+          "name": "四葉ヨウ",
+          "role": "(獅堂 悠真)",
+          "importance": 1
+        },
+        {
+          "id": 12476,
+          "name": "烏丸そら(吉田美海)",
+          "role": "(獅堂 紫音)",
+          "importance": 1
+        },
+        {
+          "id": 16417,
+          "name": "小鳥居夕花",
+          "role": "(羽衣石 姫子)",
+          "importance": 1
+        },
+        {
+          "id": 27225,
+          "name": "恋羽もこ",
+          "role": "(花咲 芽衣)",
+          "importance": 1
+        },
+        {
+          "id": 15203,
+          "name": "秋野花",
+          "role": "(雨星 結菜)",
+          "importance": 1
+        },
+        {
+          "id": 31906,
+          "name": "蒼乃むすび",
+          "role": "(雪妃 エリカ)",
+          "importance": 1
+        },
+        {
+          "id": 31432,
+          "name": "夏町甚平",
+          "role": "(その他)",
+          "importance": 2
+        },
+        {
+          "id": 26604,
+          "name": "片霧ふう",
+          "role": "(その他)",
+          "importance": 2
+        },
+        {
+          "id": 37051,
+          "name": "榎本ねむ",
+          "role": "(その他)",
+          "importance": 2
+        }
+      ]
+    },
+    "musics": [
+      "奇跡なんか、いらない。",
+      "All my treasure love days",
+      "桜と紡ぐ物語",
+      "Re:Create"
+    ]
+  },
+  "31597": {
+    "id": 31597,
+    "name": "終のステラ",
+    "brandId": 83,
+    "brandName": "Key",
+    "sellday": "2022-09-30",
+    "imgUrl": "https://pics.dmm.co.jp/digital/pcgame/vsat_0288/vsat_0288pl.jpg",
+    "officialHomePage": "https://key.visualarts.gr.jp/kinetic/stella/",
+    "statistics": {
+      "median": 85,
+      "count": 949,
+      "average": 85,
+      "playTime": "8時間"
+    },
+    "creators": {
+      "illustrators": [
+        {
+          "id": 37120,
+          "name": "SWAV"
+        }
+      ],
+      "writers": [
+        {
+          "id": 892,
+          "name": "田中ロミオ(山田一)"
+        }
+      ],
+      "voiceActors": [
+        {
+          "id": 14944,
+          "name": "木村良平",
+          "role": "(ジュード・グレイ)",
+          "importance": 0
+        },
+        {
+          "id": 38322,
+          "name": "指出毬亜",
+          "role": "(フィリア)",
+          "importance": 0
+        },
+        {
+          "id": 9872,
+          "name": "郷田ほづみ",
+          "role": "(ウィレム・グロウナー)",
+          "importance": 1
+        },
+        {
+          "id": 30355,
+          "name": "花守ゆみり",
+          "role": "(デリラ)",
+          "importance": 1
+        },
+        {
+          "id": 35794,
+          "name": "星谷美緒",
+          "role": "(プロフィ)",
+          "importance": 2
+        },
+        {
+          "id": 36377,
+          "name": "田所陽向",
+          "role": "(その他)",
+          "importance": 2
+        },
+        {
+          "id": 38496,
+          "name": "村島慎之介",
+          "role": "(その他)",
+          "importance": 2
+        }
+      ]
+    },
+    "musics": [
+      "breath of stella",
+      "Ortus",
+      "終の祈り"
+    ]
+  },
+  "38631": {
+    "id": 38631,
+    "name": "魔法少女ノ魔女裁判",
+    "brandId": 8942,
+    "brandName": "Acacia",
+    "sellday": "2025-07-18",
+    "imgUrl": "",
+    "officialHomePage": "https://manosaba.com/",
+    "statistics": {
+      "median": 85,
+      "count": 414,
+      "average": 84,
+      "playTime": "23時間"
+    },
+    "creators": {
+      "illustrators": [
+        {
+          "id": 41840,
+          "name": "おむ(omu)"
+        },
+        {
+          "id": 41841,
+          "name": "ナナホシコウ"
+        }
+      ],
+      "writers": [
+        {
+          "id": 41835,
+          "name": "Acacia"
+        },
+        {
+          "id": 41838,
+          "name": "喜多南"
+        },
+        {
+          "id": 41839,
+          "name": "滝口流"
+        }
+      ],
+      "voiceActors": [
+        {
+          "id": 28418,
+          "name": "中尾隆聖",
+          "role": "(ゴクチョー)",
+          "importance": 0
+        },
+        {
+          "id": 41828,
+          "name": "東雲はる",
+          "role": "(二階堂 ヒロ)",
+          "importance": 0
+        },
+        {
+          "id": 17949,
+          "name": "高森奈津美",
+          "role": "(佐伯 ミリア)",
+          "importance": 0
+        },
+        {
+          "id": 9550,
+          "name": "井口裕香",
+          "role": "(城ケ崎 ノア)",
+          "importance": 0
+        },
+        {
+          "id": 41829,
+          "name": "葵あずさ",
+          "role": "(夏目 アンアン)",
+          "importance": 0
+        },
+        {
+          "id": 41830,
+          "name": "樹冬華",
+          "role": "(宝生 マーゴ)",
+          "importance": 0
+        },
+        {
+          "id": 41827,
+          "name": "三木谷奈々",
+          "role": "(桜羽 エマ)",
+          "importance": 0
+        },
+        {
+          "id": 41832,
+          "name": "柊優花",
+          "role": "(橘 シェリー)",
+          "importance": 0
+        },
+        {
+          "id": 25746,
+          "name": "山下七海",
+          "role": "(氷上 メルル)",
+          "importance": 0
+        },
+        {
+          "id": 41834,
+          "name": "比良坂芽衣",
+          "role": "(沢渡 ココ)",
+          "importance": 0
+        },
+        {
+          "id": 39421,
+          "name": "石井未紗",
+          "role": "(紫藤 アリサ)",
+          "importance": 0
+        },
+        {
+          "id": 7653,
+          "name": "小清水亜美",
+          "role": "(蓮見 レイア)",
+          "importance": 0
+        },
+        {
+          "id": 41833,
+          "name": "石崎紗彩",
+          "role": "(遠野 ハンナ)",
+          "importance": 0
+        },
+        {
+          "id": 41831,
+          "name": "大熊和奏",
+          "role": "(黒部 ナノカ)",
+          "importance": 0
+        }
+      ]
+    },
+    "musics": []
+  },
+  "38696": {
+    "id": 38696,
+    "name": "記憶の鍵盤",
+    "brandId": 4809,
+    "brandName": "Laplacian",
+    "sellday": "2025-07-22",
+    "imgUrl": "",
+    "officialHomePage": "https://laplacian.jp/games/kenban/",
+    "statistics": {
+      "median": 76,
+      "count": 122,
+      "average": 75,
+      "playTime": "4時間"
+    },
+    "creators": {
+      "illustrators": [
+        {
+          "id": 26051,
+          "name": "霜降"
+        }
+      ],
+      "writers": [
+        {
+          "id": 26050,
+          "name": "緒乃ワサビ"
+        }
+      ],
+      "voiceActors": [
+        {
+          "id": 40720,
+          "name": "結川あさき",
+          "role": "(天音 紗里)",
+          "importance": 0
+        },
+        {
+          "id": 27421,
+          "name": "鬼頭明里",
+          "role": "(橘 絵莉)",
+          "importance": 0
+        },
+        {
+          "id": 21101,
+          "name": "田丸篤志",
+          "role": "(アンジー)",
+          "importance": 1
+        },
+        {
+          "id": 21889,
+          "name": "近藤唯",
+          "role": "(その他)",
+          "importance": 2
+        },
+        {
+          "id": 11960,
+          "name": "杉崎亮",
+          "role": "(その他)",
+          "importance": 2
+        },
+        {
+          "id": 38589,
+          "name": "風間万裕子",
+          "role": "(その他)",
+          "importance": 2
+        },
+        {
+          "id": 41831,
+          "name": "大熊和奏",
+          "role": "(その他)",
+          "importance": 2
+        }
+      ]
+    },
+    "musics": [
+      "傷跡に咲く音",
+      "君のいない日々へ"
+    ]
+  },
+  "38794": {
+    "id": 38794,
+    "name": "ライムライト・レモネードジャム",
+    "brandId": 1795,
+    "brandName": "ゆずソフト",
+    "sellday": "2025-09-26",
+    "imgUrl": "https://pics.dmm.co.jp/digital/pcgame/yuzu_0012/yuzu_0012pl.jpg",
+    "officialHomePage": "https://www.yuzu-soft.com/products/lllj/index.html",
+    "statistics": {
+      "median": 84,
+      "count": 626,
+      "average": 83,
+      "playTime": "30時間"
+    },
+    "creators": {
+      "illustrators": [
+        {
+          "id": 1700,
+          "name": "こぶいち"
+        },
+        {
+          "id": 2085,
+          "name": "むりりん"
+        },
+        {
+          "id": 4918,
+          "name": "羽純りお(あやせりお)"
+        },
+        {
+          "id": 38971,
+          "name": "ほかん"
+        },
+        {
+          "id": 5521,
+          "name": "こもわた遙華"
+        }
+      ],
+      "writers": [
+        {
+          "id": 2413,
+          "name": "瀬尾順"
+        },
+        {
+          "id": 3933,
+          "name": "天宮りつ(天宮リツ)"
+        },
+        {
+          "id": 14427,
+          "name": "かずきふみ(一二三)"
+        },
+        {
+          "id": 15371,
+          "name": "さかき傘"
+        }
+      ],
+      "voiceActors": [
+        {
+          "id": 40715,
+          "name": "しましまはかせ",
+          "role": "(二見原 莉々子)",
+          "importance": 0
+        },
+        {
+          "id": 41892,
+          "name": "虎瀬がお",
+          "role": "(嶌越 月望)",
+          "importance": 0
+        },
+        {
+          "id": 41891,
+          "name": "御園紗々",
+          "role": "(陽見 恵凪)",
+          "importance": 0
+        },
+        {
+          "id": 40996,
+          "name": "天季ひより",
+          "role": "(隠 杏珠)",
+          "importance": 0
+        },
+        {
+          "id": 33332,
+          "name": "冬ノ熊肉",
+          "role": "(不二 衛哉)",
+          "importance": 1
+        },
+        {
+          "id": 16176,
+          "name": "梅咲チャーリー",
+          "role": "(仲原 大夢)",
+          "importance": 1
+        },
+        {
+          "id": 35835,
+          "name": "天河雄成",
+          "role": "(礫川 傑)",
+          "importance": 1
+        },
+        {
+          "id": 15302,
+          "name": "くすはらゆい(楠原ゆい)",
+          "role": "(礫川 美玖)",
+          "importance": 1
+        },
+        {
+          "id": 27755,
+          "name": "九財翼",
+          "role": "(礫川 雄真)",
+          "importance": 1
+        },
+        {
+          "id": 26545,
+          "name": "夏和小",
+          "role": "(茶園 那優花)",
+          "importance": 1
+        },
+        {
+          "id": 42122,
+          "name": "一ノ瀬こまち",
+          "role": "(莉々子の母など)",
+          "importance": 2
+        },
+        {
+          "id": 42125,
+          "name": "川口一二三",
+          "role": "(その他)",
+          "importance": 2
+        },
+        {
+          "id": 5810,
+          "name": "海原エレナ",
+          "role": "(その他)",
+          "importance": 2
+        },
+        {
+          "id": 16628,
+          "name": "星リルカ",
+          "role": "(その他)",
+          "importance": 2
+        },
+        {
+          "id": 32111,
+          "name": "四葉ヨウ",
+          "role": "(その他)",
+          "importance": 2
+        },
+        {
+          "id": 38162,
+          "name": "安堂之",
+          "role": "(その他)",
+          "importance": 2
+        },
+        {
+          "id": 40222,
+          "name": "結城ゆたか",
+          "role": "(その他)",
+          "importance": 2
+        },
+        {
+          "id": 40223,
+          "name": "七守快",
+          "role": "(その他)",
+          "importance": 2
+        },
+        {
+          "id": 42123,
+          "name": "立花いぬこ",
+          "role": "(その他)",
+          "importance": 2
+        },
+        {
+          "id": 42124,
+          "name": "藤白柊花",
+          "role": "(その他)",
+          "importance": 2
+        },
+        {
+          "id": 5780,
+          "name": "みる",
+          "role": "(その他)",
+          "importance": 2
+        }
+      ]
+    },
+    "musics": [
+      "明け星",
+      "愛しさこぼれる",
+      "おんなじ気持ち",
+      "奏で",
+      "Grateful Days",
+      "Note's Greeting",
+      "ヒカリノウタ",
+      "RGB",
+      "幻灯花火",
+      "最終快速",
+      "燈月小夜曲",
+      "陽だまりのように",
+      "Be brand new",
+      "FOR GLORY (with \"gem of rubble\")",
+      "放光酸化"
+    ]
+  },
+  "39837": {
+    "id": 39837,
+    "name": "ディメンション凸ラバース!!",
+    "brandId": 5487,
+    "brandName": "CRYSTALiA",
+    "sellday": "2026-04-24",
+    "imgUrl": "https://pics.dmm.co.jp/digital/pcgame/spal_0201/spal_0201pl.jpg",
+    "officialHomePage": "https://crystalia.amusecraft.com/totsulover/index.html",
+    "statistics": {
+      "median": 90,
+      "count": 291,
+      "average": 88,
+      "playTime": "20時間"
+    },
+    "creators": {
+      "illustrators": [
+        {
+          "id": 23663,
+          "name": "吉沢メガネ(狐ノ沢)"
+        },
+        {
+          "id": 2675,
+          "name": "ぺろ(Pero、本田たまのすけ)"
+        },
+        {
+          "id": 42170,
+          "name": "鈍色玄"
+        },
+        {
+          "id": 42171,
+          "name": "蒲磁れん"
+        },
+        {
+          "id": 42904,
+          "name": "lfet"
+        },
+        {
+          "id": 22522,
+          "name": "サイキライダー"
+        },
+        {
+          "id": 31244,
+          "name": "白恵りえ"
+        }
+      ],
+      "writers": [
+        {
+          "id": 18562,
+          "name": "逢縁奇演(逢縁喜縁)"
+        }
+      ],
+      "voiceActors": [
+        {
+          "id": 36974,
+          "name": "葉月ひかり",
+          "role": "(ソフィア・ランカスター)",
+          "importance": 0
+        },
+        {
+          "id": 25693,
+          "name": "北大路ゆき",
+          "role": "(夜乃 桜)",
+          "importance": 0
+        },
+        {
+          "id": 39749,
+          "name": "丸芽伊ず",
+          "role": "(崩月 槐)",
+          "importance": 0
+        },
+        {
+          "id": 40715,
+          "name": "しましまはかせ",
+          "role": "(崩月 水仙)",
+          "importance": 0
+        },
+        {
+          "id": 22905,
+          "name": "みたかりん",
+          "role": "(海漫 華淡)",
+          "importance": 0
+        },
+        {
+          "id": 36317,
+          "name": "七種結花",
+          "role": "(N.a.v.i.)",
+          "importance": 1
+        },
+        {
+          "id": 41882,
+          "name": "香芝りょう",
+          "role": "(エレノア・ランカスター)",
+          "importance": 1
+        },
+        {
+          "id": 42892,
+          "name": "月代雪音",
+          "role": "(クララ・ランカスター)",
+          "importance": 1
+        },
+        {
+          "id": 34313,
+          "name": "谷井ムロ",
+          "role": "(システム-大獄)",
+          "importance": 1
+        },
+        {
+          "id": 40162,
+          "name": "凩慈雨",
+          "role": "(シャーロット・ランカスター)",
+          "importance": 1
+        },
+        {
+          "id": 8730,
+          "name": "ワッショイ太郎",
+          "role": "(マシュー・ル・ブラン)",
+          "importance": 1
+        },
+        {
+          "id": 39534,
+          "name": "タケ王",
+          "role": "(地罰の神官)",
+          "importance": 1
+        },
+        {
+          "id": 20167,
+          "name": "佐藤涼樹",
+          "role": "(崩月 桧木)",
+          "importance": 1
+        },
+        {
+          "id": 6505,
+          "name": "梅小路ピンポン",
+          "role": "(崩月 清楓)",
+          "importance": 1
+        },
+        {
+          "id": 16276,
+          "name": "桃山いおん",
+          "role": "(羽鳥 ミオ)",
+          "importance": 1
+        },
+        {
+          "id": 42894,
+          "name": "新堂いろは",
+          "role": "(その他)",
+          "importance": 2
+        },
+        {
+          "id": 21749,
+          "name": "TOSAKA",
+          "role": "(その他)",
+          "importance": 2
+        },
+        {
+          "id": 38626,
+          "name": "田蒲谷糀",
+          "role": "(その他)",
+          "importance": 2
+        },
+        {
+          "id": 38821,
+          "name": "有平ともり",
+          "role": "(その他)",
+          "importance": 2
+        },
+        {
+          "id": 40696,
+          "name": "青葉みこ",
+          "role": "(その他)",
+          "importance": 2
+        },
+        {
+          "id": 42893,
+          "name": "椿雪奈",
+          "role": "(その他)",
+          "importance": 2
+        }
+      ]
+    },
+    "musics": [
+      "DIMENSION TRAVERSE!",
+      "IF*Else"
+    ]
+  }
+}

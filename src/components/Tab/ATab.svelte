@@ -48,7 +48,7 @@
   class:placeholder-style={isPlaceholder}
 >
   <div
-    class="tab-content-area flex items-center gap-2 px-3 h-10 transition-all border-(b-1px r-1px solid border-primary) group max-w-60"
+    class="tab-content-area flex items-center gap-2 px-3 h-10 transition-all border-b-1px border-r-1px border-solid border-border-primary group max-w-60"
     class:bg-bg-primary={(selected && !isPlaceholder && !isDragging)}
     class:border-b-transparent={(selected && !isPlaceholder && !isDragging)}
     class:bg-bg-disabled={(!selected && !isPlaceholder && !isDragging)}

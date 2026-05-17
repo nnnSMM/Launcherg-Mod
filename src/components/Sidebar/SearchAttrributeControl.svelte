@@ -8,7 +8,7 @@
 
 {#if show}
   <div
-    class="absolute p-(x-2 y-2) {appendClass} top--1 bottom--1 flex items-center justify-center z-10"
+    class="absolute p-x-2 p-y-2 {appendClass} top--1 bottom--1 flex items-center justify-center z-10"
     class:rotate-180={back}
     transition:fly={{ x: 10, duration: 150 }}
   >

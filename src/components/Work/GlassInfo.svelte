@@ -9,14 +9,16 @@
 </script>
 
 <div
-    class="relative z-20 bg-bg-primary/30 border-t border-white/10 p-6 lg:p-8 shadow-2xl space-y-6"
+    class="relative z-20 bg-bg-primary/30 border-t border-border-primary p-6 lg:p-8 shadow-2xl space-y-6"
     style="backdrop-filter: blur(8px);"
 >
-    {#await seiya.getUrl(work.name) then seiyaUrl}
+    {#await seiya.getUrl(work.name)}
+        <Actions id={work.id} name={element.gamename} seiyaUrl={""} />
+    {:then seiyaUrl}
         <Actions id={work.id} name={element.gamename} {seiyaUrl} />
     {/await}
 
-    <div class="border-t border-white/10 pt-6">
+    <div class="border-t border-border-primary pt-6">
         <Info {work} />
     </div>
 </div>

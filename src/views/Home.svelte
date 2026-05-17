@@ -289,7 +289,7 @@
       {#if $recentlyPlayed.length > 0}
         <div class="space-y-2">
           <div class="flex items-center">
-            <h3 class="text-(text-primary h3) font-medium mr-auto">
+            <h3 class="text-text-primary text-h3 font-medium mr-auto">
               最近の履歴
             </h3>
             <div class="flex items-center">
@@ -326,7 +326,7 @@
     {/if}
 
     <div class="flex items-center gap-4 flex-wrap">
-      <h3 class="text-(text-primary h3) font-medium mr-auto">登録したゲーム</h3>
+      <h3 class="text-text-primary text-h3 font-medium mr-auto">登録したゲーム</h3>
       <Button
         leftIcon="i-material-symbols-refresh-rounded"
         text="サムネイルを再取得する"

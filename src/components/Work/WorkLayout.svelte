@@ -181,7 +181,7 @@
       />
       <!-- 背景色オーバーレイ: 曇りグラス効果（画像端とGlass端の「より高い方」から開始） -->
       <div
-        class="absolute left-0 right-0 bg-bg-primary/40 border-t border-white/10"
+        class="absolute left-0 right-0 bg-bg-primary/40 border-t border-border-primary"
         style="top: {Math.min(actualRenderedH, glassTopY) + 30}px; bottom: 0; backdrop-filter: blur(24px);"
       />
     </div>

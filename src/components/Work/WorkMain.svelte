@@ -23,7 +23,7 @@
 </script>
 
 <div class="space-y-4 max-w-full">
-  <div class="text-(h1 text-primary) font-bold">{work.name}</div>
+  <div class="text-h1 text-text-primary font-bold">{work.name}</div>
   {#await seiyaUrlPromise then seiyaUrl}
     <Actions id={work.id} name={work.name} {seiyaUrl} />
   {/await}

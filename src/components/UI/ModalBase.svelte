@@ -28,14 +28,14 @@
       <div class="fixed inset-0 z-10 w-full h-full">
         <div class="relative p-12 w-full h-full">
           <DialogOverlay
-            class="absolute inset-0 z-20 bg-(bg-backdrop opacity-80)"
+            class="absolute inset-0 z-20 bg-bg-backdrop bg-opacity-80"
           />
           <div
             class="relative w-full h-full z-30 m-auto {panelClass} overflow-hidden"
             class:h-full={fullmodal}
           >
             <div
-              class="w-full h-full border-(~ solid border-primary) rounded-lg bg-bg-primary shadow min-h-0 max-h-full"
+              class="w-full h-full border border-solid border-border-primary rounded-lg bg-bg-primary shadow min-h-0 max-h-full"
             >
               <slot />
             </div>

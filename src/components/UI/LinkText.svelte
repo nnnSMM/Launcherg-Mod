@@ -20,7 +20,7 @@
 
 <button
   on:click={handleClick}
-  class="text-(body2 text-link) block whitespace-nowrap underline-text-link hover:underline bg-transparent transition-all underline-none focus-ring rounded"
+  class="text-body2 text-text-link block whitespace-nowrap underline-text-link hover:underline bg-transparent transition-all underline-none focus-ring rounded"
 >
   <slot>
     {text}

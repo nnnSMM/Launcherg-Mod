@@ -17,7 +17,6 @@ docs/demo/
 public/demo-data/
 public/demo-images/
 videos/
-vite.demo.config.ts
 
 # Editor directories and files
 .vscode/*

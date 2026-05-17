@@ -111,10 +111,10 @@
         class="h-8 w-8 rounded-md shadow-sm ring-1 ring-white/10 shrink-0"
       />
       <div class="min-w-0">
-        <div class="text-(text-primary body3) font-bold leading-tight tracking-tight">
+        <div class="text-text-primary text-body3 font-bold leading-tight tracking-tight">
           Launcherg
         </div>
-        <div class="text-(text-tertiary caption) truncate leading-snug">
+        <div class="text-text-tertiary text-caption truncate leading-snug">
           クイックメニュー
         </div>
       </div>
@@ -154,7 +154,7 @@
             <span class="block text-caption font-semibold text-accent-accent tracking-wide">
               ショートカット
             </span>
-            <span class="block text-(text-primary body3) font-semibold truncate mt-0.5">
+            <span class="block text-text-primary text-body3 font-semibold truncate mt-0.5">
               {shortcutGame.gamename}
             </span>
           </div>
@@ -164,7 +164,7 @@
         </button>
       {:else}
         <div
-          class="rounded-md border border-dashed border-border-primary bg-bg-secondary/50 px-2.5 py-2 text-(text-tertiary caption) text-center leading-snug"
+          class="rounded-md border border-dashed border-border-primary bg-bg-secondary/50 px-2.5 py-2 text-text-tertiary text-caption text-center leading-snug"
         >
           ショートカットゲームは未設定です（メインの設定から指定できます）
         </div>
@@ -172,7 +172,7 @@
     </div>
 
     <div
-      class="section-head px-3 pt-0.5 pb-1.5 flex items-center justify-between gap-2 text-(text-tertiary caption) font-semibold tracking-wide"
+      class="section-head px-3 pt-0.5 pb-1.5 flex items-center justify-between gap-2 text-text-tertiary text-caption font-semibold tracking-wide"
     >
       <span>最近プレイしたゲーム</span>
       {#if isLoading}
@@ -183,7 +183,7 @@
     <div class="recent-scroll flex-1 min-h-0 overflow-y-auto px-1.5 pb-1.5">
       {#if !isLoading && recentGames.length === 0}
         <div
-          class="flex flex-col items-center justify-center gap-1.5 py-7 px-3 text-(text-tertiary body3) text-center"
+          class="flex flex-col items-center justify-center gap-1.5 py-7 px-3 text-text-tertiary text-body3 text-center"
         >
           <span class="i-material-symbols-history-rounded h-7 w-7 opacity-60" />
           <span>まだ履歴がありません</span>

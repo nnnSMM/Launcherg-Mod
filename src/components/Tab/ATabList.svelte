@@ -167,7 +167,7 @@
 </script>
 
 <ScrollableHorizontal>
-  <div class="grid-(~ cols-[min-content_1fr]) items-center">
+  <div class="grid grid-cols-[min-content_1fr] items-center">
     <div class="flex items-center h-10 relative" style="min-height: 2.5rem;">
       {#each $tabs as tab, i (tab.id)}
         <div
@@ -211,7 +211,7 @@
       {/if}
     </div>
     <div
-      class="w-full h-full bg-bg-disabled border-(b-1px solid border-primary)"
+      class="w-full h-full bg-bg-disabled border-b-1px border-solid border-border-primary"
     />
   </div>
 </ScrollableHorizontal>
