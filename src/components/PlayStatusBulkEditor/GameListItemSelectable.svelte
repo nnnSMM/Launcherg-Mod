@@ -6,6 +6,7 @@
   import { PlayStatus as PSConst } from "@/lib/types";
   import { createEventDispatcher } from "svelte";
   import { convertFileSrc } from "@tauri-apps/api/core";
+  import { theme } from "@/store/theme";
 
   export let game: CollectionElement;
   export let isSelected: boolean = false;
@@ -77,15 +78,20 @@
 
   let isHovered = false;
 
-  const bgColorUnselected = "#E5E7EB";
-  const bgColorSelected = "#E5E7EB";
-  const bgColorHover = "#CBD5E1";
+  $: bgColorUnselected = $theme === "light" ? "#E5E7EB" : "#21262d";
+  $: bgColorSelected = $theme === "light" ? "#E5E7EB" : "#2d333b";
+  $: bgColorHover = $theme === "light" ? "#CBD5E1" : "#30363d";
+  $: unplayedColor = $theme === "light" ? "#6B7280" : "#6e7681";
+  $: currentStatusColor =
+    displayPlayStatus === PSConst.Unplayed
+      ? unplayedColor
+      : currentStatusInfo.baseColorCode;
 
   $: currentBgColor = isSelected ? bgColorSelected : bgColorUnselected;
   $: currentHoverBgColor = isHovered ? bgColorHover : currentBgColor;
 
   $: tileBorderStyle = (() => {
-    const color = currentStatusInfo.baseColorCode;
+    const color = currentStatusColor;
     if (isSelected) {
       return `border-color: transparent; box-shadow: 0 0 0 4px ${color};`;
     } else if (isHovered) {
@@ -95,21 +101,21 @@
     }
   })();
 
-  $: visibleTileRingStyle = `box-shadow: 0 0 0 ${isSelected ? 4 : 2}px ${currentStatusInfo.baseColorCode} !important; border-color: transparent !important;`;
+  $: visibleTileRingStyle = `box-shadow: 0 0 0 ${isSelected ? 4 : 2}px ${currentStatusColor} !important; border-color: transparent !important;`;
 
   const textColorNormalBase = "#374151";
   const textColorSelected = "#1f2937";
 
   $: textFillColor = isSelected
     ? textColorSelected
-    : currentStatusInfo.baseColorCode === "#A0AEC0"
+    : displayPlayStatus === PSConst.Unplayed
       ? textColorNormalBase
-      : currentStatusInfo.baseColorCode;
+      : currentStatusColor;
   $: textFillColorForLabel = isSelected
     ? textColorSelected
-    : currentStatusInfo.baseColorCode === "#A0AEC0"
+    : displayPlayStatus === PSConst.Unplayed
       ? textColorNormalBase
-      : currentStatusInfo.baseColorCode;
+      : currentStatusColor;
 </script>
 
 <button
@@ -158,7 +164,7 @@
     {#if isSelected}
       <div
         class="i-material-symbols-check-circle-rounded w-5 h-5"
-        style="color: {currentStatusInfo.baseColorCode};"
+        style="color: {currentStatusColor};"
       ></div>
     {:else}
       <div

@@ -81,7 +81,7 @@ html[data-theme="light"] {
   --color-text-secondary: 61, 68, 77;
   --color-text-tertiary: 110, 119, 129;
   --color-text-link: 9, 105, 218;
-  --color-text-white: 255, 255, 255;
+  --color-text-white: 36, 41, 47;
   --color-text-disabled: 140, 149, 159;
   --color-text-success-disabled: rgba(36, 41, 47, 0.55);
   --color-text-b-primary: 255, 255, 255;
@@ -151,9 +151,6 @@ a:active,
 a:focus-visible {
   outline: none !important;
   outline: 0 !important;
-  box-shadow: none !important;
-  border: none !important;
-  border-width: 0 !important;
   -webkit-tap-highlight-color: transparent !important;
 }
 
@@ -194,6 +191,20 @@ a:focus-visible {
 .simplebar-vertical {
   >.simplebar-scrollbar::before {
     background-color: rgb(var(--color-scrollbar-thumb));
+  }
+}
+
+html[data-theme="light"] {
+  .text-white {
+    color: rgb(var(--color-text-primary)) !important;
+  }
+
+  .work-detail-page {
+    .text-white,
+    .text-text-white,
+    .color-text-white {
+      color: #fff !important;
+    }
   }
 }
 

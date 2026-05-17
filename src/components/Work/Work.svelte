@@ -21,7 +21,7 @@
 </script>
 
 <div
-  class="h-full w-full overflow-x-hidden overflow-y-auto"
+  class="work-detail-page h-full w-full overflow-x-hidden overflow-y-auto"
   on:scroll={handleScroll}
 >
   <div class="w-full min-h-0 flex justify-center">

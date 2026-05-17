@@ -35,6 +35,10 @@
   import { useFilter as useTextQueryFilter } from "@/lib/filter";
 
   import { selectAll, deselectAll, toggleAll } from "@/lib/selection";
+  import { theme } from "@/store/theme";
+
+  const noControlBorderClass =
+    "!border-transparent !border-opacity-0 hover:!border-transparent hover:!border-opacity-0";
 
   let allGamesFromApi = writable<CollectionElement[]>([]);
   let selectedGameIdsStore = writable(new Set<number>());
@@ -252,7 +256,7 @@
       value: PlayStatus.Unplayed,
       icon: "i-material-symbols-play-circle-outline-rounded",
       activeStyleClasses:
-        "bg-gray-400 !hover:bg-gray-300 text-white border-gray-400",
+        "bg-gray-400 !hover:bg-gray-300 border-gray-400",
       inactiveStyleClasses:
         "text-text-secondary bg-bg-button hover:bg-bg-button-hover border-border-primary",
     },
@@ -261,7 +265,7 @@
       value: PlayStatus.Playing,
       icon: "i-material-symbols-pause-circle-outline-rounded",
       activeStyleClasses:
-        "bg-blue-500 !hover:bg-blue-400 text-white border-blue-500",
+        "bg-blue-500 !hover:bg-blue-400 border-blue-500",
       inactiveStyleClasses:
         "text-text-secondary bg-bg-button hover:bg-bg-button-hover border-border-primary",
     },
@@ -270,7 +274,7 @@
       value: PlayStatus.Cleared,
       icon: "i-material-symbols-check-circle-outline-rounded",
       activeStyleClasses:
-        "bg-green-700 !hover:bg-green-600 text-white border-green-700",
+        "bg-green-700 !hover:bg-green-600 border-green-700",
       inactiveStyleClasses:
         "text-text-secondary bg-bg-button hover:bg-bg-button-hover border-border-primary",
     },
@@ -285,7 +289,7 @@
       <!-- 表示の絞り込み -->
       <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
         <div
-          class="text-(body text-secondary) font-medium whitespace-nowrap min-w-[5rem]"
+          class="text-body text-text-secondary font-medium whitespace-nowrap min-w-[5rem]"
         >
           表示の絞り込み:
         </div>
@@ -313,7 +317,7 @@
       <!-- 目標の状態設定 -->
       <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
         <div
-          class="text-(body text-secondary) font-medium whitespace-nowrap min-w-[5rem]"
+          class="text-body text-text-secondary font-medium whitespace-nowrap min-w-[5rem]"
         >
           目標の状態:
         </div>
@@ -324,7 +328,7 @@
               leftIcon={option.icon}
               variant={"normal"}
               on:click={() => handleTargetPlayStatusChange(option.value)}
-              appendClass={`px-3 py-1 text-sm ${$targetPlayStatusStore === option.value ? option.activeStyleClasses : option.inactiveStyleClasses}`}
+              appendClass={`px-3 py-1 text-sm ${$targetPlayStatusStore === option.value ? `${option.activeStyleClasses} ${$theme === "light" ? "text-gray-900" : "text-white"}` : option.inactiveStyleClasses}`}
             />
           {/each}
         </div>
@@ -336,19 +340,19 @@
         icon="i-material-symbols-done-all-rounded"
         on:click={handleSelectAll}
         tooltip={{ content: "表示中のすべてを選択" }}
-        appendClass="!text-accent-accent hover:!bg-bg-button-hover"
+        appendClass={`!text-accent-accent hover:!bg-bg-button-hover ${noControlBorderClass}`}
       />
       <IconButton
         icon="i-material-symbols-remove-done-rounded"
         on:click={handleDeselectAll}
         tooltip={{ content: "表示中の選択をすべて解除" }}
-        appendClass="!text-accent-error hover:!bg-bg-button-hover"
+        appendClass={`!text-accent-error hover:!bg-bg-button-hover ${noControlBorderClass}`}
       />
       <IconButton
         icon="i-material-symbols-flip-to-back-outline-rounded"
         on:click={handleToggleAll}
         tooltip={{ content: "表示中の選択状態を反転" }}
-        appendClass="!text-accent-warning hover:!bg-bg-button-hover"
+        appendClass={`!text-accent-warning hover:!bg-bg-button-hover ${noControlBorderClass}`}
       />
       <!-- セパレーター -->
       <div class="w-px h-6 bg-border-primary mx-1"></div>
@@ -357,13 +361,13 @@
         icon="i-material-symbols-view-module-outline-rounded"
         on:click={() => viewModeStore.set("masonry")}
         tooltip={{ content: "タイル表示" }}
-        appendClass={$viewModeStore === "masonry" ? "!bg-bg-button-hover" : ""}
+        appendClass={`${$viewModeStore === "masonry" ? "!bg-bg-button-hover" : ""} ${noControlBorderClass}`}
       />
       <IconButton
         icon="i-material-symbols-view-list-outline-rounded"
         on:click={() => viewModeStore.set("list")}
         tooltip={{ content: "リスト表示" }}
-        appendClass={$viewModeStore === "list" ? "!bg-bg-button-hover" : ""}
+        appendClass={`${$viewModeStore === "list" ? "!bg-bg-button-hover" : ""} ${noControlBorderClass}`}
       />
       <Button
         text={`選択中 (${$selectedGameIdsStore.size}) を設定`}
@@ -371,17 +375,17 @@
         variant="accent"
         disabled={$selectedGameIdsStore.size === 0 || isLoading}
         on:click={handleBulkUpdate}
-        appendClass="px-3 py-1 text-sm whitespace-nowrap"
+        appendClass={`px-3 py-1 text-sm whitespace-nowrap ${noControlBorderClass}`}
       />
     </div>
   </div>
 
   {#if isLoading && $allGamesFromApi.length === 0}
-    <div class="flex-1 flex items-center justify-center text-(lg text-secondary)">
+    <div class="flex-1 flex items-center justify-center text-lg text-text-secondary">
       読み込み中...
     </div>
   {:else if $allGamesFromApi.length === 0}
-    <div class="flex-1 flex items-center justify-center text-(lg text-secondary)">
+    <div class="flex-1 flex items-center justify-center text-lg text-text-secondary">
       登録されているゲームがありません。
     </div>
   {:else}

@@ -6,6 +6,7 @@
   import { PlayStatus as PSConst } from "@/lib/types";
   import { createEventDispatcher } from "svelte";
   import { convertFileSrc } from "@tauri-apps/api/core";
+  import { theme } from "@/store/theme";
 
   export let game: CollectionElement;
   export let isSelected: boolean = false;
@@ -16,10 +17,12 @@
   export let imageDisplayHeight: number;
   export let tilePadding: number = 8;
 
-  const bgColorUnselected = "#E5E7EB";
-  const bgColorSelected = "#E5E7EB";
-  const bgColorUnselectedHover = "#CBD5E1";
-  const bgColorSelectedHover = "#CBD5E1";
+  $: bgColorUnselected = $theme === "light" ? "#E5E7EB" : "#21262d";
+  $: bgColorSelected = $theme === "light" ? "#E5E7EB" : "#2d333b";
+  $: bgColorUnselectedHover = $theme === "light" ? "#CBD5E1" : "#30363d";
+  $: bgColorSelectedHover = $theme === "light" ? "#CBD5E1" : "#373e47";
+  let unplayedColor = "#6e7681";
+  $: unplayedColor = $theme === "light" ? "#6B7280" : "#6e7681";
 
   const textColorNormalBase = "#374151";
   const textColorSelected = "#1f2937";
@@ -40,7 +43,7 @@
     [PSConst.Unplayed]: {
       label: "未プレイ",
       icon: "i-material-symbols-play-circle-outline-rounded",
-      baseColorCode: "#A0AEC0",
+      baseColorCode: unplayedColor,
       selectedIconColor: "#FFFFFF",
     }, // 選択時アイコンは白
     [PSConst.Playing]: {
@@ -64,9 +67,13 @@
   $: currentStatusInfo = playStatusInfo[displayPlayStatus] || {
     label: "不明",
     icon: "i-material-symbols-help-outline-rounded",
-    baseColorCode: "#A0AEC0",
+    baseColorCode: unplayedColor,
     selectedIconColor: "#FFFFFF",
   };
+  $: currentStatusColor =
+    displayPlayStatus === PSConst.Unplayed
+      ? unplayedColor
+      : currentStatusInfo.baseColorCode;
 
   $: thumbnailSrc = game.thumbnail
     ? convertFileSrc(game.thumbnail)
@@ -88,7 +95,7 @@
 
   $: tileBorderStyle = (() => {
     const ringWidth = isSelected ? 4 : 2;
-    const color = currentStatusInfo.baseColorCode;
+    const color = currentStatusColor;
 
     if (isSelected) {
       return `box-shadow: 0 0 0 ${ringWidth}px ${color} !important; border-color: transparent !important;`;
@@ -101,16 +108,16 @@
     }
   })();
 
-  $: visibleTileRingStyle = `box-shadow: 0 0 0 ${isSelected ? 4 : 2}px ${currentStatusInfo.baseColorCode} !important; border-color: transparent !important;`;
+  $: visibleTileRingStyle = `box-shadow: 0 0 0 ${isSelected ? 4 : 2}px ${currentStatusColor} !important; border-color: transparent !important;`;
 
   $: textFillColor = isSelected
     ? textColorSelected
-    : currentStatusInfo.baseColorCode;
+    : currentStatusColor;
   $: textFillColorForLabel = isSelected
     ? textColorSelected
-    : currentStatusInfo.baseColorCode === "#A0AEC0"
+    : displayPlayStatus === PSConst.Unplayed
       ? textColorNormalBase
-      : currentStatusInfo.baseColorCode;
+      : currentStatusColor;
 </script>
 
 <button
@@ -156,7 +163,7 @@
     <div
       class="absolute top-1 right-1 p-0.5 rounded-full"
       style="background-color: {isSelected
-        ? currentStatusInfo.baseColorCode
+        ? currentStatusColor
         : 'rgba(0,0,0,0.3)'};"
     >
       <div

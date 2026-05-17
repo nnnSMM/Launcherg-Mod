@@ -64,7 +64,7 @@
     </div>
     <APopover panelClass="right-0" let:close>
       <ButtonBase
-        appendClass="h-8 w-8 flex items-center justify-center !bg-transparent !border-white/10 hover:!bg-white/10"
+        appendClass="h-8 w-8 flex items-center justify-center !bg-transparent !border-border-primary !border-opacity-100 hover:!border-border-button-hover hover:!bg-white/10"
         tooltip={{
           content: "ゲームの並べ替え",
           placement: "bottom",
