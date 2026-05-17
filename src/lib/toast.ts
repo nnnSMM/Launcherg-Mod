@@ -8,8 +8,9 @@ export const showInfoToast = (text: string, duration = 3000) => {
     position: "right", // `left`, `center` or `right`
     stopOnFocus: true, // Prevents dismissing of toast on hover
     style: {
-      background: "#22272e",
-      border: "1px solid #444c56",
+      background: "rgb(var(--color-toast-bg))",
+      border: "1px solid rgb(var(--color-editor-border))",
+      color: "rgb(var(--color-toast-text))",
       "border-radius": "0.5rem",
     },
   }).showToast();

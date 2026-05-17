@@ -81,7 +81,7 @@ html[data-theme="light"] {
   --color-text-secondary: 61, 68, 77;
   --color-text-tertiary: 110, 119, 129;
   --color-text-link: 9, 105, 218;
-  --color-text-white: 36, 41, 47;
+  --color-text-white: 255, 255, 255;
   --color-text-disabled: 140, 149, 159;
   --color-text-success-disabled: rgba(36, 41, 47, 0.55);
   --color-text-b-primary: 255, 255, 255;
@@ -194,20 +194,6 @@ a:focus-visible {
   }
 }
 
-html[data-theme="light"] {
-  .text-white {
-    color: rgb(var(--color-text-primary)) !important;
-  }
-
-  .work-detail-page {
-    .text-white,
-    .text-text-white,
-    .color-text-white {
-      color: #fff !important;
-    }
-  }
-}
-
 .simplebar-horizontal {
   height: 0.25rem !important;
 
@@ -311,7 +297,17 @@ html[data-theme="light"] {
 }
 
 .EasyMDEContainer .CodeMirror-selected {
-  background: rgb(var(--color-editor-active)) !important;
+  background: rgba(var(--color-accent-accent), 0.35) !important;
+}
+
+html[data-theme="light"] {
+  .EasyMDEContainer .CodeMirror-selected {
+    background: rgba(var(--color-accent-accent), 0.45) !important;
+  }
+
+  .EasyMDEContainer ::selection {
+    background: rgba(var(--color-accent-accent), 0.4);
+  }
 }
 
 .editor-toolbar {
