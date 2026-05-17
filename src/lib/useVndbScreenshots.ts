@@ -8,10 +8,12 @@ import type {
   VndbScreenshot,
   VndbScreenshotCache,
 } from "@/lib/types";
-import { requestVndbJson } from "@/lib/vndbRequest";
+import { fetch } from "@tauri-apps/plugin-http";
 
 const CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
-const CACHE_SCHEMA_VERSION = 3;
+const CACHE_SCHEMA_VERSION = 10;
+const EROGAMESCAPE_REQUEST_PATH =
+  "https://erogamescape.dyndns.org/~ap2/ero/toukei_kaiseki";
 const SENSITIVE_THRESHOLD = 1.5;
 const PREFETCH_INTERVAL_MS = 2000;
 const SHOW_SENSITIVE_SETTING_KEY = "show_sensitive_vndb_screenshots";
@@ -357,6 +359,270 @@ export const createVndbRequestBody = (
   results: 10,
 });
 
+const resolveFanzaImageUrl = (url: string) => {
+  try {
+    return new URL(url, EROGAMESCAPE_REQUEST_PATH + "/").href;
+  } catch {
+    return url;
+  }
+};
+
+const toFanzaFullImageUrl = (url: string) =>
+  url.replace(/js-(\d+\.(?:jpg|jpeg|png|webp))$/i, "jp-$1");
+
+const isFanzaImageUrl = (url: string) =>
+  /^https:\/\/pics\.dmm\.(?:co\.jp|com)\//i.test(url);
+
+const isDlsiteImageUrl = (url: string) =>
+  /^https:\/\/img\.dlsite\.jp\//i.test(url);
+
+const isSteamImageUrl = (url: string) =>
+  /^https:\/\/[^/]*steamstatic\.com\//i.test(url);
+
+const resolveExternalImageUrl = (url: string) => {
+  if (url.startsWith("//")) return `https:${url}`;
+  return resolveFanzaImageUrl(url);
+};
+
+const getFanzaSampleImageElements = (doc: Document) => {
+  const sampleImages = [
+    ...doc.querySelectorAll<HTMLImageElement>("#dmm_sample_cg_main img"),
+  ];
+  if (sampleImages.length > 0) return sampleImages;
+
+  return [...doc.querySelectorAll<HTMLImageElement>("#left_dmm_img img")].filter(
+    (image) => {
+      const src = resolveFanzaImageUrl(image.getAttribute("src") ?? image.src);
+      return isFanzaImageUrl(src) && /js-\d+\.(?:jpg|jpeg|png|webp)$/i.test(src);
+    },
+  );
+};
+
+const extractFanzaProductPageUrl = (doc: Document) => {
+  const links = [...doc.querySelectorAll<HTMLAnchorElement>("a[href]")];
+  for (const link of links) {
+    const href = link.getAttribute("href") ?? "";
+    const directMatch = href.match(
+      /^https:\/\/dlsoft\.dmm\.(?:co\.jp|com)\/detail\/[^/?#]+\/?/i,
+    );
+    if (directMatch) {
+      return directMatch[0].replace("dlsoft.dmm.co.jp", "dlsoft.dmm.com");
+    }
+
+    try {
+      const url = new URL(href);
+      const lurl = url.searchParams.get("lurl");
+      if (!lurl) continue;
+      const affiliateMatch = lurl.match(
+        /^https:\/\/dlsoft\.dmm\.(?:co\.jp|com)\/detail\/[^/?#]+\/?/i,
+      );
+      if (affiliateMatch) {
+        return affiliateMatch[0].replace("dlsoft.dmm.co.jp", "dlsoft.dmm.com");
+      }
+    } catch {
+      // Ignore non-URL links.
+    }
+  }
+  return null;
+};
+
+const extractDlsiteProductPageUrl = (doc: Document) => {
+  const links = [...doc.querySelectorAll<HTMLAnchorElement>("a[href]")];
+  for (const link of links) {
+    const href = link.getAttribute("href") ?? "";
+    const match = href.match(
+      /^https?:\/\/www\.dlsite\.com\/(home|soft)\/(?:work|dlaf)\/=.*?\/(?:product_id|id)\/([A-Z]{2}\d+)\.html/i,
+    );
+    if (match) {
+      return `https://www.dlsite.com/${match[1]}/work/=/product_id/${match[2]}.html`;
+    }
+  }
+  return null;
+};
+
+const extractSteamProductPageUrl = (doc: Document) => {
+  const links = [...doc.querySelectorAll<HTMLAnchorElement>("a[href]")];
+  for (const link of links) {
+    const href = link.getAttribute("href") ?? "";
+    const match = href.match(
+      /^https:\/\/store\.steampowered\.com\/app\/\d+\/?[^?#]*/i,
+    );
+    if (match) return match[0];
+  }
+  return null;
+};
+
+const getDmmProductSampleImageUrls = (doc: Document) => {
+  const urls = [
+    ...doc.querySelectorAll<HTMLImageElement>("img"),
+  ].map((image) => resolveFanzaImageUrl(image.getAttribute("src") ?? image.src));
+  return urls.filter(
+    (url) =>
+      isFanzaImageUrl(url) && /\/[^/]+js-\d+\.(?:jpg|jpeg|png|webp)$/i.test(url),
+  );
+};
+
+const getDlsiteSampleImageUrls = (doc: Document) => {
+  const images = [
+    ...doc.querySelectorAll<HTMLImageElement>(
+      "[id^='dlsite_sample_cg'][id$='_main'] img, img",
+    ),
+  ];
+  return images
+    .map((image) => resolveExternalImageUrl(image.getAttribute("src") ?? image.src))
+    .filter(
+      (url) =>
+        isDlsiteImageUrl(url) &&
+        /\/[^/]+_img_smp[a-z]?\d+(?:_\d+x\d+)?\.(?:jpg|jpeg|png|webp)$/i.test(
+          url,
+        ),
+    );
+};
+
+const getSteamSampleImageUrls = (html: string) => {
+  const normalizedHtml = html
+    .replaceAll("\\/", "/")
+    .replaceAll("&quot;", '"')
+    .replaceAll("&amp;", "&");
+  const urls = [
+    ...normalizedHtml.matchAll(
+      /https:\/\/[^"'<>\\]+steamstatic\.com\/[^"'<>\\]+ss_[a-f0-9]+\.\d+x\d+\.jpg(?:\?[^"'<>\\]+)?/gi,
+    ),
+  ].map((match) => match[0]);
+  return urls.filter(isSteamImageUrl);
+};
+
+const toFanzaScreenshots = (urls: string[]) => {
+  const seen = new Set<string>();
+  return urls
+    .map((url, index): VndbScreenshot | null => {
+      const thumbnail = resolveFanzaImageUrl(url);
+      if (!thumbnail || seen.has(thumbnail) || !isFanzaImageUrl(thumbnail)) {
+        return null;
+      }
+      seen.add(thumbnail);
+      return {
+        id: `fanza-${index + 1}-${thumbnail}`,
+        url: toFanzaFullImageUrl(thumbnail),
+        thumbnail,
+        dims: null,
+        thumbnailDims: null,
+        sexual: 0,
+        violence: 0,
+        languages: ["ja"],
+      };
+    })
+    .filter((s): s is VndbScreenshot => !!s);
+};
+
+const toDlsiteFullImageUrl = (url: string) =>
+  url
+    .replace("/resize/images2/", "/modpub/images2/")
+    .replace(/_(?:\d+x\d+)(\.(?:jpg|jpeg|png|webp))$/i, "$1");
+
+const toDlsiteScreenshots = (urls: string[]) => {
+  const seen = new Set<string>();
+  return urls
+    .map((url, index): VndbScreenshot | null => {
+      const thumbnail = resolveExternalImageUrl(url);
+      if (!thumbnail || !isDlsiteImageUrl(thumbnail)) return null;
+      const fullUrl = toDlsiteFullImageUrl(thumbnail);
+      if (seen.has(fullUrl)) return null;
+      seen.add(fullUrl);
+      return {
+        id: `dlsite-${index + 1}-${fullUrl}`,
+        url: fullUrl,
+        thumbnail,
+        dims: null,
+        thumbnailDims: null,
+        sexual: 0,
+        violence: 0,
+        languages: ["ja"],
+      };
+    })
+    .filter((s): s is VndbScreenshot => !!s);
+};
+
+const toSteamScreenshots = (urls: string[]) => {
+  const byHash = new Map<string, string[]>();
+  for (const url of urls) {
+    const normalizedUrl = url.replace(/\\\//g, "/");
+    const match = normalizedUrl.match(/(ss_[a-f0-9]+)\.(\d+x\d+)\.jpg/i);
+    if (!match || !isSteamImageUrl(normalizedUrl)) continue;
+    const key = match[1];
+    byHash.set(key, [...(byHash.get(key) ?? []), normalizedUrl]);
+  }
+
+  return [...byHash.entries()].map(([hash, candidates], index) => {
+    const full =
+      candidates.find((url) => url.includes(`${hash}.1920x1080.jpg`)) ??
+      candidates[candidates.length - 1];
+    const thumbnail =
+      candidates.find((url) => url.includes(`${hash}.600x338.jpg`)) ??
+      candidates.find((url) => url.includes(`${hash}.116x65.jpg`)) ??
+      full;
+    return {
+      id: `steam-${index + 1}-${hash}`,
+      url: full,
+      thumbnail,
+      dims: null,
+      thumbnailDims: null,
+      sexual: 0,
+      violence: 0,
+      languages: ["ja"],
+    };
+  });
+};
+
+export const parseFanzaScreenshotsFromHtml = (
+  html: string,
+): {
+  matchedTitle: string | null;
+  screenshots: VndbScreenshot[];
+  productPageUrl: string | null;
+  dlsiteProductPageUrl: string | null;
+  steamProductPageUrl: string | null;
+} => {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const matchedTitle =
+    doc.getElementById("game_title")?.getElementsByTagName("a")[0]?.textContent?.trim() ??
+    null;
+  const imageElements = getFanzaSampleImageElements(doc);
+  const imageUrls = imageElements.map((image) =>
+    resolveFanzaImageUrl(image.getAttribute("src") ?? image.src),
+  );
+  const screenshots = toFanzaScreenshots(imageUrls);
+
+  return {
+    matchedTitle,
+    screenshots:
+      screenshots.length > 0
+        ? screenshots
+        : toDlsiteScreenshots(getDlsiteSampleImageUrls(doc)),
+    productPageUrl: extractFanzaProductPageUrl(doc),
+    dlsiteProductPageUrl: extractDlsiteProductPageUrl(doc),
+    steamProductPageUrl: extractSteamProductPageUrl(doc),
+  };
+};
+
+export const parseFanzaScreenshotsFromProductHtml = (
+  html: string,
+): VndbScreenshot[] => {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  return toFanzaScreenshots(getDmmProductSampleImageUrls(doc));
+};
+
+export const parseDlsiteScreenshotsFromProductHtml = (
+  html: string,
+): VndbScreenshot[] => {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  return toDlsiteScreenshots(getDlsiteSampleImageUrls(doc));
+};
+
+export const parseSteamScreenshotsFromProductHtml = (
+  html: string,
+): VndbScreenshot[] => toSteamScreenshots(getSteamSampleImageUrls(html));
+
 const getShowSensitiveSetting = async () => {
   const value = await commandGetAppSetting(SHOW_SENSITIVE_SETTING_KEY);
   return value === "true";
@@ -367,24 +633,72 @@ const getCache = async (collectionElementId: number): Promise<CacheLookup> => {
   return { cache, isFresh: isFreshVndbCache(cache) };
 };
 
-const requestVndb = async (
+const requestFanzaScreenshots = async (
   collectionElement: CollectionElement,
 ): Promise<VndbScreenshotCache> => {
-  const response = await requestVndbJson<VndbApiResponse>(
-    "/vn",
-    createVndbRequestBody(collectionElement),
+  const response = await fetch(
+    `${EROGAMESCAPE_REQUEST_PATH}/game.php?game=${collectionElement.id}`,
+    { method: "GET" },
   );
-  const parsed = parseVndbScreenshots(
-    response,
-    collectionElement,
-  );
+  if (!response.ok) {
+    throw new Error(`FANZA screenshot source request failed: ${response.status}`);
+  }
+
+  const parsed = parseFanzaScreenshotsFromHtml(await response.text());
+  let screenshots = parsed.screenshots;
+  if (parsed.productPageUrl) {
+    try {
+      const productResponse = await fetch(parsed.productPageUrl, { method: "GET" });
+      if (productResponse.ok) {
+        const productScreenshots = parseFanzaScreenshotsFromProductHtml(
+          await productResponse.text(),
+        );
+        if (productScreenshots.length > screenshots.length) {
+          screenshots = productScreenshots;
+        }
+      }
+    } catch (error) {
+      console.warn("[fanza] failed to fetch product screenshots", error);
+    }
+  }
+  if (!parsed.productPageUrl && parsed.dlsiteProductPageUrl) {
+    try {
+      const productResponse = await fetch(parsed.dlsiteProductPageUrl, {
+        method: "GET",
+      });
+      if (productResponse.ok) {
+        const productScreenshots = parseDlsiteScreenshotsFromProductHtml(
+          await productResponse.text(),
+        );
+        if (productScreenshots.length > screenshots.length) {
+          screenshots = productScreenshots;
+        }
+      }
+    } catch (error) {
+      console.warn("[dlsite] failed to fetch product screenshots", error);
+    }
+  }
+  if (screenshots.length === 0 && parsed.steamProductPageUrl) {
+    try {
+      const productResponse = await fetch(parsed.steamProductPageUrl, {
+        method: "GET",
+      });
+      if (productResponse.ok) {
+        screenshots = parseSteamScreenshotsFromProductHtml(
+          await productResponse.text(),
+        );
+      }
+    } catch (error) {
+      console.warn("[steam] failed to fetch product screenshots", error);
+    }
+  }
   const cache: VndbScreenshotCache = {
     collectionElementId: collectionElement.id,
-    vndbId: parsed.vndbId,
-    matchedTitle: parsed.matchedTitle,
-    screenshotsJson: stringifyScreenshotsCache(parsed.screenshots),
+    vndbId: null,
+    matchedTitle: parsed.matchedTitle ?? collectionElement.gamename,
+    screenshotsJson: stringifyScreenshotsCache(screenshots),
     fetchedAt: new Date().toISOString(),
-    status: parsed.status,
+    status: screenshots.length > 0 ? "ok" : "not_found",
   };
   await commandUpsertVndbScreenshotCache(cache);
   return cache;
@@ -400,9 +714,9 @@ export const ensureVndbScreenshotCache = async (
     return inFlight.get(collectionElement.id)!;
   }
 
-  const promise = requestVndb(collectionElement)
+  const promise = requestFanzaScreenshots(collectionElement)
     .catch(async (error) => {
-      console.warn("[vndb] failed to fetch screenshots", error);
+      console.warn("[fanza] failed to fetch screenshots", error);
       const errorCache: VndbScreenshotCache = {
         collectionElementId: collectionElement.id,
         vndbId: cache?.vndbId ?? null,

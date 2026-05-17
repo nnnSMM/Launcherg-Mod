@@ -14,6 +14,10 @@ import {
   createVndbRequestBody,
   filterVndbScreenshots,
   isFreshVndbCache,
+  parseDlsiteScreenshotsFromProductHtml,
+  parseFanzaScreenshotsFromHtml,
+  parseFanzaScreenshotsFromProductHtml,
+  parseSteamScreenshotsFromProductHtml,
   parseVndbScreenshots,
   readScreenshotsFromCache,
 } from "./useVndbScreenshots";
@@ -59,6 +63,195 @@ const collectionElement = (
 });
 
 describe("useVndbScreenshots", () => {
+  it("extracts FANZA sample CG images from ErogameScape HTML", () => {
+    const parsed = parseFanzaScreenshotsFromHtml(`
+      <div id="game_title"><a>FANZA Sample Title</a></div>
+      <div id="dmm_sample_cg_main">
+        <a><img src="https://pics.dmm.co.jp/digital/pcgame/test_0001/test_0001js-001.jpg"></a>
+        <a><img src="https://pics.dmm.co.jp/digital/pcgame/test_0001/test_0001js-002.jpg"></a>
+        <a><img src="https://pics.dmm.co.jp/digital/pcgame/test_0001/test_0001js-001.jpg"></a>
+      </div>
+      <div id="left_dmm_img">
+        <img src="https://pics.dmm.co.jp/digital/pcgame/test_0001/test_0001pl.jpg">
+      </div>
+    `);
+
+    expect(parsed.matchedTitle).toBe("FANZA Sample Title");
+    expect(parsed.productPageUrl).toBe(null);
+    expect(parsed.dlsiteProductPageUrl).toBe(null);
+    expect(parsed.steamProductPageUrl).toBe(null);
+    expect(parsed.screenshots.map((s) => s.thumbnail)).toEqual([
+      "https://pics.dmm.co.jp/digital/pcgame/test_0001/test_0001js-001.jpg",
+      "https://pics.dmm.co.jp/digital/pcgame/test_0001/test_0001js-002.jpg",
+    ]);
+    expect(parsed.screenshots.map((s) => s.url)).toEqual([
+      "https://pics.dmm.co.jp/digital/pcgame/test_0001/test_0001jp-001.jpg",
+      "https://pics.dmm.co.jp/digital/pcgame/test_0001/test_0001jp-002.jpg",
+    ]);
+  });
+
+  it("falls back to the left FANZA image when the sample CG section is absent", () => {
+    const parsed = parseFanzaScreenshotsFromHtml(`
+      <div id="game_title"><a>花束を君に贈ろう -Kinsenka-</a></div>
+      <a href="https://al.fanza.co.jp/?lurl=https%3A%2F%2Fdlsoft.dmm.co.jp%2Fdetail%2Ffwing_0045%2F&af_id=egsa-001">
+        DMM
+      </a>
+      <div id="main_image">
+        <img src="https://pics.dmm.co.jp/digital/pcgame/fwing_0045/fwing_0045pl.jpg">
+      </div>
+      <div id="images_aff_sites">
+        <div id="left_dlsite_img">
+          <img src="//img.dlsite.jp/modpub/images2/work/professional/VJ01005000/VJ01004357_img_smpa2.jpg">
+        </div>
+        <div id="left_dmm_img">
+          <img src="https://pics.dmm.co.jp/digital/pcgame/fwing_0045/fwing_0045js-005.jpg">
+        </div>
+      </div>
+    `);
+
+    expect(parsed.matchedTitle).toBe("花束を君に贈ろう -Kinsenka-");
+    expect(parsed.productPageUrl).toBe("https://dlsoft.dmm.com/detail/fwing_0045/");
+    expect(parsed.screenshots.map((s) => s.thumbnail)).toEqual([
+      "https://pics.dmm.co.jp/digital/pcgame/fwing_0045/fwing_0045js-005.jpg",
+    ]);
+    expect(parsed.screenshots.map((s) => s.url)).toEqual([
+      "https://pics.dmm.co.jp/digital/pcgame/fwing_0045/fwing_0045jp-005.jpg",
+    ]);
+  });
+
+  it("falls back to DLsite sample images when FANZA images are absent", () => {
+    const parsed = parseFanzaScreenshotsFromHtml(`
+      <div id="game_title"><a>プトリカ 1st.cut:The Reason She Must Perish</a></div>
+      <a href="https://www.dlsite.com/home/dlaf/=/link/work/aid/erogamescape/id/RJ01318457.html">
+        DLsite.com
+      </a>
+      <div id="dlsite_sample_cg_main">
+        <img src="//img.dlsite.jp/modpub/images2/work/doujin/RJ01319000/RJ01318457_img_smp1.jpg">
+        <img src="//img.dlsite.jp/modpub/images2/work/doujin/RJ01319000/RJ01318457_img_smp2.jpg">
+      </div>
+      <div id="left_dlsite_img">
+        <img src="//img.dlsite.jp/modpub/images2/work/doujin/RJ01319000/RJ01318457_img_smp1.jpg">
+      </div>
+    `);
+
+    expect(parsed.matchedTitle).toBe("プトリカ 1st.cut:The Reason She Must Perish");
+    expect(parsed.productPageUrl).toBe(null);
+    expect(parsed.dlsiteProductPageUrl).toBe(
+      "https://www.dlsite.com/home/work/=/product_id/RJ01318457.html",
+    );
+    expect(parsed.steamProductPageUrl).toBe(null);
+    expect(parsed.screenshots.map((s) => s.url)).toEqual([
+      "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01319000/RJ01318457_img_smp1.jpg",
+      "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01319000/RJ01318457_img_smp2.jpg",
+    ]);
+  });
+
+  it("extracts a Steam product page URL when no shop sample source is present", () => {
+    const parsed = parseFanzaScreenshotsFromHtml(`
+      <div id="game_title"><a>魔法少女ノ魔女裁判</a></div>
+      <div id="bottom_inter_links">
+        <ul>
+          <li><a href="https://manosaba.com/" target="_blank">game_OHP</a></li>
+          <li><a href="https://store.steampowered.com/app/3101040/">STEAM</a></li>
+          <li><a href="https://store.steampowered.com/app/3101040/_/" target="_blank">体験版</a>(Hなし)</li>
+        </ul>
+      </div>
+    `);
+
+    expect(parsed.matchedTitle).toBe("魔法少女ノ魔女裁判");
+    expect(parsed.screenshots).toEqual([]);
+    expect(parsed.productPageUrl).toBe(null);
+    expect(parsed.dlsiteProductPageUrl).toBe(null);
+    expect(parsed.steamProductPageUrl).toBe(
+      "https://store.steampowered.com/app/3101040/",
+    );
+  });
+
+  it("extracts Steam screenshots and pairs thumbnails with full images", () => {
+    const screenshots = parseSteamScreenshotsFromProductHtml(`
+      <img src="https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2818450/ss_aaaaaaaa.116x65.jpg?t=1">
+      <img src="https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2818450/ss_aaaaaaaa.600x338.jpg?t=1">
+      <img src="https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2818450/ss_aaaaaaaa.1920x1080.jpg?t=1">
+      <img src="https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2818450/ss_bbbbbbbb.600x338.jpg?t=1">
+    `);
+
+    expect(screenshots).toEqual([
+      {
+        id: "steam-1-ss_aaaaaaaa",
+        url: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2818450/ss_aaaaaaaa.1920x1080.jpg?t=1",
+        thumbnail:
+          "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2818450/ss_aaaaaaaa.600x338.jpg?t=1",
+        dims: null,
+        thumbnailDims: null,
+        sexual: 0,
+        violence: 0,
+        languages: ["ja"],
+      },
+      {
+        id: "steam-2-ss_bbbbbbbb",
+        url: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2818450/ss_bbbbbbbb.600x338.jpg?t=1",
+        thumbnail:
+          "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2818450/ss_bbbbbbbb.600x338.jpg?t=1",
+        dims: null,
+        thumbnailDims: null,
+        sexual: 0,
+        violence: 0,
+        languages: ["ja"],
+      },
+    ]);
+  });
+
+  it("extracts Steam screenshots from escaped store JSON", () => {
+    const screenshots = parseSteamScreenshotsFromProductHtml(`
+      &quot;screenshots&quot;:[{&quot;thumbnail&quot;:&quot;https:\\/\\/shared.fastly.steamstatic.com\\/store_item_assets\\/steam\\/apps\\/3101040\\/6b66a3dc43a2f99d365ce94dc0a28ff23e742b53\\/ss_6b66a3dc43a2f99d365ce94dc0a28ff23e742b53.116x65.jpg?t=1766600472&quot;,&quot;standard&quot;:&quot;https:\\/\\/shared.fastly.steamstatic.com\\/store_item_assets\\/steam\\/apps\\/3101040\\/6b66a3dc43a2f99d365ce94dc0a28ff23e742b53\\/ss_6b66a3dc43a2f99d365ce94dc0a28ff23e742b53.600x338.jpg?t=1766600472&quot;,&quot;full&quot;:&quot;https:\\/\\/shared.fastly.steamstatic.com\\/store_item_assets\\/steam\\/apps\\/3101040\\/6b66a3dc43a2f99d365ce94dc0a28ff23e742b53\\/ss_6b66a3dc43a2f99d365ce94dc0a28ff23e742b53.1920x1080.jpg?t=1766600472&quot;}]
+    `);
+
+    expect(screenshots).toHaveLength(1);
+    expect(screenshots[0].thumbnail).toBe(
+      "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/3101040/6b66a3dc43a2f99d365ce94dc0a28ff23e742b53/ss_6b66a3dc43a2f99d365ce94dc0a28ff23e742b53.600x338.jpg?t=1766600472",
+    );
+    expect(screenshots[0].url).toBe(
+      "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/3101040/6b66a3dc43a2f99d365ce94dc0a28ff23e742b53/ss_6b66a3dc43a2f99d365ce94dc0a28ff23e742b53.1920x1080.jpg?t=1766600472",
+    );
+  });
+
+  it("normalizes DLsite resized thumbnails to full sample images", () => {
+    const screenshots = parseDlsiteScreenshotsFromProductHtml(`
+      <img src="//img.dlsite.jp/modpub/images2/work/doujin/RJ01319000/RJ01318457_img_main.jpg">
+      <img src="//img.dlsite.jp/resize/images2/work/doujin/RJ01319000/RJ01318457_img_smp1_100x100.jpg">
+      <img src="//img.dlsite.jp/modpub/images2/work/doujin/RJ01319000/RJ01318457_img_smp1.jpg">
+      <img src="//img.dlsite.jp/modpub/images2/work/doujin/RJ01319000/RJ01318457_img_smp2.jpg">
+    `);
+
+    expect(screenshots.map((s) => s.thumbnail)).toEqual([
+      "https://img.dlsite.jp/resize/images2/work/doujin/RJ01319000/RJ01318457_img_smp1_100x100.jpg",
+      "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01319000/RJ01318457_img_smp2.jpg",
+    ]);
+    expect(screenshots.map((s) => s.url)).toEqual([
+      "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01319000/RJ01318457_img_smp1.jpg",
+      "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01319000/RJ01318457_img_smp2.jpg",
+    ]);
+  });
+
+  it("extracts all sample images from a DMM product page", () => {
+    const screenshots = parseFanzaScreenshotsFromProductHtml(`
+      <img src="https://pics.dmm.com/digital/pcgame/fwing_0045/fwing_0045pl.jpg">
+      <img src="https://pics.dmm.com/digital/pcgame/fwing_0045/fwing_0045jp-001.jpg">
+      <img src="https://pics.dmm.com/digital/pcgame/fwing_0045/fwing_0045js-001.jpg">
+      <img src="https://pics.dmm.com/digital/pcgame/fwing_0045/fwing_0045js-002.jpg">
+      <img src="https://pics.dmm.com/digital/pcgame/guide/fwing_0045/cha001.jpg">
+    `);
+
+    expect(screenshots.map((s) => s.thumbnail)).toEqual([
+      "https://pics.dmm.com/digital/pcgame/fwing_0045/fwing_0045js-001.jpg",
+      "https://pics.dmm.com/digital/pcgame/fwing_0045/fwing_0045js-002.jpg",
+    ]);
+    expect(screenshots.map((s) => s.url)).toEqual([
+      "https://pics.dmm.com/digital/pcgame/fwing_0045/fwing_0045jp-001.jpg",
+      "https://pics.dmm.com/digital/pcgame/fwing_0045/fwing_0045jp-002.jpg",
+    ]);
+  });
+
   it("extracts only Japanese-release screenshots from VNDB response", () => {
     const parsed = parseVndbScreenshots({
       results: [
@@ -370,7 +563,7 @@ describe("useVndbScreenshots", () => {
       collectionElementId: 1,
       vndbId: "v1",
       matchedTitle: "title",
-      screenshotsJson: JSON.stringify({ version: 3, screenshots: [] }),
+      screenshotsJson: JSON.stringify({ version: 10, screenshots: [] }),
       fetchedAt: "2026-05-01T00:00:00.000Z",
       status: "not_found",
     };
