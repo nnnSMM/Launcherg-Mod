@@ -12,6 +12,13 @@ dist
 dist-ssr
 *.local
 
+# Demo/video artifacts
+docs/demo/
+public/demo-data/
+public/demo-images/
+videos/
+vite.demo.config.ts
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
