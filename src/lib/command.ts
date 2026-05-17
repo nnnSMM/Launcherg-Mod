@@ -172,16 +172,6 @@ export const commandSaveScreenshotByPid = async (
   });
 };
 
-export const commandUpdateCollectionElementThumbnails = async (
-  ids: number[]
-) => {
-  return await invoke<void>("update_collection_element_thumbnails", {
-    ids,
-  });
-};
-
-
-
 export const commandUpdateGameImage = async (
   elementId: number,
   imageType: "icon" | "thumbnail",

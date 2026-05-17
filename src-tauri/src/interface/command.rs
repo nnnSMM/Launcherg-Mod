@@ -464,36 +464,6 @@ pub async fn upsert_collection_element(
 }
 
 #[tauri::command]
-pub async fn update_collection_element_thumbnails(
-    handle: AppHandle,
-    modules: State<'_, Arc<Modules>>,
-    ids: Vec<i32>,
-) -> Result<(), CommandError> {
-    let all_game_cache = modules
-        .all_game_cache_use_case()
-        .get_by_ids(ids.clone())
-        .await?;
-    let handle = Arc::new(handle);
-    modules
-        .collection_use_case()
-        .concurrency_save_thumbnails(
-            &handle,
-            all_game_cache
-                .into_iter()
-                .map(|v| (Id::new(v.id), v.thumbnail_url))
-                .collect(),
-        )
-        .await?;
-    Ok(modules
-        .collection_use_case()
-        .concurrency_upsert_collection_element_thumbnail_size(
-            &handle,
-            ids.into_iter().map(|v| Id::new(v)).collect(),
-        )
-        .await?)
-}
-
-#[tauri::command]
 pub async fn update_collection_element_icon(
     handle: AppHandle,
     modules: State<'_, Arc<Modules>>,

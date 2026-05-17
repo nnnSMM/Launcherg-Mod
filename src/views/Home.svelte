@@ -1,10 +1,5 @@
 <script lang="ts">
-  import {
-    commandGetAppSetting,
-    commandUpdateAllGameCache,
-    commandUpdateCollectionElementThumbnails,
-    commandPlayGame,
-  } from "@/lib/command";
+  import { commandGetAppSetting, commandPlayGame } from "@/lib/command";
   import { convertFileSrc } from "@tauri-apps/api/core";
   import Icon from "/icon.png";
   import { link, push } from "svelte-spa-router";
@@ -14,8 +9,7 @@
   import VirtualScrollerMasonry from "@/components/UI/VirtualScrollerMasonry.svelte";
   import { derived } from "svelte/store";
   import Button from "@/components/UI/Button.svelte";
-  import { scrapeAllGameCacheOnes } from "@/lib/scrapeAllGame";
-  import { showErrorToast, showInfoToast } from "@/lib/toast";
+  import { showErrorToast } from "@/lib/toast";
   import RecentlyPlayedScroller from "@/components/Home/RecentlyPlayedScroller.svelte";
   import GameCard from "@/components/UI/GameCard.svelte";
   import { formatLastPlayed, localStorageWritable } from "@/lib/utils";
@@ -85,26 +79,6 @@
       })
       .slice(0, 10),
   );
-
-  let disabledRefetchThumbnail = false;
-  const refetchThumbnail = async () => {
-    try {
-      disabledRefetchThumbnail = true;
-      const ids = $flattenShown
-        .filter((v) => !v.thumbnailWidth && !v.thumbnailHeight)
-        .map((v) => v.id);
-      const caches = await scrapeAllGameCacheOnes(ids);
-      await commandUpdateAllGameCache(caches);
-      await commandUpdateCollectionElementThumbnails(ids);
-      await sidebarCollectionElements.refetch();
-      showInfoToast("サムネイルの再取得が完了しました");
-    } catch (e) {
-      showErrorToast("サムネイルの再取得に失敗しました");
-      console.error(e);
-    } finally {
-      disabledRefetchThumbnail = false;
-    }
-  };
 
   let innerWidth = 0;
 
@@ -327,12 +301,6 @@
 
     <div class="flex items-center gap-4 flex-wrap">
       <h3 class="text-text-primary text-h3 font-medium mr-auto">登録したゲーム</h3>
-      <Button
-        leftIcon="i-material-symbols-refresh-rounded"
-        text="サムネイルを再取得する"
-        disabled={disabledRefetchThumbnail}
-        on:click={refetchThumbnail}
-      />
     </div>
   </div>
 
