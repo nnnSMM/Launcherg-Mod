@@ -77,9 +77,9 @@
 
   let isHovered = false;
 
-  const bgColorUnselected = "#21262d";
-  const bgColorSelected = "#2d333b";
-  const bgColorHover = "#30363d";
+  const bgColorUnselected = "#E5E7EB";
+  const bgColorSelected = "#E5E7EB";
+  const bgColorHover = "#CBD5E1";
 
   $: currentBgColor = isSelected ? bgColorSelected : bgColorUnselected;
   $: currentHoverBgColor = isHovered ? bgColorHover : currentBgColor;
@@ -87,7 +87,7 @@
   $: tileBorderStyle = (() => {
     const color = currentStatusInfo.baseColorCode;
     if (isSelected) {
-      return `border-color: ${color}; box-shadow: 0 0 0 2px ${color};`;
+      return `border-color: transparent; box-shadow: 0 0 0 4px ${color};`;
     } else if (isHovered) {
       return `border-color: ${color};`;
     } else {
@@ -95,21 +95,27 @@
     }
   })();
 
-  const textColorTitleNormal = "#8b949e";
-  const textColorTitleSelected = "#e6edf3";
-  const textColorMetaNormal = "#6e7681";
-  const textColorMetaSelected = "#adbac7";
+  $: visibleTileRingStyle = `box-shadow: 0 0 0 ${isSelected ? 4 : 2}px ${currentStatusInfo.baseColorCode} !important; border-color: transparent !important;`;
 
-  $: textFillColor = isSelected ? textColorTitleSelected : textColorTitleNormal;
+  const textColorNormalBase = "#374151";
+  const textColorSelected = "#1f2937";
+
+  $: textFillColor = isSelected
+    ? textColorSelected
+    : currentStatusInfo.baseColorCode === "#A0AEC0"
+      ? textColorNormalBase
+      : currentStatusInfo.baseColorCode;
   $: textFillColorForLabel = isSelected
-    ? textColorMetaSelected
-    : textColorMetaNormal;
+    ? textColorSelected
+    : currentStatusInfo.baseColorCode === "#A0AEC0"
+      ? textColorNormalBase
+      : currentStatusInfo.baseColorCode;
 </script>
 
 <button
   class="w-full flex items-center p-3 rounded-lg border transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-offset-bg-primary focus-visible:ring-accent-accent"
   style="background-color: {currentHoverBgColor};
-         {tileBorderStyle}
+         {visibleTileRingStyle}
          min-height: 4rem;
          z-index: {isHovered ? 10 : 1};"
   class:shadow-md={isHovered || isSelected}
@@ -119,10 +125,12 @@
   title={`${game.gamename}\n現在の状態: ${currentStatusInfo.label}`}
 >
   <div
-    class="flex-shrink-0 w-10 h-10 mr-3 rounded-md overflow-hidden bg-bg-secondary flex items-center justify-center border border-border-primary"
+    class="flex-shrink-0 w-10 h-10 mr-3 rounded-md overflow-hidden bg-gray-200 dark:bg-gray-700 flex items-center justify-center border border-gray-300 dark:border-gray-600"
   >
     {#if imageHasError || !game.icon}
-      <div class="i-material-symbols-image-not-supported-outline text-3xl text-ui-tertiary"></div>
+      <div
+        class="i-material-symbols-image-not-supported-outline text-3xl text-gray-400 dark:text-gray-500"
+      ></div>
     {:else}
       <img
         src={imageSrcToDisplay}
@@ -135,10 +143,13 @@
   </div>
 
   <div class="flex-1 min-w-0">
-    <p class="text-sm font-medium truncate" style="color: {textFillColor};">
+    <p
+      class="text-sm font-medium text-gray-800 dark:text-gray-100 truncate"
+      style="color: {textFillColor};"
+    >
       {game.gamename}
     </p>
-    <p class="text-xs leading-snug" style="color: {textFillColorForLabel};">
+    <p class="text-xs opacity-90" style="color: {textFillColorForLabel};">
       {currentStatusInfo.label}
     </p>
   </div>
@@ -150,7 +161,9 @@
         style="color: {currentStatusInfo.baseColorCode};"
       ></div>
     {:else}
-      <div class="i-material-symbols-circle-outline w-5 h-5 text-ui-tertiary opacity-80"></div>
+      <div
+        class="i-material-symbols-circle-outline w-5 h-5 text-gray-300 dark:text-gray-600 group-hover:text-gray-400 dark:group-hover:text-gray-500"
+      ></div>
     {/if}
   </div>
 </button>

@@ -16,17 +16,13 @@
   export let imageDisplayHeight: number;
   export let tilePadding: number = 8;
 
-  /* アプリのダークサーフェスに合わせる（従来のライトグレーは浮いて見えるため） */
-  const bgColorUnselected = "#21262d";
-  const bgColorSelected = "#2d333b";
-  const bgColorUnselectedHover = "#30363d";
-  const bgColorSelectedHover = "#373e47";
+  const bgColorUnselected = "#E5E7EB";
+  const bgColorSelected = "#E5E7EB";
+  const bgColorUnselectedHover = "#CBD5E1";
+  const bgColorSelectedHover = "#CBD5E1";
 
-  /* 背景 #21262d 上で判読性と抑えたトーンのバランス */
-  const textColorTitleNormal = "#8b949e";
-  const textColorTitleSelected = "#e6edf3";
-  const textColorMetaNormal = "#6e7681";
-  const textColorMetaSelected = "#adbac7";
+  const textColorNormalBase = "#374151";
+  const textColorSelected = "#1f2937";
 
   const dispatch = createEventDispatcher<{ toggle: void }>();
 
@@ -95,7 +91,7 @@
     const color = currentStatusInfo.baseColorCode;
 
     if (isSelected) {
-      return `box-shadow: 0 0 0 ${ringWidth}px ${color}; border-color: transparent;`;
+      return `box-shadow: 0 0 0 ${ringWidth}px ${color} !important; border-color: transparent !important;`;
     } else if (isHovered) {
       // 非選択時ホバー: 枠線を維持しつつ、背景色に合わせた少し濃い色にするか、透明のままか
       // 今回はホバー時もプレイ状況の色を枠線として維持する
@@ -105,11 +101,16 @@
     }
   })();
 
-  /* 状態色は枠・バッジに任せ、タイトルは常に抑えたトーン */
-  $: textFillColor = isSelected ? textColorTitleSelected : textColorTitleNormal;
+  $: visibleTileRingStyle = `box-shadow: 0 0 0 ${isSelected ? 4 : 2}px ${currentStatusInfo.baseColorCode} !important; border-color: transparent !important;`;
+
+  $: textFillColor = isSelected
+    ? textColorSelected
+    : currentStatusInfo.baseColorCode;
   $: textFillColorForLabel = isSelected
-    ? textColorMetaSelected
-    : textColorMetaNormal;
+    ? textColorSelected
+    : currentStatusInfo.baseColorCode === "#A0AEC0"
+      ? textColorNormalBase
+      : currentStatusInfo.baseColorCode;
 </script>
 
 <button
@@ -122,7 +123,7 @@
     padding: {tilePadding}px;
     z-index: {isHovered ? 10 : 1};
     background-color: {isHovered ? currentHoverBgColor : currentBgColor};
-    {tileBorderStyle}
+    {visibleTileRingStyle}
   "
   on:click={() => dispatch("toggle")}
   on:mouseenter={() => (isHovered = true)}
@@ -135,7 +136,7 @@
   >
     {#if imageHasError || !game.thumbnail}
       <div
-        class="text-(xs text-tertiary) p-1 text-center break-all flex items-center justify-center w-full h-full bg-bg-secondary"
+        class="text-xs text-text-tertiary p-1 text-center break-all flex items-center justify-center w-full h-full bg-bg-secondary"
       >
         <img
           src="/images/dummy_thumbnail.svg"
@@ -169,12 +170,12 @@
 
   <div class="w-full text-center mt-auto px-1">
     <p
-      class="text-(xs) font-medium truncate"
+      class="text-xs font-medium truncate"
       style="color: {textFillColor}; max-width: {targetImageWidth}px;"
     >
       {game.gamename}
     </p>
-    <p class="text-(xs opacity-90)" style="color: {textFillColorForLabel};">
+    <p class="text-xs text-opacity-90" style="color: {textFillColorForLabel};">
       {currentStatusInfo.label}
     </p>
   </div>
