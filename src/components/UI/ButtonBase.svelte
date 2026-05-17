@@ -4,6 +4,7 @@
   export let type: "button" | "submit" | undefined = undefined;
   export let tooltip: Partial<TippyOption> | undefined = undefined;
   export let disabled = false;
+  export let borderless = false;
 
   const tooltipAction = (node: HTMLElement) => {
     if (!tooltip) {
@@ -70,13 +71,17 @@
         break;
     }
   }
+
+  $: borderlessClass = borderless
+    ? "!border-transparent !border-opacity-0 hover:!border-transparent hover:!border-opacity-0"
+    : "";
 </script>
 
 <button
   use:tooltipAction
   {type}
   {disabled}
-  class={`rounded transition-all ${buttonVariantClass} ${appendClass} focus-ring`}
+  class={`rounded transition-all ${buttonVariantClass} ${borderlessClass} ${appendClass} focus-ring`}
   on:click
 >
   <slot />

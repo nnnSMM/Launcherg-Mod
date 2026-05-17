@@ -35,9 +35,6 @@
   import ButtonBase from "@/components/UI/ButtonBase.svelte";
   import { enqueueVndbScreenshotPrefetch } from "@/lib/useVndbScreenshots";
 
-  const noButtonBorderClass =
-    "!border-transparent !border-opacity-0 hover:!border-transparent hover:!border-opacity-0";
-
   export let name: string;
   export let id: number;
   export let seiyaUrl: string;
@@ -219,7 +216,7 @@
       leftIcon="i-material-symbols-drive-file-rename-outline"
       text="Memo"
       on:click={() => push(`/memos/${id}?gamename=${name}`)}
-      appendClass={noButtonBorderClass}
+      borderless
     />
     <div class="flex items-center gap-2 ml-auto">
       <Select
@@ -232,6 +229,7 @@
         <ButtonBase
           variant={"normal"}
           appendClass={`h-8 px-3 flex items-center justify-between gap-1.5 min-w-32 text-sm transition-none ${currentActiveStyleInfo.activeStyleClasses}`}
+          borderless
           tooltip={{
             content: "プレイ状況: " + currentActiveStyleInfo.label,
             placement: "bottom",
@@ -266,7 +264,7 @@
       <APopover let:close panelClass="right-0">
         <ButtonIcon
           icon="i-material-symbols-menu-rounded"
-          appendClass={noButtonBorderClass}
+          borderless
           slot="button"
         />
         <SettingPopover

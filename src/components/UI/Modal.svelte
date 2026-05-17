@@ -14,6 +14,7 @@
   export let withContentPadding = true;
   export let fullmodal = false;
   export let confirmDisabled = false;
+  export let footerButtonBorderless = false;
 
   const dispatcher = createEventDispatcher<{
     confirm: {};
@@ -50,11 +51,16 @@
       <slot name="footer">
         <div class="flex items-center p-4 border-t-1px border-solid border-border-primary">
           <div class="flex items-center ml-auto gap-2">
-            <Button text={cancelText} on:click={() => dispatcher("cancel")} />
+            <Button
+              text={cancelText}
+              borderless={footerButtonBorderless}
+              on:click={() => dispatcher("cancel")}
+            />
             <Button
               variant="success"
               disabled={confirmDisabled}
               text={confirmText}
+              borderless={footerButtonBorderless}
               on:click={() => dispatcher("confirm")}
             />
           </div>

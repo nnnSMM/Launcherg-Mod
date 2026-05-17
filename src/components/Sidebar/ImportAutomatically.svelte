@@ -141,6 +141,7 @@
     title="Automatically import game"
     confirmText="Start import"
     fullmodal
+    footerButtonBorderless
     confirmDisabled={!$paths.length || !$paths.some((v) => v.path) || isLoading}
     on:confirm={confirm}
   >
@@ -162,6 +163,7 @@
                   path={path.path}
                   directory
                   withFilter={false}
+                  browseButtonBorderless
                   on:update={(e) => updatePath(i, e.detail.value)}
                 />
               </div>
@@ -182,6 +184,7 @@
             leftIcon="i-iconoir-plus"
             text="Add folder path"
             type="submit"
+            borderless
             on:click={addEmptyPath}
           />
         </form>

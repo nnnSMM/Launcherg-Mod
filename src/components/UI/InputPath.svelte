@@ -9,6 +9,7 @@
   export let placeholder: string = "";
   export let withFilter = true;
   export let directory = false;
+  export let browseButtonBorderless = false;
 
   const dispatcher = createEventDispatcher<{ update: { value: string } }>();
 
@@ -39,6 +40,7 @@
   </div>
   <Button
     leftIcon="i-material-symbols-folder-outline-rounded"
+    borderless={browseButtonBorderless}
     on:click={openDialog}
   />
 </div>

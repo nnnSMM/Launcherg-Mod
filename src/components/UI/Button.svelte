@@ -11,6 +11,7 @@
   export let variant: Variant = "normal";
   export let disabled = false;
   export let wrappable = false;
+  export let borderless = false;
 
   let iconSizeClass = "w-4 h-4";
 
@@ -30,6 +31,7 @@
   {type}
   {tooltip}
   {disabled}
+  {borderless}
   on:click
 >
   {#if leftIcon}

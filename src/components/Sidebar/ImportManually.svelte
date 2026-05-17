@@ -53,6 +53,7 @@
   title="Manually import game"
   confirmText="Import"
   {cancelText}
+  footerButtonBorderless
   confirmDisabled={!idInput || (!path && withInputPath)}
   on:confirm={onConfirm}
 >
@@ -62,6 +63,7 @@
         {path}
         label="EXEファイル または ショートカットファイル のパス"
         placeholder="C:\game\Monkeys!!\Monkeys!!.exe"
+        browseButtonBorderless
         on:update={(e) => (path = e.detail.value)}
       />
     {/if}

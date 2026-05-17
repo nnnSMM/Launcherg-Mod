@@ -91,6 +91,7 @@
         text="はい、完全に削除します"
         variant="error"
         wrappable
+        borderless
         appendClass="w-full justify-center"
         on:click={physicalDelete}
       />
@@ -98,6 +99,7 @@
         text="キャンセル"
         variant="normal"
         wrappable
+        borderless
         appendClass="w-full justify-center"
         on:click={() => (isConfirmingPhysicalDelete = false)}
       />
@@ -106,6 +108,7 @@
         text="未インストール状態にする"
         variant="warning"
         wrappable
+        borderless
         appendClass="w-full justify-center"
         on:click={logicalDelete}
       />
@@ -113,6 +116,7 @@
         text="完全削除"
         variant="error"
         wrappable
+        borderless
         appendClass="w-full justify-center"
         on:click={handlePhysicalDeleteClick}
       />

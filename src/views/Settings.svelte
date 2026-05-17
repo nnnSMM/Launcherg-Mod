@@ -153,6 +153,7 @@
           title="ゲームを選択"
           enableFilter={true}
           filterPlaceholder="ゲームを検索..."
+          buttonBorderless
         />
       </Card>
 
@@ -172,14 +173,17 @@
         <div class="flex gap-2 mt-2">
           <Button
             text="Ctrl"
+            borderless
             on:click={() => (shortcutKey = toggleModifier(shortcutKey, "Ctrl"))}
           />
           <Button
             text="Alt"
+            borderless
             on:click={() => (shortcutKey = toggleModifier(shortcutKey, "Alt"))}
           />
           <Button
             text="Shift"
+            borderless
             on:click={() =>
               (shortcutKey = toggleModifier(shortcutKey, "Shift"))}
           />
@@ -202,16 +206,19 @@
         <div class="flex gap-2 mt-2">
           <Button
             text="Ctrl"
+            borderless
             on:click={() =>
               (pauseShortcutKey = toggleModifier(pauseShortcutKey, "Ctrl"))}
           />
           <Button
             text="Alt"
+            borderless
             on:click={() =>
               (pauseShortcutKey = toggleModifier(pauseShortcutKey, "Alt"))}
           />
           <Button
             text="Shift"
+            borderless
             on:click={() =>
               (pauseShortcutKey = toggleModifier(pauseShortcutKey, "Shift"))}
           />

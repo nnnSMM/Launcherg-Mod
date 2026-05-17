@@ -12,8 +12,12 @@
   export let filterPlaceholder = "";
   export let bottomCreateButtonText = "";
   export let showSelectedCheck = false;
+  export let buttonBorderless = false;
 
   $: selectedLabel = options.find((v) => v.value === value)?.label ?? "";
+  $: buttonBorderlessClass = buttonBorderless
+    ? "!border-transparent !border-opacity-0 hover:!border-transparent hover:!border-opacity-0"
+    : "";
 
   const dispather = createEventDispatcher<{ create: {} }>();
 </script>
@@ -22,7 +26,7 @@
   <div slot="button">
     <slot>
       <button
-        class="h-8 w-full flex items-center gap-2 border border-border-button border-opacity-10 border-solid rounded bg-bg-button px-3 transition-all hover:border-border-button-hover hover:bg-bg-button-hover overflow-hidden"
+        class={`h-8 w-full flex items-center gap-2 border border-border-button border-opacity-10 border-solid rounded bg-bg-button px-3 transition-all hover:border-border-button-hover hover:bg-bg-button-hover overflow-hidden ${buttonBorderlessClass}`}
       >
         {#if iconClass}
           <div class={`${iconClass} w-4 h-4`} />
