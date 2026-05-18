@@ -93,10 +93,6 @@ const REMOVE_WORDS: [&str; 9] = [
     "DL版",
 ];
 
-const BASE_TITLE_SEPARATORS: [&str; 11] = [
-    " -", " ～", " ~", "（", "(", "【", "[", "「", "『", "：", ":",
-];
-
 /// ファイル名から不要なワードを削除
 fn remove_word(filename: &str) -> String {
     REMOVE_WORDS
@@ -104,32 +100,21 @@ fn remove_word(filename: &str) -> String {
         .fold(filename.to_string(), |acc, word| acc.replace(word, ""))
 }
 
-fn get_base_title(gamename: &str) -> &str {
-    let index = BASE_TITLE_SEPARATORS
-        .iter()
-        .filter_map(|separator| gamename.find(separator))
-        .filter(|index| *index > 0)
-        .min();
-
-    match index {
-        Some(index) => gamename[..index].trim(),
-        None => gamename.trim(),
-    }
-}
-
-fn get_game_path_part_score(path_part: &str, gamename: &str) -> f32 {
-    let score = get_comparable_distance(path_part, gamename);
-    let base_title = get_base_title(gamename);
-    if base_title == path_part && base_title.len() < gamename.trim().len() && base_title.len() > 5 {
-        return 2.0 + score;
-    }
-    score
-}
-
 const IGNORE_GAME_ID: [i32; 4] = [2644, 63, 2797, 10419];
 
 // (string, i32)でstringがファイル名といっちした場合はこのゲームにする
 const EQUALLY_FILENAME_GAME_ID_PAIR: [(&str, i32); 1] = [("pieces", 27123)];
+const PATH_SPECIFIC_GAME_ID_RULES: [(&str, &str, i32); 2] =
+    [("枕", "サクラノ詩", 4529), ("nekoneko", "すみれ", 20178)];
+
+fn get_path_specific_game_id(grandparent: Option<&str>, parent: &str) -> Option<i32> {
+    PATH_SPECIFIC_GAME_ID_RULES
+        .iter()
+        .find(|(rule_grandparent, rule_parent, _)| {
+            grandparent == Some(*rule_grandparent) && parent == *rule_parent
+        })
+        .map(|(_, _, id)| *id)
+}
 
 pub fn get_file_name_without_extension(file_path: &str) -> Option<String> {
     let path = Path::new(file_path);
@@ -327,6 +312,12 @@ pub fn get_game_candidates_by_exe_path(
 
     let mut distance_pairs = vec![];
 
+    if let Some(id) = get_path_specific_game_id(grandparent.as_deref(), &parent) {
+        id_name_pairs.iter().find(|v| v.id == id).map(|v| {
+            distance_pairs.push((v.clone(), 1000.0));
+        });
+    }
+
     for (equally_filename, id) in EQUALLY_FILENAME_GAME_ID_PAIR {
         if filename == *equally_filename {
             id_name_pairs.iter().find(|v| v.id == id).map(|v| {
@@ -348,14 +339,14 @@ pub fn get_game_candidates_by_exe_path(
 
         let mut val: f32 = 0.0;
         if !is_skip_filename_check {
-            val = val.max(get_game_path_part_score(&filename, &pair.gamename));
+            val = val.max(get_comparable_distance(&filename, &pair.gamename));
         }
 
         // 親フォルダ名でゲーム名と比較
-        val = val.max(get_game_path_part_score(&parent, &pair.gamename));
+        val = val.max(get_comparable_distance(&parent, &pair.gamename));
         // 祖父母フォルダ名でゲーム名と比較（ブランド名フォルダの下にゲームフォルダがある場合のケア）
         if let Some(ref gp) = grandparent {
-            val = val.max(get_game_path_part_score(gp, &pair.gamename));
+            val = val.max(get_comparable_distance(gp, &pair.gamename));
         }
         if val > threshould {
             distance_pairs.push((pair.clone(), val));
@@ -642,6 +633,23 @@ mod tests {
         .unwrap();
 
         assert_eq!(res.first().unwrap().id, 11396);
+    }
+
+    #[test]
+    fn test_get_game_candidates_sumire_from_specific_folder() {
+        let cache = vec![
+            AllGameCacheOne::new(373, "すみれ".to_string()),
+            AllGameCacheOne::new(20178, "すみれ".to_string()),
+        ];
+        let res = get_game_candidates_by_exe_path(
+            &cache,
+            "E:\\VisualNovel\\nekoneko\\すみれ\\すみれ.exe",
+            0.8,
+            1,
+        )
+        .unwrap();
+
+        assert_eq!(res.first().unwrap().id, 20178);
     }
 
     // RED: SiglusEngine.exe はnot_game対象ではないが、親フォルダ名から正しく推定できるべき

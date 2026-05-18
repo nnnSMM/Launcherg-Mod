@@ -3,7 +3,7 @@ id: decision-log
 title: Decision Log
 type: log
 status: active
-updated: 2026-05-18
+updated: 2026-05-19
 links:
   - launcherg-improvement-moc
   - template-decision-record
@@ -11,6 +11,14 @@ links:
 ---
 
 # Decision Log
+
+## 2026-05-19: 紐づけ補正は汎用化せず既知パス単位に限定する
+
+- Context: `サクラノ詩` の短いフォルダ名が派生作へ寄る問題に対して、副題前の主題部を一般優先する補正を入れると、他タイトルへ広く影響するリスクがあった。
+- Decision: タイトル構造の一般ルールではなく、確認済みのメーカー/フォルダ組み合わせだけを強制IDとして扱う。対象は `枕/サクラノ詩 -> 4529` と `nekoneko/すみれ -> 20178`。
+- Rationale: 自動紐づけは誤検知の影響が大きいため、根拠のある実フォルダ差分だけを狭く補正する方が安全。
+- Consequence: 同種の誤検知は個別に追加する必要がある。demo プレビューでは、同じフォルダ内に高信頼の紐づけがある場合、そのフォルダ内の確認待ち/候補なし行を出さない。
+- Links: [[architecture-map]], [[quality-gates]]
 
 ## 2026-05-18: demo のフォルダ紐づけ判定は通常自動追加と同じ手順にそろえる
 

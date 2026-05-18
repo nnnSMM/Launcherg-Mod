@@ -73,18 +73,9 @@ const SHOULD_UPDATE_WORD_WHEN_CONFLICT = [
 const ENGINE_NAMES = new Set(["bgi", "siglusengine", "nscripter"]);
 const IGNORE_GAME_ID = new Set([2644, 63, 2797, 10419]);
 const EQUAL_FILENAME_GAME_ID = new Map<string, number>([["pieces", 27123]]);
-const BASE_TITLE_SEPARATORS = [
-  " -",
-  " ～",
-  " ~",
-  "（",
-  "(",
-  "【",
-  "[",
-  "「",
-  "『",
-  "：",
-  ":",
+const PATH_SPECIFIC_GAME_IDS = [
+  { grandparent: "枕", parent: "サクラノ詩", id: 4529 },
+  { grandparent: "nekoneko", parent: "すみれ", id: 20178 },
 ];
 const REMOVE_WORDS = [
   "\u3092\u8d77\u52d5",
@@ -205,27 +196,25 @@ const getComparableDistance = (left: string, right: string) => {
   return 1 - onpDistance(left, right) / maxLength;
 };
 
-const byteLength = (value: string) => new TextEncoder().encode(value).length;
+const getPathSpecificGameId = (
+  grandparent: string,
+  parent: string,
+) =>
+  PATH_SPECIFIC_GAME_IDS.find(
+    (rule) =>
+      normalizeForGameMatch(rule.grandparent) === grandparent &&
+      normalizeForGameMatch(rule.parent) === parent,
+  )?.id ?? null;
 
-const getBaseTitle = (gameName: string) => {
-  const indexes = BASE_TITLE_SEPARATORS.map((separator) =>
-    gameName.indexOf(separator),
-  ).filter((index) => index > 0);
-  const index = indexes.length ? Math.min(...indexes) : -1;
-  return (index > 0 ? gameName.slice(0, index) : gameName).trim();
-};
-
-const getGamePathPartScore = (pathPart: string, gameName: string) => {
-  const score = getComparableDistance(pathPart, gameName);
-  const baseTitle = getBaseTitle(gameName);
-  if (
-    baseTitle === pathPart &&
-    baseTitle.length < gameName.trim().length &&
-    byteLength(baseTitle) > 5
-  ) {
-    return 2 + score;
+const pushForcedGame = (
+  scored: Array<{ cache: AllGameCacheOne; score: number }>,
+  id: number,
+  score: number,
+) => {
+  const forced = getGameCacheById(id);
+  if (forced) {
+    scored.push({ cache: forced, score });
   }
-  return score;
 };
 
 export const getGameCandidatesByFilePath = (
@@ -248,12 +237,14 @@ export const getGameCandidatesByFilePath = (
   const grandparent = normalizeForGameMatch(parts.at(-3) ?? "");
   const scored: Array<{ cache: AllGameCacheOne; score: number }> = [];
 
+  const pathSpecificId = getPathSpecificGameId(grandparent, parent);
+  if (pathSpecificId) {
+    pushForcedGame(scored, pathSpecificId, 1000);
+  }
+
   const forcedId = EQUAL_FILENAME_GAME_ID.get(stem);
   if (forcedId) {
-    const forced = getGameCacheById(forcedId);
-    if (forced) {
-      scored.push({ cache: forced, score: 100 });
-    }
+    pushForcedGame(scored, forcedId, 100);
   }
 
   for (const game of normalizedGames) {
@@ -263,11 +254,11 @@ export const getGameCandidatesByFilePath = (
 
     let score = 0;
     if (!shouldSkipFilename) {
-      score = Math.max(score, getGamePathPartScore(stem, game.normalizedName));
+      score = Math.max(score, getComparableDistance(stem, game.normalizedName));
     }
-    score = Math.max(score, getGamePathPartScore(parent, game.normalizedName));
+    score = Math.max(score, getComparableDistance(parent, game.normalizedName));
     if (grandparent) {
-      score = Math.max(score, getGamePathPartScore(grandparent, game.normalizedName));
+      score = Math.max(score, getComparableDistance(grandparent, game.normalizedName));
     }
     if (score > threshold) {
       scored.push({ cache: game, score });

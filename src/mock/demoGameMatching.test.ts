@@ -32,6 +32,16 @@ describe("demo game matching", () => {
     expect(candidate?.id).toBe(11396);
   });
 
+  it("uses a path-specific correction for nekoneko Sumire", () => {
+    const [candidate] = getGameCandidatesByFilePath(
+      "E:\\VisualNovel\\nekoneko\\すみれ\\すみれ.exe",
+      0.8,
+      1,
+    );
+
+    expect(candidate?.id).toBe(20178);
+  });
+
   it("filters installer-like files before automatic linking", () => {
     const candidates = getGameCandidatesByFilePath(
       "E:\\VisualNovel\\枕\\サクラノ詩\\Uninstaller.exe",

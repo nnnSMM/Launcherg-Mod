@@ -74,6 +74,14 @@ const isLnkLike = (path: string | null | undefined) => {
   return lower.endsWith(".lnk") || lower.endsWith(".url");
 };
 
+const parentFolderKey = (path: string) =>
+  path
+    .split(/[\\/]/)
+    .filter(Boolean)
+    .slice(0, -1)
+    .map(normalizeForGameMatch)
+    .join("/");
+
 const getImageSize = async (src: string) => {
   if (!src || typeof Image === "undefined" || import.meta.env.MODE === "test") {
     return null;
@@ -260,6 +268,21 @@ export const invoke = async <T = unknown>(
     const matchedPathSet = new Set(
       Array.from(matchedByGame.values()).map((match) => match.path),
     );
+    const highConfidenceByPath = new Map<string, AllGameCacheOne | null>();
+    const getHighConfidenceCandidate = (path: string) => {
+      if (!highConfidenceByPath.has(path)) {
+        highConfidenceByPath.set(
+          path,
+          getGameCandidatesByFilePath(path, 0.8, 1)[0] ?? null,
+        );
+      }
+      return highConfidenceByPath.get(path) ?? null;
+    };
+    const highConfidenceFolderSet = new Set(
+      files
+        .filter((file) => getHighConfidenceCandidate(file.path))
+        .map((file) => parentFolderKey(file.path)),
+    );
 
     const matchedResults = Array.from(matchedByGame.values()).map(({ cache, path }) => ({
       path,
@@ -275,7 +298,7 @@ export const invoke = async <T = unknown>(
     }));
     const unmatchedResults = files
       .filter((file) => !matchedPathSet.has(file.path))
-      .filter((file) => !getGameCandidatesByFilePath(file.path, 0.8, 1)[0])
+      .filter((file) => !highConfidenceFolderSet.has(parentFolderKey(file.path)))
       .map((file) => ({
         path: file.path,
         matched: null,

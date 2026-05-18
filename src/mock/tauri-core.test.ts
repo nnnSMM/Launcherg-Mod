@@ -121,4 +121,57 @@ describe("demo tauri core", () => {
     expect(preview.results.find((result) => result.matched?.id === 29016)?.path).toMatch(/BGI\.exe$/);
     expect(elements.some((element) => element.id === 29016)).toBe(false);
   });
+
+  it("hides review-only files in a folder that already has a high-confidence match", async () => {
+    const makeFile = (content: string, name: string) =>
+      Object.assign(new Blob([content]), { name }) as File;
+    const selectedDirectory = {
+      kind: "directory",
+      name: "nekoneko",
+      entries: async function* () {
+        const sumireDirectory = {
+          kind: "directory",
+          name: "すみれ",
+          entries: async function* () {
+            yield [
+              "すみれ.exe",
+              {
+                kind: "file",
+                name: "すみれ.exe",
+                getFile: async () => makeFile("MZ", "すみれ.exe"),
+              },
+            ];
+            yield [
+              "config.exe",
+              {
+                kind: "file",
+                name: "config.exe",
+                getFile: async () => makeFile("MZ", "config.exe"),
+              },
+            ];
+          },
+        };
+        yield ["すみれ", sumireDirectory];
+      },
+    };
+    const demoWindow = window as Window & {
+      showDirectoryPicker?: () => Promise<typeof selectedDirectory>;
+    };
+    demoWindow.showDirectoryPicker = async () => selectedDirectory;
+
+    const { pickDemoDirectory } = await import("@/mock/demoBrowserFiles");
+    const selectedPath = await pickDemoDirectory();
+    const { invoke } = await import("@/mock/tauri-core");
+    const preview = await invoke<{
+      matchedCount: number;
+      results: Array<{ path: string; matched: { id: number } | null }>;
+    }>("preview_demo_game_matching", {
+      exploreDirPaths: selectedPath ? [selectedPath] : [],
+    });
+
+    expect(preview.matchedCount).toBe(1);
+    expect(preview.results).toHaveLength(1);
+    expect(preview.results[0]?.matched?.id).toBe(20178);
+    expect(preview.results.some((result) => result.path.endsWith("config.exe"))).toBe(false);
+  });
 });
