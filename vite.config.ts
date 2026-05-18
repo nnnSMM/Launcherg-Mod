@@ -1,9 +1,30 @@
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin, type ResolvedConfig } from "vite";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
 import sveltePreprocess from "svelte-preprocess";
 import UnoCSS from "unocss/vite";
 import extractorSvelte from "@unocss/extractor-svelte";
 import { fileURLToPath } from "node:url";
+import { rm } from "node:fs/promises";
+import { resolve } from "node:path";
+
+function removeDemoAssetsFromAppBuild(): Plugin {
+  let outDir = "dist";
+
+  return {
+    name: "remove-demo-assets-from-app-build",
+    apply: "build",
+    configResolved(config: ResolvedConfig) {
+      outDir = config.build.outDir;
+    },
+    async closeBundle() {
+      await Promise.all(
+        ["demo-images", "demo-data"].map((dir) =>
+          rm(resolve(outDir, dir), { recursive: true, force: true })
+        )
+      );
+    },
+  };
+}
 
 // https://vitejs.dev/config/
 export default defineConfig(async () => ({
@@ -19,6 +40,7 @@ export default defineConfig(async () => ({
         }),
       ],
     }),
+    removeDemoAssetsFromAppBuild(),
   ],
 
   resolve: {

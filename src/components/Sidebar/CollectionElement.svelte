@@ -72,7 +72,7 @@
     <img
       alt="{collectionElement.gamename}_icon"
       src={iconSrc}
-      class="h-8 w-8 rounded-md shadow-sm transition-transform group-hover:scale-105"
+      class="h-8 w-8 rounded-md object-cover shadow-sm transition-transform group-hover:scale-105"
       loading="lazy"
     />
     <div

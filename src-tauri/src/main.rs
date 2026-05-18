@@ -386,7 +386,7 @@ fn ensure_windows_autostart_entry<R: tauri::Runtime>(app: &tauri::App<R>) -> any
 
     let run_key = hkcu.open_subkey_with_flags(RUN_KEY, KEY_SET_VALUE)?;
     run_key.set_value(APP_AUTOSTART_NAME, &command)?;
-    if legacy_app_name != APP_AUTOSTART_NAME {
+    if !legacy_app_name.eq_ignore_ascii_case(APP_AUTOSTART_NAME) {
         let _ = run_key.delete_value(legacy_app_name);
     }
 
@@ -400,7 +400,7 @@ fn ensure_windows_autostart_entry<R: tauri::Runtime>(app: &tauri::App<R>) -> any
                 bytes: STARTUP_APPROVED_ENABLED.to_vec(),
             },
         )?;
-        if legacy_app_name != APP_AUTOSTART_NAME {
+        if !legacy_app_name.eq_ignore_ascii_case(APP_AUTOSTART_NAME) {
             let _ = startup_approved_key.delete_value(legacy_app_name);
         }
     }

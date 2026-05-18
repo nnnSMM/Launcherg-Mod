@@ -1,7 +1,5 @@
 import type { Work } from "@/lib/types";
-import worksData from "@/mock/worksData.json";
-
-const WORKS_DATA = worksData as Record<number, Work>;
+import { getWorkById } from "@/mock/demoCatalog";
 
 const createWorks = () => {
   try {
@@ -11,7 +9,7 @@ const createWorks = () => {
   }
 
   const get = async (id: number): Promise<Work | null> => {
-    const result = WORKS_DATA[id] ?? null;
+    const result = getWorkById(id);
     console.log(`[Mock Works] get(${id}) =>`, result ? result.name : "null");
     return result;
   };

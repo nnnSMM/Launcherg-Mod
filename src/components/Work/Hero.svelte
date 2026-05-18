@@ -77,12 +77,38 @@
 
     let showFullscreenImage = false;
     let innerWidth = 0;
+    let measuredImageWidth = 0;
+    let measuredImageHeight = 0;
+    let imageMeasureToken = 0;
 
     $: TARGET_AREA = innerWidth < 1280 ? 90000 : 130000;
 
+    $: if (bgImage) {
+        measureImageSize(bgImage);
+    }
+
+    async function measureImageSize(src: string) {
+        const token = ++imageMeasureToken;
+        const img = new Image();
+        try {
+            await new Promise<void>((resolve, reject) => {
+                img.onload = () => resolve();
+                img.onerror = () => reject();
+                img.src = src;
+            });
+            if (token !== imageMeasureToken) return;
+            measuredImageWidth = img.naturalWidth;
+            measuredImageHeight = img.naturalHeight;
+        } catch {
+            if (token !== imageMeasureToken) return;
+            measuredImageWidth = 0;
+            measuredImageHeight = 0;
+        }
+    }
+
     $: imageWidth = (() => {
-        const width = element.thumbnailWidth || 16;
-        const height = element.thumbnailHeight || 9;
+        const width = element.thumbnailWidth || measuredImageWidth || 16;
+        const height = element.thumbnailHeight || measuredImageHeight || 9;
         const ratio = width / height;
         return Math.sqrt(TARGET_AREA * ratio);
     })();

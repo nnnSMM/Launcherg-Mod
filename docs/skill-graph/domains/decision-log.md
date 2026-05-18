@@ -3,7 +3,7 @@ id: decision-log
 title: Decision Log
 type: log
 status: active
-updated: 2026-05-11
+updated: 2026-05-18
 links:
   - launcherg-improvement-moc
   - template-decision-record
@@ -11,6 +11,30 @@ links:
 ---
 
 # Decision Log
+
+## 2026-05-18: demo は GitHub Pages に Actions ビルドで公開する
+
+- Context: demo は `npm run build-demo` で `docs/demo` に生成される静的サイトだが、生成物は `.gitignore` 対象でコミットしない運用にしている。
+- Decision: `main` への push と手動実行で GitHub Actions が demo をビルドし、`docs/demo` を GitHub Pages artifact として公開する。
+- Rationale: 無料で公開でき、生成物をリポジトリに含めず、最新コミットのソースから毎回同じ手順で配信物を作れる。
+- Consequence: GitHub 側で Pages の Source を GitHub Actions に設定する必要がある。公開URLは GitHub Pages の deployment 結果に従う。
+- Links: [[architecture-map]], [[quality-gates]]
+
+## 2026-05-18: 通常アプリビルドからデモ用静的資産を除外する
+
+- Context: `public/demo-images` と `public/demo-data` はデモサイトでは必要だが、Vite の通常ビルドでは `dist` にコピーされ、Tauri の `frontendDist` としてアプリ配布物に同梱されていた。
+- Decision: 通常の `vite.config.ts` にビルド後削除プラグインを追加し、`dist/demo-images` と `dist/demo-data` をアプリ同梱対象から外す。`vite.demo.config.ts` は変更せず、デモビルドでは従来どおり public 資産を使う。
+- Rationale: `publicDir` 全体を無効にすると `icon.png` や `images/dummy_thumbnail.svg` など通常アプリで参照する資産まで壊れるため、デモ専用ディレクトリだけを削るのが最小変更。
+- Consequence: アプリ配布物は約9MB以上軽くなり、デモページ用の大きい画像とHTMLは通常アプリに入らない。デモ用静的資産を増やす場合は、この除外対象に入るディレクトリへ置く。
+- Links: [[architecture-map]], [[quality-gates]]
+
+## 2026-05-18: 自動起動Runエントリの大小文字削除を止める
+
+- Context: PC起動時の自動起動が再び失敗していた。`HKCU\Software\Microsoft\Windows\CurrentVersion\Run` を確認すると `Launcherg` の登録が残っておらず、補修処理は `Launcherg` を書いた直後に旧名 `launcherg` を削除していた。
+- Decision: 旧名削除の判定は大文字小文字を無視して比較し、`Launcherg` と `launcherg` を同一名として扱う。
+- Rationale: Windowsレジストリの値名は実質的に大文字小文字を区別しないため、文字列比較だけで別名扱いすると、補修直後のRunエントリ自身を削除してしまう。
+- Consequence: 次回アプリ起動時に `"exe path" --autostart` のRunエントリが残る。旧名が本当に別名だった場合のみ削除する。
+- Links: [[architecture-map]], [[known-risks]]
 
 ## 2026-05-11: 探す画面を一時撤去し、自動起動のWindows登録を補修する
 
