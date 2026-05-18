@@ -1,60 +1,81 @@
 <script lang="ts">
   import Button from "@/components/UI/Button.svelte";
-  import InputPath from "@/components/UI/InputPath.svelte";
   import {
     commandPreviewDemoGameMatching,
     type DemoGameMatchingPreview,
   } from "@/lib/command";
   import { showErrorToast } from "@/lib/toast";
+  import { open } from "@tauri-apps/plugin-dialog";
 
-  type PathInput = {
-    id: number;
-    path: string;
+  const labels = {
+    title: "\u30d5\u30a9\u30eb\u30c0\u7d10\u3065\u3051\u3092\u8a66\u3059",
+    description:
+      "\u6240\u6301\u30d5\u30a9\u30eb\u30c0\u3092\u9078\u3076\u3068\u3001\u5b9f\u884c\u30d5\u30a1\u30a4\u30eb\u304b\u3089\u3069\u306e\u30b2\u30fc\u30e0\u306b\u7d10\u3065\u304f\u304b\u3092\u767b\u9332\u305b\u305a\u306b\u5224\u5b9a\u3057\u307e\u3059\u3002",
+    chooseFolder: "\u30d5\u30a9\u30eb\u30c0\u3092\u9078\u629e",
+    chooseMore: "\u5225\u306e\u30d5\u30a9\u30eb\u30c0\u3082\u9078\u629e",
+    clear: "\u7d50\u679c\u3092\u30af\u30ea\u30a2",
+    processing: "\u30d5\u30a9\u30eb\u30c0\u3092\u8aad\u307f\u53d6\u308a\u4e2d",
+    processingDetail:
+      "\u81ea\u52d5\u8ffd\u52a0\u3068\u540c\u3058\u3088\u3046\u306b exe / lnk / url \u3092\u63a2\u3057\u3001\u4f5c\u54c1\u5019\u88dc\u3068\u7167\u5408\u3057\u3066\u3044\u307e\u3059\u3002",
+    result: "\u5224\u5b9a\u7d50\u679c",
+    selectedFolders: "\u9078\u629e\u3057\u305f\u30d5\u30a9\u30eb\u30c0",
+    matched: "\u7d10\u3065\u3044\u305f\u30b2\u30fc\u30e0",
+    unmatched: "\u7d10\u3065\u3051\u3067\u304d\u306a\u304b\u3063\u305f\u30d1\u30b9",
+    highConfidence: "\u9ad8\u4fe1\u983c",
+    needsReview: "\u78ba\u8a8d\u304c\u5fc5\u8981",
+    noCandidate: "\u5019\u88dc\u306a\u3057",
+    noFiles:
+      "\u5bfe\u8c61\u306b\u306a\u308b exe / lnk / url \u304c\u898b\u3064\u304b\u308a\u307e\u305b\u3093\u3067\u3057\u305f\u3002",
+    readError:
+      "\u30d5\u30a9\u30eb\u30c0\u306e\u8aad\u307f\u53d6\u308a\u306b\u5931\u6557\u3057\u307e\u3057\u305f\u3002\u5225\u306e\u30d5\u30a9\u30eb\u30c0\u3067\u8a66\u3057\u3066\u304f\u3060\u3055\u3044\u3002",
+    canceled:
+      "\u30d5\u30a9\u30eb\u30c0\u9078\u629e\u304c\u30ad\u30e3\u30f3\u30bb\u30eb\u3055\u308c\u307e\u3057\u305f\u3002",
+    items: "\u4ef6",
   };
 
-  let paths: PathInput[] = [{ id: Date.now(), path: "" }];
+  let selectedPaths: string[] = [];
   let isLoading = false;
   let preview: DemoGameMatchingPreview | null = null;
 
-  const nonEmptyPaths = () =>
-    paths.map((value) => value.path.trim()).filter((path) => path.length > 0);
-
-  const updatePath = (index: number, value: string) => {
-    paths = paths.map((path, i) => (i === index ? { ...path, path: value } : path));
-  };
-
-  const addPath = () => {
-    if (paths.at(-1)?.path.trim() === "") {
-      return;
-    }
-    paths = [...paths, { id: Date.now(), path: "" }];
-  };
-
-  const removePath = (index: number) => {
-    paths = paths.filter((_, i) => i !== index);
-    if (!paths.length) {
-      paths = [{ id: Date.now(), path: "" }];
-    }
-  };
-
   const filename = (path: string) => path.split(/[\\/]/).filter(Boolean).at(-1) ?? path;
 
-  const runPreview = async () => {
-    const selectedPaths = nonEmptyPaths();
-    if (!selectedPaths.length) {
+  const runPreview = async (paths: string[]) => {
+    if (!paths.length) {
+      preview = null;
       return;
     }
     isLoading = true;
     try {
-      preview = await commandPreviewDemoGameMatching(selectedPaths);
+      preview = await commandPreviewDemoGameMatching(paths);
     } catch (e) {
       console.error(e);
-      showErrorToast("フォルダの読み取りに失敗しました。別のフォルダで試してください。");
+      showErrorToast(labels.readError);
     } finally {
       isLoading = false;
     }
   };
 
+  const selectFolder = async () => {
+    const selected = await open({
+      directory: true,
+      multiple: false,
+      filters: [],
+    });
+    if (typeof selected !== "string") {
+      showErrorToast(labels.canceled);
+      return;
+    }
+    selectedPaths = [...selectedPaths, selected];
+    await runPreview(selectedPaths);
+  };
+
+  const clear = () => {
+    selectedPaths = [];
+    preview = null;
+  };
+
+  $: matchedResults = preview?.results.filter((result) => result.matched) ?? [];
+  $: unmatchedResults = preview?.results.filter((result) => !result.matched) ?? [];
   $: matchRate =
     preview && preview.scannedFileCount > 0
       ? Math.round((preview.matchedCount / preview.scannedFileCount) * 100)
@@ -63,110 +84,132 @@
 
 <section class="rounded-lg border border-ui-border bg-bg-secondary/80 p-5 shadow-sm">
   <div class="flex flex-col gap-4 lg:flex-row lg:items-start">
-    <div class="min-w-0 flex-1 space-y-3">
+    <div class="min-w-0 flex-1 space-y-4">
       <div class="flex items-center gap-3">
         <div class="h-9 w-9 flex shrink-0 items-center justify-center rounded-md bg-accent-accent/15">
           <div class="i-material-symbols:folder-search-rounded h-5 w-5 color-accent-accent" />
         </div>
         <div class="min-w-0">
-          <h2 class="text-h3 font-bold text-text-primary">フォルダ紐づけを試す</h2>
-          <p class="mt-1 text-body2 text-text-tertiary">
-            選択したフォルダ内の実行ファイルから、どのゲームとして判定されるかだけを確認します。demo ではゲーム登録は行いません。
-          </p>
+          <h2 class="text-h3 font-bold text-text-primary">{labels.title}</h2>
+          <p class="mt-1 text-body2 text-text-tertiary">{labels.description}</p>
         </div>
-      </div>
-
-      <div class="space-y-2">
-        {#each paths as item, i (item.id)}
-          <div class="flex items-end gap-2">
-            <div class="min-w-0 flex-1">
-              <InputPath
-                label=""
-                placeholder="ゲームを入れているフォルダを選択"
-                path={item.path}
-                directory
-                withFilter={false}
-                browseButtonBorderless
-                on:update={(e) => updatePath(i, e.detail.value)}
-              />
-            </div>
-            <button
-              type="button"
-              class="h-8 w-8 flex shrink-0 items-center justify-center rounded-md bg-transparent text-text-tertiary hover:bg-bg-tertiary hover:text-text-primary"
-              on:click={() => removePath(i)}
-              aria-label="フォルダを削除"
-            >
-              <div class="i-iconoir-cancel h-4 w-4" />
-            </button>
-          </div>
-        {/each}
       </div>
 
       <div class="flex flex-wrap gap-2">
         <Button
-          text="フォルダを追加"
-          leftIcon="i-iconoir-plus"
-          borderless
-          on:click={addPath}
-        />
-        <Button
-          text={isLoading ? "判定中" : "紐づけを試す"}
-          leftIcon="i-material-symbols:manage-search-rounded"
+          text={selectedPaths.length ? labels.chooseMore : labels.chooseFolder}
+          leftIcon="i-material-symbols:create-new-folder-rounded"
           variant="accent"
-          disabled={!nonEmptyPaths().length || isLoading}
-          on:click={runPreview}
+          disabled={isLoading}
+          on:click={selectFolder}
         />
+        {#if selectedPaths.length}
+          <Button
+            text={labels.clear}
+            leftIcon="i-iconoir-cancel"
+            borderless
+            disabled={isLoading}
+            on:click={clear}
+          />
+        {/if}
       </div>
+
+      {#if selectedPaths.length}
+        <div class="rounded-md border border-ui-border bg-bg-primary/70 p-3">
+          <div class="mb-2 text-caption font-bold text-text-tertiary">
+            {labels.selectedFolders}
+          </div>
+          <div class="space-y-1">
+            {#each selectedPaths as path}
+              <div class="truncate text-body2 text-text-secondary">{path}</div>
+            {/each}
+          </div>
+        </div>
+      {/if}
     </div>
 
     {#if preview}
       <div class="w-full rounded-md border border-ui-border bg-bg-primary/70 p-4 lg:w-64">
-        <div class="text-body2 text-text-tertiary">判定結果</div>
+        <div class="text-body2 text-text-tertiary">{labels.result}</div>
         <div class="mt-1 text-3xl font-bold text-text-primary">{matchRate}%</div>
         <div class="mt-2 text-body2 text-text-secondary">
-          {preview.matchedCount} / {preview.scannedFileCount} 件を高信頼で紐づけ
+          {preview.matchedCount} / {preview.scannedFileCount} {labels.items}
         </div>
       </div>
     {/if}
   </div>
 
-  {#if preview}
-    <div class="mt-5 space-y-2">
+  {#if isLoading}
+    <div class="mt-5 flex items-center gap-4 rounded-md border border-ui-border bg-bg-primary/70 p-4">
+      <div class="h-12 w-12 shrink-0 rounded-full border-6px border-solid border-bg-tertiary border-t-accent-accent animate-spin" />
+      <div class="min-w-0">
+        <div class="text-body font-bold text-text-primary">{labels.processing}</div>
+        <div class="mt-1 text-body2 text-text-tertiary">{labels.processingDetail}</div>
+      </div>
+    </div>
+  {:else if preview}
+    <div class="mt-5 space-y-4">
       {#if preview.results.length === 0}
         <div class="rounded-md border border-ui-border bg-bg-primary/70 p-4 text-body2 text-text-tertiary">
-          対象になる exe / lnk / url が見つかりませんでした。
+          {labels.noFiles}
         </div>
       {:else}
-        {#each preview.results.slice(0, 12) as result}
-          <div class="grid gap-3 rounded-md border border-ui-border bg-bg-primary/70 p-3 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
-            <div class="min-w-0">
-              <div class="truncate text-body2 font-medium text-text-secondary">
-                {filename(result.path)}
-              </div>
-              <div class="mt-1 truncate text-caption text-text-tertiary">
-                {result.path}
-              </div>
-            </div>
-            <div class="min-w-0">
-              {#if result.matched}
-                <div class="truncate text-body2 font-bold text-text-primary">
-                  {result.matched.gamename}
+        <div class="space-y-2">
+          <div class="text-body font-bold text-text-primary">{labels.matched}</div>
+          {#if matchedResults.length}
+            {#each matchedResults as result}
+              <div class="grid gap-3 rounded-md border border-ui-border bg-bg-primary/70 p-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
+                <div class="min-w-0">
+                  <div class="truncate text-body2 font-bold text-text-primary">
+                    {result.matched?.gamename}
+                  </div>
+                  <div class="mt-1 inline-flex items-center gap-1 rounded bg-accent-success/15 px-2 py-0.5 text-caption text-accent-success">
+                    <div class="i-material-symbols:check-circle-rounded h-3.5 w-3.5" />
+                    {labels.highConfidence}
+                  </div>
                 </div>
-                <div class="mt-1 text-caption text-accent-success">高信頼で紐づけ可能</div>
-              {:else if result.candidates.length}
-                <div class="truncate text-body2 text-text-secondary">
-                  候補: {result.candidates[0][1]}
+                <div class="min-w-0">
+                  <div class="truncate text-body2 text-text-secondary">
+                    {filename(result.path)}
+                  </div>
+                  <div class="mt-1 truncate text-caption text-text-tertiary">
+                    {result.path}
+                  </div>
                 </div>
-                <div class="mt-1 text-caption text-text-tertiary">確認が必要</div>
-              {:else}
-                <div class="text-body2 text-text-tertiary">候補なし</div>
-              {/if}
+              </div>
+            {/each}
+          {:else}
+            <div class="rounded-md border border-ui-border bg-bg-primary/70 p-3 text-body2 text-text-tertiary">
+              {labels.noCandidate}
             </div>
-          </div>
-        {/each}
-        {#if preview.results.length > 12}
-          <div class="text-caption text-text-tertiary">
-            ほか {preview.results.length - 12} 件
+          {/if}
+        </div>
+
+        {#if unmatchedResults.length}
+          <div class="space-y-2">
+            <div class="text-body font-bold text-text-primary">{labels.unmatched}</div>
+            {#each unmatchedResults as result}
+              <div class="grid gap-3 rounded-md border border-ui-border bg-bg-primary/70 p-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
+                <div class="min-w-0">
+                  <div class="text-body2 text-text-secondary">
+                    {result.candidates.length ? labels.needsReview : labels.noCandidate}
+                  </div>
+                  {#if result.candidates.length}
+                    <div class="mt-1 truncate text-caption text-text-tertiary">
+                      {result.candidates[0][1]}
+                    </div>
+                  {/if}
+                </div>
+                <div class="min-w-0">
+                  <div class="truncate text-body2 text-text-secondary">
+                    {filename(result.path)}
+                  </div>
+                  <div class="mt-1 truncate text-caption text-text-tertiary">
+                    {result.path}
+                  </div>
+                </div>
+              </div>
+            {/each}
           </div>
         {/if}
       {/if}

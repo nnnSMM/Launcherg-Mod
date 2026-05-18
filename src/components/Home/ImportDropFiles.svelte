@@ -9,6 +9,10 @@
   import type { AllGameCacheOne } from "@/lib/types";
   import { enqueueVndbScreenshotPrefetch } from "@/lib/useVndbScreenshots";
 
+  const isDemoBuild = import.meta.env.BASE_URL === "./";
+  const demoRegistrationDisabledMessage =
+    "demo \u3067\u306f\u30b2\u30fc\u30e0\u767b\u9332\u306f\u3067\u304d\u307e\u305b\u3093\u3002\u30db\u30fc\u30e0\u306e\u300c\u30d5\u30a9\u30eb\u30c0\u7d10\u3065\u3051\u3092\u8a66\u3059\u300d\u3067\u5224\u5b9a\u3060\u3051\u78ba\u8a8d\u3067\u304d\u307e\u3059\u3002";
+
   const handleDropFiles = (files: string[]) => {
     importFileDropPaths = [];
     console.log("[drag-drop] payload:", files);
@@ -73,6 +77,12 @@
     lnkPath: string | null;
     gameCache: AllGameCacheOne;
   }) => {
+    if (isDemoBuild) {
+      showInfoToast(demoRegistrationDisabledMessage);
+      isOpenImportFileDrop = false;
+      setTimeout(next, 0);
+      return;
+    }
     await commandUpsertCollectionElement(arg);
     await registerCollectionElementDetails();
     await sidebarCollectionElements.refetch();

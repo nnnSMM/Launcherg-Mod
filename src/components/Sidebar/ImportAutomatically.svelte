@@ -18,6 +18,15 @@
   import InputPath from "@/components/UI/InputPath.svelte";
 
   let isLoading = false;
+  const isDemoBuild = import.meta.env.BASE_URL === "./";
+  const demoRegistrationDisabledMessage =
+    "demo \u3067\u306f\u30b2\u30fc\u30e0\u767b\u9332\u306f\u3067\u304d\u307e\u305b\u3093\u3002\u30db\u30fc\u30e0\u306e\u300c\u30d5\u30a9\u30eb\u30c0\u7d10\u3065\u3051\u3092\u8a66\u3059\u300d\u3067\u5224\u5b9a\u3060\u3051\u78ba\u8a8d\u3067\u304d\u307e\u3059\u3002";
+  const demoLabels = {
+    title: "\u30d5\u30a9\u30eb\u30c0\u304b\u3089\u81ea\u52d5\u8ffd\u52a0",
+    close: "\u9589\u3058\u308b",
+    heading: "demo \u3067\u306f\u30b2\u30fc\u30e0\u767b\u9332\u306f\u3067\u304d\u307e\u305b\u3093",
+    body: "\u5b9f\u30d5\u30a1\u30a4\u30eb\u306e\u30a2\u30a4\u30b3\u30f3\u53d6\u5f97\u3092\u5b89\u5b9a\u3057\u3066\u518d\u73fe\u3067\u304d\u306a\u3044\u305f\u3081\u3001\u516c\u958b demo \u3067\u306f\u767b\u9332\u51e6\u7406\u3060\u3051\u505c\u6b62\u3057\u3066\u3044\u307e\u3059\u3002\u30db\u30fc\u30e0\u306e\u300c\u30d5\u30a9\u30eb\u30c0\u7d10\u3065\u3051\u3092\u8a66\u3059\u300d\u3067\u5224\u5b9a\u7cbe\u5ea6\u3092\u78ba\u8a8d\u3067\u304d\u307e\u3059\u3002",
+  };
 
   export let isOpen: boolean;
 
@@ -61,6 +70,11 @@
     }
   };
   const confirm = async () => {
+    if (isDemoBuild) {
+      showInfoToast(demoRegistrationDisabledMessage);
+      isOpen = false;
+      return;
+    }
     isLoading = true;
     const beforeIds = new Set(sidebarCollectionElements.value().map((v) => v.id));
     const res = await commandCreateElementsInPc(
@@ -138,14 +152,20 @@
         isOpen = false;
       }
     }}
-    title="Automatically import game"
-    confirmText="Start import"
+    title={isDemoBuild ? demoLabels.title : "Automatically import game"}
+    confirmText={isDemoBuild ? demoLabels.close : "Start import"}
     fullmodal
     footerButtonBorderless
-    confirmDisabled={!$paths.length || !$paths.some((v) => v.path) || isLoading}
+    confirmDisabled={!isDemoBuild && (!$paths.length || !$paths.some((v) => v.path) || isLoading)}
     on:confirm={confirm}
   >
     <div class="space-y-8">
+      {#if isDemoBuild}
+        <div class="space-y-2">
+          <div class="text-text-primary text-h4 font-medium">{demoLabels.heading}</div>
+          <div class="text-text-tertiary text-body2">{demoLabels.body}</div>
+        </div>
+      {:else}
       <div class="space-y-4">
         <div class="text-text-primary text-h4 font-medium">
           自動追加するフォルダ
@@ -204,6 +224,7 @@
           </div>
         </label>
       </div>
+      {/if}
     </div>
   </Modal>
 {:else if isLoading}

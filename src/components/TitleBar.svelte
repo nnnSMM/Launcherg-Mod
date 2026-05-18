@@ -1,8 +1,6 @@
 <script lang="ts">
-  export let variant: "main" | "screenshot" = "main";
-  export let heightClass: string = "h-8";
-  import { onMount } from 'svelte';
-  import { getCurrentWindow } from '@tauri-apps/api/window';
+  import { onMount } from "svelte";
+  import { getCurrentWindow } from "@tauri-apps/api/window";
   import Icon from "/icon.png";
   import { link } from "svelte-spa-router";
   import {
@@ -10,7 +8,6 @@
     openSettingsTab,
     openShortcutSettingsTab,
   } from "@/store/tabs";
-  import ButtonBase from "@/components/UI/ButtonBase.svelte";
   import APopover from "@/components/UI/APopover.svelte";
   import ImportPopover from "@/components/Sidebar/ImportPopover.svelte";
   import ImportAutomatically from "@/components/Sidebar/ImportAutomatically.svelte";
@@ -25,8 +22,22 @@
   import { sidebarCollectionElements } from "@/store/sidebarCollectionElements";
   import { enqueueVndbScreenshotPrefetch } from "@/lib/useVndbScreenshots";
 
+  export let variant: "main" | "screenshot" = "main";
+  export let heightClass: string = "h-8";
+
   const appWindow = getCurrentWindow();
   const isDemoBuild = import.meta.env.BASE_URL === "./";
+  const navLabels = {
+    home: "\u30db\u30fc\u30e0",
+    gameAdd: "\u30b2\u30fc\u30e0\u8ffd\u52a0",
+    shortcut: "\u30b7\u30e7\u30fc\u30c8\u30ab\u30c3\u30c8",
+    display: "\u8868\u793a",
+    bulkEdit: "\u4e00\u62ec\u7de8\u96c6",
+    help: "\u30d8\u30eb\u30d7",
+  };
+  const demoRegistrationDisabledMessage =
+    "demo \u3067\u306f\u30b2\u30fc\u30e0\u767b\u9332\u306f\u3067\u304d\u307e\u305b\u3093\u3002\u30db\u30fc\u30e0\u306e\u300c\u30d5\u30a9\u30eb\u30c0\u7d10\u3065\u3051\u3092\u8a66\u3059\u300d\u3067\u5224\u5b9a\u3060\u3051\u78ba\u8a8d\u3067\u304d\u307e\u3059\u3002";
+
   let isMaximized = false;
   let isOpenImportAutomatically = false;
   let isOpenImportManually = false;
@@ -36,6 +47,11 @@
     lnkPath: string | null;
     gameCache: AllGameCacheOne;
   }) => {
+    if (isDemoBuild) {
+      showInfoToast(demoRegistrationDisabledMessage);
+      isOpenImportManually = false;
+      return;
+    }
     try {
       await commandUpsertCollectionElement(arg);
       try {
@@ -43,10 +59,10 @@
       } catch (e) {
         console.error("Failed to fetch extended game details:", e);
       }
-      showInfoToast(`${arg.gameCache.gamename}を登録しました。`);
+      showInfoToast(`${arg.gameCache.gamename}\u3092\u767b\u9332\u3057\u307e\u3057\u305f\u3002`);
     } catch (e) {
       console.error("Failed to add game to collection:", e);
-      showInfoToast(`${arg.gameCache.gamename}を登録しました。`);
+      showErrorToast(`${arg.gameCache.gamename}\u306e\u767b\u9332\u306b\u5931\u6557\u3057\u307e\u3057\u305f\u3002`);
     } finally {
       await sidebarCollectionElements.refetch();
       const imported = sidebarCollectionElements
@@ -111,20 +127,11 @@
         <img src={Icon} alt="launcherg icon" class="h-4" />
       </div>
       <a href="/" use:link class="flex items-center px-2 h-full cursor-pointer outline-none border-none text-text-secondary hover:text-text-primary transition-colors text-[13px] font-medium" tabindex="-1">
-        ホーム
+        {navLabels.home}
       </a>
-      {#if isDemoBuild}
-        <button
-          disabled
-          title="demo では実ファイルアイコンを安定して取得できないため、ゲーム登録はできません"
-          class="flex items-center px-2 h-full cursor-not-allowed outline-none focus:outline-none focus-visible:outline-none bg-transparent border-none text-text-tertiary opacity-60 text-[13px] font-medium"
-        >
-          繧ｲ繝ｼ繝霑ｽ蜉
-        </button>
-      {:else}
       <APopover panelClass="left-0" let:close>
         <button slot="button" class="flex items-center px-2 h-full cursor-pointer outline-none focus:outline-none focus-visible:outline-none bg-transparent border-none text-text-secondary hover:text-text-primary transition-colors text-[13px] font-medium">
-          ゲーム追加
+          {navLabels.gameAdd}
         </button>
         <ImportPopover
           on:close={() => close(null)}
@@ -132,22 +139,21 @@
           on:startManual={() => (isOpenImportManually = true)}
         />
       </APopover>
-      {/if}
 
       <button on:click={openShortcutSettingsTab} class="flex items-center px-2 h-full cursor-pointer outline-none focus:outline-none focus-visible:outline-none bg-transparent border-none text-text-secondary hover:text-text-primary transition-colors text-[13px] font-medium">
-        ショートカット
+        {navLabels.shortcut}
       </button>
 
       <button on:click={openDisplaySettingsTab} class="flex items-center px-2 h-full cursor-pointer outline-none focus:outline-none focus-visible:outline-none bg-transparent border-none text-text-secondary hover:text-text-primary transition-colors text-[13px] font-medium">
-        表示
+        {navLabels.display}
       </button>
 
       <button on:click={openSettingsTab} class="flex items-center px-2 h-full cursor-pointer outline-none focus:outline-none focus-visible:outline-none bg-transparent border-none text-text-secondary hover:text-text-primary transition-colors text-[13px] font-medium">
-        一括編集
+        {navLabels.bulkEdit}
       </button>
 
       <a href="https://github.com/nnnSMM/Launcherg-Mod/blob/main/USAGE.md" target="_blank" rel="noopener noreferrer" class="flex items-center px-2 h-full cursor-pointer outline-none border-none text-text-secondary hover:text-text-primary transition-colors text-[13px] font-medium" tabindex="-1">
-        ヘルプ
+        {navLabels.help}
       </a>
     {/if}
     <slot name="left" />
