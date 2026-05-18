@@ -73,6 +73,19 @@ const SHOULD_UPDATE_WORD_WHEN_CONFLICT = [
 const ENGINE_NAMES = new Set(["bgi", "siglusengine", "nscripter"]);
 const IGNORE_GAME_ID = new Set([2644, 63, 2797, 10419]);
 const EQUAL_FILENAME_GAME_ID = new Map<string, number>([["pieces", 27123]]);
+const BASE_TITLE_SEPARATORS = [
+  " -",
+  " ～",
+  " ~",
+  "（",
+  "(",
+  "【",
+  "[",
+  "「",
+  "『",
+  "：",
+  ":",
+];
 const REMOVE_WORDS = [
   "\u3092\u8d77\u52d5",
   "\u306e\u8d77\u52d5",
@@ -182,11 +195,37 @@ const onpDistance = (left: string, right: string) => {
 };
 
 const getComparableDistance = (left: string, right: string) => {
-  const maxLength = Math.max(Array.from(left).length, Array.from(right).length);
+  const maxLength = Math.max(
+    new TextEncoder().encode(left).length,
+    new TextEncoder().encode(right).length,
+  );
   if (!maxLength) {
     return 1;
   }
   return 1 - onpDistance(left, right) / maxLength;
+};
+
+const byteLength = (value: string) => new TextEncoder().encode(value).length;
+
+const getBaseTitle = (gameName: string) => {
+  const indexes = BASE_TITLE_SEPARATORS.map((separator) =>
+    gameName.indexOf(separator),
+  ).filter((index) => index > 0);
+  const index = indexes.length ? Math.min(...indexes) : -1;
+  return (index > 0 ? gameName.slice(0, index) : gameName).trim();
+};
+
+const getGamePathPartScore = (pathPart: string, gameName: string) => {
+  const score = getComparableDistance(pathPart, gameName);
+  const baseTitle = getBaseTitle(gameName);
+  if (
+    baseTitle === pathPart &&
+    baseTitle.length < gameName.trim().length &&
+    byteLength(baseTitle) > 5
+  ) {
+    return 2 + score;
+  }
+  return score;
 };
 
 export const getGameCandidatesByFilePath = (
@@ -224,11 +263,11 @@ export const getGameCandidatesByFilePath = (
 
     let score = 0;
     if (!shouldSkipFilename) {
-      score = Math.max(score, getComparableDistance(stem, game.normalizedName));
+      score = Math.max(score, getGamePathPartScore(stem, game.normalizedName));
     }
-    score = Math.max(score, getComparableDistance(parent, game.normalizedName));
+    score = Math.max(score, getGamePathPartScore(parent, game.normalizedName));
     if (grandparent) {
-      score = Math.max(score, getComparableDistance(grandparent, game.normalizedName));
+      score = Math.max(score, getGamePathPartScore(grandparent, game.normalizedName));
     }
     if (score > threshold) {
       scored.push({ cache: game, score });

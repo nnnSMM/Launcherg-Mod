@@ -12,9 +12,9 @@ describe("demo game matching", () => {
     expect(candidate?.id).toBe(29016);
   });
 
-  it("matches a real game from a Japanese parent folder when the exe name is generic", () => {
+  it("matches a short Japanese parent folder when the exe name is generic", () => {
     const [candidate] = getGameCandidatesByFilePath(
-      "E:\\VisualNovel\\枕\\サクラノ詩 -櫻の森の上を舞う-\\BGI.exe",
+      "E:\\VisualNovel\\枕\\サクラノ詩\\BGI.exe",
       0.8,
       1,
     );
@@ -22,9 +22,19 @@ describe("demo game matching", () => {
     expect(candidate?.id).toBe(4529);
   });
 
+  it("keeps a derived title match when the parent folder names it exactly", () => {
+    const [candidate] = getGameCandidatesByFilePath(
+      "E:\\VisualNovel\\枕\\サクラノ詩 春ノ雪\\BGI.exe",
+      0.8,
+      1,
+    );
+
+    expect(candidate?.id).toBe(11396);
+  });
+
   it("filters installer-like files before automatic linking", () => {
     const candidates = getGameCandidatesByFilePath(
-      "E:\\VisualNovel\\枕\\サクラノ詩 -櫻の森の上を舞う-\\Uninstaller.exe",
+      "E:\\VisualNovel\\枕\\サクラノ詩\\Uninstaller.exe",
       0.8,
       1,
     );

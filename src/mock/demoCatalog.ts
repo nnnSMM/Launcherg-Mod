@@ -20,6 +20,8 @@ for (const cache of scriptGames) {
   cacheById.set(cache.id, cache);
 }
 
+export const allGameCaches = [...scriptGames].sort((a, b) => a.id - b.id);
+
 for (const element of demoElements) {
   cacheById.set(element.id, {
     id: element.id,
@@ -35,10 +37,6 @@ for (const work of Object.values(worksById)) {
     thumbnailUrl: work.imgUrl,
   });
 }
-
-export const allGameCaches = Array.from(cacheById.values()).sort(
-  (a, b) => a.id - b.id,
-);
 
 export const getGameCacheById = (id: number) => cacheById.get(id) ?? null;
 
