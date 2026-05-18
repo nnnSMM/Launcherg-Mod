@@ -24,6 +24,7 @@
     selectedFolders: "\u9078\u629e\u3057\u305f\u30d5\u30a9\u30eb\u30c0",
     matched: "\u7d10\u3065\u3044\u305f\u30b2\u30fc\u30e0",
     unmatched: "\u7d10\u3065\u3051\u3067\u304d\u306a\u304b\u3063\u305f\u30d1\u30b9",
+    linkedGames: "\u9ad8\u4fe1\u983c\u3067\u7d10\u3065\u3044\u305f\u30b2\u30fc\u30e0",
     highConfidence: "\u9ad8\u4fe1\u983c",
     needsReview: "\u78ba\u8a8d\u304c\u5fc5\u8981",
     noCandidate: "\u5019\u88dc\u306a\u3057",
@@ -102,10 +103,6 @@
 
   $: matchedResults = preview?.results.filter((result) => result.matched) ?? [];
   $: unmatchedResults = preview?.results.filter((result) => !result.matched) ?? [];
-  $: matchRate =
-    preview && preview.scannedFileCount > 0
-      ? Math.round((preview.matchedCount / preview.scannedFileCount) * 100)
-      : 0;
 </script>
 
 <section class="rounded-lg border border-ui-border bg-bg-secondary/80 p-5 shadow-sm">
@@ -157,9 +154,11 @@
     {#if preview}
       <div class="w-full rounded-md border border-ui-border bg-bg-primary/70 p-4 lg:w-64">
         <div class="text-body2 text-text-tertiary">{labels.result}</div>
-        <div class="mt-1 text-3xl font-bold text-text-primary">{matchRate}%</div>
+        <div class="mt-1 text-3xl font-bold text-text-primary">
+          {preview.matchedCount} {labels.items}
+        </div>
         <div class="mt-2 text-body2 text-text-secondary">
-          {preview.matchedCount} / {preview.scannedFileCount} {labels.items}
+          {labels.linkedGames}
         </div>
       </div>
     {/if}
