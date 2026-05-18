@@ -3,69 +3,111 @@ import { allGameCaches, getGameCacheById } from "@/mock/demoCatalog";
 
 type NormalizedGameCache = AllGameCacheOne & {
   normalizedName: string;
-  grams: Set<string>;
+};
+
+export type DemoMatchedGamePath = {
+  cache: AllGameCacheOne;
+  path: string;
 };
 
 const STRICT_NOT_GAME_TERMS = [
-  "manual",
+  "\u30de\u30cb\u30e5\u30a2\u30eb",
+  "\u8a73\u7d30\u8a2d\u5b9a",
+  "\u306f\u3058\u3081\u306b",
+  "\u30b5\u30dd\u30fc\u30c8",
+  "\u30bb\u30fc\u30d6\u30c7\u30fc\u30bf",
+  "\u30a4\u30f3\u30b9\u30c8\u30fc\u30eb",
+  "\u30a2\u30f3\u30a4\u30f3\u30b9\u30c8\u30fc\u30eb",
+  "\u4f53\u9a13\u7248",
   "install",
   "uninstall",
-  "unins",
   "autorun",
+  "\u524a\u9664",
   "license",
-  "setup",
-  "config",
-  "setting",
-  "support",
-  "update",
-  "updchk",
-  "bootstrap",
-  "unitycrashhandler",
-  "sigchk",
-  "delfile",
-  "マニュアル",
-  "詳細設定",
-  "はじめに",
-  "サポート",
-  "セーブデータ",
-  "インストール",
-  "アンインストール",
-  "削除",
-  "公式サイト",
-  "ホームページ",
+  "\u30e9\u30a4\u30bb\u30f3\u30b9",
+  "\u516c\u5f0f\u30b5\u30a4\u30c8",
+  "\u30db\u30fc\u30e0\u30da\u30fc\u30b8",
 ];
 
-const ENGINE_NAMES = new Set(["bgi", "siglusengine", "nscripter", "game", "start"]);
+const IGNORE_WORD_WHEN_CONFLICT = [
+  "\u8a2d\u5b9a",
+  "\u30c1\u30a7\u30c3\u30af",
+  "\u30a4\u30f3\u30b9\u30c8",
+  "\u524a\u9664",
+  "\u30d5\u30a1\u30a4\u30eb",
+  "\u304f\u3060\u3055\u3044",
+  "\u4e0b\u3055\u3044",
+  "\u30de\u30cb\u30e5\u30a2\u30eb",
+  "\u30a2\u30c3\u30d7\u30c7\u30fc\u30c8",
+  "\u30b7\u30b9\u30c6\u30e0",
+  "check",
+  "setting",
+  "config",
+  "update",
+  "inst",
+  "tool",
+  "support",
+  "setup",
+  "unins",
+  "define",
+  "bhvc",
+  "bootstrap",
+  "file",
+  "exhibit",
+  "ihs",
+  "launcher",
+  "syscfg",
+  "updchk",
+  "acmp",
+];
 
+const SHOULD_UPDATE_WORD_WHEN_CONFLICT = [
+  "adv",
+  "64",
+  "cmvs",
+  "bgi",
+  "\u5b9f\u884c",
+  "\u8d77\u52d5",
+];
+
+const ENGINE_NAMES = new Set(["bgi", "siglusengine", "nscripter"]);
+const IGNORE_GAME_ID = new Set([2644, 63, 2797, 10419]);
 const EQUAL_FILENAME_GAME_ID = new Map<string, number>([["pieces", 27123]]);
+const REMOVE_WORDS = [
+  "\u3092\u8d77\u52d5",
+  "\u306e\u8d77\u52d5",
+  "_\u8d77\u52d5\u7528",
+  "\u300c",
+  "\u300d",
+  " ",
+  "\u3000",
+  "\u30c0\u30a6\u30f3\u30ed\u30fc\u30c9\u7248",
+  "dl\u7248",
+];
 
-export const normalizeForGameMatch = (value: string) =>
-  value
-    .normalize("NFKC")
-    .toLowerCase()
-    .replace(/ゲームを起動|ゲームの起動|_単独動作版|ダウンロード版|dl版/gi, "")
-    .replace(/[「」『』【】［］\[\]（）()_\-‐ー・＊*!.!！?？:：/\\\s]/g, "");
-
-const gramsOf = (value: string) => {
-  const grams = new Set<string>();
-  if (value.length <= 2) {
-    if (value) grams.add(value);
-    return grams;
+export const normalizeForGameMatch = (value: string) => {
+  let normalized = "";
+  for (const char of value) {
+    const code = char.codePointAt(0) ?? 0;
+    if (code >= 0xff21 && code <= 0xff3a) {
+      normalized += String.fromCharCode(code - 0xff21 + 0x41);
+      continue;
+    }
+    if (code >= 0xff41 && code <= 0xff5a) {
+      normalized += String.fromCharCode(code - 0xff41 + 0x41);
+      continue;
+    }
+    if (code >= 0xff10 && code <= 0xff19) {
+      normalized += String.fromCharCode(code - 0xff10 + 0x30);
+      continue;
+    }
+    normalized += char;
   }
-  for (let i = 0; i < value.length - 1; i++) {
-    grams.add(value.slice(i, i + 2));
-  }
-  return grams;
+  return normalized.toLowerCase();
 };
 
-const normalizedGames: NormalizedGameCache[] = allGameCaches.map((cache) => {
-  const normalizedName = normalizeForGameMatch(cache.gamename);
-  return {
-    ...cache,
-    normalizedName,
-    grams: gramsOf(normalizedName),
-  };
-});
+const removeWord = (value: string) =>
+  REMOVE_WORDS.reduce((current, word) => current.replaceAll(word, ""), value);
 
 const splitPath = (filepath: string) =>
   filepath.split(/[\\/]/).filter((part) => part.length > 0);
@@ -87,36 +129,64 @@ const isNotGameFilename = (normalizedStem: string) =>
     normalizedStem.includes(normalizeForGameMatch(term)),
   );
 
-const diceScore = (a: Set<string>, b: Set<string>) => {
-  if (!a.size || !b.size) {
-    return 0;
+const normalizedGames: NormalizedGameCache[] = allGameCaches.map((cache) => ({
+  ...cache,
+  normalizedName: normalizeForGameMatch(cache.gamename),
+}));
+
+const onpDistance = (left: string, right: string) => {
+  let a = Array.from(left);
+  let b = Array.from(right);
+  let m = a.length;
+  let n = b.length;
+
+  if (m > n) {
+    [a, b] = [b, a];
+    [m, n] = [n, m];
   }
-  let intersection = 0;
-  for (const gram of a) {
-    if (b.has(gram)) {
-      intersection++;
+
+  const offset = m + 1;
+  const delta = n - m;
+  const fp = Array(m + n + 3).fill(-1);
+  const snake = (k: number, yStart: number) => {
+    let x = yStart - k;
+    let y = yStart;
+    while (x < m && y < n && a[x] === b[y]) {
+      x += 1;
+      y += 1;
+    }
+    return y;
+  };
+
+  for (let p = 0; ; p += 1) {
+    for (let k = -p; k <= delta - 1; k += 1) {
+      fp[k + offset] = snake(
+        k,
+        Math.max(fp[k - 1 + offset] + 1, fp[k + 1 + offset]),
+      );
+    }
+    for (let k = delta + p; k >= delta + 1; k -= 1) {
+      fp[k + offset] = snake(
+        k,
+        Math.max(fp[k - 1 + offset] + 1, fp[k + 1 + offset]),
+      );
+    }
+    fp[delta + offset] = snake(
+      delta,
+      Math.max(fp[delta - 1 + offset] + 1, fp[delta + 1 + offset]),
+    );
+    if (fp[delta + offset] === n) {
+      return delta + 2 * p;
     }
   }
-  return (2 * intersection) / (a.size + b.size);
 };
 
-const scoreSource = (source: string, sourceGrams: Set<string>, game: NormalizedGameCache) => {
-  if (!source || !game.normalizedName) {
-    return 0;
-  }
-  if (source === game.normalizedName) {
+const getComparableDistance = (left: string, right: string) => {
+  const maxLength = Math.max(Array.from(left).length, Array.from(right).length);
+  if (!maxLength) {
     return 1;
   }
-  if (game.normalizedName.includes(source) && source.length >= 3) {
-    return Math.min(0.99, 0.9 + Math.min(source.length, 20) * 0.001);
-  }
-  if (source.includes(game.normalizedName) && game.normalizedName.length >= 3) {
-    return Math.min(0.99, 0.86 + (game.normalizedName.length / source.length) * 0.1);
-  }
-  if (source.length < 5) {
-    return 0;
-  }
-  return diceScore(sourceGrams, game.grams);
+  return 1 - onpDistance(left, right) / maxLength;
 };
 
 export const getGameCandidatesByFilePath = (
@@ -125,40 +195,59 @@ export const getGameCandidatesByFilePath = (
   limit = 5,
 ): AllGameCacheOne[] => {
   const parts = splitPath(filepath);
-  const stem = normalizeForGameMatch(fileStem(filepath));
-  if (!stem || isNotGameFilename(stem)) {
+  const normalizedStem = normalizeForGameMatch(fileStem(filepath));
+  if (!normalizedStem || isNotGameFilename(normalizedStem)) {
     return [];
   }
+
+  const shouldSkipFilename =
+    ENGINE_NAMES.has(normalizedStem) ||
+    normalizedStem === "game" ||
+    normalizedStem === "start";
+  const stem = removeWord(normalizedStem);
+  const parent = normalizeForGameMatch(parts.at(-2) ?? "");
+  const grandparent = normalizeForGameMatch(parts.at(-3) ?? "");
+  const scored: Array<{ cache: AllGameCacheOne; score: number }> = [];
 
   const forcedId = EQUAL_FILENAME_GAME_ID.get(stem);
   if (forcedId) {
     const forced = getGameCacheById(forcedId);
     if (forced) {
-      return [forced];
+      scored.push({ cache: forced, score: 100 });
     }
   }
 
-  const parent = normalizeForGameMatch(parts.at(-2) ?? "");
-  const grandparent = normalizeForGameMatch(parts.at(-3) ?? "");
-  const shouldSkipFilename = ENGINE_NAMES.has(stem);
-  const sources = [...new Set([shouldSkipFilename ? "" : stem, parent, grandparent])].filter(
-    Boolean,
-  );
-  const sourceGrams = new Map(sources.map((source) => [source, gramsOf(source)]));
-
-  const scored: Array<{ cache: AllGameCacheOne; score: number }> = [];
   for (const game of normalizedGames) {
+    if (IGNORE_GAME_ID.has(game.id)) {
+      continue;
+    }
+
     let score = 0;
-    for (const source of sources) {
-      score = Math.max(score, scoreSource(source, sourceGrams.get(source) ?? new Set(), game));
+    if (!shouldSkipFilename) {
+      score = Math.max(score, getComparableDistance(stem, game.normalizedName));
+    }
+    score = Math.max(score, getComparableDistance(parent, game.normalizedName));
+    if (grandparent) {
+      score = Math.max(score, getComparableDistance(grandparent, game.normalizedName));
     }
     if (score > threshold) {
       scored.push({ cache: game, score });
     }
   }
 
+  if (!scored.length) {
+    for (const game of normalizedGames) {
+      if (stem.length > 5 && game.normalizedName.includes(stem)) {
+        scored.push({ cache: game, score: stem.length });
+      }
+      if (parent.length > 5 && game.normalizedName.includes(parent)) {
+        scored.push({ cache: game, score: parent.length });
+      }
+    }
+  }
+
   return scored
-    .sort((a, b) => b.score - a.score || a.cache.id - b.cache.id)
+    .sort((a, b) => b.score - a.score)
     .slice(0, limit)
     .map(({ cache }) => ({
       id: cache.id,
@@ -170,7 +259,88 @@ export const getGameCandidatesByFilePath = (
 export const getMostProbableGameByFilePath = (filepath: string) =>
   getGameCandidatesByFilePath(filepath, 0.8, 1)[0] ?? null;
 
+const getConflictComparableStem = (path: string) =>
+  fileStem(normalizeForGameMatch(path));
+
+const shouldReplacePath = (
+  currentPath: string,
+  nextPath: string,
+  normalizedGameName: string,
+) => {
+  const currentStem = getConflictComparableStem(currentPath);
+  const nextStem = getConflictComparableStem(nextPath);
+  let mustUpdate = false;
+  let mustKeepCurrent = false;
+
+  for (const ignoreWord of IGNORE_WORD_WHEN_CONFLICT) {
+    const normalizedWord = normalizeForGameMatch(ignoreWord);
+    if (currentStem.includes(normalizedWord)) {
+      mustUpdate = true;
+      break;
+    }
+    if (nextStem.includes(normalizedWord)) {
+      mustKeepCurrent = true;
+      break;
+    }
+  }
+
+  for (const updateWord of SHOULD_UPDATE_WORD_WHEN_CONFLICT) {
+    const normalizedWord = normalizeForGameMatch(updateWord);
+    if (currentStem.includes(normalizedWord)) {
+      mustKeepCurrent = true;
+      break;
+    }
+    if (nextStem.includes(normalizedWord)) {
+      mustUpdate = true;
+      break;
+    }
+  }
+
+  if (mustUpdate && !mustKeepCurrent) {
+    return true;
+  }
+  if (mustKeepCurrent) {
+    return false;
+  }
+
+  return (
+    getComparableDistance(currentStem, normalizedGameName) <
+    getComparableDistance(nextStem, normalizedGameName)
+  );
+};
+
+export const getBestGamePathMatches = async (
+  files: string[],
+  onProcessed?: () => Promise<void> | void,
+) => {
+  const matches = new Map<number, DemoMatchedGamePath>();
+
+  for (const path of files) {
+    const cache = getMostProbableGameByFilePath(path);
+    if (onProcessed) {
+      await onProcessed();
+    }
+    if (!cache) {
+      continue;
+    }
+
+    const current = matches.get(cache.id);
+    if (
+      !current ||
+      shouldReplacePath(
+        current.path,
+        path,
+        normalizeForGameMatch(cache.gamename),
+      )
+    ) {
+      matches.set(cache.id, { cache, path });
+    }
+  }
+
+  return matches;
+};
+
 export const isSupportedGamePath = (filepath: string) => {
   const ext = extension(filepath);
-  return ext === "exe" || ext === "lnk" || ext === "url";
+  return ext === "exe" || ext === "lnk";
 };

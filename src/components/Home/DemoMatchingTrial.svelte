@@ -4,7 +4,11 @@
     commandPreviewDemoGameMatching,
     type DemoGameMatchingPreview,
   } from "@/lib/command";
+  import ModalBase from "@/components/UI/ModalBase.svelte";
   import { showErrorToast } from "@/lib/toast";
+  import { fade } from "svelte/transition";
+  import { listen } from "@tauri-apps/api/event";
+  import { onMount } from "svelte";
   import { open } from "@tauri-apps/plugin-dialog";
 
   const labels = {
@@ -16,7 +20,8 @@
     clear: "\u7d50\u679c\u3092\u30af\u30ea\u30a2",
     processing: "\u30d5\u30a9\u30eb\u30c0\u3092\u8aad\u307f\u53d6\u308a\u4e2d",
     processingDetail:
-      "\u81ea\u52d5\u8ffd\u52a0\u3068\u540c\u3058\u3088\u3046\u306b exe / lnk / url \u3092\u63a2\u3057\u3001\u4f5c\u54c1\u5019\u88dc\u3068\u7167\u5408\u3057\u3066\u3044\u307e\u3059\u3002",
+      "\u81ea\u52d5\u8ffd\u52a0\u3068\u540c\u3058\u3088\u3046\u306b exe / lnk \u3092\u63a2\u3057\u3001\u4f5c\u54c1\u5019\u88dc\u3068\u7167\u5408\u3057\u3066\u3044\u307e\u3059\u3002",
+    processedFiles: "\u51e6\u7406\u3057\u305f\u30d5\u30a1\u30a4\u30eb",
     result: "\u5224\u5b9a\u7d50\u679c",
     selectedFolders: "\u9078\u629e\u3057\u305f\u30d5\u30a9\u30eb\u30c0",
     matched: "\u7d10\u3065\u3044\u305f\u30b2\u30fc\u30e0",
@@ -25,7 +30,7 @@
     needsReview: "\u78ba\u8a8d\u304c\u5fc5\u8981",
     noCandidate: "\u5019\u88dc\u306a\u3057",
     noFiles:
-      "\u5bfe\u8c61\u306b\u306a\u308b exe / lnk / url \u304c\u898b\u3064\u304b\u308a\u307e\u305b\u3093\u3067\u3057\u305f\u3002",
+      "\u5bfe\u8c61\u306b\u306a\u308b exe / lnk \u304c\u898b\u3064\u304b\u308a\u307e\u305b\u3093\u3067\u3057\u305f\u3002",
     readError:
       "\u30d5\u30a9\u30eb\u30c0\u306e\u8aad\u307f\u53d6\u308a\u306b\u5931\u6557\u3057\u307e\u3057\u305f\u3002\u5225\u306e\u30d5\u30a9\u30eb\u30c0\u3067\u8a66\u3057\u3066\u304f\u3060\u3055\u3044\u3002",
     canceled:
@@ -35,6 +40,8 @@
 
   let selectedPaths: string[] = [];
   let isLoading = false;
+  let processFileNums = 0;
+  let processedFileNums = 0;
   let preview: DemoGameMatchingPreview | null = null;
 
   const filename = (path: string) => path.split(/[\\/]/).filter(Boolean).at(-1) ?? path;
@@ -44,6 +51,8 @@
       preview = null;
       return;
     }
+    processFileNums = 0;
+    processedFileNums = 0;
     isLoading = true;
     try {
       preview = await commandPreviewDemoGameMatching(paths);
@@ -72,7 +81,26 @@
   const clear = () => {
     selectedPaths = [];
     preview = null;
+    processFileNums = 0;
+    processedFileNums = 0;
   };
+
+  onMount(async () => {
+    const unlistenProgressLive = await listen<{ max: number | null }>(
+      "progresslive",
+      (event) => {
+        if (typeof event.payload?.max === "number") {
+          processFileNums = event.payload.max;
+          processedFileNums = 0;
+        } else {
+          processedFileNums = processedFileNums + 1;
+        }
+      },
+    );
+    return () => {
+      unlistenProgressLive();
+    };
+  });
 
   $: matchedResults = preview?.results.filter((result) => result.matched) ?? [];
   $: unmatchedResults = preview?.results.filter((result) => !result.matched) ?? [];
@@ -145,6 +173,11 @@
       <div class="min-w-0">
         <div class="text-body font-bold text-text-primary">{labels.processing}</div>
         <div class="mt-1 text-body2 text-text-tertiary">{labels.processingDetail}</div>
+        {#if processFileNums}
+          <div class="mt-2 text-body2 font-medium text-text-primary">
+            {labels.processedFiles}: {processedFileNums}/{processFileNums}
+          </div>
+        {/if}
       </div>
     </div>
   {:else if preview}
@@ -216,3 +249,21 @@
     </div>
   {/if}
 </section>
+
+{#if isLoading}
+  <div transition:fade={{ delay: 150 }}>
+    <ModalBase isOpen={true} panelClass="max-w-82">
+      <div class="flex flex-col items-center justify-center gap-5 w-full p-12">
+        <div
+          class="w-20 h-20 border-12px border-solid border-#D9D9D9 border-t-#2D2D2D border-t-rounded rounded-full animate-spin"
+        />
+        <div class="text-text-primary text-h3 font-bold">{labels.processing}</div>
+        {#if processFileNums}
+          <div class="text-text-primary text-body font-medium">
+            {labels.processedFiles}: {processedFileNums}/{processFileNums}
+          </div>
+        {/if}
+      </div>
+    </ModalBase>
+  </div>
+{/if}

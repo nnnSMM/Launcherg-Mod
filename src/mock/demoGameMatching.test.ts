@@ -14,7 +14,7 @@ describe("demo game matching", () => {
 
   it("matches a real game from a Japanese parent folder when the exe name is generic", () => {
     const [candidate] = getGameCandidatesByFilePath(
-      "E:\\VisualNovel\\枕\\サクラノ詩\\BGI.exe",
+      "E:\\VisualNovel\\枕\\サクラノ詩 -櫻の森の上を舞う-\\BGI.exe",
       0.8,
       1,
     );
@@ -24,7 +24,7 @@ describe("demo game matching", () => {
 
   it("filters installer-like files before automatic linking", () => {
     const candidates = getGameCandidatesByFilePath(
-      "E:\\VisualNovel\\枕\\サクラノ詩\\Uninstaller.exe",
+      "E:\\VisualNovel\\枕\\サクラノ詩 -櫻の森の上を舞う-\\Uninstaller.exe",
       0.8,
       1,
     );

@@ -13,8 +13,8 @@ import {
   getWorkById,
 } from "@/mock/demoCatalog";
 import {
+  getBestGamePathMatches,
   getGameCandidatesByFilePath,
-  getMostProbableGameByFilePath,
   normalizeForGameMatch,
 } from "@/mock/demoGameMatching";
 import { scanDemoPaths } from "@/mock/demoBrowserFiles";
@@ -222,15 +222,15 @@ export const invoke = async <T = unknown>(
     const files = await scanDemoPaths(paths);
     await emit("progresslive", { max: files.length });
 
-    const additions = new Map<number, { cache: AllGameCacheOne; path: string }>();
-    for (const file of files) {
-      const cache = getMostProbableGameByFilePath(file.path);
-      await emit("progresslive", {});
-      if (!cache || collectionElements.some((element) => element.id === cache.id)) {
-        continue;
-      }
-      if (!additions.has(cache.id)) {
-        additions.set(cache.id, { cache, path: file.path });
+    const additions = await getBestGamePathMatches(
+      files.map((file) => file.path),
+      async () => {
+        await emit("progresslive", {});
+      },
+    );
+    for (const id of Array.from(additions.keys())) {
+      if (collectionElements.some((element) => element.id === id)) {
+        additions.delete(id);
       }
     }
 
@@ -250,29 +250,45 @@ export const invoke = async <T = unknown>(
   if (cmd === "preview_demo_game_matching") {
     const paths = (args?.exploreDirPaths ?? []) as string[];
     const files = await scanDemoPaths(paths);
-    const results = files.map((file) => {
-      const matched = getMostProbableGameByFilePath(file.path);
-      const candidates = getGameCandidatesByFilePath(file.path, 0.2, 3).map((cache) => [
-        cache.id,
-        cache.gamename,
-      ]);
-      return {
+    await emit("progresslive", { max: files.length });
+    const matchedByGame = await getBestGamePathMatches(
+      files.map((file) => file.path),
+      async () => {
+        await emit("progresslive", {});
+      },
+    );
+    const matchedPathSet = new Set(
+      Array.from(matchedByGame.values()).map((match) => match.path),
+    );
+
+    const matchedResults = Array.from(matchedByGame.values()).map(({ cache, path }) => ({
+      path,
+      matched: {
+        id: cache.id,
+        gamename: cache.gamename,
+        thumbnailUrl: cache.thumbnailUrl,
+      },
+      candidates: getGameCandidatesByFilePath(path, 0.2, 3).map((candidate) => [
+        candidate.id,
+        candidate.gamename,
+      ]),
+    }));
+    const unmatchedResults = files
+      .filter((file) => !matchedPathSet.has(file.path))
+      .filter((file) => !getGameCandidatesByFilePath(file.path, 0.8, 1)[0])
+      .map((file) => ({
         path: file.path,
-        matched: matched
-          ? {
-              id: matched.id,
-              gamename: matched.gamename,
-              thumbnailUrl: matched.thumbnailUrl,
-            }
-          : null,
-        candidates,
-      };
-    });
+        matched: null,
+        candidates: getGameCandidatesByFilePath(file.path, 0.2, 3).map((cache) => [
+          cache.id,
+          cache.gamename,
+        ]),
+      }));
 
     return {
       scannedFileCount: files.length,
-      matchedCount: results.filter((result) => result.matched).length,
-      results,
+      matchedCount: matchedResults.length,
+      results: [...matchedResults, ...unmatchedResults],
     } as T;
   }
 

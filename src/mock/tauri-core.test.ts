@@ -89,21 +89,36 @@ describe("demo tauri core", () => {
 
   it("previews folder matching without adding games to the collection", async () => {
     const { invoke } = await import("@/mock/tauri-core");
+    const { listen } = await import("@/mock/tauri-event");
+    let max = 0;
+    let processed = 0;
+    const unlisten = await listen("progresslive", (event) => {
+      const payload = event.payload as { max?: number } | undefined;
+      if (typeof payload?.max === "number") {
+        max = payload.max;
+      } else {
+        processed += 1;
+      }
+    });
 
     const preview = await invoke<{
       scannedFileCount: number;
       matchedCount: number;
-      results: Array<{ matched: { id: number; gamename: string } | null }>;
+      results: Array<{ path: string; matched: { id: number; gamename: string } | null }>;
     }>("preview_demo_game_matching", {
       exploreDirPaths: [
         "E:\\VisualNovel\\key\\Summer Pockets REFLECTION BLUE",
       ],
     });
+    unlisten();
     const elements = await invoke<CollectionElement[]>("get_all_elements", {});
 
     expect(preview.scannedFileCount).toBeGreaterThan(0);
-    expect(preview.matchedCount).toBeGreaterThan(0);
-    expect(preview.results.some((result) => result.matched?.id === 29016)).toBe(true);
+    expect(max).toBe(preview.scannedFileCount);
+    expect(processed).toBe(preview.scannedFileCount);
+    expect(preview.matchedCount).toBe(1);
+    expect(preview.results.filter((result) => result.matched?.id === 29016)).toHaveLength(1);
+    expect(preview.results.find((result) => result.matched?.id === 29016)?.path).toMatch(/BGI\.exe$/);
     expect(elements.some((element) => element.id === 29016)).toBe(false);
   });
 });
