@@ -26,6 +26,7 @@
   import { enqueueVndbScreenshotPrefetch } from "@/lib/useVndbScreenshots";
 
   const appWindow = getCurrentWindow();
+  const isDemoBuild = import.meta.env.BASE_URL === "./";
   let isMaximized = false;
   let isOpenImportAutomatically = false;
   let isOpenImportManually = false;
@@ -112,6 +113,15 @@
       <a href="/" use:link class="flex items-center px-2 h-full cursor-pointer outline-none border-none text-text-secondary hover:text-text-primary transition-colors text-[13px] font-medium" tabindex="-1">
         ホーム
       </a>
+      {#if isDemoBuild}
+        <button
+          disabled
+          title="demo では実ファイルアイコンを安定して取得できないため、ゲーム登録はできません"
+          class="flex items-center px-2 h-full cursor-not-allowed outline-none focus:outline-none focus-visible:outline-none bg-transparent border-none text-text-tertiary opacity-60 text-[13px] font-medium"
+        >
+          繧ｲ繝ｼ繝霑ｽ蜉
+        </button>
+      {:else}
       <APopover panelClass="left-0" let:close>
         <button slot="button" class="flex items-center px-2 h-full cursor-pointer outline-none focus:outline-none focus-visible:outline-none bg-transparent border-none text-text-secondary hover:text-text-primary transition-colors text-[13px] font-medium">
           ゲーム追加
@@ -122,6 +132,7 @@
           on:startManual={() => (isOpenImportManually = true)}
         />
       </APopover>
+      {/if}
 
       <button on:click={openShortcutSettingsTab} class="flex items-center px-2 h-full cursor-pointer outline-none focus:outline-none focus-visible:outline-none bg-transparent border-none text-text-secondary hover:text-text-primary transition-colors text-[13px] font-medium">
         ショートカット

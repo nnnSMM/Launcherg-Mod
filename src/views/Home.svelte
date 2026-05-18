@@ -20,6 +20,9 @@
   import { backgroundState } from "@/store/background";
   import { startProcessMap } from "@/store/startProcessMap";
   import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+  import DemoMatchingTrial from "@/components/Home/DemoMatchingTrial.svelte";
+
+  const isDemoBuild = import.meta.env.BASE_URL === "./";
 
   let scrollable: RecentlyPlayedScroller;
   let shortcutGameId: number | null = null;
@@ -118,6 +121,10 @@
   let:contentsScrollTo
 >
   <div class="space-y-8 mb-2" slot="header">
+    {#if isDemoBuild}
+      <DemoMatchingTrial />
+    {/if}
+
     <div class="grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-6">
       {#if $loading}
         <div class="p-6 rounded-xl glass space-y-3">

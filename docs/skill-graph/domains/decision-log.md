@@ -12,6 +12,14 @@ links:
 
 # Decision Log
 
+## 2026-05-18: demo のゲーム追加は登録ではなく紐づけ確認に限定する
+
+- Context: ブラウザ公開 demo では実ファイルアイコンの取得が安定せず、実アプリと同じ品質でゲーム登録を再現できない。
+- Decision: demo ビルドではタイトルバーのゲーム追加とドラッグ&ドロップ登録を無効化し、ホームにフォルダ選択からゲーム紐づけ結果だけを確認するパネルを置く。
+- Rationale: 登録後の表示が実アプリと異なる状態になるより、demo で確実に価値を確認できる「所持フォルダからどれだけ紐づくか」に絞る。
+- Consequence: demo ではライブラリへゲームを追加できない。通常アプリでは従来どおり自動/手動追加を使える。
+- Links: [[product-context]], [[quality-gates]]
+
 ## 2026-05-18: demo の公開用画像とHTMLキャッシュはリポジトリに含める
 
 - Context: GitHub Pages は GitHub Actions 上で `npm run build-demo` を実行する。ローカルでは `public/demo-images` と `public/demo-data` が存在していたが、`.gitignore` 対象だったため Actions 環境には渡らず、公開ページで画像が 404 になった。

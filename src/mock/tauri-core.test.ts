@@ -86,4 +86,24 @@ describe("demo tauri core", () => {
     expect(imported?.icon).toBe("blob:demo-icon");
     expect(imported?.icon).not.toBe(imported?.thumbnail);
   });
+
+  it("previews folder matching without adding games to the collection", async () => {
+    const { invoke } = await import("@/mock/tauri-core");
+
+    const preview = await invoke<{
+      scannedFileCount: number;
+      matchedCount: number;
+      results: Array<{ matched: { id: number; gamename: string } | null }>;
+    }>("preview_demo_game_matching", {
+      exploreDirPaths: [
+        "E:\\VisualNovel\\key\\Summer Pockets REFLECTION BLUE",
+      ],
+    });
+    const elements = await invoke<CollectionElement[]>("get_all_elements", {});
+
+    expect(preview.scannedFileCount).toBeGreaterThan(0);
+    expect(preview.matchedCount).toBeGreaterThan(0);
+    expect(preview.results.some((result) => result.matched?.id === 29016)).toBe(true);
+    expect(elements.some((element) => element.id === 29016)).toBe(false);
+  });
 });

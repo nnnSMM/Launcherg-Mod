@@ -247,6 +247,35 @@ export const invoke = async <T = unknown>(
     return addedNames as T;
   }
 
+  if (cmd === "preview_demo_game_matching") {
+    const paths = (args?.exploreDirPaths ?? []) as string[];
+    const files = await scanDemoPaths(paths);
+    const results = files.map((file) => {
+      const matched = getMostProbableGameByFilePath(file.path);
+      const candidates = getGameCandidatesByFilePath(file.path, 0.2, 3).map((cache) => [
+        cache.id,
+        cache.gamename,
+      ]);
+      return {
+        path: file.path,
+        matched: matched
+          ? {
+              id: matched.id,
+              gamename: matched.gamename,
+              thumbnailUrl: matched.thumbnailUrl,
+            }
+          : null,
+        candidates,
+      };
+    });
+
+    return {
+      scannedFileCount: files.length,
+      matchedCount: results.filter((result) => result.matched).length,
+      results,
+    } as T;
+  }
+
   if (cmd === "upsert_collection_element") {
     const gameCache = args?.gameCache as AllGameCacheOne | undefined;
     if (gameCache) {

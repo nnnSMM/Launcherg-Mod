@@ -138,6 +138,26 @@ export const commandGetGameCandidates = async (filepath: string) => {
   });
 };
 
+export type DemoGameMatchingPreview = {
+  scannedFileCount: number;
+  matchedCount: number;
+  results: Array<{
+    path: string;
+    matched: null | {
+      id: number;
+      gamename: string;
+      thumbnailUrl: string;
+    };
+    candidates: Array<[number, string]>;
+  }>;
+};
+
+export const commandPreviewDemoGameMatching = async (exploreDirPaths: string[]) => {
+  return await invoke<DemoGameMatchingPreview>("preview_demo_game_matching", {
+    exploreDirPaths,
+  });
+};
+
 export const commandSearchAllGameCache = async (
   query: string,
   limit: number,

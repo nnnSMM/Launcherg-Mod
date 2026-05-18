@@ -21,6 +21,7 @@
   import { theme } from "@/store/theme";
 
   const windowLabel = getCurrentWindow().label;
+  const isDemoBuild = import.meta.env.BASE_URL === "./";
 
   $: setDetailPromise = registerCollectionElementDetails();
 
@@ -79,7 +80,9 @@
           {/key}
         </Layout>
       {/await}
-      <ImportDropFiles />
+      {#if !isDemoBuild}
+        <ImportDropFiles />
+      {/if}
       <InitializationOverlay />
     </div>
   </main>
