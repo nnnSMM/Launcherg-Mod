@@ -4,9 +4,7 @@
     commandPreviewDemoGameMatching,
     type DemoGameMatchingPreview,
   } from "@/lib/command";
-  import ModalBase from "@/components/UI/ModalBase.svelte";
   import { showErrorToast } from "@/lib/toast";
-  import { fade } from "svelte/transition";
   import { listen } from "@tauri-apps/api/event";
   import { onMount } from "svelte";
   import { open } from "@tauri-apps/plugin-dialog";
@@ -249,21 +247,3 @@
     </div>
   {/if}
 </section>
-
-{#if isLoading}
-  <div transition:fade={{ delay: 150 }}>
-    <ModalBase isOpen={true} panelClass="max-w-82">
-      <div class="flex flex-col items-center justify-center gap-5 w-full p-12">
-        <div
-          class="w-20 h-20 border-12px border-solid border-#D9D9D9 border-t-#2D2D2D border-t-rounded rounded-full animate-spin"
-        />
-        <div class="text-text-primary text-h3 font-bold">{labels.processing}</div>
-        {#if processFileNums}
-          <div class="text-text-primary text-body font-medium">
-            {labels.processedFiles}: {processedFileNums}/{processFileNums}
-          </div>
-        {/if}
-      </div>
-    </ModalBase>
-  </div>
-{/if}
