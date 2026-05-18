@@ -14,8 +14,6 @@ dist-ssr
 
 # Demo/video artifacts
 docs/demo/
-public/demo-data/
-public/demo-images/
 videos/
 
 # Editor directories and files

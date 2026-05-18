@@ -12,6 +12,14 @@ links:
 
 # Decision Log
 
+## 2026-05-18: demo の公開用画像とHTMLキャッシュはリポジトリに含める
+
+- Context: GitHub Pages は GitHub Actions 上で `npm run build-demo` を実行する。ローカルでは `public/demo-images` と `public/demo-data` が存在していたが、`.gitignore` 対象だったため Actions 環境には渡らず、公開ページで画像が 404 になった。
+- Decision: `public/demo-images` と `public/demo-data` は demo のソース資産として Git 管理対象にする。生成物である `docs/demo` は引き続き ignore する。
+- Rationale: demo は静的サイトなので、ビルド時に必要な画像とHTMLキャッシュをリポジトリから再現できる必要がある。通常アプリビルドでは別途 demo 資産を除外しているため、アプリ配布物の肥大化は避けられる。
+- Consequence: リポジトリサイズは約12MB増える。画像を更新した場合は `public/demo-images` / `public/demo-data` もコミット対象になる。
+- Links: [[architecture-map]], [[quality-gates]]
+
 ## 2026-05-18: demo は GitHub Pages に Actions ビルドで公開する
 
 - Context: demo は `npm run build-demo` で `docs/demo` に生成される静的サイトだが、生成物は `.gitignore` 対象でコミットしない運用にしている。
