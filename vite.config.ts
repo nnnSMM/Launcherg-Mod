@@ -50,6 +50,10 @@ export default defineConfig(async () => ({
     },
   },
 
+  define: {
+    __PUBLIC_DEMO_BUILD__: false,
+  },
+
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   // prevent vite from obscuring rust errors
   clearScreen: false,

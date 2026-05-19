@@ -215,6 +215,44 @@ describe("useVndbScreenshots", () => {
     );
   });
 
+  it("falls back to generic product images when a Steam page has no screenshot payload", () => {
+    const screenshots = parseSteamScreenshotsFromProductHtml(`
+      <html>
+        <head>
+          <meta property="og:image" content="https://example.com/cover.jpg">
+          <meta name="twitter:image" content="https://example.com/preview.png">
+        </head>
+        <body>
+          <img src="https://example.com/preview.png">
+          <img src="https://example.com/logo.png">
+        </body>
+      </html>
+    `);
+
+    expect(screenshots).toEqual([
+      {
+        id: "steam-fallback-1-https://example.com/cover.jpg",
+        url: "https://example.com/cover.jpg",
+        thumbnail: "https://example.com/cover.jpg",
+        dims: null,
+        thumbnailDims: null,
+        sexual: 0,
+        violence: 0,
+        languages: ["ja"],
+      },
+      {
+        id: "steam-fallback-2-https://example.com/preview.png",
+        url: "https://example.com/preview.png",
+        thumbnail: "https://example.com/preview.png",
+        dims: null,
+        thumbnailDims: null,
+        sexual: 0,
+        violence: 0,
+        languages: ["ja"],
+      },
+    ]);
+  });
+
   it("normalizes DLsite resized thumbnails to full sample images", () => {
     const screenshots = parseDlsiteScreenshotsFromProductHtml(`
       <img src="//img.dlsite.jp/modpub/images2/work/doujin/RJ01319000/RJ01318457_img_main.jpg">

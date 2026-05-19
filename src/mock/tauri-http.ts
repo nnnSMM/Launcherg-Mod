@@ -1,4 +1,9 @@
-import { getDetailSeedById, getGameCacheById, getWorkById } from "@/mock/demoCatalog";
+import {
+  getCollectionElementSeed,
+  getDetailSeedById,
+  getGameCacheById,
+  getWorkById,
+} from "@/mock/demoCatalog";
 
 type FetchOptions = {
   method?: string;
@@ -109,8 +114,56 @@ const buildGamePage = (id: number) => {
   `;
 };
 
+const steamAppToGameId = new Map<number, number>([
+  [3101040, 38631],
+  [3782920, 38696],
+]);
+
+const buildSteamProductPage = (appId: number) => {
+  const gameId = steamAppToGameId.get(appId);
+  if (!gameId) {
+    return "";
+  }
+
+  const work = getWorkById(gameId);
+  const collectionElement = getCollectionElementSeed(gameId);
+  if (!work || !collectionElement) {
+    return "";
+  }
+
+  const localPreviewUrl = new URL(
+    `./${collectionElement.thumbnail}`,
+    window.location.href,
+  ).href;
+  const coverUrl = work.imgUrl || localPreviewUrl;
+
+  return `
+    <html>
+      <head>
+        <meta property="og:image" content="${escapeHtml(coverUrl)}" />
+        <meta name="twitter:image" content="${escapeHtml(localPreviewUrl)}" />
+      </head>
+      <body>
+        <div class="apphub_AppName">${escapeHtml(work.name)}</div>
+        <img src="${escapeHtml(coverUrl)}" alt="cover" />
+        <img src="${escapeHtml(localPreviewUrl)}" alt="preview" />
+      </body>
+    </html>
+  `;
+};
+
 export const fetch = async (url: string, options?: FetchOptions) => {
   console.log("[Mock Tauri HTTP] fetch:", url, options);
+
+  const steamAppMatch = url.match(
+    /^https:\/\/store\.steampowered\.com\/app\/(\d+)\/?[^?#]*/i,
+  );
+  if (steamAppMatch) {
+    const html = buildSteamProductPage(Number(steamAppMatch[1]));
+    if (html) {
+      return textResponse(html);
+    }
+  }
 
   if (url.includes("erogamescape.dyndns.org/~ap2/ero/toukei_kaiseki/game.php?game=")) {
     const id = Number(url.split("game=")[1].split("&")[0]);

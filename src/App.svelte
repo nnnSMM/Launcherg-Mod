@@ -14,6 +14,7 @@
   import { getCurrentWindow } from "@tauri-apps/api/window";
 
   import Overlay from "@/views/Overlay.svelte";
+  import Landing from "@/views/Landing.svelte";
   import ScreenshotWindow from "@/views/ScreenshotWindow.svelte";
   import TrayMenu from "@/views/TrayMenu.svelte";
   import InitializationOverlay from "@/components/UI/InitializationOverlay.svelte";
@@ -21,13 +22,31 @@
   import { theme } from "@/store/theme";
 
   const windowLabel = getCurrentWindow().label;
+  const isPublicDemoBuild = __PUBLIC_DEMO_BUILD__;
+  let didInitializeMainApp = false;
+  let isMounted = false;
 
-  $: setDetailPromise = registerCollectionElementDetails();
+  $: isLandingRoute =
+    isPublicDemoBuild && ($location === "/" || $location === "/landing");
+  $: setDetailPromise = isLandingRoute
+    ? Promise.resolve()
+    : registerCollectionElementDetails();
+
+  const initializeMainApp = () => {
+    if (didInitializeMainApp) {
+      return;
+    }
+    didInitializeMainApp = true;
+    initialize();
+    initializeAllGameCache();
+  };
 
   onMount(async () => {
     void theme.initialize();
-    initialize();
-    initializeAllGameCache();
+    isMounted = true;
+    if (!isLandingRoute) {
+      initializeMainApp();
+    }
 
     // F5とCtrl+Rによるリロードを無効化
     const handleKeydown = (e: KeyboardEvent) => {
@@ -45,6 +64,10 @@
       window.removeEventListener("keydown", handleKeydown);
     };
   });
+
+  $: if (isMounted && !isLandingRoute) {
+    initializeMainApp();
+  }
 </script>
 
 {#if windowLabel === "overlay"}
@@ -53,6 +76,8 @@
   <ScreenshotWindow />
 {:else if windowLabel === "tray_menu"}
   <TrayMenu />
+{:else if isLandingRoute}
+  <Landing />
 {:else}
   <main
     class="relative h-full w-full bg-bg-primary font-sans overflow-hidden flex flex-col"

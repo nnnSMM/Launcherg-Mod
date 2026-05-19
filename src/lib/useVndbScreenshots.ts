@@ -492,6 +492,36 @@ const getSteamSampleImageUrls = (html: string) => {
   return urls.filter(isSteamImageUrl);
 };
 
+const getGenericProductImageUrls = (doc: Document) => {
+  const urls = [
+    ...doc.querySelectorAll<HTMLMetaElement>(
+      "meta[property='og:image'], meta[name='twitter:image'], meta[name='twitter:image:src']",
+    ),
+  ]
+    .map((meta) => meta.getAttribute("content") ?? "")
+    .concat(
+      [...doc.querySelectorAll<HTMLLinkElement>("link[rel='image_src']")].map(
+        (link) => link.getAttribute("href") ?? "",
+      ),
+    )
+    .concat(
+      [...doc.querySelectorAll<HTMLImageElement>("img[src]")].map(
+        (image) => image.getAttribute("src") ?? image.src,
+      ),
+    )
+    .map((url) => (url.startsWith("//") ? `https:${url}` : url))
+    .filter((url) => /^https?:\/\//i.test(url))
+    .filter((url) => /\.(?:jpg|jpeg|png|webp)(?:[?#].*)?$/i.test(url))
+    .filter(
+      (url) =>
+        !/\/(?:favicon|icon|logo)[^/]*\.(?:jpg|jpeg|png|webp)(?:[?#].*)?$/i.test(
+          url,
+        ),
+    );
+
+  return [...new Set(urls)];
+};
+
 const toFanzaScreenshots = (urls: string[]) => {
   const seen = new Set<string>();
   return urls
@@ -574,6 +604,29 @@ const toSteamScreenshots = (urls: string[]) => {
   });
 };
 
+const toGenericProductScreenshots = (
+  urls: string[],
+  source: string,
+) => {
+  const seen = new Set<string>();
+  return urls
+    .map((url, index): VndbScreenshot | null => {
+      if (!url || seen.has(url)) return null;
+      seen.add(url);
+      return {
+        id: `${source}-fallback-${index + 1}-${url}`,
+        url,
+        thumbnail: url,
+        dims: null,
+        thumbnailDims: null,
+        sexual: 0,
+        violence: 0,
+        languages: ["ja"],
+      };
+    })
+    .filter((s): s is VndbScreenshot => !!s);
+};
+
 export const parseFanzaScreenshotsFromHtml = (
   html: string,
 ): {
@@ -621,7 +674,15 @@ export const parseDlsiteScreenshotsFromProductHtml = (
 
 export const parseSteamScreenshotsFromProductHtml = (
   html: string,
-): VndbScreenshot[] => toSteamScreenshots(getSteamSampleImageUrls(html));
+): VndbScreenshot[] => {
+  const steamScreenshots = toSteamScreenshots(getSteamSampleImageUrls(html));
+  if (steamScreenshots.length > 0) {
+    return steamScreenshots;
+  }
+
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  return toGenericProductScreenshots(getGenericProductImageUrls(doc), "steam");
+};
 
 const getShowSensitiveSetting = async () => {
   const value = await commandGetAppSetting(SHOW_SENSITIVE_SETTING_KEY);

@@ -8,6 +8,7 @@ import Overlay from "@/views/Overlay.svelte";
 
 export const routes = {
   "/": Home,
+  "/demo": Home,
   "/works/:id": Work,
   "/memos/:id": Memo,
   "/settings/play-status": PlayStatusBulkEditor, // これが設定タブのコンテンツ

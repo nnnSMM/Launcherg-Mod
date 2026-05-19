@@ -1,6 +1,12 @@
 import { createLocalStorageWritable, localStorageWritable } from "@/lib/utils";
 import { push, type RouteLoadedEvent } from "svelte-spa-router";
 
+let isDemoBuildVal = import.meta.env.BASE_URL === "./";
+export const isDemoBuild = () => isDemoBuildVal;
+export const setDemoBuildForTest = (val: boolean) => {
+  isDemoBuildVal = val;
+};
+
 export type Tab = {
   id: number;
   workId?: number;
@@ -50,7 +56,7 @@ const createTabs = () => {
 
     localStorage.setItem("last-path", location);
 
-    if (location === "/") {
+    if (location === "/" || location === "/demo") {
       selected.set(-1);
       return;
     }
@@ -64,7 +70,7 @@ const createTabs = () => {
 
     if (!isValidTabType(tabTypeSegment)) {
       console.error("Invalid tab type from route:", tabTypeSegment);
-      push("/");
+      push(isDemoBuild() ? "/demo" : "/");
       return;
     }
 
@@ -174,7 +180,7 @@ const createTabs = () => {
 
     if (newTabs.length === 0) {
       selected.set(-1);
-      push("/");
+      push(isDemoBuild() ? "/demo" : "/");
       return;
     }
 
@@ -184,7 +190,7 @@ const createTabs = () => {
       if (nextTabToPush) {
         push(nextTabToPush.path); // path を使う
       } else {
-        push("/");
+        push(isDemoBuild() ? "/demo" : "/");
       }
     } else if (currentSelectedRaw > deleteIndex) {
       newSelectedRaw = currentSelectedRaw - 1;
@@ -195,12 +201,14 @@ const createTabs = () => {
 
   const initialize = () => {
     const lastPath = localStorage.getItem("last-path");
+    const currentHashPath = window.location.hash.replace(/^#/, "");
+    const isRootHash = currentHashPath === "" || currentHashPath === "/";
     if (lastPath?.startsWith("/discover")) {
       localStorage.removeItem("last-path");
     }
     // If we have a last path, and the current path is the root
     // (which is the default when reopening the app), then navigate.
-    if (lastPath && window.location.pathname === "/") {
+    if (lastPath && window.location.pathname === "/" && isRootHash && !isDemoBuild()) {
       push(lastPath);
       return; // The push will trigger routeLoaded, which will handle the rest.
     }

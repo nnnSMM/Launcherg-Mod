@@ -2,7 +2,7 @@
   import { onMount } from "svelte";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import Icon from "/icon.png";
-  import { link } from "svelte-spa-router";
+  import { link, push } from "svelte-spa-router";
   import {
     openDisplaySettingsTab,
     openSettingsTab,
@@ -109,6 +109,10 @@
 
   async function closeWindow() {
     console.log("close clicked");
+    if (isDemoBuild && variant === "main") {
+      push("/");
+      return;
+    }
     await saveMainWindowStateIfNeeded();
     appWindow.close().catch(console.error);
   }
@@ -126,7 +130,7 @@
       <div class="flex items-center justify-center h-full pl-2 pr-1 pointer-events-none">
         <img src={Icon} alt="launcherg icon" class="h-4" />
       </div>
-      <a href="/" use:link class="flex items-center px-2 h-full cursor-pointer outline-none border-none text-text-secondary hover:text-text-primary transition-colors text-[13px] font-medium" tabindex="-1">
+      <a href={isDemoBuild ? "/demo" : "/"} use:link class="flex items-center px-2 h-full cursor-pointer outline-none border-none text-text-secondary hover:text-text-primary transition-colors text-[13px] font-medium" tabindex="-1">
         {navLabels.home}
       </a>
       <APopover panelClass="left-0" let:close>

@@ -1,7 +1,20 @@
-import { describe, it, expect } from "vitest";
-import { isValidTabType } from "./tabs";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { isValidTabType, deleteTab, tabs, selected, setDemoBuildForTest } from "./tabs";
+import { push } from "svelte-spa-router";
+import { get } from "svelte/store";
+
+vi.mock("svelte-spa-router", () => ({
+  push: vi.fn(),
+}));
 
 describe("tabs", () => {
+    beforeEach(() => {
+        localStorage.clear();
+        tabs.set([]);
+        selected.set(-1);
+        vi.mocked(push).mockClear();
+    });
+
     describe("isValidTabType", () => {
         it("should return true for 'works'", () => {
             expect(isValidTabType("works")).toBe(true);
@@ -20,6 +33,42 @@ describe("tabs", () => {
             expect(isValidTabType("")).toBe(false);
             expect(isValidTabType("work")).toBe(false);
             expect(isValidTabType("setting")).toBe(false);
+        });
+    });
+
+    describe("deleteTab", () => {
+        beforeEach(() => {
+            tabs.set([
+                { id: 1, type: "works", scrollTo: 0, title: "Game 1", path: "/works/1" },
+                { id: 2, type: "works", scrollTo: 0, title: "Game 2", path: "/works/2" }
+            ]);
+            selected.set(1);
+        });
+
+        it("通常ビルド時：タブがすべて削除されると / に遷移する", () => {
+            setDemoBuildForTest(false);
+            
+            deleteTab(2);
+            expect(push).toHaveBeenCalledWith("/works/1");
+            
+            vi.mocked(push).mockClear();
+            deleteTab(1);
+            
+            expect(push).toHaveBeenCalledWith("/");
+            expect(get(selected)).toBe(-1);
+        });
+
+        it("デモビルド時：タブがすべて削除されると /demo に遷移する", () => {
+            setDemoBuildForTest(true);
+            
+            deleteTab(2);
+            expect(push).toHaveBeenCalledWith("/works/1");
+            
+            vi.mocked(push).mockClear();
+            deleteTab(1);
+            
+            expect(push).toHaveBeenCalledWith("/demo");
+            expect(get(selected)).toBe(-1);
         });
     });
 });

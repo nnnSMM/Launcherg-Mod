@@ -34,6 +34,10 @@ export default defineConfig(async () => ({
     },
   },
 
+  define: {
+    __PUBLIC_DEMO_BUILD__: true,
+  },
+
   build: {
     outDir: "docs/demo",
     emptyOutDir: true,

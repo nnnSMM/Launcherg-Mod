@@ -12,6 +12,14 @@ links:
 
 # Decision Log
 
+## 2026-05-19: 紹介ページは demo Pages の SPA ルートとして公開する
+
+- Context: GitHub Pages で公開中の demo に加えて、アプリ概要、スクリーンショット、ダウンロード導線をまとめた紹介ページも公開したい。
+- Decision: 別サイトや生成物コミットではなく、既存の demo ビルド内で Pages ルートの `#/` を紹介ページにし、通常の demo アプリは `#/demo` へ移す。互換用に `#/landing` でも紹介ページを表示する。
+- Rationale: 既存の Pages Actions、mock Tauri 環境、静的ビルドをそのまま使えるため、公開経路を増やさずに紹介ページと体験 demo を共存できる。
+- Consequence: 紹介ページの共有 URL は GitHub Pages のルート URL になる。体験 demo は同じ URL に `#/demo` を付けて案内する。画像はリポジトリの `images` 配下を raw GitHub URL で参照する。ダウンロード導線は GitHub API で最新 Release の `.zip` asset を解決し、失敗時だけ既知の最新 zip URL にフォールバックする。
+- Links: [[architecture-map]], [[quality-gates]]
+
 ## 2026-05-19: 紐づけ補正は汎用化せず既知パス単位に限定する
 
 - Context: `サクラノ詩` の短いフォルダ名が派生作へ寄る問題に対して、副題前の主題部を一般優先する補正を入れると、他タイトルへ広く影響するリスクがあった。
