@@ -131,7 +131,10 @@ fn main() {
             _ => {}
         })
         .setup(|app| {
-            #[cfg(desktop)]
+            // デバッグビルドでは current_exe() が target/debug を返すため、
+            // autostart 登録を実行するとリリース版のRunエントリを開発用パスで上書きしてしまう。
+            // リリースビルドのみで登録・補修を行う。
+            #[cfg(all(desktop, not(debug_assertions)))]
             {
                 let autostart_manager = app.autolaunch();
                 // 常に enable() を呼び、インストーラーが登録した引数なしエントリを

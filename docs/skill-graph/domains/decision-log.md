@@ -12,6 +12,14 @@ links:
 
 # Decision Log
 
+## 2026-05-21: 自動起動のWindows登録はリリースビルドのみで行う
+
+- Context: PC起動時の自動起動で、アプリの代わりにターミナル（黒い画面）が開かれる問題が再発していた。調査の結果、開発時（`tauri dev`等）にアプリを起動すると、自動起動処理が `current_exe()`（デバッグパス）をWindowsのRunレジストリに上書きしてしまっていた。デバッグビルドのEXEはコンソールを表示するため、PC再起動時にターミナルが開かれていた。
+- Decision: `main.rs` の自動起動設定（`enable()` と `ensure_windows_autostart_entry()`）を `#[cfg(all(desktop, not(debug_assertions)))]` でガードし、リリースビルドのみで実行するようにした。
+- Rationale: 開発環境の実行で本番の自動起動エントリが壊されるのを防ぐため。
+- Consequence: 開発時にレジストリが上書きされなくなり、インストール先パスが正しく維持される。
+- Links: [[architecture-map]], [[known-risks]]
+
 ## 2026-05-19: 紹介ページは demo Pages の SPA ルートとして公開する
 
 - Context: GitHub Pages で公開中の demo に加えて、アプリ概要、スクリーンショット、ダウンロード導線をまとめた紹介ページも公開したい。
