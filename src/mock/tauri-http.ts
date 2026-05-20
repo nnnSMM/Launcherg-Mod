@@ -159,10 +159,35 @@ export const fetch = async (url: string, options?: FetchOptions) => {
     /^https:\/\/store\.steampowered\.com\/app\/(\d+)\/?[^?#]*/i,
   );
   if (steamAppMatch) {
-    const html = buildSteamProductPage(Number(steamAppMatch[1]));
+    const appId = Number(steamAppMatch[1]);
+    try {
+      const res = await window.fetch(`./demo-data/steam-${appId}.html`);
+      if (res.ok) {
+        return textResponse(await res.text());
+      }
+    } catch (e) {
+      console.warn(`Failed to fetch Steam demo html for ${appId}`, e);
+    }
+    const html = buildSteamProductPage(appId);
     if (html) {
       return textResponse(html);
     }
+  }
+
+  const dlsiteProductMatch = url.match(
+    /^https?:\/\/(?:www\.)?dlsite\.com\/[^/]+\/work\/=\/product_id\/([A-Z0-9]+)\.html/i,
+  );
+  if (dlsiteProductMatch) {
+    const productId = dlsiteProductMatch[1];
+    try {
+      const res = await window.fetch(`./demo-data/dlsite-${productId}.html`);
+      if (res.ok) {
+        return textResponse(await res.text());
+      }
+    } catch (e) {
+      console.warn(`Failed to fetch DLsite demo html for ${productId}`, e);
+    }
+    return textResponse("");
   }
 
   if (url.includes("erogamescape.dyndns.org/~ap2/ero/toukei_kaiseki/game.php?game=")) {
@@ -195,10 +220,14 @@ export const fetch = async (url: string, options?: FetchOptions) => {
     };
   }
 
-  return {
-    ok: true,
-    text: async () => "",
-    json: async () => ({}),
-    arrayBuffer: async () => new ArrayBuffer(0),
-  };
+  try {
+    return await window.fetch(url, options as any);
+  } catch {
+    return {
+      ok: true,
+      text: async () => "",
+      json: async () => ({}),
+      arrayBuffer: async () => new ArrayBuffer(0),
+    };
+  }
 };
