@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import Icon from "/icon.png";
 
   const repo = "https://github.com/nnnSMM/Launcherg-Mod";
   const usage = `${repo}/blob/main/USAGE.md`;
@@ -162,7 +163,7 @@
     <div class="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
       <a href="#/" class="inline-flex min-w-0 items-center gap-2 text-sm font-bold">
         <img
-          src="/icon.png"
+          src={Icon}
           alt="Launcherg-Mod icon"
           class="h-6 w-6 rounded-[4px] object-contain"
         />
