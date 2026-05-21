@@ -5,6 +5,7 @@
   export let value: string;
   export let placeholder: string = "";
   export let autofocus = false;
+  export let disabled = false;
 
   const dispatcher = createEventDispatcher<{ update: { value: string } }>();
 
@@ -24,7 +25,7 @@
     <div class="text-text-primary text-body font-medium mb-1">{label}</div>
   {/if}
   <div
-    class="w-full border-2px border-solid border-border-primary rounded transition-all focus-within:border-accent-accent"
+    class="w-full border-2px border-solid border-border-primary rounded transition-all {disabled ? '' : 'focus-within:border-accent-accent'}"
   >
     <input
       bind:this={input}
@@ -32,7 +33,8 @@
       type="text"
       on:input={(e) => dispatcher("update", { value: e.currentTarget.value })}
       {placeholder}
-      class="w-full border-none outline-none rounded bg-bg-primary p-x-3 p-y-1 text-input text-text-primary transition-all placeholder-ui-tertiary"
+      {disabled}
+      class="w-full border-none outline-none rounded bg-bg-primary p-x-3 p-y-1 text-input text-text-primary transition-all placeholder-ui-tertiary disabled:opacity-50 disabled:cursor-not-allowed"
     />
   </div>
 </label>

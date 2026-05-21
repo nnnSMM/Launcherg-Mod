@@ -6,13 +6,17 @@
   import { useImportManually } from "@/lib/importManually";
   import type { AllGameCacheOne } from "@/lib/types";
   import { createEventDispatcher } from "svelte";
+  import { showInfoToast } from "@/lib/toast";
 
   export let isOpen: boolean;
   export let withInputPath = true;
   export let cancelText = "Cancel";
 
-  export let idInput = "";
-  export let path = "";
+  const isDemoBuild = import.meta.env.BASE_URL === "./";
+  const demoRegistrationDisabledMessage = "demo ではゲーム登録はできません。";
+
+  export let idInput = isDemoBuild ? "12345" : "";
+  export let path = isDemoBuild ? "C:\\game\\demo\\game.exe" : "";
 
   const dispather = createEventDispatcher<{
     confirm: {
@@ -26,6 +30,10 @@
   let candidates: [number, string][] = [];
   $: {
     (async () => {
+      if (isDemoBuild) {
+        candidates = [];
+        return;
+      }
       if (!path) {
         candidates = [];
         return;
@@ -39,6 +47,11 @@
 
   const { getNewCollectionElementByInputs } = useImportManually();
   const onConfirm = async () => {
+    if (isDemoBuild) {
+      showInfoToast(demoRegistrationDisabledMessage);
+      isOpen = false;
+      return;
+    }
     const val = await getNewCollectionElementByInputs(idInput, path);
     if (val) {
       dispather("confirm", val);
@@ -54,13 +67,14 @@
   confirmText="Import"
   {cancelText}
   footerButtonBorderless
-  confirmDisabled={!idInput || (!path && withInputPath)}
+  confirmDisabled={!isDemoBuild && (!idInput || (!path && withInputPath))}
   on:confirm={onConfirm}
 >
   <div class="space-y-4">
     {#if withInputPath}
       <InputFilePath
         {path}
+        disabled={isDemoBuild}
         label="EXEファイル または ショートカットファイル のパス"
         placeholder="C:\game\Monkeys!!\Monkeys!!.exe"
         browseButtonBorderless
@@ -70,6 +84,7 @@
     <div class="space-y-2">
       <Input
         bind:value={idInput}
+        disabled={isDemoBuild}
         label="ErogameScape ID or URL"
         placeholder="17909 or https://erogamescape.dyndns.org/~ap2/ero/toukei_kaiseki/game.php?game=17909"
         on:update={(e) => (idInput = e.detail.value)}

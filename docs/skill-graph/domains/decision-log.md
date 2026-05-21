@@ -3,7 +3,7 @@ id: decision-log
 title: Decision Log
 type: log
 status: active
-updated: 2026-05-19
+updated: 2026-05-21
 links:
   - launcherg-improvement-moc
   - template-decision-record
@@ -11,6 +11,14 @@ links:
 ---
 
 # Decision Log
+
+## 2026-05-21: デモ環境のゲーム追加機能（手動・自動）を実際のアプリの見た目でダミー化する
+
+- Context: 公開デモ（demoビルド）において、手動追加画面と自動追加画面が以前は実際のアプリの見た目と異なっていた（自動追加は警告文のみの画面、手動追加は対応していなかった）。ユーザーから「実際のアプリの見た目を体験できるようにしたいが、実際の登録やファイル選択などの処理は停止し、ボタンが押せるだけの張りぼてにする」という要望があった。
+- Decision: デモビルド環境（isDemoBuild）において、手動追加（ImportManually）および自動追加（ImportAutomatically）のUIを実際のアプリと統一した。各入力フィールド（Input, InputFilePath, InputPath）、追加/削除ボタン、オプション選択（Checkbox）に disabled 属性を適用し操作を制限した。インポートボタンは活性化された状態にしてクリック可能にし、クリックされた際には実際のリクエストは送らず「demo ではゲーム登録はできません」等の警告トーストを表示してダイアログを閉じるようにした。
+- Rationale: デモサイトであっても本来のアプリのUIや導線を見せることで、利用イメージを直感的に掴んでもらえるようにしつつ、ブラウザ上では実行できないデスクトップ依存処理（ファイルダイアログ、自動スキャンなど）を安全にダミー化するため。
+- Consequence: デモ環境でもアプリ本来のゲーム追加フローの見た目が体験可能になる。実際に追加は行われず警告トーストが表示される。
+- Links: [[product-context]], [[app-inventory]], [[quality-gates]]
 
 ## 2026-05-21: 自動起動のWindows登録はリリースビルドのみで行う
 

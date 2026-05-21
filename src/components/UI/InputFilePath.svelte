@@ -10,10 +10,14 @@
     export let withFilter = true;
     export let directory = false;
     export let browseButtonBorderless = false;
+    export let disabled = false;
   
     const dispatcher = createEventDispatcher<{ update: { value: string } }>();
   
     const openDialog = async () => {
+      if (disabled) {
+        return;
+      }
       const selected = await open({
         multiple: false,
         filters: withFilter
@@ -36,12 +40,12 @@
   
   <div class="flex gap-2 items-end">
     <div class="flex-1">
-      <Input value={path} {label} {placeholder} on:update />
+      <Input value={path} {label} {placeholder} {disabled} on:update />
     </div>
     <Button
       leftIcon="i-material-symbols-folder-outline-rounded"
       borderless={browseButtonBorderless}
+      {disabled}
       on:click={openDialog}
     />
   </div>
-  

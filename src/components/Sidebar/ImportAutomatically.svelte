@@ -33,24 +33,31 @@
   let inputContainer: HTMLDivElement | null = null;
 
   let useCache = true;
+  // デモビルドの時はダミーパスを初期セットする
   const [paths, getPaths] = createLocalStorageWritable<
     { id: number; path: string }[]
-  >("auto-import-dir-paths", [
+  >("auto-import-dir-paths", isDemoBuild ? [
+    { id: 1, path: "C:\\Program Files (x86)\\demo-games" }
+  ] : [
     { id: Math.floor(Math.random() * 100000), path: "" },
   ]);
+
   const updatePath = (index: number, value: string) => {
+    if (isDemoBuild) return;
     paths.update((v) => {
       v[index].path = value;
       return v;
     });
   };
   const removePath = (index: number) => {
+    if (isDemoBuild) return;
     paths.update((v) => {
       v = [...v.slice(0, index), ...v.slice(index + 1)];
       return v;
     });
   };
   const addEmptyPath = async () => {
+    if (isDemoBuild) return;
     if (
       getPaths().length > 0 &&
       getPaths()[getPaths().length - 1].path === ""
@@ -103,6 +110,9 @@
   let processedFileNums = 0;
 
   onMount(async () => {
+    if (isDemoBuild) {
+      return;
+    }
     const defaultPaths = await commandGetDefaultImportDirs();
     paths.update((v) => {
       const appendPaths = [];
@@ -116,12 +126,6 @@
       }
       return [...appendPaths, ...v];
     });
-    // const unlistenProgress = await listen<{ message: string }>(
-    //   "progress",
-    //   (event) => {
-    //     showInfoToast(event.payload.message, 10000);
-    //   }
-    // );
     const unlistenProgressLive = await listen<{ max: number | null }>(
       "progresslive",
       (event) => {
@@ -133,7 +137,6 @@
       },
     );
     return () => {
-      // unlistenProgress();
       unlistenProgressLive();
     };
   });
@@ -153,19 +156,13 @@
       }
     }}
     title={isDemoBuild ? demoLabels.title : "Automatically import game"}
-    confirmText={isDemoBuild ? demoLabels.close : "Start import"}
+    confirmText={isDemoBuild ? "Start import" : "Start import"}
     fullmodal
     footerButtonBorderless
     confirmDisabled={!isDemoBuild && (!$paths.length || !$paths.some((v) => v.path) || isLoading)}
     on:confirm={confirm}
   >
     <div class="space-y-8">
-      {#if isDemoBuild}
-        <div class="space-y-2">
-          <div class="text-text-primary text-h4 font-medium">{demoLabels.heading}</div>
-          <div class="text-text-tertiary text-body2">{demoLabels.body}</div>
-        </div>
-      {:else}
       <div class="space-y-4">
         <div class="text-text-primary text-h4 font-medium">
           自動追加するフォルダ
@@ -182,6 +179,7 @@
                   placeholder="C:\Program Files (x86)"
                   path={path.path}
                   directory
+                  disabled={isDemoBuild}
                   withFilter={false}
                   browseButtonBorderless
                   on:update={(e) => updatePath(i, e.detail.value)}
@@ -191,7 +189,8 @@
                 on:click={() => removePath(i)}
                 type="button"
                 tabindex={-1}
-                class="ml-auto p-2 bg-transparent"
+                disabled={isDemoBuild}
+                class="ml-auto p-2 bg-transparent disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <div
                   class="w-5 h-5 i-iconoir-cancel color-text-tertiary hover:color-text-primary transition-all"
@@ -204,6 +203,7 @@
             leftIcon="i-iconoir-plus"
             text="Add folder path"
             type="submit"
+            disabled={isDemoBuild}
             borderless
             on:click={addEmptyPath}
           />
@@ -212,8 +212,8 @@
       <div class="space-y-2">
         <div class="text-text-primary text-h4 font-medium">オプション</div>
         <!-- svelte-ignore a11y-label-has-associated-control -->
-        <label class="flex gap-2 cursor-pointer">
-          <Checkbox bind:value={useCache} />
+        <label class="flex gap-2 {isDemoBuild ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}">
+          <Checkbox bind:value={useCache} disabled={isDemoBuild} />
           <div>
             <div class="text-text-primary text-body font-medium">
               前回のスキャン以降に追加されたファイルのみを対象にする
@@ -224,7 +224,6 @@
           </div>
         </label>
       </div>
-      {/if}
     </div>
   </Modal>
 {:else if isLoading}
