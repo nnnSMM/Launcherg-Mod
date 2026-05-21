@@ -18,6 +18,7 @@ use tauri::{
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     AppHandle, Emitter, Listener, Manager, PhysicalPosition, WebviewUrl, WebviewWindowBuilder,
 };
+#[cfg(all(desktop, not(debug_assertions)))]
 use tauri_plugin_autostart::ManagerExt;
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 use tauri_plugin_log::{Target, TargetKind};
@@ -370,7 +371,7 @@ fn save_current_window_state(app_handle: &AppHandle) {
     let _ = app_handle.save_window_state(window_state_flags());
 }
 
-#[cfg(windows)]
+#[cfg(all(windows, desktop, not(debug_assertions)))]
 fn ensure_windows_autostart_entry<R: tauri::Runtime>(app: &tauri::App<R>) -> anyhow::Result<()> {
     use winreg::enums::{RegType::REG_BINARY, HKEY_CURRENT_USER, KEY_SET_VALUE};
     use winreg::{RegKey, RegValue};
@@ -411,7 +412,7 @@ fn ensure_windows_autostart_entry<R: tauri::Runtime>(app: &tauri::App<R>) -> any
     Ok(())
 }
 
-#[cfg(not(windows))]
+#[cfg(all(not(windows), desktop, not(debug_assertions)))]
 fn ensure_windows_autostart_entry<R: tauri::Runtime>(_app: &tauri::App<R>) -> anyhow::Result<()> {
     Ok(())
 }

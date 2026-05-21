@@ -131,6 +131,7 @@ const createCollectionElement = async (
     sellday: previous?.sellday ?? seed.sellday,
     isNukige: previous?.isNukige ?? seed.isNukige,
     installAt: previous?.installAt ?? timestamp,
+    firstPlayAt: previous?.firstPlayAt ?? null,
     lastPlayAt: previous?.lastPlayAt ?? null,
     likeAt: previous?.likeAt ?? null,
     playStatus: previous?.playStatus ?? 0,
@@ -454,11 +455,13 @@ export const invoke = async <T = unknown>(
 
   if (cmd === "play_game") {
     const id = Number(args?.elementId);
+    const playedAt = nowString();
     collectionElements = collectionElements.map((element) =>
       element.id === id
         ? {
             ...element,
-            lastPlayAt: nowString(),
+            firstPlayAt: element.firstPlayAt ?? playedAt,
+            lastPlayAt: playedAt,
             totalPlayTimeSeconds: element.totalPlayTimeSeconds + 60,
           }
         : element,

@@ -4,7 +4,7 @@ use crate::domain::{
 };
 use anyhow::Result;
 use async_trait::async_trait;
-use chrono::{DateTime, Local};
+use chrono::{DateTime, Local, NaiveDate};
 
 #[derive(Debug, Clone)]
 pub struct VndbScreenshotCache {
@@ -67,6 +67,11 @@ pub trait CollectionRepository {
         id: &Id<CollectionElement>,
         last_play_at: DateTime<Local>,
     ) -> Result<()>;
+    async fn update_element_first_play_at_if_null_by_id(
+        &self,
+        id: &Id<CollectionElement>,
+        first_play_at: DateTime<Local>,
+    ) -> Result<()>;
     async fn update_element_like_at_by_id(
         &self,
         id: &Id<CollectionElement>,
@@ -78,6 +83,12 @@ pub trait CollectionRepository {
         play_status: i32,
     ) -> Result<()>;
     async fn add_play_time_seconds(&self, id: &Id<CollectionElement>, seconds: i32) -> Result<()>;
+    async fn add_daily_play_time_seconds(
+        &self,
+        id: &Id<CollectionElement>,
+        play_date: NaiveDate,
+        seconds: i32,
+    ) -> Result<()>;
 
     #[allow(dead_code)]
     async fn delete_element_by_id(&self, id: &Id<CollectionElement>) -> Result<()>;

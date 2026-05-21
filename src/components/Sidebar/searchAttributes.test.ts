@@ -12,6 +12,7 @@ const createMockElement = (overrides: Partial<CollectionElement> = {}): Collecti
     sellday: '2024-01-01',
     isNukige: false,
     installAt: null,
+    firstPlayAt: null,
     lastPlayAt: null,
     likeAt: null,
     playStatus: PlayStatus.Unplayed,

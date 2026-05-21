@@ -50,6 +50,7 @@ const collectionElement = (
   sellday: "2024-05-10",
   isNukige: false,
   installAt: null,
+  firstPlayAt: null,
   lastPlayAt: null,
   likeAt: null,
   playStatus: 0,

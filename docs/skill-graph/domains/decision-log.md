@@ -12,6 +12,22 @@ links:
 
 # Decision Log
 
+## 2026-05-21: 初プレイ日時は実プレイ時間の初回記録時に保存する
+
+- Context: ヒートマップやプレイ履歴の振り返りで、登録日やインストール日とは別に「初めて遊んだ日」が必要になった。
+- Decision: `collection_elements.first_play_at` を追加し、プレイ時間を実際に加算できた最初の監視タイミングで、値が `NULL` の場合だけ保存する。最終プレイ日時は既存の `last_play_at` を使い続ける。
+- Rationale: 起動ボタン押下や起動失敗を初プレイ扱いせず、計測されたプレイ実績に基づく日時として扱える。
+- Consequence: 将来のヒートマップでは初プレイ日と最終プレイ日をマーカー表示できる。既存ユーザーの `first_play_at` は、次回以降の実プレイ時から埋まる。
+- Links: [[architecture-map]], [[quality-gates]]
+
+## 2026-05-21: 日別プレイ時間はゲーム別の累積テーブルへ記録する
+
+- Context: GitHub風ヒートマップを後から実装できるよう、既存の総プレイ時間とは別に、日ごと・ゲームごとのプレイ時間が必要になった。
+- Decision: `collection_element_daily_play_times` を追加し、`collection_element_id` と `play_date` を主キーにして `play_time_seconds` を累積する。既存の `collection_elements.total_play_time_seconds` は互換性のため維持する。
+- Rationale: ヒートマップは日付単位で集計するため、起動セッション履歴を後から推測するより、監視ループの計測時点で日別集計を保存する方が単純で壊れにくい。
+- Consequence: 将来の表示実装では日付範囲とゲームIDでこのテーブルを読むだけでよい。日付を跨ぐ短い計測区間はローカル日付ごとに分割して記録する。
+- Links: [[architecture-map]], [[quality-gates]]
+
 ## 2026-05-21: SEO初期対応は紹介ページのメタ情報と最小sitemapに限定する
 
 - Context: Launcherg-Mod の公開ページを、日本語ユーザーがノベルゲーム、非Steamゲーム、プレイ時間、スクリーンショット管理の悩みで探す文脈に合わせたい。ただし現状の公開構成は GitHub Pages 上の hash SPA であり、通常URLの機能別ページを増やすにはルーティングと生成方式の判断が必要だった。

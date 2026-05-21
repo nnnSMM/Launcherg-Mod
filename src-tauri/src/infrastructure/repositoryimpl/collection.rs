@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use chrono::{DateTime, Local};
+use chrono::{DateTime, Local, NaiveDate};
 use sqlx::{query, query_as, QueryBuilder, Row};
 
 use super::{models::collection::CollectionElementTable, repository::RepositoryImpl};
@@ -15,7 +15,7 @@ impl CollectionRepository for RepositoryImpl<CollectionElement> {
         let pool = self.pool.0.clone();
         let records = query_as::<_, CollectionElementTable>(
             "SELECT 
-                c.id, c.gamename, c.exe_path, c.lnk_path, c.install_at, c.last_play_at, c.like_at, 
+                c.id, c.gamename, c.exe_path, c.lnk_path, c.install_at, c.first_play_at, c.last_play_at, c.like_at,
                 c.play_status, c.total_play_time_seconds, c.thumbnail_width, c.thumbnail_height, 
                 c.created_at, c.updated_at,
                 cd.gamename_ruby, cd.sellday, cd.is_nukige, cd.brandname, cd.brandname_ruby
@@ -34,7 +34,7 @@ impl CollectionRepository for RepositoryImpl<CollectionElement> {
         let pool = self.pool.0.clone();
         let record = sqlx::query_as::<_, CollectionElementTable>(
             "SELECT 
-                c.id, c.gamename, c.exe_path, c.lnk_path, c.install_at, c.last_play_at, c.like_at, 
+                c.id, c.gamename, c.exe_path, c.lnk_path, c.install_at, c.first_play_at, c.last_play_at, c.like_at,
                 c.play_status, c.total_play_time_seconds, c.thumbnail_width, c.thumbnail_height, 
                 c.created_at, c.updated_at,
                 cd.gamename_ruby, cd.sellday, cd.is_nukige, cd.brandname, cd.brandname_ruby
@@ -266,6 +266,19 @@ impl CollectionRepository for RepositoryImpl<CollectionElement> {
             .await?;
         Ok(())
     }
+    async fn update_element_first_play_at_if_null_by_id(
+        &self,
+        id: &Id<CollectionElement>,
+        first_play_at: DateTime<Local>,
+    ) -> anyhow::Result<()> {
+        let pool = self.pool.0.clone();
+        query("update collection_elements set first_play_at = ? where id = ? and first_play_at is null")
+            .bind(first_play_at.naive_utc())
+            .bind(id.value)
+            .execute(&*pool)
+            .await?;
+        Ok(())
+    }
     async fn update_element_like_at_by_id(
         &self,
         id: &Id<CollectionElement>,
@@ -304,6 +317,29 @@ impl CollectionRepository for RepositoryImpl<CollectionElement> {
         )
         .bind(seconds)
         .bind(id.value)
+        .execute(&*pool)
+        .await?;
+        Ok(())
+    }
+
+    async fn add_daily_play_time_seconds(
+        &self,
+        id: &Id<CollectionElement>,
+        play_date: NaiveDate,
+        seconds: i32,
+    ) -> anyhow::Result<()> {
+        let pool = self.pool.0.clone();
+        query(
+            "INSERT INTO collection_element_daily_play_times
+                (collection_element_id, play_date, play_time_seconds)
+            VALUES (?, ?, ?)
+            ON CONFLICT(collection_element_id, play_date) DO UPDATE SET
+                play_time_seconds = play_time_seconds + excluded.play_time_seconds,
+                updated_at = CURRENT_TIMESTAMP",
+        )
+        .bind(id.value)
+        .bind(play_date.format("%Y-%m-%d").to_string())
+        .bind(seconds)
         .execute(&*pool)
         .await?;
         Ok(())

@@ -3,7 +3,7 @@ id: idea-bank
 title: Idea Bank
 type: backlog
 status: active
-updated: 2026-05-10
+updated: 2026-05-21
 links:
   - launcherg-improvement-moc
   - idea-pipeline
@@ -12,6 +12,14 @@ links:
 ---
 
 # Idea Bank
+
+### プレイ時間ヒートマップ
+
+- Type: `visibility`
+- 狙い: 日ごと・ゲームごとのプレイ傾向を、GitHub風の年次カレンダーで素早く振り返れるようにする。
+- 根拠: GitHub/GitLabのコントリビューションカレンダーは日別タイル、クリック詳細、年単位表示で長期活動を俯瞰できる。WakaTime/Toggl/RescueTime系の時間可視化は、合計時間、内訳、時間帯、フィルタが有効。
+- 最初の一歩: 全ゲーム合算の年次ヒートマップ、日付クリック時の日別ゲーム内訳、ゲーム別フィルタを実装する。
+- 注意: 既存の `collection_element_daily_play_times` を読み取り元にし、手動補正やセッション履歴は初回実装には含めない。
 
 すぐに実装しない改善候補を置く場所です。実装候補に上げる時は [[template-improvement-card]] の形に整理します。
 

@@ -22,6 +22,7 @@ pub struct CollectionElement {
     pub exe_path: Option<String>,
     pub lnk_path: Option<String>,
     pub install_at: Option<DateTime<Local>>,
+    pub first_play_at: Option<DateTime<Local>>,
     pub last_play_at: Option<DateTime<Local>>,
     pub like_at: Option<DateTime<Local>>,
     pub play_status: i32,

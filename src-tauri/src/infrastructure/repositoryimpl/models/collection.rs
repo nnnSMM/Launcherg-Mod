@@ -16,6 +16,7 @@ pub struct CollectionElementTable {
     pub exe_path: Option<String>,
     pub lnk_path: Option<String>,
     pub install_at: Option<NaiveDateTime>,
+    pub first_play_at: Option<NaiveDateTime>,
     pub last_play_at: Option<NaiveDateTime>,
     pub like_at: Option<NaiveDateTime>,
     pub play_status: i32,
@@ -40,6 +41,8 @@ impl TryFrom<CollectionElementTable> for CollectionElement {
             st.exe_path,
             st.lnk_path,
             st.install_at
+                .and_then(|v| Some(v.and_utc().with_timezone(&Local))),
+            st.first_play_at
                 .and_then(|v| Some(v.and_utc().with_timezone(&Local))),
             st.last_play_at
                 .and_then(|v| Some(v.and_utc().with_timezone(&Local))),
@@ -80,6 +83,7 @@ mod tests {
             exe_path: Some("C:/Games/test.exe".to_string()),
             lnk_path: None,
             install_at: None,
+            first_play_at: None,
             last_play_at: None,
             like_at: None,
             play_status: 1,
@@ -112,6 +116,7 @@ mod tests {
             exe_path: None,
             lnk_path: None,
             install_at: None,
+            first_play_at: None,
             last_play_at: None,
             like_at: None,
             play_status: 0,

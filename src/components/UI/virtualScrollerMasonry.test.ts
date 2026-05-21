@@ -17,6 +17,7 @@ const createMockElement = (id: number, width: number, height: number): Collectio
     sellday: "2023-01-01",
     isNukige: false,
     installAt: null,
+    firstPlayAt: null,
     lastPlayAt: null,
     likeAt: null,
     playStatus: 0,

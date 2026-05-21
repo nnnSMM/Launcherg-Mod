@@ -61,6 +61,7 @@ export type CollectionElement = {
   sellday: string;
   isNukige: boolean;
   installAt: string | null;
+  firstPlayAt: string | null;
   lastPlayAt: string | null;
   likeAt: string | null;
   playStatus: PlayStatus;

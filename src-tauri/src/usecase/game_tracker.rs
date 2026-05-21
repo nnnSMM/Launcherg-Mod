@@ -5,7 +5,7 @@
 
 use std::sync::Arc;
 
-use chrono::Local;
+use chrono::{DateTime, Local, NaiveDate, TimeZone};
 use sysinfo::{ProcessExt, System, SystemExt};
 use tauri::{AppHandle, Emitter};
 use tokio::time::{interval, Duration, Instant};
@@ -21,6 +21,41 @@ use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut};
 
 use super::pause_manager::PauseManager;
 use super::screenshot_watcher::ScreenshotWatcher;
+
+fn split_play_time_by_local_date(end_time: DateTime<Local>, seconds: i32) -> Vec<(NaiveDate, i32)> {
+    if seconds <= 0 {
+        return Vec::new();
+    }
+
+    let mut remaining_seconds = seconds as i64;
+    let mut cursor = end_time - chrono::Duration::seconds(remaining_seconds);
+    let mut results: Vec<(NaiveDate, i32)> = Vec::new();
+
+    while remaining_seconds > 0 {
+        let play_date = cursor.date_naive();
+        let seconds_for_date = play_date
+            .succ_opt()
+            .and_then(|next_date| next_date.and_hms_opt(0, 0, 0))
+            .and_then(|next_midnight| Local.from_local_datetime(&next_midnight).earliest())
+            .map(|next_midnight| {
+                let seconds_until_next_date = (next_midnight - cursor).num_seconds().max(1);
+                remaining_seconds.min(seconds_until_next_date)
+            })
+            .unwrap_or(remaining_seconds);
+
+        if let Some((_, existing_seconds)) = results.iter_mut().find(|(date, _)| *date == play_date)
+        {
+            *existing_seconds += seconds_for_date as i32;
+        } else {
+            results.push((play_date, seconds_for_date as i32));
+        }
+
+        cursor = cursor + chrono::Duration::seconds(seconds_for_date);
+        remaining_seconds -= seconds_for_date;
+    }
+
+    results
+}
 
 /// ゲームプロセスの起動結果
 pub struct LaunchResult {
@@ -344,11 +379,26 @@ impl<R: RepositoriesExt + Send + Sync + 'static> GameProcessMonitor<R> {
                 let duration = now.duration_since(last_check_time).as_secs() as i32;
 
                 if duration > 0 {
+                    let now = Local::now();
+                    let id = Id::new(self.element_id);
                     let _ = self
                         .repositories
                         .collection_repository()
-                        .add_play_time_seconds(&Id::new(self.element_id), duration)
+                        .add_play_time_seconds(&id, duration)
                         .await;
+                    let _ = self
+                        .repositories
+                        .collection_repository()
+                        .update_element_first_play_at_if_null_by_id(&id, now)
+                        .await;
+
+                    for (play_date, daily_seconds) in split_play_time_by_local_date(now, duration) {
+                        let _ = self
+                            .repositories
+                            .collection_repository()
+                            .add_daily_play_time_seconds(&id, play_date, daily_seconds)
+                            .await;
+                    }
 
                     let _ = self
                         .handle
@@ -402,6 +452,36 @@ mod tests {
         assert_eq!(config.search_timeout, Duration::from_secs(180));
         assert_eq!(config.search_interval, Duration::from_secs(2));
         assert!(config.system_folders.contains(&"c:\\windows"));
+    }
+
+    #[test]
+    fn test_split_play_time_by_local_date_same_day() {
+        let end_time = Local
+            .with_ymd_and_hms(2026, 1, 2, 12, 0, 10)
+            .earliest()
+            .unwrap();
+
+        let result = split_play_time_by_local_date(end_time, 10);
+
+        assert_eq!(result.len(), 1);
+        assert_eq!(
+            result[0],
+            (NaiveDate::from_ymd_opt(2026, 1, 2).unwrap(), 10)
+        );
+    }
+
+    #[test]
+    fn test_split_play_time_by_local_date_across_midnight() {
+        let end_time = Local
+            .with_ymd_and_hms(2026, 1, 2, 0, 0, 5)
+            .earliest()
+            .unwrap();
+
+        let result = split_play_time_by_local_date(end_time, 10);
+
+        assert_eq!(result.len(), 2);
+        assert_eq!(result[0], (NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(), 5));
+        assert_eq!(result[1], (NaiveDate::from_ymd_opt(2026, 1, 2).unwrap(), 5));
     }
 
     #[test]
