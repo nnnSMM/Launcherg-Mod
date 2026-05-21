@@ -7,6 +7,7 @@
   import { createEventDispatcher } from "svelte";
   import { convertFileSrc } from "@tauri-apps/api/core";
   import { theme } from "@/store/theme";
+  import Icon from "/icon.png";
 
   export let game: CollectionElement;
   export let isSelected: boolean = false;
@@ -69,7 +70,7 @@
     selectedIconColor: "#FFFFFF",
   };
 
-  $: imageSrcToDisplay = game.icon ? convertFileSrc(game.icon) : "/icon.png";
+  $: imageSrcToDisplay = game.icon ? convertFileSrc(game.icon) : Icon;
   let imageHasError = false;
   $: if (game.icon) imageHasError = false;
   const handleImageError = () => {

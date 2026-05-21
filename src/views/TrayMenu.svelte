@@ -11,6 +11,7 @@
     commandQuitApp,
     commandShowMainWindow,
   } from "@/lib/command";
+  import Icon from "/icon.png";
 
   let recentGames: CollectionElement[] = [];
   let shortcutGame: CollectionElement | null = null;
@@ -86,7 +87,7 @@
     /^(blob:|data:)/.test(src) ? src : `${src}?v=${updatedAt}`;
 
   const iconSrc = (game: CollectionElement) =>
-    game.icon ? withCacheBuster(convertFileSrc(game.icon), game.updatedAt) : "/icon.png";
+    game.icon ? withCacheBuster(convertFileSrc(game.icon), game.updatedAt) : Icon;
 
   const handleKeydown = (event: KeyboardEvent) => {
     if (event.key === "Escape") {
@@ -109,7 +110,7 @@
       class="flex items-center gap-2.5 min-w-0 px-3 pt-2.5 pb-2 border-b border-border-primary"
     >
       <img
-        src="/icon.png"
+        src={Icon}
         alt=""
         class="h-8 w-8 rounded-md shadow-sm ring-1 ring-white/10 shrink-0"
       />
@@ -218,7 +219,7 @@
               class="h-8 w-8 rounded-md object-cover bg-bg-secondary ring-1 ring-white/5 flex-shrink-0"
               on:error={(event) => {
                 if (event.currentTarget instanceof HTMLImageElement) {
-                  event.currentTarget.src = "/icon.png";
+                  event.currentTarget.src = Icon;
                 }
               }}
             />
