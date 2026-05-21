@@ -9,9 +9,11 @@ import type {
   VndbScreenshotCache,
 } from "@/lib/types";
 import { fetch } from "@tauri-apps/plugin-http";
+import Encoding from "encoding-japanese";
+
 
 const CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
-const CACHE_SCHEMA_VERSION = 13;
+const CACHE_SCHEMA_VERSION = 14;
 const EROGAMESCAPE_REQUEST_PATH =
   "https://erogamescape.dyndns.org/~ap2/ero/toukei_kaiseki";
 const SENSITIVE_THRESHOLD = 1.5;
@@ -742,7 +744,27 @@ const requestFanzaScreenshots = async (
     throw new Error(`FANZA screenshot source request failed: ${response.status}`);
   }
 
-  const parsed = parseFanzaScreenshotsFromHtml(await response.text());
+  const buffer = await response.arrayBuffer();
+  const uint8array = new Uint8Array(buffer);
+  let fromEncoding: Encoding.Encoding | "AUTO" = "EUCJP";
+  try {
+    const detected = Encoding.detect(uint8array);
+    if (detected === "UTF8") {
+      fromEncoding = "UTF8";
+    } else if (detected === "UNICODE") {
+      fromEncoding = "UNICODE";
+    } else if (detected === "SJIS") {
+      fromEncoding = "SJIS";
+    }
+  } catch (e) {
+    // ignore, fallback to EUCJP
+  }
+  const htmlUnicodeArray = Encoding.convert(uint8array, {
+    to: "UNICODE",
+    from: fromEncoding,
+  });
+  const html = Encoding.codeToString(htmlUnicodeArray);
+  const parsed = parseFanzaScreenshotsFromHtml(html);
   let screenshots = parsed.screenshots;
   if (parsed.productPageUrl) {
     try {
@@ -805,10 +827,8 @@ const requestFanzaScreenshots = async (
 export const ensureGameScreenshotCache = async (
   collectionElement: CollectionElement,
 ) => {
-  if (collectionElement.id !== 29958) {
-    const { cache, isFresh } = await getCache(collectionElement.id);
-    if (cache && isFresh) return cache;
-  }
+  const { cache, isFresh } = await getCache(collectionElement.id);
+  if (cache && isFresh) return cache;
 
   if (inFlight.has(collectionElement.id)) {
     return inFlight.get(collectionElement.id)!;

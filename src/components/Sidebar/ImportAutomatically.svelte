@@ -14,7 +14,7 @@
   import ModalBase from "@/components/UI/ModalBase.svelte";
   import { fade } from "svelte/transition";
   import { registerCollectionElementDetails } from "@/lib/registerCollectionElementDetails";
-  import { enqueueVndbScreenshotPrefetch } from "@/lib/useVndbScreenshots";
+  import { enqueueGameScreenshotPrefetch } from "@/lib/useGameScreenshots";
   import InputPath from "@/components/UI/InputPath.svelte";
 
   let isLoading = false;
@@ -83,7 +83,7 @@
     );
     await registerCollectionElementDetails();
     await sidebarCollectionElements.refetch();
-    enqueueVndbScreenshotPrefetch(
+    enqueueGameScreenshotPrefetch(
       sidebarCollectionElements.value().filter((v) => !beforeIds.has(v.id)),
     );
 

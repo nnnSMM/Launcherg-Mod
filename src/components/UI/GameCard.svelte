@@ -1,6 +1,6 @@
 <script lang="ts">
   import GameHoverPreview from "@/components/UI/GameHoverPreview.svelte";
-  import { loadVndbPreviewScreenshots } from "@/lib/useVndbScreenshots";
+  import { loadGamePreviewScreenshots } from "@/lib/useGameScreenshots";
   import type { CollectionElement, VndbScreenshot } from "@/lib/types";
   import { convertFileSrc } from "@tauri-apps/api/core";
   import { link } from "svelte-spa-router";
@@ -32,7 +32,7 @@
     hoverTimer = setTimeout(async () => {
       isPreviewVisible = true;
       previewScreenshots = [];
-      const screenshots = await loadVndbPreviewScreenshots(collectionElement);
+      const screenshots = await loadGamePreviewScreenshots(collectionElement);
       if (token === hoverToken) {
         previewScreenshots = screenshots;
       }

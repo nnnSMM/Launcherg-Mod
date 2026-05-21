@@ -33,7 +33,7 @@
   import { startProcessMap } from "@/store/startProcessMap";
   import Select from "@/components/UI/Select.svelte";
   import ButtonBase from "@/components/UI/ButtonBase.svelte";
-  import { enqueueVndbScreenshotPrefetch } from "@/lib/useVndbScreenshots";
+  import { enqueueGameScreenshotPrefetch } from "@/lib/useGameScreenshots";
 
   export let name: string;
   export let id: number;
@@ -182,7 +182,7 @@
       .value()
       .find((v) => v.id === arg.gameCache.id);
     if (imported) {
-      enqueueVndbScreenshotPrefetch([imported]);
+      enqueueGameScreenshotPrefetch([imported]);
     }
     if (isChangedGameId) {
       deleteTab($tabs[$selected].id);

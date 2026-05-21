@@ -20,7 +20,7 @@
   import { showErrorToast, showInfoToast } from "@/lib/toast";
   import type { AllGameCacheOne } from "@/lib/types";
   import { sidebarCollectionElements } from "@/store/sidebarCollectionElements";
-  import { enqueueVndbScreenshotPrefetch } from "@/lib/useVndbScreenshots";
+  import { enqueueGameScreenshotPrefetch } from "@/lib/useGameScreenshots";
 
   export let variant: "main" | "screenshot" = "main";
   export let heightClass: string = "h-8";
@@ -69,7 +69,7 @@
         .value()
         .find((v) => v.id === arg.gameCache.id);
       if (imported) {
-        enqueueVndbScreenshotPrefetch([imported]);
+        enqueueGameScreenshotPrefetch([imported]);
       }
       isOpenImportManually = false;
     }
