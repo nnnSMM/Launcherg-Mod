@@ -11,7 +11,7 @@ import type {
 import { fetch } from "@tauri-apps/plugin-http";
 
 const CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
-const CACHE_SCHEMA_VERSION = 12;
+const CACHE_SCHEMA_VERSION = 13;
 const EROGAMESCAPE_REQUEST_PATH =
   "https://erogamescape.dyndns.org/~ap2/ero/toukei_kaiseki";
 const SENSITIVE_THRESHOLD = 1.5;

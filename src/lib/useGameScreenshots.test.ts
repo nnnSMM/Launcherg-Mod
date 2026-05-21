@@ -604,7 +604,7 @@ describe("useGameScreenshots", () => {
       collectionElementId: 1,
       vndbId: "v1",
       matchedTitle: "title",
-      screenshotsJson: JSON.stringify({ version: 12, screenshots: [] }),
+      screenshotsJson: JSON.stringify({ version: 13, screenshots: [] }),
       fetchedAt: "2026-05-01T00:00:00.000Z",
       status: "not_found",
     };
