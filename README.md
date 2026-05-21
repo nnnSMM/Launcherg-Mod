@@ -1,5 +1,7 @@
 # Launcherg
 
+公開ページ: https://nnnsmm.github.io/Launcherg-Mod/
+
 ## How to use
 
 詳細な使い方は [USAGE.md](./USAGE.md) をご覧ください。

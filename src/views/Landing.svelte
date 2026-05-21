@@ -88,6 +88,10 @@
       "詳細な使い方は？",
       "左の「使い方を見る」から確認できます。",
     ],
+    [
+      "Launchergとの関係は？",
+      "ryoha000さんのLaunchergをクローンし、独自に改造した派生版です。",
+    ],
   ];
 
   let groupIndex = 0;
@@ -212,7 +216,7 @@
           Launcherg-Mod
         </h1>
         <p class="mt-5 max-w-2xl text-base leading-8 text-[#e4d8c9] sm:text-lg">
-          散らばりがちなノベルゲームをひとつのライブラリにまとめ、ショートカット起動、プレイ時間の記録、スクリーンショット整理、メモ管理を同じ場所で扱う Windows アプリです。
+          散らばりがちなノベルゲームや非Steamゲームをひとつのライブラリにまとめ、ショートカット起動、プレイ時間の記録、スクリーンショット整理、メモ管理を同じ場所で扱う Windows アプリです。
         </p>
         <div class="mt-7 flex flex-col gap-3 sm:flex-row">
           <a

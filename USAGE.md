@@ -1,5 +1,7 @@
 # Launcherg 利用ガイド
 
+公開ページ: https://nnnsmm.github.io/Launcherg-Mod/
+
 Launcherg は、**「エロゲー批評空間」に登録されているノベルゲーム専用**のランチャーアプリケーションです。
 このアプリは ryoha000 さんのオリジナルリポジトリ [Launcherg](https://github.com/ryoha000/launcherg) をクローンし、独自に改造したものです。
 散らばりがちなゲームを一元管理し、プレイ時間を自動的に記録することができます。
