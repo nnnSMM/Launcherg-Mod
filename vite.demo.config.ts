@@ -3,6 +3,55 @@ import { svelte } from "@sveltejs/vite-plugin-svelte";
 import sveltePreprocess from "svelte-preprocess";
 import UnoCSS from "unocss/vite";
 import { fileURLToPath } from "node:url";
+import { mkdir, writeFile } from "node:fs/promises";
+import { resolve } from "node:path";
+
+const defaultSiteUrl = "https://nnnsmm.github.io/Launcherg-Mod/";
+
+const getSiteUrl = () => {
+  const rawSiteUrl =
+    process.env.PUBLIC_SITE_URL || process.env.SITE_URL || defaultSiteUrl;
+  return rawSiteUrl.endsWith("/") ? rawSiteUrl : `${rawSiteUrl}/`;
+};
+
+const siteUrl = getSiteUrl();
+
+const escapeXml = (value: string) =>
+  value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+
+const createSeoFilesPlugin = () => ({
+  name: "create-demo-seo-files",
+  async closeBundle() {
+    const outDir = resolve("docs/demo");
+    await mkdir(outDir, { recursive: true });
+    await writeFile(
+      resolve(outDir, "robots.txt"),
+      [
+        "User-agent: *",
+        "Allow: /",
+        "",
+        `Sitemap: ${siteUrl}sitemap.xml`,
+        "",
+      ].join("\n"),
+    );
+    await writeFile(
+      resolve(outDir, "sitemap.xml"),
+      [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+        "  <url>",
+        `    <loc>${escapeXml(siteUrl)}</loc>`,
+        "  </url>",
+        "</urlset>",
+        "",
+      ].join("\n"),
+    );
+  },
+});
 
 // https://vitejs.dev/config/
 export default defineConfig(async () => ({
@@ -16,6 +65,7 @@ export default defineConfig(async () => ({
         }),
       ],
     }),
+    createSeoFilesPlugin(),
   ],
 
   resolve: {

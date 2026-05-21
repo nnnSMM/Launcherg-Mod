@@ -9,22 +9,26 @@
   const rawImages =
     "https://raw.githubusercontent.com/nnnSMM/Launcherg-Mod/main/images";
   const autoSwitchMs = 2000;
+  const pageTitle =
+    "Launcherg-Mod | VN・ノベルゲームのプレイ時間とスクリーンショット管理";
+  const pageDescription =
+    "Launcherg-Mod は、PC上のノベルゲームを登録して起動し、プレイ時間、スクリーンショット、メモをゲームごとに整理できる Windows アプリです。";
 
   const features = [
     {
       icon: "i-material-symbols:grid-view-rounded",
-      title: "ゲームを一元管理",
-      body: "ゲームを自動スキャンで登録\nショートカットからゲームを起動",
+      title: "ノベルゲームを一元管理",
+      body: "実行ファイルやショートカットを登録\nライブラリからすぐに起動",
     },
     {
       icon: "i-material-symbols:timer-outline-rounded",
       title: "プレイ時間を記録",
-      body: "遊んだ時間をタイトルごとに記録",
+      body: "起動したゲームのプレイ時間を\nタイトルごとに記録",
     },
     {
       icon: "i-material-symbols:photo-camera-outline-rounded",
-      title: "スクショを整理",
-      body: "スクリーンショットをゲームに関連付け",
+      title: "スクリーンショットを整理",
+      body: "撮影したスクリーンショットを\nプレイ中のゲームに関連付け",
     },
     {
       icon: "i-material-symbols:edit-note-rounded",
@@ -146,10 +150,10 @@
 </script>
 
 <svelte:head>
-  <title>Launcherg-Mod | ノベルゲームランチャー</title>
+  <title>{pageTitle}</title>
   <meta
     name="description"
-    content="Launcherg-Mod はノベルゲームの起動、プレイ時間、スクリーンショット、メモをまとめて管理する Windows アプリです。"
+    content={pageDescription}
   />
 </svelte:head>
 
@@ -201,13 +205,13 @@
     <div class="relative mx-auto flex min-h-[68svh] max-w-6xl items-end px-4 py-12 sm:px-6 sm:py-16">
       <div class="max-w-3xl pb-2">
         <div class="mb-4 inline-flex items-center rounded-md border border-[#3bb7a9]/40 bg-[#143530]/90 px-3 py-1 text-xs font-semibold text-[#a8eee7]">
-          ノベルゲームランチャー
+          VN・ノベルゲーム管理アプリ
         </div>
         <h1 class="break-words text-5xl font-bold leading-[1.05] text-[#fffaf2] sm:text-6xl">
           Launcherg-Mod
         </h1>
         <p class="mt-5 max-w-2xl text-base leading-8 text-[#e4d8c9] sm:text-lg">
-          散らばりがちなノベルゲームをひとつのライブラリにまとめ、起動、プレイ時間、スクリーンショット、メモを管理する Windows アプリです。
+          散らばりがちなノベルゲームをひとつのライブラリにまとめ、ショートカット起動、プレイ時間の記録、スクリーンショット整理、メモ管理を同じ場所で扱う Windows アプリです。
         </p>
         <div class="mt-7 flex flex-col gap-3 sm:flex-row">
           <a
@@ -243,7 +247,7 @@
             できること
           </h2>
           <p class="mt-2 text-sm leading-6 text-[#b6aa9c]">
-            起動・記録・整理。必要な機能だけを、日常的に使いやすくまとめます。
+            非Steamゲームを含む手元のゲームを、登録、起動、記録、整理の流れで扱います。
           </p>
         </div>
       </div>
@@ -274,7 +278,7 @@
             主要画面
           </h2>
           <p class="mt-2 text-sm leading-6 text-[#b6aa9c]">
-            ライブラリ、ゲーム詳細、スクリーンショット管理を切り替えて確認できます。
+            ライブラリ、ゲーム詳細、スクリーンショット管理を通じて、登録したゲームの状態を確認できます。
           </p>
         </div>
 

@@ -12,6 +12,14 @@ links:
 
 # Decision Log
 
+## 2026-05-21: SEO初期対応は紹介ページのメタ情報と最小sitemapに限定する
+
+- Context: Launcherg-Mod の公開ページを、日本語ユーザーがノベルゲーム、非Steamゲーム、プレイ時間、スクリーンショット管理の悩みで探す文脈に合わせたい。ただし現状の公開構成は GitHub Pages 上の hash SPA であり、通常URLの機能別ページを増やすにはルーティングと生成方式の判断が必要だった。
+- Decision: 初回対応では `Landing.svelte` の title / description / 主要本文を自然な範囲で補強し、初期HTMLに description と OGP / Twitter Card の基本メタを置く。demo build ではトップURLだけを含む `sitemap.xml` と、sitemapを示す `robots.txt` を生成する。機能別ページや `/launcherg-difference` などの新規URLは今回は追加しない。
+- Rationale: Google向けの裏技ではなく、ページ内容を人間と検索エンジンの両方に正しく伝える最小差分にするため。hash SPAのまま悩み系ページを量産すると、URLと本文の対応が弱くなり、レビュー範囲も広がる。
+- Consequence: 既存UIとdemo導線はほぼ維持される。検索意図別ページ、OGP画像、Search Console設定は次回以降の手動タスクとして残る。
+- Links: [[product-context]], [[architecture-map]], [[quality-gates]]
+
 ## 2026-05-21: デモ環境のゲーム追加機能（手動・自動）を実際のアプリの見た目でダミー化する
 
 - Context: 公開デモ（demoビルド）において、手動追加画面と自動追加画面が以前は実際のアプリの見た目と異なっていた（自動追加は警告文のみの画面、手動追加は対応していなかった）。ユーザーから「実際のアプリの見た目を体験できるようにしたいが、実際の登録やファイル選択などの処理は停止し、ボタンが押せるだけの張りぼてにする」という要望があった。
