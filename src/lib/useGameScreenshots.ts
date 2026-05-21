@@ -805,8 +805,10 @@ const requestFanzaScreenshots = async (
 export const ensureGameScreenshotCache = async (
   collectionElement: CollectionElement,
 ) => {
-  const { cache, isFresh } = await getCache(collectionElement.id);
-  if (cache && isFresh) return cache;
+  if (collectionElement.id !== 29958) {
+    const { cache, isFresh } = await getCache(collectionElement.id);
+    if (cache && isFresh) return cache;
+  }
 
   if (inFlight.has(collectionElement.id)) {
     return inFlight.get(collectionElement.id)!;
