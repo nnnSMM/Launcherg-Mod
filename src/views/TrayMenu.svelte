@@ -82,8 +82,11 @@
       ? `${convertFileSrc(game.thumbnail)}?v=${game.updatedAt}`
       : "/images/dummy_thumbnail.svg";
 
+  const withCacheBuster = (src: string, updatedAt: string) =>
+    /^(blob:|data:)/.test(src) ? src : `${src}?v=${updatedAt}`;
+
   const iconSrc = (game: CollectionElement) =>
-    game.icon ? `${convertFileSrc(game.icon)}?v=${game.updatedAt}` : "/icon.png";
+    game.icon ? withCacheBuster(convertFileSrc(game.icon), game.updatedAt) : "/icon.png";
 
   const handleKeydown = (event: KeyboardEvent) => {
     if (event.key === "Escape") {

@@ -21,7 +21,7 @@ import { scanDemoPaths } from "@/mock/demoBrowserFiles";
 import { getDemoIconUrlForPath } from "@/mock/demoIconExtraction";
 import { emit } from "@/mock/tauri-event";
 
-const STORAGE_KEY = "launcherg-demo-collection-elements-v5";
+const STORAGE_KEY = "launcherg-demo-collection-elements-v6";
 const SETTINGS_KEY = "launcherg-demo-settings-v1";
 
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value));
@@ -161,6 +161,14 @@ const upsertElement = async (
   }
   saveCollectionElements();
   return element;
+};
+
+const getDemoIconUrlForElementPath = async (path: {
+  exePath: string | null;
+  lnkPath: string | null;
+}) => {
+  const elementPath = path.exePath || path.lnkPath;
+  return elementPath ? await getDemoIconUrlForPath(elementPath) : null;
 };
 
 const getAllWorks = (): Work[] =>
@@ -319,10 +327,11 @@ export const invoke = async <T = unknown>(
   if (cmd === "upsert_collection_element") {
     const gameCache = args?.gameCache as AllGameCacheOne | undefined;
     if (gameCache) {
-      await upsertElement(gameCache, {
+      const path = {
         exePath: (args?.exePath as string | null | undefined) ?? null,
         lnkPath: (args?.lnkPath as string | null | undefined) ?? null,
-      });
+      };
+      await upsertElement(gameCache, path, await getDemoIconUrlForElementPath(path));
     }
     return undefined as T;
   }
@@ -359,12 +368,14 @@ export const invoke = async <T = unknown>(
   if (cmd === "update_collection_element_path") {
     const id = Number(args?.id);
     const path = String(args?.path ?? "");
+    const icon = await getDemoIconUrlForPath(path);
     collectionElements = collectionElements.map((element) =>
       element.id === id
         ? {
             ...element,
             exePath: isLnkLike(path) ? "" : path,
             lnkPath: isLnkLike(path) ? path : "",
+            icon: icon ?? element.icon,
             updatedAt: nowString(),
           }
         : element,

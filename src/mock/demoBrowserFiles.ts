@@ -84,7 +84,9 @@ export const pickDemoFile = async () => {
       }
       const virtualPath = uniqueVirtualPath("browser-file", handle.name, pickedFiles);
       pickedFiles.add(virtualPath);
-      return `${virtualPath}\\${handle.name}`;
+      const path = `${virtualPath}\\${handle.name}`;
+      rememberDemoFile(path, handle.getFile ? await handle.getFile().catch(() => null) : null);
+      return path;
     } catch (e) {
       console.warn("[Mock Browser FS] file selection cancelled", e);
       return null;
@@ -165,7 +167,9 @@ const pickFileWithInput = async () => {
   }
   const virtualPath = uniqueVirtualPath("browser-file", file.name, pickedFiles);
   pickedFiles.add(virtualPath);
-  return `${virtualPath}\\${file.name}`;
+  const path = `${virtualPath}\\${file.name}`;
+  rememberDemoFile(path, file);
+  return path;
 };
 
 const walkDirectory = async (

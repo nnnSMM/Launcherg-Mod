@@ -2,7 +2,7 @@ const RT_ICON = 3;
 const RT_GROUP_ICON = 14;
 
 const fileByPath = new Map<string, File>();
-const objectUrls = new Map<string, string>();
+const dataUrls = new Map<string, string>();
 
 const extname = (path: string) => {
   const dot = path.lastIndexOf(".");
@@ -25,13 +25,21 @@ export const rememberDemoFile = (path: string, file: File | null | undefined) =>
   }
 };
 
-const getObjectUrl = (key: string, blob: Blob) => {
-  const existing = objectUrls.get(key);
+const blobToDataUrl = async (blob: Blob) =>
+  await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ""));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+
+const getDataUrl = async (key: string, blob: Blob) => {
+  const existing = dataUrls.get(key);
   if (existing) {
     return existing;
   }
-  const url = URL.createObjectURL(blob);
-  objectUrls.set(key, url);
+  const url = await blobToDataUrl(blob);
+  dataUrls.set(key, url);
   return url;
 };
 
@@ -237,7 +245,7 @@ const extractIcoFromExe = async (file: File) => {
 export const getDemoIconUrlForPath = async (filePath: string) => {
   const siblingIco = findSiblingIco(filePath);
   if (siblingIco) {
-    return getObjectUrl(siblingIco.path, siblingIco.file);
+    return await getDataUrl(siblingIco.path, siblingIco.file);
   }
 
   const file = fileByPath.get(filePath);
@@ -249,5 +257,5 @@ export const getDemoIconUrlForPath = async (filePath: string) => {
     console.warn("[Mock Browser FS] failed to extract exe icon", e);
     return null;
   });
-  return iconBlob ? getObjectUrl(`exe-icon:${filePath}`, iconBlob) : null;
+  return iconBlob ? await getDataUrl(`exe-icon:${filePath}`, iconBlob) : null;
 };

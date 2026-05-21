@@ -17,9 +17,13 @@
     y: 0,
   };
 
-  $: iconSrc = `${convertFileSrc(collectionElement.icon)}?v=${
-    collectionElement.updatedAt
-  }`;
+  const withCacheBuster = (src: string, updatedAt: string) =>
+    /^(blob:|data:)/.test(src) ? src : `${src}?v=${updatedAt}`;
+
+  $: iconSrc = withCacheBuster(
+    convertFileSrc(collectionElement.icon),
+    collectionElement.updatedAt,
+  );
 
   $: isActive = $location.includes(`/works/${collectionElement.id}`);
 

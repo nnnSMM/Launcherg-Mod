@@ -5,9 +5,15 @@ describe("demo tauri core", () => {
   beforeEach(() => {
     localStorage.clear();
     vi.resetModules();
-    Object.defineProperty(URL, "createObjectURL", {
+    Object.defineProperty(FileReader.prototype, "readAsDataURL", {
       configurable: true,
-      value: vi.fn(() => "blob:demo-icon"),
+      value: function () {
+        Object.defineProperty(this, "result", {
+          configurable: true,
+          value: "data:image/x-icon;base64,ZGVtby1pY29u",
+        });
+        this.onload?.({} as ProgressEvent<FileReader>);
+      },
     });
   });
 
@@ -83,7 +89,7 @@ describe("demo tauri core", () => {
     const imported = elements.find((element) => element.id === 29016);
 
     expect(added).toEqual(["Summer Pockets REFLECTION BLUE"]);
-    expect(imported?.icon).toBe("blob:demo-icon");
+    expect(imported?.icon).toBe("data:image/x-icon;base64,ZGVtby1pY29u");
     expect(imported?.icon).not.toBe(imported?.thumbnail);
   });
 
