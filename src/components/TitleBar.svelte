@@ -21,6 +21,7 @@
   import type { AllGameCacheOne } from "@/lib/types";
   import { sidebarCollectionElements } from "@/store/sidebarCollectionElements";
   import { enqueueGameScreenshotPrefetch } from "@/lib/useGameScreenshots";
+  import { autoImportProgress } from "@/store/autoImportProgress";
 
   export let variant: "main" | "screenshot" = "main";
   export let heightClass: string = "h-8";
@@ -184,6 +185,24 @@
     </button>
   </div>
 </div>
+
+{#if $autoImportProgress.isRunning}
+  <div class="fixed top-10 right-3 z-[60] rounded-md border border-border-primary bg-bg-secondary/95 px-3 py-2 shadow-lg backdrop-blur-sm">
+    <div class="flex items-center gap-3">
+      <div class="h-4 w-4 rounded-full border-2 border-border-primary border-t-accent-accent animate-spin" />
+      <div class="min-w-0">
+        <div class="text-[12px] font-medium text-text-primary">
+          {$autoImportProgress.message}
+        </div>
+        {#if $autoImportProgress.total > 0}
+          <div class="text-[11px] text-text-tertiary">
+            {$autoImportProgress.processed}/{$autoImportProgress.total}
+          </div>
+        {/if}
+      </div>
+    </div>
+  </div>
+{/if}
 
 {#if isOpenImportAutomatically}
   <ImportAutomatically bind:isOpen={isOpenImportAutomatically} />
