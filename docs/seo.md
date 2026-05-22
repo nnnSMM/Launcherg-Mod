@@ -29,9 +29,11 @@ Launcherg-Mod の公開ページは、検索順位を操作するためではな
 
 ## GitHub repository About
 
-- Description: `VN・ノベルゲームの起動、プレイ時間記録、スクリーンショット整理をまとめるWindowsアプリ`
+- Description: `VN・ノベルゲームのプレイ時間記録とスクリーンショット管理ができるWindows向けランチャー`
 - Website: `https://nnnsmm.github.io/Launcherg-Mod/`
-- Topics: `tauri`, `svelte`, `windows`, `game-launcher`, `visual-novel`, `vn`, `playtime-tracker`, `screenshot-manager`, `japanese`
+- Topics: `visual-novel`, `galgame`, `gaming`, `launcher`, `game-launcher`, `tauri`, `svelte`, `rust`, `typescript`, `windows`, `sqlite`, `playtime-tracker`, `screenshot-manager`
+
+Topic は Playnite で使われている `gaming` / `launcher`、vnite で使われている `visual-novel` / `galgame` / `gaming` / `launcher` を中核にする。独自すぎる topic より、実際に使われている topic を優先する。
 
 ## 現状確認メモ
 
