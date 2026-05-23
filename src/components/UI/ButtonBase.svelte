@@ -14,6 +14,9 @@
 
     const tippyOptions: Partial<TippyOption> = {
       placement: "right",
+      theme: "default",
+      arrow: false, // 吹き出しの矢印を非表示にする
+      delay: [300, 50],
       ...tooltip,
     };
 
@@ -26,6 +29,9 @@
         }
         const tippyOptions: Partial<TippyOption> = {
           placement: "right",
+          theme: "default",
+          arrow: false, // 吹き出しの矢印を非表示にする
+          delay: [300, 50],
           ...tooltip,
         };
         tp.setProps(tippyOptions);

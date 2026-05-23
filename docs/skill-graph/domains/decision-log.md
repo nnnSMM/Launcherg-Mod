@@ -12,6 +12,14 @@ links:
 
 # Decision Log
 
+## 2026-05-23: グローバルな title 属性の自動 Tippy 化とテーマ追従型グラスモフィズムツールチップの導入
+
+- Context: アプリ全体でHTML標準の `title` 属性によるホバー表示が多用されており、これがブラウザ標準の「白地に黒文字」で表示され、アプリ全体のダーク/ライトテーマに合っていなかった。また既存のTippy.js（ButtonBase.svelte）もテーマ指定がなく、表示テーマに統合されていなかった。
+- Decision: MutationObserverとTippy.jsのデリゲーションを組み合わせた `setupGlobalTooltips` ユーティリティを `App.svelte` で一元的に導入する。これにより、動的追加・更新される要素も含めて `title` 属性を自動で `data-tippy-content` に移行してブラウザ標準の表示を無効化し、テーマ追従型の美しいTippyツールチップに置き換える。さらに、ツールチップのデザインを角丸、影、および `backdrop-filter` による半透明のグラスモフィズム効果を取り入れたプレミアムな外観へ美化する。
+- Rationale: 各コンポーネントの `title` 属性を一つ一つ修正すると差分が膨大になりデグレの危険性があるのに対し、グローバルに属性変更をフックして移行するアプローチは安全かつロータッチで完璧に要求を満たせる。TDDアプローチに沿って移行関数とテストを先に開発した。
+- Consequence: すべてのホバー表示が自動的にテーマ（ダーク/ライト）に合わせた美しいデザインに統一され、マウスポインタの移動時の遅延（delay）設定によりUIのプレミアム感が向上する。
+- Links: [[architecture-map]], [[quality-gates]]
+
 ## 2026-05-23: Steam パス由来のサムネイル候補と 5 状態 play status を migration なしで導入する
 
 - Context: vnite は Steam など複数データソースと 5 状態の play status を持つ。一方、Launcherg-Mod は ErogameScape 由来 thumbnail と `play_status` INTEGER の 3 状態 UI が中心だった。ユーザー要望として Steam パスの場合の特殊処理、特にゲーム追加時 thumbnail が追加された。

@@ -39,8 +39,8 @@ html {
   --color-text-b-tertiary: 50, 57, 66;
   --color-scrollbar-thumb: 85, 96, 109;
   --color-scrollbar-thumb-hover: 176, 187, 201;
-  --color-tooltip-bg: 99, 110, 123;
-  --color-tooltip-text: 195, 207, 219;
+  --color-tooltip-bg: 33, 38, 45;
+  --color-tooltip-text: 230, 237, 243;
   --color-editor-bg: 34, 39, 46;
   --color-editor-border: 68, 76, 86;
   --color-editor-active: 45, 51, 59;
@@ -89,8 +89,8 @@ html[data-theme="light"] {
   --color-text-b-tertiary: 234, 238, 242;
   --color-scrollbar-thumb: 175, 184, 193;
   --color-scrollbar-thumb-hover: 110, 119, 129;
-  --color-tooltip-bg: 87, 96, 106;
-  --color-tooltip-text: 255, 255, 255;
+  --color-tooltip-bg: 255, 255, 255;
+  --color-tooltip-text: 36, 41, 47;
   --color-editor-bg: 255, 255, 255;
   --color-editor-border: 208, 215, 222;
   --color-editor-active: 240, 243, 246;
@@ -155,12 +155,18 @@ a:focus-visible {
 }
 
 .tippy-box[data-theme~='default'] {
-  >.tippy-arrow {
-    color: rgb(var(--color-tooltip-bg));
-  }
-
-  background-color: rgb(var(--color-tooltip-bg));
+  background-color: rgba(var(--color-tooltip-bg), 0.88);
   color: rgb(var(--color-tooltip-text));
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(var(--color-text-primary), 0.15);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1);
+  font-family: inherit;
+  font-size: 0.775rem;
+  font-weight: 500;
+  line-height: 1.4;
+
 }
 
 .tippy-box[data-theme~='image-bg'] {
