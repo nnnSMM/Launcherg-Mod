@@ -57,6 +57,33 @@
     isShowForwardPlay = right > 0;
   };
   let scrollablePlay: SvelteComponent;
+
+  const handleAttributeClick = (e: MouseEvent, key: AttributeKey) => {
+    dispatcher("toggleAttributeEnabled", { key });
+    const button = e.currentTarget as HTMLElement;
+    if (button) {
+      const scrollContainer = button.closest(".simplebar-content-wrapper") as HTMLElement;
+      if (scrollContainer) {
+        const parent = button.parentElement;
+        if (parent) {
+          const buttons = Array.from(parent.children);
+          const index = buttons.indexOf(button);
+          
+          if (index <= 2) {
+            scrollContainer.scrollTo({
+              left: 0,
+              behavior: "smooth",
+            });
+          } else {
+            scrollContainer.scrollTo({
+              left: scrollContainer.scrollWidth,
+              behavior: "smooth",
+            });
+          }
+        }
+      }
+    }
+  };
 </script>
 
 <div class="space-y-2 w-full min-w-0">
@@ -113,8 +140,7 @@
             {#each playStatusAttributes as attribute (attribute.key)}
               <SearchAttribute
                 {attribute}
-                on:click={() =>
-                  dispatcher("toggleAttributeEnabled", { key: attribute.key })}
+                on:click={(e) => handleAttributeClick(e, attribute.key)}
               />
             {/each}
           </div>
@@ -148,8 +174,7 @@
             {#each otherAttributes as attribute (attribute.key)}
               <SearchAttribute
                 {attribute}
-                on:click={() =>
-                  dispatcher("toggleAttributeEnabled", { key: attribute.key })}
+                on:click={(e) => handleAttributeClick(e, attribute.key)}
               />
             {/each}
           </div>
