@@ -10,7 +10,7 @@
   import { initializeAllGameCache } from "@/lib/scrapeAllGame";
   import ImportDropFiles from "@/components/Home/ImportDropFiles.svelte";
   import { backgroundState } from "@/store/background";
-  import { location } from "svelte-spa-router";
+  import { location, replace } from "svelte-spa-router";
   import { fade } from "svelte/transition";
 
   import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -33,6 +33,9 @@
   $: setDetailPromise = isLandingRoute
     ? Promise.resolve()
     : registerCollectionElementDetails();
+  $: if ($location === "/settings/display") {
+    replace("/settings/shortcut");
+  }
 
   const initializeMainApp = () => {
     if (didInitializeMainApp) {

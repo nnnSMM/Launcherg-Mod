@@ -5,7 +5,6 @@
   import tippy, { type Props as TippyOption } from "tippy.js";
   import { link, push } from "svelte-spa-router";
   import {
-    openDisplaySettingsTab,
     openSettingsTab,
     openShortcutSettingsTab,
   } from "@/store/tabs";
@@ -25,6 +24,7 @@
   import { autoImportProgress } from "@/store/autoImportProgress";
   import { showSidebar } from "@/store/showSidebar";
   import { canGoBack, canGoForward } from "@/lib/historyTrack";
+  import { theme, type AppTheme } from "@/store/theme";
 
   export let variant: "main" | "screenshot" = "main";
   export let heightClass: string = "h-8";
@@ -38,7 +38,8 @@
     gameAdd: "\u30b2\u30fc\u30e0\u8ffd\u52a0",
     addShort: "\u8ffd\u52a0",
     shortcut: "\u30b7\u30e7\u30fc\u30c8\u30ab\u30c3\u30c8",
-    display: "\u8868\u793a",
+    dark: "\u30c0\u30fc\u30af\u30e2\u30fc\u30c9",
+    light: "\u30e9\u30a4\u30c8\u30e2\u30fc\u30c9",
     bulkEdit: "\u30d7\u30ec\u30a4\u72b6\u614b\u4e00\u62ec\u7de8\u96c6",
     help: "\u30d8\u30eb\u30d7",
     toggleSidebar: "\u30b5\u30a4\u30c9\u30d0\u30fc\u306e\u5207\u308a\u66ff\u3048",
@@ -49,6 +50,8 @@
   let isMaximized = false;
   let isOpenImportAutomatically = false;
   let isOpenImportManually = false;
+
+  $: themeButtonLabel = $theme === "dark" ? navLabels.dark : navLabels.light;
 
   const titlebarIconButtonClass =
     "h-8 w-8 flex items-center justify-center rounded-md cursor-pointer outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-accent bg-transparent border border-transparent text-text-secondary hover:bg-bg-tertiary hover:text-text-primary";
@@ -167,6 +170,16 @@
   function goForward() {
     window.history.forward();
   }
+
+  async function toggleTheme() {
+    const targetTheme: AppTheme = $theme === "dark" ? "light" : "dark";
+    try {
+      await theme.set(targetTheme);
+    } catch (error) {
+      console.error("Failed to toggle theme:", error);
+      showErrorToast(`テーマの切り替えに失敗しました: ${error}`);
+    }
+  }
 </script>
 
 <div class="{heightClass} bg-bg-primary/92 border-b border-solid border-border-primary flex items-center select-none w-full z-50 shrink-0 relative backdrop-blur-xl">
@@ -245,21 +258,23 @@
           type="button"
           aria-label={navLabels.shortcut}
           use:titlebarTooltipAction={navLabels.shortcut}
-          class={titlebarToolButtonClass}
+          class={titlebarIconButtonClass}
           on:click={openShortcutSettingsTab}
         >
           <div class="i-material-symbols:keyboard-outline-rounded text-[18px]" />
-          <span class="hidden xl:inline">{navLabels.shortcut}</span>
         </button>
         <button
           type="button"
-          aria-label={navLabels.display}
-          use:titlebarTooltipAction={navLabels.display}
-          class={titlebarToolButtonClass}
-          on:click={openDisplaySettingsTab}
+          aria-label={themeButtonLabel}
+          use:titlebarTooltipAction={themeButtonLabel}
+          class={titlebarIconButtonClass}
+          on:click={toggleTheme}
         >
-          <div class="i-material-symbols:palette-outline-rounded text-[18px]" />
-          <span class="hidden xl:inline">{navLabels.display}</span>
+          <div
+            class={`${$theme === "dark"
+              ? "i-material-symbols:dark-mode-outline-rounded"
+              : "i-material-symbols:light-mode-outline-rounded"} text-[18px]`}
+          />
         </button>
         <button
           type="button"
