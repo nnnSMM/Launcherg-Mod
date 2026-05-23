@@ -61,13 +61,13 @@
 </script>
 
 <div
-  class="flex items-center py-2 px-2 mx-2 rounded-lg transition-all hover:bg-white/5 overflow-hidden group relative"
+  class="flex items-center py-1 px-2 mx-2 rounded-lg transition-all hover:bg-white/5 overflow-hidden group relative"
   on:contextmenu={handleContextMenu}
   class:bg-white-10={isActive}
 >
   {#if isActive}
     <div
-      class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-accent-accent rounded-r-full"
+      class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-accent-accent rounded-r-full"
     />
   {/if}
   <a
@@ -80,7 +80,7 @@
     <img
       alt="{collectionElement.gamename}_icon"
       src={iconSrc}
-      class="h-8 w-8 rounded-md object-cover shadow-sm transition-transform group-hover:scale-105"
+      class="h-5 w-5 rounded object-cover shadow-sm transition-transform group-hover:scale-105"
       loading="lazy"
       on:error={(e) => {
         const img = e.currentTarget;
@@ -91,17 +91,9 @@
     />
     <div class="min-w-0 flex-1">
       <div
-        class="text-sm font-medium text-text-secondary group-hover:text-text-primary truncate transition-colors"
+        class="text-xs font-medium text-text-secondary group-hover:text-text-primary truncate transition-colors"
       >
         {collectionElement.gamename}
-      </div>
-      <div class="flex items-center gap-2 text-caption text-text-tertiary min-w-0">
-        {#if collectionElement.brandname}
-          <span class="truncate">{collectionElement.brandname}</span>
-        {/if}
-        {#if lastPlayedText}
-          <span class="shrink-0">{lastPlayedText}</span>
-        {/if}
       </div>
     </div>
   </a>
