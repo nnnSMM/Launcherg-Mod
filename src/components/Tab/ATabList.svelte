@@ -38,7 +38,11 @@
 
     const currentSelectedTab = getSelectedTab();
     if (!currentSelectedTab || currentSelectedTab.id !== tabData.id) {
-      push(tabData.path || `/${tabData.type}/${tabData.workId}`);
+      const targetPath = tabData.path || `/${tabData.type}/${tabData.workId}`;
+      const currentPathWithQuery = window.location.hash.replace(/^#/, "");
+      if (currentPathWithQuery !== targetPath) {
+        push(targetPath);
+      }
     }
 
     draggingTabId = tabData.id;

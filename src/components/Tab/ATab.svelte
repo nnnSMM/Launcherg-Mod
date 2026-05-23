@@ -26,7 +26,12 @@
 
   const handleClick = () => {
     if (isDragging || isPlaceholder || isAnyTabDragging) return;
-    push(tab.path);
+    
+    // 現在のパス（クエリも含めて比較）
+    const currentPathWithQuery = window.location.hash.replace(/^#/, "");
+    if (currentPathWithQuery !== tab.path) {
+      push(tab.path);
+    }
   };
 
   const handleKeyDown = (event: KeyboardEvent) => {

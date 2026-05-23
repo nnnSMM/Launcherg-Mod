@@ -23,6 +23,7 @@
   import { enqueueGameScreenshotPrefetch } from "@/lib/useGameScreenshots";
   import { autoImportProgress } from "@/store/autoImportProgress";
   import { showSidebar } from "@/store/showSidebar";
+  import { canGoBack, canGoForward } from "@/lib/historyTrack";
 
   export let variant: "main" | "screenshot" = "main";
   export let heightClass: string = "h-8";
@@ -163,7 +164,8 @@
           type="button"
           aria-label={navLabels.back}
           title={navLabels.back}
-          class={titlebarIconButtonClass}
+          class={`${titlebarIconButtonClass} disabled:opacity-30 disabled:pointer-events-none`}
+          disabled={!$canGoBack}
           on:click={goBack}
         >
           <div class="i-material-symbols:arrow-back-rounded text-[18px]" />
@@ -172,7 +174,8 @@
           type="button"
           aria-label={navLabels.forward}
           title={navLabels.forward}
-          class={titlebarIconButtonClass}
+          class={`${titlebarIconButtonClass} disabled:opacity-30 disabled:pointer-events-none`}
+          disabled={!$canGoForward}
           on:click={goForward}
         >
           <div class="i-material-symbols:arrow-forward-rounded text-[18px]" />

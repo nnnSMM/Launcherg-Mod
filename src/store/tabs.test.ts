@@ -1,10 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { isValidTabType, deleteTab, tabs, selected, setDemoBuildForTest } from "./tabs";
-import { push } from "svelte-spa-router";
+import { push, replace } from "svelte-spa-router";
 import { get } from "svelte/store";
 
 vi.mock("svelte-spa-router", () => ({
   push: vi.fn(),
+  replace: vi.fn(),
 }));
 
 describe("tabs", () => {
@@ -13,6 +14,7 @@ describe("tabs", () => {
         tabs.set([]);
         selected.set(-1);
         vi.mocked(push).mockClear();
+        vi.mocked(replace).mockClear();
     });
 
     describe("isValidTabType", () => {
@@ -49,12 +51,12 @@ describe("tabs", () => {
             setDemoBuildForTest(false);
             
             deleteTab(2);
-            expect(push).toHaveBeenCalledWith("/works/1");
+            expect(replace).toHaveBeenCalledWith("/works/1");
             
-            vi.mocked(push).mockClear();
+            vi.mocked(replace).mockClear();
             deleteTab(1);
             
-            expect(push).toHaveBeenCalledWith("/");
+            expect(replace).toHaveBeenCalledWith("/");
             expect(get(selected)).toBe(-1);
         });
 
@@ -62,12 +64,12 @@ describe("tabs", () => {
             setDemoBuildForTest(true);
             
             deleteTab(2);
-            expect(push).toHaveBeenCalledWith("/works/1");
+            expect(replace).toHaveBeenCalledWith("/works/1");
             
-            vi.mocked(push).mockClear();
+            vi.mocked(replace).mockClear();
             deleteTab(1);
             
-            expect(push).toHaveBeenCalledWith("/demo");
+            expect(replace).toHaveBeenCalledWith("/demo");
             expect(get(selected)).toBe(-1);
         });
     });

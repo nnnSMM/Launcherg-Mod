@@ -1,5 +1,5 @@
 import { createLocalStorageWritable, localStorageWritable } from "@/lib/utils";
-import { push, type RouteLoadedEvent } from "svelte-spa-router";
+import { push, replace, type RouteLoadedEvent } from "svelte-spa-router";
 
 let isDemoBuildVal = import.meta.env.BASE_URL === "./";
 export const isDemoBuild = () => isDemoBuildVal;
@@ -180,18 +180,18 @@ const createTabs = () => {
 
     if (newTabs.length === 0) {
       selected.set(-1);
-      push(isDemoBuild() ? "/demo" : "/");
+      replace(isDemoBuild() ? "/demo" : "/");
       return;
     }
 
     if (currentSelectedRaw === deleteIndex) {
       newSelectedRaw = Math.max(0, deleteIndex - 1);
       const nextTabToPush = newTabs[newSelectedRaw];
-      if (nextTabToPush) {
-        push(nextTabToPush.path); // path を使う
-      } else {
-        push(isDemoBuild() ? "/demo" : "/");
-      }
+        if (nextTabToPush) {
+          replace(nextTabToPush.path); // path を使う
+        } else {
+          replace(isDemoBuild() ? "/demo" : "/");
+        }
     } else if (currentSelectedRaw > deleteIndex) {
       newSelectedRaw = currentSelectedRaw - 1;
     }
@@ -273,7 +273,7 @@ const createTabs = () => {
 
     if (existingTabIndex !== -1) {
       selected.set(existingTabIndex);
-      push(tabPath);
+      replace(tabPath);
     } else {
       const settingsTab: Tab = {
         id: tabId,

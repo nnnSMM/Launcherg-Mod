@@ -6,6 +6,7 @@
   import { registerCollectionElementDetails } from "@/lib/registerCollectionElementDetails";
   import { onMount } from "svelte";
   import { setupGlobalTooltips } from "@/lib/tooltip";
+  import { setupHistoryTracker } from "@/lib/historyTrack";
   import { initializeAllGameCache } from "@/lib/scrapeAllGame";
   import ImportDropFiles from "@/components/Home/ImportDropFiles.svelte";
   import { backgroundState } from "@/store/background";
@@ -50,6 +51,7 @@
     }
 
     const cleanupTooltips = setupGlobalTooltips();
+    const cleanupHistory = setupHistoryTracker();
 
     // F5とCtrl+Rによるリロードを無効化
     const handleKeydown = (e: KeyboardEvent) => {
@@ -66,6 +68,7 @@
     return () => {
       window.removeEventListener("keydown", handleKeydown);
       cleanupTooltips();
+      cleanupHistory();
     };
   });
 
