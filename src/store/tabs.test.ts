@@ -1,5 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { isValidTabType, deleteTab, tabs, selected, setDemoBuildForTest } from "./tabs";
+import {
+    isValidTabType,
+    deleteTab,
+    tabs,
+    selected,
+    setDemoBuildForTest,
+    syncSelectedToLocation,
+} from "./tabs";
 import { push, replace } from "svelte-spa-router";
 import { get } from "svelte/store";
 
@@ -70,6 +77,26 @@ describe("tabs", () => {
             deleteTab(1);
             
             expect(replace).toHaveBeenCalledWith("/demo");
+            expect(get(selected)).toBe(-1);
+        });
+    });
+
+    describe("syncSelectedToLocation", () => {
+        it("should update the selected tab index from the current route", () => {
+            tabs.set([
+                { id: 1, type: "works", workId: 10, scrollTo: 0, title: "Game 10", path: "/works/10?gamename=Game%2010" },
+                { id: 2, type: "memos", workId: 10, scrollTo: 0, title: "Memo - Game 10", path: "/memos/10?gamename=Game%2010" },
+                { id: -101, type: "settings", scrollTo: 0, title: "ショートカット設定", path: "/settings/shortcut" },
+            ]);
+            selected.set(0);
+
+            syncSelectedToLocation("/memos/10");
+            expect(get(selected)).toBe(1);
+
+            syncSelectedToLocation("/settings/shortcut");
+            expect(get(selected)).toBe(2);
+
+            syncSelectedToLocation("/");
             expect(get(selected)).toBe(-1);
         });
     });

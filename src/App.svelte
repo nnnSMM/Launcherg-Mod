@@ -2,7 +2,7 @@
   import Router from "svelte-spa-router";
   import Layout from "@/layouts/Layout.svelte";
   import { routes } from "@/router/route";
-  import { initialize, routeLoaded } from "@/store/tabs";
+  import { initialize, routeLoaded, syncSelectedToLocation } from "@/store/tabs";
   import { registerCollectionElementDetails } from "@/lib/registerCollectionElementDetails";
   import { onMount } from "svelte";
   import { setupGlobalTooltips } from "@/lib/tooltip";
@@ -35,6 +35,9 @@
     : registerCollectionElementDetails();
   $: if ($location === "/settings/display") {
     replace("/settings/shortcut");
+  }
+  $: if (!isLandingRoute) {
+    syncSelectedToLocation($location);
   }
 
   const initializeMainApp = () => {

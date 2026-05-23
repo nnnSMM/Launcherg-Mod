@@ -33,6 +33,7 @@ const SHORTCUT_SETTINGS_PATH = "/settings/shortcut";
 const SHORTCUT_SETTINGS_TITLE = "ショートカット設定";
 
 const LEGACY_DISPLAY_SETTINGS_PATH = "/settings/display";
+const ROOT_PATHS = new Set(["/", "/demo"]);
 
 const createTabs = () => {
   const [tabs, getTabs] = createLocalStorageWritable<Tab[]>("tabs", []);
@@ -78,6 +79,59 @@ const createTabs = () => {
     return index;
   };
 
+  const getSelectedIndexForLocation = (rawLocation: string): number => {
+    const location =
+      rawLocation === LEGACY_DISPLAY_SETTINGS_PATH
+        ? SHORTCUT_SETTINGS_PATH
+        : rawLocation;
+
+    if (ROOT_PATHS.has(location)) {
+      return -1;
+    }
+
+    if (location === PLAY_STATUS_EDITOR_PATH) {
+      return getTabs().findIndex(
+        (tab) =>
+          tab.id === PLAY_STATUS_EDITOR_TAB_ID && tab.type === "settings",
+      );
+    }
+
+    if (location === SHORTCUT_SETTINGS_PATH) {
+      return getTabs().findIndex(
+        (tab) =>
+          tab.id === SHORTCUT_SETTINGS_TAB_ID && tab.type === "settings",
+      );
+    }
+
+    const pathSegments = location.split("/").filter(Boolean);
+    const tabTypeSegment = pathSegments[0];
+    const entityId =
+      pathSegments[1] &&
+      (tabTypeSegment === "works" || tabTypeSegment === "memos")
+        ? Number(pathSegments[1])
+        : undefined;
+
+    if (
+      !isValidTabType(tabTypeSegment) ||
+      tabTypeSegment === "settings" ||
+      !entityId ||
+      Number.isNaN(entityId)
+    ) {
+      return -1;
+    }
+
+    return getTabs().findIndex(
+      (tab) => tab.workId === entityId && tab.type === tabTypeSegment,
+    );
+  };
+
+  const syncSelectedToLocation = (rawLocation: string) => {
+    const nextSelectedIndex = getSelectedIndexForLocation(rawLocation);
+    if (nextSelectedIndex !== getSelected()) {
+      selected.set(nextSelectedIndex);
+    }
+  };
+
   const routeLoaded = (event: RouteLoadedEvent) => {
     const rawLocation = event.detail.location;
     const location =
@@ -87,7 +141,7 @@ const createTabs = () => {
 
     localStorage.setItem("last-path", location);
 
-    if (location === "/" || location === "/demo") {
+    if (ROOT_PATHS.has(location)) {
       selected.set(-1);
       return;
     }
@@ -333,6 +387,7 @@ const createTabs = () => {
     reorderTabs,
     openSettingsTab,
     openShortcutSettingsTab,
+    syncSelectedToLocation,
   };
 };
 
@@ -346,6 +401,7 @@ interface TabsStore {
   reorderTabs: (oldIndex: number, newIndex: number) => void;
   openSettingsTab: () => void;
   openShortcutSettingsTab: () => void;
+  syncSelectedToLocation: (rawLocation: string) => void;
 }
 
 const createdTabs: TabsStore = createTabs();
@@ -360,4 +416,5 @@ export const {
   reorderTabs,
   openSettingsTab,
   openShortcutSettingsTab,
+  syncSelectedToLocation,
 } = createdTabs;
