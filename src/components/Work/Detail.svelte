@@ -27,7 +27,7 @@
 </script>
 
 <div
-  class="border border-solid border-border-primary bg-bg-secondary/30 shadow-sm rounded-lg overflow-hidden"
+  class="border border-solid border-border-primary bg-bg-secondary/6 backdrop-blur-sm shadow-sm rounded-lg overflow-hidden"
 >
   <div class="grid grid-cols-[minmax(5.5rem,8rem)_minmax(0,1fr)]">
     <DetailRow label="シナリオ" noBorder>

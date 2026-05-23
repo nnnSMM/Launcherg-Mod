@@ -59,7 +59,7 @@
             <div class="min-w-0">
                 <section
                     id="work-overview"
-                    class="rounded-lg border border-border-primary bg-bg-primary/72 shadow-sm overflow-hidden"
+                    class="rounded-lg border border-border-primary bg-bg-primary/38 backdrop-blur-md shadow-sm overflow-hidden"
                     aria-labelledby="work-overview-title"
                 >
                     <div class="p-4 lg:p-5 border-b border-border-primary">
@@ -157,7 +157,7 @@
             </div>
 
             <section
-                class="rounded-lg border border-border-primary bg-bg-primary/72 shadow-sm p-4 lg:p-5 min-w-0"
+                class="rounded-lg border border-border-primary bg-bg-primary/24 backdrop-blur-md shadow-sm p-4 lg:p-5 min-w-0"
                 aria-labelledby="work-creators-title"
             >
                 <h2 id="work-creators-title" class="text-h3 text-text-primary font-bold mb-4">
@@ -169,7 +169,7 @@
     {:else if page === "record"}
         <section
             id="work-record"
-            class="rounded-lg border border-border-primary bg-bg-primary/72 shadow-sm p-4 lg:p-5"
+            class="rounded-lg border border-border-primary bg-bg-primary/30 backdrop-blur-md shadow-sm p-4 lg:p-5"
             aria-labelledby="work-record-title"
         >
             <div class="flex items-center gap-2 mb-4">
@@ -180,7 +180,7 @@
             </div>
             <div class="mb-6 flex flex-wrap items-center gap-x-10 gap-y-5">
                 {#each recordRows as row (row.label)}
-                    <div class="flex min-w-[10rem] items-center gap-3">
+                    <div class="flex min-w-[10rem] items-center gap-3 rounded-lg border border-border-primary bg-bg-secondary/10 backdrop-blur-sm px-3 py-2">
                         <div class="{row.icon} h-7 w-7 shrink-0 color-ui-tertiary" />
                         <div class="min-w-0">
                             <div class="text-caption text-text-tertiary">
@@ -193,24 +193,24 @@
                     </div>
                 {/each}
             </div>
-            <div class="rounded-lg border border-border-primary bg-bg-secondary/35 p-4">
+            <div class="rounded-lg border border-border-primary bg-bg-secondary/12 backdrop-blur-sm p-4">
                 <div class="text-caption text-text-tertiary">コミュニティ統計</div>
                 <div class="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div class="min-w-0">
                         <div class="text-caption text-text-tertiary">平均プレイ時間</div>
-                        <div class="text-body2 text-text-primary font-semibold truncate">
+                        <div class="mt-1 rounded-md bg-bg-secondary/10 px-2.5 py-2 text-body2 text-text-primary font-semibold truncate backdrop-blur-sm">
                             {work.statistics.playTime}
                         </div>
                     </div>
                     <div class="min-w-0">
                         <div class="text-caption text-text-tertiary">中央値</div>
-                        <div class="text-body2 text-text-primary font-semibold truncate">
+                        <div class="mt-1 rounded-md bg-bg-secondary/10 px-2.5 py-2 text-body2 text-text-primary font-semibold truncate backdrop-blur-sm">
                             {work.statistics.median}
                         </div>
                     </div>
                     <div class="min-w-0">
                         <div class="text-caption text-text-tertiary">データ数</div>
-                        <div class="text-body2 text-text-primary font-semibold truncate">
+                        <div class="mt-1 rounded-md bg-bg-secondary/10 px-2.5 py-2 text-body2 text-text-primary font-semibold truncate backdrop-blur-sm">
                             {work.statistics.count}
                         </div>
                     </div>
@@ -220,7 +220,7 @@
     {:else if page === "memo"}
         <section
             id="work-memo"
-            class="rounded-lg border border-border-primary bg-bg-primary/72 shadow-sm p-4 lg:p-5"
+            class="rounded-lg border border-border-primary bg-bg-primary/30 backdrop-blur-md shadow-sm p-4 lg:p-5"
             aria-labelledby="work-memo-title"
         >
             <div class="flex items-start gap-3">

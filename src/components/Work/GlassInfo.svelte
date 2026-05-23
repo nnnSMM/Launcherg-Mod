@@ -101,7 +101,7 @@
 </script>
 
 <div
-    class="relative z-20 bg-bg-primary/48 border-t border-border-primary p-4 sm:p-6 lg:p-8 shadow-2xl"
+    class="relative z-20 bg-bg-primary/28 border-t border-border-primary p-4 sm:p-6 lg:p-8 shadow-2xl"
     style="backdrop-filter: blur(8px);"
 >
     <div class="max-w-[1440px] mx-auto space-y-6">
