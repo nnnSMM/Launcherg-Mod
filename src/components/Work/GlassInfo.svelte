@@ -108,9 +108,9 @@
         <div class="space-y-4" aria-label="作品操作">
             <div class="min-w-0 px-1 lg:px-2">
                 {#await seiya.getUrl(work.name)}
-                    <Actions id={work.id} name={element.gamename} seiyaUrl={""} />
+                    <Actions id={work.id} seiyaUrl={""} />
                 {:then seiyaUrl}
-                    <Actions id={work.id} name={element.gamename} {seiyaUrl} />
+                    <Actions id={work.id} {seiyaUrl} />
                 {/await}
             </div>
             <div class="min-w-0 px-1 lg:px-2">
@@ -140,17 +140,6 @@
                             </div>
                         </div>
                     </div>
-                    {#if element.sellday}
-                        <div class="flex min-w-0 items-center gap-2.5">
-                            <div class="i-material-symbols-calendar-month-outline-rounded h-7 w-7 shrink-0 color-ui-tertiary" />
-                            <div class="w-[5.75rem] min-w-0">
-                                <div class="text-[11px] leading-none text-text-tertiary">発売日</div>
-                                <div class="mt-1 truncate text-body3 font-semibold text-text-primary">
-                                    {element.sellday}
-                                </div>
-                            </div>
-                        </div>
-                    {/if}
                     <div class="flex min-w-0 items-center gap-2.5">
                         <div class="i-material-symbols-hourglass-outline-rounded h-7 w-7 shrink-0 color-ui-tertiary" />
                         <div class="w-[4.75rem] min-w-0">
@@ -169,12 +158,23 @@
                             </div>
                         </div>
                     </div>
+                    {#if element.sellday}
+                        <div class="flex min-w-0 items-center gap-2.5">
+                            <div class="i-material-symbols-calendar-month-outline-rounded h-7 w-7 shrink-0 color-ui-tertiary" />
+                            <div class="w-[5.75rem] min-w-0">
+                                <div class="text-[11px] leading-none text-text-tertiary">発売日</div>
+                                <div class="mt-1 truncate text-body3 font-semibold text-text-primary">
+                                    {element.sellday}
+                                </div>
+                            </div>
+                        </div>
+                    {/if}
                     {#if element.brandname}
                         <div class="flex min-w-0 items-center gap-2.5">
                             <div class="i-material-symbols-business-rounded h-7 w-7 shrink-0 color-ui-tertiary" />
-                            <div class="w-[clamp(9rem,22vw,18rem)] min-w-0">
+                            <div class="min-w-0">
                                 <div class="text-[11px] leading-none text-text-tertiary">ブランド</div>
-                                <div class="mt-1 truncate text-body3 font-semibold text-text-primary">
+                                <div class="mt-1 text-body3 font-semibold text-text-primary">
                                     {element.brandname}
                                 </div>
                             </div>

@@ -12,16 +12,7 @@
   }>();
 </script>
 
-<div>
-  <div
-    class="font-bold text-text-primary text-body3 p-l-4 p-r-2 p-y-2 flex items-center gap-4"
-  >
-    <div class="whitespace-nowrap">Select game option</div>
-    <button
-      on:click={() => dispatcher("close")}
-      class="ml-auto w-5 h-5 i-iconoir-cancel color-text-tertiary hover:color-text-primary transition-all"
-    />
-  </div>
+<div class="py-1">
   <OptionButton
     text="このゲームをショートカットに設定"
     on:click={() => {

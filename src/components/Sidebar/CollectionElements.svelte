@@ -20,7 +20,7 @@
 
 <div use:simplebar class="h-full overflow-y-auto">
   {#if collectionElement.length}
-    <div class="w-full pt-2">
+    <div class="w-full pt-2 pb-3">
       {#each collectionElement as { label, elements } (label)}
         <ADisclosure {label} defaultOpen={collectionElement.length === 1}>
           {#each elements as ele (ele.id)}

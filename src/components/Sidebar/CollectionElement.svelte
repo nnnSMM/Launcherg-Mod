@@ -104,6 +104,7 @@
     x={menu.x}
     y={menu.y}
     options={menuOptions}
+    disableHover
     on:close={() => (menu.isOpen = false)}
   />
 {/if}

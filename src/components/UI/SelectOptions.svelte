@@ -44,6 +44,7 @@
       <Input
         bind:value={$localQuery}
         placeholder={filterPlaceholder}
+        bgClass="bg-bg-primary/20"
         autofocus
       />
     </div>
@@ -51,12 +52,12 @@
   <div class="flex flex-col overflow-y-auto min-h-full">
     {#each $filtered as option, i (option)}
       <button
-        class={`${value === option.value ? "bg-bg-tertiary" : "bg-transparent"}
+        class={`${value === option.value ? "bg-bg-tertiary/40" : "bg-transparent"}
                 p-x-4 p-y-1 ${
                   options.length - 1 !== i
                     ? "border-b-1px border-solid border-border-primary"
                     : ""
-                } hover:bg-bg-tertiary w-full flex items-center gap-2 transition-all cursor-pointer`}
+                } hover:bg-accent-primary/16 w-full flex items-center gap-2 transition-all cursor-pointer`}
         on:click={() => {
           value = option.value;
           dispatcher("select", { value: option.value });
@@ -79,7 +80,7 @@
   </div>
   {#if bottomCreateButtonText}
     <button
-      class="bg-transparent hover:bg-bg-tertiary transition-all w-full p-l-4 p-r-5 p-y-2 flex items-center border-t-1px border-solid border-border-primary"
+      class="bg-transparent hover:bg-accent-primary/16 transition-all w-full p-l-4 p-r-5 p-y-2 flex items-center border-t-1px border-solid border-border-primary"
       on:click={() => dispatcher("create")}
     >
       <div class="w-5 h-5 i-iconoir-plus color-text-primary" />

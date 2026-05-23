@@ -148,7 +148,7 @@
 </script>
 
 <div class="{heightClass} bg-bg-primary/92 border-b border-solid border-border-primary flex items-center select-none w-full z-50 shrink-0 relative backdrop-blur-xl">
-  <div class="flex h-full min-w-0 flex-1 items-center overflow-hidden pr-[132px]">
+  <div class="flex h-full min-w-0 flex-1 items-center pr-[132px]">
     <div class="flex items-center h-full gap-1 pl-1.5 pr-2 shrink-0">
       {#if variant === "main"}
         <button

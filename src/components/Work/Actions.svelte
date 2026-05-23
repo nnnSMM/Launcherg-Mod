@@ -1,7 +1,6 @@
-<script lang="ts">
+﻿<script lang="ts">
   import Button from "@/components/UI/Button.svelte";
   import PlayButton from "@/components/Work/PlayButton.svelte";
-  import { push } from "svelte-spa-router";
   import {
     commandDeleteCollectionElement,
     commandOpenFolder,
@@ -12,7 +11,6 @@
   } from "@/lib/command";
   import { showErrorToast, showInfoToast } from "@/lib/toast";
   import { localStorageWritable } from "@/lib/utils";
-  import ButtonIcon from "@/components/UI/ButtonIcon.svelte";
   import ButtonCancel from "@/components/UI/ButtonCancel.svelte";
   import { sidebarCollectionElements } from "@/store/sidebarCollectionElements";
   import APopover from "@/components/UI/APopover.svelte";
@@ -27,7 +25,6 @@
   import { startProcessMap } from "@/store/startProcessMap";
   import { enqueueGameScreenshotPrefetch } from "@/lib/useGameScreenshots";
 
-  export let name: string;
   export let id: number;
   export let seiyaUrl: string;
 
@@ -154,37 +151,11 @@
           on:click={() => (isOpenImportManually = true)}
         />
       {/if}
-      <Button
-        leftIcon="i-material-symbols-drive-file-rename-outline"
-        text="Memo"
-        appendClass="h-9 justify-center px-3"
-        on:click={() => push(`/memos/${id}?gamename=${name}`)}
-      />
-    </div>
-    <div class="flex w-full shrink-0 items-center justify-end gap-2 sm:ml-auto sm:w-auto">
-      <ButtonCancel
-        icon="i-material-symbols-qr-code"
-        ariaLabel="QRコードを表示"
-        on:click={() => (isOpenQrCode = true)}
-      />
-      <ButtonCancel
-        icon={isLike
-          ? "i-material-symbols-favorite-rounded color-accent-error"
-          : "i-material-symbols-favorite-outline-rounded"}
-        ariaLabel={isLike ? "お気に入りを解除" : "お気に入りに追加"}
-        on:click={toggleLike}
-      />
       <APopover let:close panelClass="right-0">
-        <ButtonIcon
-          icon="i-material-symbols-menu-rounded"
-          borderless
+        <ButtonCancel
+          icon="i-material-symbols-settings-rounded"
+          iconClass="h-6 w-6"
           ariaLabel="その他の操作"
-          tooltip={{
-            content: "その他の操作",
-            placement: "bottom",
-            theme: "default",
-            delay: 1000,
-          }}
           slot="button"
         />
         <SettingPopover
@@ -199,6 +170,21 @@
           on:selectShortcut={setAsShortcutGame}
         />
       </APopover>
+      <ButtonCancel
+        icon={isLike
+          ? "i-material-symbols-favorite-rounded"
+          : "i-material-symbols-favorite-outline-rounded"}
+        colorClass={isLike
+          ? "color-text-primary hover:color-text-primary"
+          : "color-text-tertiary hover:color-text-primary"}
+        ariaLabel={isLike ? "お気に入りを解除" : "お気に入りに追加"}
+        on:click={toggleLike}
+      />
+      <ButtonCancel
+        icon="i-material-symbols-qr-code"
+        ariaLabel="QRコードを表示"
+        on:click={() => (isOpenQrCode = true)}
+      />
     </div>
   </div>
 
