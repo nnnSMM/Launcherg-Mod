@@ -5,6 +5,7 @@
   export let tooltip: Partial<TippyOption> | undefined = undefined;
   export let disabled = false;
   export let borderless = false;
+  export let ariaLabel: string | undefined = undefined;
 
   const tooltipAction = (node: HTMLElement) => {
     if (!tooltip) {
@@ -81,6 +82,7 @@
   use:tooltipAction
   {type}
   {disabled}
+  aria-label={ariaLabel}
   class={`rounded transition-all ${buttonVariantClass} ${borderlessClass} ${appendClass} focus-ring`}
   on:click
 >

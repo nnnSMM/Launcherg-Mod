@@ -54,6 +54,24 @@
       baseColorCode: "#48BB78",
       selectedIconColor: "#FFFFFF",
     },
+    [PSConst.Multiple]: {
+      label: "複数進行",
+      icon: "i-material-symbols:alt-route-rounded",
+      textColorClass: "text-amber-600 dark:text-amber-400",
+      bgColorClass: "bg-amber-100 dark:bg-amber-800",
+      borderColorClass: "border-amber-500",
+      baseColorCode: "#D97706",
+      selectedIconColor: "#FFFFFF",
+    },
+    [PSConst.Shelved]: {
+      label: "棚上げ",
+      icon: "i-material-symbols:schedule-rounded",
+      textColorClass: "text-slate-600 dark:text-slate-400",
+      bgColorClass: "bg-slate-100 dark:bg-slate-800",
+      borderColorClass: "border-slate-500",
+      baseColorCode: "#64748B",
+      selectedIconColor: "#FFFFFF",
+    },
   };
 
   $: displayPlayStatus =

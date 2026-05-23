@@ -12,7 +12,7 @@ use crate::{
         distance::find_nearest,
         file::{
             get_exe_path_from_lnk, get_file_created_at_sync, get_icon_path, get_lnk_metadatas,
-            get_thumbnail_path, normalize,
+            get_thumbnail_candidate_urls, get_thumbnail_path, normalize,
         },
         repository::collection::VndbScreenshotCache as DomainVndbScreenshotCache,
         Id,
@@ -328,11 +328,20 @@ pub async fn create_elements_in_pc(
         .await?;
     modules
         .collection_use_case()
-        .concurrency_save_thumbnails(
+        .concurrency_save_thumbnails_from_candidates(
             &handle,
             new_elements_game_caches
                 .into_iter()
-                .map(|v| (Id::new(v.id), v.thumbnail_url))
+                .map(|v| {
+                    let urls = new_elements
+                        .iter()
+                        .find(|element| element.id.value == v.id)
+                        .map(|element| {
+                            get_thumbnail_candidate_urls(element, v.thumbnail_url.clone())
+                        })
+                        .unwrap_or_else(|| vec![v.thumbnail_url.clone()]);
+                    (Id::new(v.id), urls)
+                })
                 .collect(),
         )
         .await?;
@@ -437,6 +446,7 @@ pub async fn upsert_collection_element(
     } else {
         install_at = None;
     }
+    let thumbnail_url = game_cache.thumbnail_url;
     let new_element = NewCollectionElement::new(
         Id::new(game_cache.id),
         game_cache.gamename,
@@ -444,6 +454,7 @@ pub async fn upsert_collection_element(
         lnk_path,
         install_at,
     );
+    let thumbnail_urls = get_thumbnail_candidate_urls(&new_element, thumbnail_url);
     let handle = Arc::new(handle);
     modules
         .collection_use_case()
@@ -455,7 +466,7 @@ pub async fn upsert_collection_element(
         .await?;
     modules
         .collection_use_case()
-        .save_element_thumbnail(&handle, &new_element.id, game_cache.thumbnail_url)
+        .save_element_thumbnail_from_candidates(&handle, &new_element.id, thumbnail_urls)
         .await?;
     Ok(modules
         .collection_use_case()

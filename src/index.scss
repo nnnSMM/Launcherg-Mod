@@ -191,6 +191,19 @@ a:focus-visible {
 .simplebar-vertical {
   >.simplebar-scrollbar::before {
     background-color: rgb(var(--color-scrollbar-thumb));
+    transition: background-color 120ms ease;
+  }
+
+  >.simplebar-scrollbar:hover::before {
+    background-color: rgb(var(--color-scrollbar-thumb-hover));
+  }
+}
+
+[data-simplebar].simplebar-dragging {
+  .simplebar-track.simplebar-vertical {
+    >.simplebar-scrollbar::before {
+      background-color: rgb(var(--color-scrollbar-thumb-hover));
+    }
   }
 }
 

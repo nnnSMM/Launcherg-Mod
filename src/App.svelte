@@ -82,7 +82,7 @@
   <main
     class="relative h-full w-full bg-bg-primary font-sans overflow-hidden flex flex-col"
   >
-    <TitleBar heightClass="h-8" />
+    <TitleBar heightClass="h-10" />
     {#if $backgroundState.imageUrl}
       <div
         transition:fade={{ duration: 300 }}

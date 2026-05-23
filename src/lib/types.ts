@@ -3,6 +3,7 @@ export type Work = {
   name: string;
   brandId: number;
   brandName: string;
+  description?: string;
   officialHomePage: string;
   sellday: string;
   imgUrl: string;
@@ -49,6 +50,8 @@ export const PlayStatus = { // 追加
   Unplayed: 0,
   Playing: 1,
   Cleared: 2,
+  Multiple: 3,
+  Shelved: 4,
 } as const;
 export type PlayStatus = (typeof PlayStatus)[keyof typeof PlayStatus]; // 追加
 

@@ -27,9 +27,9 @@
 </script>
 
 <div
-  class="border border-solid border-border-primary bg-bg-secondary/30 shadow-sm rounded-xl overflow-hidden"
+  class="border border-solid border-border-primary bg-bg-secondary/30 shadow-sm rounded-lg overflow-hidden"
 >
-  <div class="grid grid-cols-[min-content_1fr]">
+  <div class="grid grid-cols-[minmax(5.5rem,8rem)_minmax(0,1fr)]">
     <DetailRow label="シナリオ" noBorder>
       <div class="flex flex-wrap gap-4">
         {#each work.creators.writers as v (v.id)}

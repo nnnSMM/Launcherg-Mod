@@ -93,25 +93,30 @@
         .slice(0, PREVIEW_LIMIT);
 </script>
 
-<div class="w-full bg-bg-secondary/30 p-2 lg:p-4">
+<div class="w-full rounded-lg border border-border-primary bg-bg-primary/72 shadow-lg p-4 lg:p-5">
     <div class="flex flex-col gap-3 mb-4">
-        <h2 class="text-xl font-bold text-text-primary">
-            スクリーンショット <span
-                class="text-sm font-normal text-text-secondary ml-2"
-                >({screenshots.length})</span
-            >
-        </h2>
+        <div class="flex items-center gap-2">
+            <div class="i-material-symbols-image-outline w-5 h-5 color-ui-tertiary" />
+            <h2 class="text-h3 font-bold text-text-primary">
+                スクリーンショット <span
+                    class="text-sm font-normal text-text-secondary ml-2"
+                    >({screenshots.length})</span
+                >
+            </h2>
+        </div>
         <div class="flex items-center gap-2">
             <button
                 on:click={handleImport}
-                class="flex items-center gap-1 px-3 py-1.5 bg-bg-tertiary text-text-primary hover:bg-bg-button transition-colors text-sm rounded"
+                aria-label="スクリーンショットをインポート"
+                class="flex items-center gap-1 px-3 py-1.5 bg-bg-tertiary text-text-primary hover:bg-bg-button transition-colors text-sm rounded focus-visible:ring-2 focus-visible:ring-accent-accent"
                 title="インポート"
             >
                 <div class="i-material-symbols-upload text-lg" />
             </button>
             <button
                 on:click={() => openViewer()}
-                class="flex items-center gap-1 px-3 py-1.5 bg-accent-accent text-white hover:bg-accent-accent/80 transition-colors text-sm whitespace-nowrap rounded"
+                aria-label="スクリーンショット一覧を開く"
+                class="flex items-center gap-1 px-3 py-1.5 bg-accent-accent text-white hover:bg-accent-accent/80 transition-colors text-sm whitespace-nowrap rounded focus-visible:ring-2 focus-visible:ring-accent-accent"
             >
                 <div class="i-material-symbols-open-in-new text-lg" />
                 すべて見る
@@ -121,7 +126,7 @@
 
     {#if screenshots.length === 0}
         <div
-            class="text-center text-text-secondary py-12 text-sm bg-bg-primary/50"
+            class="text-center text-text-secondary py-12 text-sm bg-bg-secondary/35 rounded-lg border border-dashed border-border-primary"
         >
             まだスクリーンショットを撮影していません。<br
             />Windows+Shift+SやWindows+PrintScreenを押して撮影してください。
@@ -131,8 +136,9 @@
             {#each previewScreenshots as screenshot (screenshot.id)}
                 <div class="relative group/tooltip">
                     <button
-                        class="w-full relative aspect-video group overflow-hidden transition-all cursor-pointer shadow-sm hover:shadow-md"
+                        class="w-full relative aspect-video group overflow-hidden transition-all cursor-pointer shadow-sm hover:shadow-md rounded focus-visible:ring-2 focus-visible:ring-accent-accent"
                         on:click={() => openViewer(screenshot)}
+                        aria-label={`${screenshot.filename}を開く`}
                     >
                         <img
                             src={convertFileSrc(

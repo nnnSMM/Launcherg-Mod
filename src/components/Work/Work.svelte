@@ -5,6 +5,7 @@
   import { backgroundState } from "@/store/background";
   import type { CollectionElement } from "@/lib/types";
   import { convertFileSrc } from "@tauri-apps/api/core";
+  import SimpleBar from "simplebar";
 
   export let work: Work;
   export let element: CollectionElement;
@@ -14,15 +15,31 @@
   });
   let scrollY = 0;
 
-  const handleScroll = (e: UIEvent) => {
-    const target = e.target as HTMLElement;
-    scrollY = target.scrollTop;
+  const simplebar = (node: HTMLElement) => {
+    const instance = new SimpleBar(node, {
+      scrollbarMinSize: 64,
+      autoHide: false,
+    });
+    const scrollElement = instance.getScrollElement();
+
+    const handleScroll = () => {
+      scrollY = scrollElement?.scrollTop ?? 0;
+    };
+
+    scrollElement?.addEventListener("scroll", handleScroll);
+
+    return {
+      destroy() {
+        scrollElement?.removeEventListener("scroll", handleScroll);
+        instance.unMount();
+      },
+    };
   };
 </script>
 
 <div
+  use:simplebar
   class="work-detail-page h-full w-full overflow-x-hidden overflow-y-auto"
-  on:scroll={handleScroll}
 >
   <div class="w-full min-h-0 flex justify-center">
     {#key work.imgUrl}
@@ -30,3 +47,16 @@
     {/key}
   </div>
 </div>
+
+<style lang="scss">
+  :global(.work-detail-page .simplebar-track.simplebar-vertical) {
+    right: 0;
+    width: 0.55rem;
+    pointer-events: auto;
+  }
+
+  :global(.work-detail-page .simplebar-scrollbar::before) {
+    left: 1px;
+    right: 1px;
+  }
+</style>

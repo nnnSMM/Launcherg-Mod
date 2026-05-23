@@ -6,6 +6,7 @@
     PlayStatus as PlayStatusType,
   } from "@/lib/types";
   import { PlayStatus } from "@/lib/types";
+  import { playStatusFilterKey } from "@/lib/playStatus";
   import {
     commandGetAllElements,
     commandUpdateElementPlayStatus,
@@ -278,6 +279,24 @@
       inactiveStyleClasses:
         "text-text-secondary bg-bg-button hover:bg-bg-button-hover border-border-primary",
     },
+    {
+      label: "複数進行",
+      value: PlayStatus.Multiple,
+      icon: "i-material-symbols:alt-route-rounded",
+      activeStyleClasses:
+        "bg-amber-600 !hover:bg-amber-500 border-amber-600",
+      inactiveStyleClasses:
+        "text-text-secondary bg-bg-button hover:bg-bg-button-hover border-border-primary",
+    },
+    {
+      label: "棚上げ",
+      value: PlayStatus.Shelved,
+      icon: "i-material-symbols:schedule-rounded",
+      activeStyleClasses:
+        "bg-slate-600 !hover:bg-slate-500 border-slate-600",
+      inactiveStyleClasses:
+        "text-text-secondary bg-bg-button hover:bg-bg-button-hover border-border-primary",
+    },
   ];
 </script>
 
@@ -295,12 +314,7 @@
         </div>
         <div class="flex gap-2 flex-wrap">
           {#each playStatusOptions as option (option.value)}
-            {@const filterKey =
-              option.value === PlayStatus.Unplayed
-                ? "unplayed"
-                : option.value === PlayStatus.Playing
-                  ? "playing"
-                  : "cleared"}
+            {@const filterKey = playStatusFilterKey[option.value]}
             {@const isActive = $currentAttributes.find(
               (a) => a.key === filterKey,
             )?.enabled}

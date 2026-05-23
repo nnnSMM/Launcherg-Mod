@@ -3,7 +3,7 @@ id: decision-log
 title: Decision Log
 type: log
 status: active
-updated: 2026-05-21
+updated: 2026-05-23
 links:
   - launcherg-improvement-moc
   - template-decision-record
@@ -11,6 +11,22 @@ links:
 ---
 
 # Decision Log
+
+## 2026-05-23: Steam パス由来のサムネイル候補と 5 状態 play status を migration なしで導入する
+
+- Context: vnite は Steam など複数データソースと 5 状態の play status を持つ。一方、Launcherg-Mod は ErogameScape 由来 thumbnail と `play_status` INTEGER の 3 状態 UI が中心だった。ユーザー要望として Steam パスの場合の特殊処理、特にゲーム追加時 thumbnail が追加された。
+- Decision: Steam インストールパスは `steamapps/common/<install dir>` と近傍の `appmanifest_*.acf` から AppID を推定し、Steam `.url` は `steam://rungameid/<appid>` から推定する。新規追加時の thumbnail 候補は Steam 画像を先に試し、失敗時に既存 ErogameScape thumbnail へフォールバックする。play status は DB migration を追加せず、既存 INTEGER 列で `未プレイ / プレイ中 / クリア済み / 複数進行 / 棚上げ` を UI 全体に通す。
+- Rationale: Steam 固有の画像はパスから AppID を取れる場合に品質が高く、追加時だけ既存 thumbnail 保存経路へ候補を渡せば schema を増やさずに改善できる。play status は CHECK 制約がなく、まず UI と既存列の意味を広げるだけなら小さく始められる。
+- Consequence: 新状態を選ぶと既存 `play_status` 列に 3/4 が保存されるため、将来は履歴・text enum・bulk migration の設計を検討する。timer ledger / fuzzy time / media asset table / crop-WebP pipeline は別フェーズに残す。
+- Links: [[architecture-map]], [[quality-gates]]
+
+## 2026-05-22: vnite 参照の第一段階は UI-only の受け皿作りに限定する
+
+- Context: vnite 比較レポートでは詳細ページの Header / Tabs / Poster taxonomy と、将来の media / timer / status 拡張が提案されている。一方、今回の作業は既存データと挙動を壊さない安全な第一段階に限定されている。
+- Decision: 第一段階では `WorkLayout` と既存 command を維持し、詳細ページを Overview / Record / Memo / Screenshot の常時表示セクションへ整理する。ライブラリカードとサイドバーは既存データだけで見た目と可読性を改善する。DB、migration、SQL、保存データ、play time、play status 値は変更しない。
+- Rationale: 情報設計の受け皿を先に作ることで、将来の media asset、play session、extended status を小さく追加しやすくしつつ、現行ユーザーのデータと起動・メモ・スクリーンショット導線を保護できる。
+- Consequence: 今回の UI は既存フィールドの再配置に留まる。Background picker、crop/WebP、5状態 play status、playtime reconciliation、save management は別フェーズで DB 変更を含めて判断する。
+- Links: [[product-context]], [[architecture-map]], [[quality-gates]]
 
 ## 2026-05-21: 初プレイ日時は実プレイ時間の初回記録時に保存する
 

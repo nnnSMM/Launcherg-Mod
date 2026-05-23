@@ -123,6 +123,30 @@ describe('FILTER_BY_ATTRIBUTE', () => {
             expect(result).toHaveLength(1);
             expect(result[0].id).toBe(1);
         });
+
+        it('multiple filters playStatus=3 only', () => {
+            const elements = [
+                createMockElement({ id: 1, playStatus: PlayStatus.Multiple }),
+                createMockElement({ id: 2, playStatus: PlayStatus.Shelved }),
+            ];
+
+            const result = FILTER_BY_ATTRIBUTE.multiple(elements);
+
+            expect(result).toHaveLength(1);
+            expect(result[0].id).toBe(1);
+        });
+
+        it('shelved filters playStatus=4 only', () => {
+            const elements = [
+                createMockElement({ id: 1, playStatus: PlayStatus.Multiple }),
+                createMockElement({ id: 2, playStatus: PlayStatus.Shelved }),
+            ];
+
+            const result = FILTER_BY_ATTRIBUTE.shelved(elements);
+
+            expect(result).toHaveLength(1);
+            expect(result[0].id).toBe(2);
+        });
     });
 
     describe('空配列', () => {

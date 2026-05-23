@@ -6,6 +6,7 @@
   import { open } from "@tauri-apps/plugin-dialog";
   import { commandUpdateGameImage } from "@/lib/command";
   import { createEventDispatcher } from "svelte";
+  import { formatLastPlayed } from "@/lib/utils";
 
   export let collectionElement: CollectionElement;
 
@@ -26,6 +27,7 @@
   );
 
   $: isActive = $location.includes(`/works/${collectionElement.id}`);
+  $: lastPlayedText = formatLastPlayed(collectionElement.lastPlayAt);
 
   const handleContextMenu = (e: MouseEvent) => {
     e.preventDefault();
@@ -59,7 +61,7 @@
 </script>
 
 <div
-  class="flex items-center py-1.5 px-2 mx-2 rounded-lg transition-all hover:bg-white/5 overflow-hidden group relative"
+  class="flex items-center py-2 px-2 mx-2 rounded-lg transition-all hover:bg-white/5 overflow-hidden group relative"
   on:contextmenu={handleContextMenu}
   class:bg-white-10={isActive}
 >
@@ -70,7 +72,9 @@
   {/if}
   <a
     href={`/works/${collectionElement.id}?gamename=${collectionElement.gamename}`}
-    class="flex flex-1 w-full items-center gap-3"
+    class="flex flex-1 w-full items-center gap-3 min-w-0 focus-visible:ring-2 focus-visible:ring-accent-accent rounded"
+    aria-current={isActive ? "page" : undefined}
+    title={collectionElement.gamename}
     use:link
   >
     <img
@@ -78,11 +82,27 @@
       src={iconSrc}
       class="h-8 w-8 rounded-md object-cover shadow-sm transition-transform group-hover:scale-105"
       loading="lazy"
+      on:error={(e) => {
+        const img = e.currentTarget;
+        if (img instanceof HTMLImageElement) {
+          img.src = "/images/dummy_thumbnail.svg";
+        }
+      }}
     />
-    <div
-      class="text-sm font-medium text-text-secondary group-hover:text-text-primary truncate transition-colors"
-    >
-      {collectionElement.gamename}
+    <div class="min-w-0 flex-1">
+      <div
+        class="text-sm font-medium text-text-secondary group-hover:text-text-primary truncate transition-colors"
+      >
+        {collectionElement.gamename}
+      </div>
+      <div class="flex items-center gap-2 text-caption text-text-tertiary min-w-0">
+        {#if collectionElement.brandname}
+          <span class="truncate">{collectionElement.brandname}</span>
+        {/if}
+        {#if lastPlayedText}
+          <span class="shrink-0">{lastPlayedText}</span>
+        {/if}
+      </div>
     </div>
   </a>
 </div>

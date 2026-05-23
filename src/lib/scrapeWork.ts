@@ -65,6 +65,26 @@ export const getMusics = (elements: HTMLCollectionOf<HTMLTableCellElement>) => {
   return musics;
 };
 
+const cleanDescription = (value: string | null | undefined) =>
+  convertSpecialCharacters(value ?? "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+export const getWorkDescription = (doc: Document) => {
+  const candidates = [
+    doc.getElementById("description")?.textContent,
+    doc.getElementById("outline")?.textContent,
+    doc.getElementById("game_exp")?.textContent,
+    doc.querySelector<HTMLMetaElement>('meta[property="og:description"]')
+      ?.content,
+    doc.querySelector<HTMLMetaElement>('meta[name="description"]')?.content,
+  ];
+
+  return candidates
+    .map((candidate) => cleanDescription(candidate))
+    .find((candidate) => candidate.length > 0);
+};
+
 export const getWorkByScrape = async (id: number) => {
   const response = await fetch(`${BASE_REQUEST_PATH}/game.php?game=${id}`, {
     method: "GET",
@@ -85,21 +105,27 @@ export const getWorkByScrape = async (id: number) => {
   const musics = doc
     .getElementById("music_summary_main")
     ?.getElementsByTagName("td");
+  const name = convertSpecialCharacters(
+    gameTitle?.getElementsByTagName("a")[0].innerHTML ?? ""
+  );
+  const brandName = convertSpecialCharacters(
+    softTitle?.getElementsByTagName("a")[0].innerHTML ?? ""
+  );
+  const sellday = softTitle?.getElementsByTagName("a")[1].innerHTML ?? "2030-01-01";
+  const description = getWorkDescription(doc);
+
   const work: Work = {
     id: id,
-    name: convertSpecialCharacters(
-      gameTitle?.getElementsByTagName("a")[0].innerHTML ?? ""
-    ),
+    name,
     brandId: +(
       softTitle
         ?.getElementsByTagName("a")[0]
         ?.getAttribute("href")
         ?.replace("brand.php?brand=", "") ?? "0"
     ),
-    brandName: convertSpecialCharacters(
-      softTitle?.getElementsByTagName("a")[0].innerHTML ?? ""
-    ),
-    sellday: softTitle?.getElementsByTagName("a")[1].innerHTML ?? "2030-01-01",
+    brandName,
+    description,
+    sellday,
     imgUrl:
       doc.getElementById("main_image")?.getElementsByTagName("img")[0].src ??
       "",

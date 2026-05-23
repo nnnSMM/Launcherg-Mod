@@ -29,11 +29,14 @@
   const appWindow = getCurrentWindow();
   const isDemoBuild = import.meta.env.BASE_URL === "./";
   const navLabels = {
+    back: "\u623b\u308b",
+    forward: "\u9032\u3080",
     home: "\u30db\u30fc\u30e0",
     gameAdd: "\u30b2\u30fc\u30e0\u8ffd\u52a0",
+    addShort: "\u8ffd\u52a0",
     shortcut: "\u30b7\u30e7\u30fc\u30c8\u30ab\u30c3\u30c8",
     display: "\u8868\u793a",
-    bulkEdit: "\u4e00\u62ec\u7de8\u96c6",
+    bulkEdit: "\u30d7\u30ec\u30a4\u72b6\u614b\u4e00\u62ec\u7de8\u96c6",
     help: "\u30d8\u30eb\u30d7",
   };
   const demoRegistrationDisabledMessage =
@@ -42,6 +45,14 @@
   let isMaximized = false;
   let isOpenImportAutomatically = false;
   let isOpenImportManually = false;
+
+  const titlebarIconButtonClass =
+    "h-8 w-8 flex items-center justify-center rounded-md cursor-pointer outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-accent bg-transparent border border-transparent text-text-secondary hover:bg-bg-tertiary hover:text-text-primary transition-colors";
+  const titlebarActionButtonClass =
+    "h-8 px-3 flex items-center gap-1.5 rounded-md cursor-pointer outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-accent bg-accent-primary/12 border border-accent-primary/40 text-text-primary hover:bg-accent-primary/24 transition-colors text-[12px] font-medium whitespace-nowrap";
+  const titlebarToolButtonClass =
+    "h-8 px-2 xl:px-2.5 flex items-center gap-1.5 rounded-md cursor-pointer outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-accent bg-transparent border border-transparent text-text-secondary hover:bg-bg-tertiary hover:text-text-primary transition-colors text-[12px] font-medium whitespace-nowrap";
+  const titlebarDividerClass = "h-5 w-px bg-border-primary/80 mx-1";
 
   const importManually = async (arg: {
     exePath: string | null;
@@ -123,57 +134,129 @@
       appWindow.startDragging().catch(console.error);
     }
   }
+
+  function goBack() {
+    window.history.back();
+  }
+
+  function goForward() {
+    window.history.forward();
+  }
 </script>
 
-<div class="{heightClass} bg-bg-secondary flex justify-between items-center select-none w-full z-50 shrink-0 relative">
-  <div class="flex items-center h-full">
-    {#if variant === "main"}
-      <div class="flex items-center justify-center h-full pl-2 pr-1 pointer-events-none">
-        <img src={Icon} alt="launcherg icon" class="h-4" />
-      </div>
-      <a href={isDemoBuild ? "/demo" : "/"} use:link class="flex items-center px-2 h-full cursor-pointer outline-none border-none text-text-secondary hover:text-text-primary transition-colors text-[13px] font-medium" tabindex="-1">
-        {navLabels.home}
-      </a>
-      <APopover panelClass="left-0" let:close>
-        <button slot="button" class="flex items-center px-2 h-full cursor-pointer outline-none focus:outline-none focus-visible:outline-none bg-transparent border-none text-text-secondary hover:text-text-primary transition-colors text-[13px] font-medium">
-          {navLabels.gameAdd}
+<div class="{heightClass} bg-bg-primary/92 border-b border-solid border-border-primary flex items-center select-none w-full z-50 shrink-0 relative backdrop-blur-xl">
+  <div class="flex h-full min-w-0 flex-1 items-center overflow-hidden pr-[132px]">
+    <div class="flex items-center h-full gap-1 pl-2 pr-2 shrink-0">
+      {#if variant === "main"}
+        <div class="flex h-8 w-8 items-center justify-center pointer-events-none">
+          <img src={Icon} alt="launcherg icon" class="h-4 w-4" />
+        </div>
+        <button
+          type="button"
+          aria-label={navLabels.back}
+          title={navLabels.back}
+          class={titlebarIconButtonClass}
+          on:click={goBack}
+        >
+          <div class="i-material-symbols:arrow-back-rounded text-[18px]" />
         </button>
-        <ImportPopover
-          on:close={() => close(null)}
-          on:startAuto={() => (isOpenImportAutomatically = true)}
-          on:startManual={() => (isOpenImportManually = true)}
-        />
-      </APopover>
+        <button
+          type="button"
+          aria-label={navLabels.forward}
+          title={navLabels.forward}
+          class={titlebarIconButtonClass}
+          on:click={goForward}
+        >
+          <div class="i-material-symbols:arrow-forward-rounded text-[18px]" />
+        </button>
+        <a
+          href={isDemoBuild ? "/demo" : "/"}
+          use:link
+          aria-label={navLabels.home}
+          title={navLabels.home}
+          class={titlebarIconButtonClass}
+          tabindex="-1"
+        >
+          <div class="i-material-symbols:home-outline-rounded text-[18px]" />
+        </a>
+        <div class={titlebarDividerClass} />
+        <APopover panelClass="left-0" let:close>
+          <button
+            slot="button"
+            type="button"
+            aria-label={navLabels.gameAdd}
+            title={navLabels.gameAdd}
+            class={titlebarActionButtonClass}
+          >
+            <div class="i-material-symbols:add-rounded text-[18px]" />
+            <span>{navLabels.addShort}</span>
+          </button>
+          <ImportPopover
+            on:close={() => close(null)}
+            on:startAuto={() => (isOpenImportAutomatically = true)}
+            on:startManual={() => (isOpenImportManually = true)}
+          />
+        </APopover>
+      {/if}
+      <slot name="left" />
+    </div>
 
-      <button on:click={openShortcutSettingsTab} class="flex items-center px-2 h-full cursor-pointer outline-none focus:outline-none focus-visible:outline-none bg-transparent border-none text-text-secondary hover:text-text-primary transition-colors text-[13px] font-medium">
-        {navLabels.shortcut}
-      </button>
+    <!-- svelte-ignore a11y-no-static-element-interactions -->
+    <div on:mousedown={startDragging} class="flex h-full min-w-0 flex-1 items-center justify-center cursor-default relative">
+      <slot name="center" />
+    </div>
 
-      <button on:click={openDisplaySettingsTab} class="flex items-center px-2 h-full cursor-pointer outline-none focus:outline-none focus-visible:outline-none bg-transparent border-none text-text-secondary hover:text-text-primary transition-colors text-[13px] font-medium">
-        {navLabels.display}
-      </button>
-
-      <button on:click={openSettingsTab} class="flex items-center px-2 h-full cursor-pointer outline-none focus:outline-none focus-visible:outline-none bg-transparent border-none text-text-secondary hover:text-text-primary transition-colors text-[13px] font-medium">
-        {navLabels.bulkEdit}
-      </button>
-
-      <a href="https://github.com/nnnSMM/Launcherg-Mod/blob/main/USAGE.md" target="_blank" rel="noopener noreferrer" class="flex items-center px-2 h-full cursor-pointer outline-none border-none text-text-secondary hover:text-text-primary transition-colors text-[13px] font-medium" tabindex="-1">
-        {navLabels.help}
-      </a>
-    {/if}
-    <slot name="left" />
-  </div>
-
-  <!-- svelte-ignore a11y-no-static-element-interactions -->
-  <div on:mousedown={startDragging} class="flex items-center justify-center h-full flex-1 cursor-default relative">
-    <slot name="center" />
-  </div>
-  <div class="flex h-full items-center pr-[132px]">
-    <slot name="right" />
+    <div class="flex h-full min-w-0 shrink-0 items-center gap-1 px-2">
+      {#if variant === "main"}
+        <div class="{titlebarDividerClass} hidden sm:block" />
+        <button
+          type="button"
+          aria-label={navLabels.shortcut}
+          title={navLabels.shortcut}
+          class={titlebarToolButtonClass}
+          on:click={openShortcutSettingsTab}
+        >
+          <div class="i-material-symbols:keyboard-outline-rounded text-[18px]" />
+          <span class="hidden xl:inline">{navLabels.shortcut}</span>
+        </button>
+        <button
+          type="button"
+          aria-label={navLabels.display}
+          title={navLabels.display}
+          class={titlebarToolButtonClass}
+          on:click={openDisplaySettingsTab}
+        >
+          <div class="i-material-symbols:palette-outline-rounded text-[18px]" />
+          <span class="hidden xl:inline">{navLabels.display}</span>
+        </button>
+        <button
+          type="button"
+          aria-label={navLabels.bulkEdit}
+          title={navLabels.bulkEdit}
+          class={titlebarToolButtonClass}
+          on:click={openSettingsTab}
+        >
+          <div class="i-material-symbols:fact-check-outline-rounded text-[18px]" />
+          <span class="hidden 2xl:inline">{navLabels.bulkEdit}</span>
+        </button>
+        <a
+          href="https://github.com/nnnSMM/Launcherg-Mod/blob/main/USAGE.md"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={navLabels.help}
+          title={navLabels.help}
+          class={titlebarIconButtonClass}
+          tabindex="-1"
+        >
+          <div class="i-material-symbols:help-outline-rounded text-[18px]" />
+        </a>
+      {/if}
+      <slot name="right" />
+    </div>
   </div>
 
   <!-- window controls -->
-  <div class="absolute top-0 right-0 flex {heightClass} items-start">
+  <div class="absolute top-0 right-0 flex {heightClass} items-start border-l border-border-primary">
     <button tabindex="-1" on:click={minimize} class="w-11 {heightClass} flex items-center justify-center bg-transparent hover:bg-bg-tertiary transition-colors text-text-secondary hover:text-text-primary outline-none border-none focus:outline-none focus-visible:outline-none">
       <div class="i-material-symbols:remove text-lg"></div>
     </button>
@@ -217,15 +300,7 @@
 
 <style>
   button, a {
-    outline: none !important;
-    border: none !important;
-    box-shadow: none !important;
     -webkit-user-drag: none;
     user-select: none;
-  }
-  button:focus, a:focus, button:active, a:active {
-    outline: none !important;
-    border: none !important;
-    box-shadow: none !important;
   }
 </style>

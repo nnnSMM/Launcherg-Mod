@@ -17,7 +17,8 @@ use crate::{
         collection::{CollectionElement, NewCollectionElement, NewCollectionElementDetail},
         file::{
             ensure_screenshot_thumbnail, get_icon_path, get_lnk_metadatas,
-            get_screenshot_thumbnail_path, get_thumbnail_path, save_icon_to_png, save_thumbnail,
+            get_screenshot_thumbnail_path, get_thumbnail_path, save_icon_to_png,
+            save_thumbnail_from_candidates,
         },
         repository::collection::CollectionRepository,
         repository::collection::VndbScreenshotCache,
@@ -229,29 +230,32 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
         Ok(save_icon_to_png(handle, &icon_path, id)?.await??)
     }
 
-    pub async fn save_element_thumbnail(
+    pub async fn save_element_thumbnail_from_candidates(
         &self,
         handle: &Arc<AppHandle>,
         id: &Id<CollectionElement>,
-        src_url: String,
+        src_urls: Vec<String>,
     ) -> anyhow::Result<()> {
-        Ok(save_thumbnail(handle, id, src_url).await??)
+        Ok(save_thumbnail_from_candidates(handle, id, src_urls).await??)
     }
 
-    pub async fn concurrency_save_thumbnails(
+    pub async fn concurrency_save_thumbnails_from_candidates(
         &self,
         handle: &Arc<AppHandle>,
-        args: Vec<(Id<CollectionElement>, String)>,
+        args: Vec<(Id<CollectionElement>, Vec<String>)>,
     ) -> anyhow::Result<()> {
         use futures::StreamExt as _;
 
         futures::stream::iter(args.into_iter())
-            .map(|(id, url)| save_thumbnail(handle, &id, url))
+            .map(|(id, urls)| save_thumbnail_from_candidates(handle, &id, urls))
             .buffered(50)
             .map(|v| v?)
             .for_each(|v| async move {
                 match v {
-                    Err(e) => eprintln!("[concurency_save_thumbnails] {}", e.to_string()),
+                    Err(e) => eprintln!(
+                        "[concurrency_save_thumbnails_from_candidates] {}",
+                        e.to_string()
+                    ),
                     _ => {}
                 }
             })

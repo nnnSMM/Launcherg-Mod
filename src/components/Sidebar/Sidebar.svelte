@@ -60,6 +60,11 @@
   const shown = sidebarCollectionElements.shown;
 
   $: shown.set(search($filtered, $currentAttributes, $currentSortOrder));
+  $: totalCount = $sidebarCollectionElements.length;
+  $: shownCount = $shown.reduce(
+    (total, group) => total + group.elements.length,
+    0,
+  );
 
   import { localStorageWritable } from "@/lib/utils";
   const sidebarWidth = localStorageWritable("sidebar-width", 320);
@@ -97,7 +102,7 @@
         class="min-h-0 min-w-0 w-full flex-1 grid grid-rows-[min-content_min-content_1fr]"
       >
         <div class="min-w-0 w-full">
-          <SubHeader />
+          <SubHeader {totalCount} {shownCount} />
         </div>
         <div class="w-full mt-2 px-2 min-w-0">
           <Search
