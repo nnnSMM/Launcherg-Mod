@@ -193,24 +193,24 @@
                     </div>
                 {/each}
             </div>
-            <div class="rounded-lg border border-border-primary bg-bg-secondary/12 backdrop-blur-sm p-4">
+            <div class="rounded-lg border border-border-primary bg-bg-secondary/5 backdrop-blur-sm p-4">
                 <div class="text-caption text-text-tertiary">コミュニティ統計</div>
                 <div class="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div class="min-w-0">
                         <div class="text-caption text-text-tertiary">平均プレイ時間</div>
-                        <div class="mt-1 rounded-md bg-bg-secondary/10 px-2.5 py-2 text-body2 text-text-primary font-semibold truncate backdrop-blur-sm">
+                        <div class="mt-1 rounded-md bg-bg-secondary/5 px-2.5 py-2 text-body2 text-text-primary font-semibold truncate backdrop-blur-sm">
                             {work.statistics.playTime}
                         </div>
                     </div>
                     <div class="min-w-0">
                         <div class="text-caption text-text-tertiary">中央値</div>
-                        <div class="mt-1 rounded-md bg-bg-secondary/10 px-2.5 py-2 text-body2 text-text-primary font-semibold truncate backdrop-blur-sm">
+                        <div class="mt-1 rounded-md bg-bg-secondary/5 px-2.5 py-2 text-body2 text-text-primary font-semibold truncate backdrop-blur-sm">
                             {work.statistics.median}
                         </div>
                     </div>
                     <div class="min-w-0">
                         <div class="text-caption text-text-tertiary">データ数</div>
-                        <div class="mt-1 rounded-md bg-bg-secondary/10 px-2.5 py-2 text-body2 text-text-primary font-semibold truncate backdrop-blur-sm">
+                        <div class="mt-1 rounded-md bg-bg-secondary/5 px-2.5 py-2 text-body2 text-text-primary font-semibold truncate backdrop-blur-sm">
                             {work.statistics.count}
                         </div>
                     </div>

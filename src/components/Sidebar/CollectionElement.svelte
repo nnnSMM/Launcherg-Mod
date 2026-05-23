@@ -28,6 +28,15 @@
 
   $: isActive = $location.includes(`/works/${collectionElement.id}`);
   $: lastPlayedText = formatLastPlayed(collectionElement.lastPlayAt);
+  $: isLightTheme =
+    document?.documentElement?.dataset.theme === "light";
+  $: itemStateClass = isActive
+    ? isLightTheme
+      ? "bg-bg-button-hover/75"
+      : "bg-bg-button-hover/55"
+    : isLightTheme
+      ? "hover:bg-bg-button-hover/50"
+      : "hover:bg-bg-button-hover/35";
 
   const handleContextMenu = (e: MouseEvent) => {
     e.preventDefault();
@@ -61,9 +70,8 @@
 </script>
 
 <div
-  class="flex items-center py-1 px-2 mx-2 rounded-lg transition-all hover:bg-white/5 overflow-hidden group relative"
+  class="flex items-center py-1 px-2 mx-2 rounded-lg transition-all overflow-hidden group relative {itemStateClass}"
   on:contextmenu={handleContextMenu}
-  class:bg-white-10={isActive}
 >
   {#if isActive}
     <div
