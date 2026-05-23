@@ -12,6 +12,7 @@
     export let element: CollectionElement;
     export let offset: number = 0;
     export let heroHeight: number = 0;
+    export let glassBoundaryY: number = 0;
 
     const dispatch = createEventDispatcher();
 
@@ -112,6 +113,18 @@
         const ratio = width / height;
         return Math.sqrt(TARGET_AREA * ratio);
     })();
+
+    $: floatingImageWidth = imageWidth * 0.6;
+    $: imageAspectRatio =
+        (element.thumbnailWidth || measuredImageWidth || 16) /
+        (element.thumbnailHeight || measuredImageHeight || 9);
+    $: imageHeight = floatingImageWidth / imageAspectRatio;
+    $: boundaryOverlap = imageHeight * -0.1;
+    $: floatingImageOffsetY = Math.max(
+        0,
+        glassBoundaryY - imageHeight + boundaryOverlap,
+    );
+    $: floatingImageOffsetX = floatingImageWidth * 0.08;
 </script>
 
 <svelte:window bind:innerWidth />
@@ -119,7 +132,7 @@
 <div
     bind:clientWidth={heroWidth}
     bind:clientHeight={heroHeight}
-    class="relative w-full min-h-[60vh] min-h-[300px] group flex flex-col pointer-events-none"
+    class="relative z-30 w-full min-h-[60vh] min-h-[300px] group flex flex-col pointer-events-none"
 >
     <!-- Content -->
     <div
@@ -133,8 +146,8 @@
 
             <!-- Right Side: Floating Cover Art -->
             <div
-                class="shrink-0 hidden lg:block pointer-events-auto"
-                style="width: {imageWidth}px;"
+                class="relative z-50 shrink-0 hidden lg:block pointer-events-auto"
+                style="width: {floatingImageWidth}px; transform: translate({floatingImageOffsetX}px, {floatingImageOffsetY}px);"
                 on:contextmenu={handleContextMenu}
             >
                 <div
@@ -169,10 +182,10 @@
             {/if}
             <h1
                 class="{element.gamename.length > 40
-                    ? 'text-3xl'
+                    ? 'text-2xl'
                     : element.gamename.length > 20
-                      ? 'text-4xl'
-                      : 'text-5xl'} font-bold text-white leading-tight drop-shadow-lg max-w-4xl"
+                      ? 'text-3xl'
+                      : 'text-4xl'} font-bold text-white leading-tight drop-shadow-lg max-w-4xl"
             >
                 {element.gamename}
             </h1>

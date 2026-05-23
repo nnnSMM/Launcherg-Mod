@@ -196,6 +196,7 @@
   <Hero 
     {element} 
     offset={effectiveOffset}
+    glassBoundaryY={glassTopY}
     bind:heroHeight
   />
 
