@@ -181,6 +181,20 @@ a:focus-visible,
 
 }
 
+.tippy-box[data-theme~='titlebar'] {
+  background-color: rgba(var(--color-accent-primary), 0.18);
+  color: rgb(var(--color-text-primary));
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(var(--color-accent-primary), 0.28);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18), 0 1px 3px rgba(0, 0, 0, 0.12);
+  font-family: inherit;
+  font-size: 0.775rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
 .tippy-box[data-theme~='image-bg'] {
   width: 320px;
   max-width: 320px;

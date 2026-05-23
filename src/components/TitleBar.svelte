@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import Icon from "/icon.png";
+  import tippy, { type Props as TippyOption } from "tippy.js";
   import { link, push } from "svelte-spa-router";
   import {
     openDisplaySettingsTab,
@@ -50,12 +51,33 @@
   let isOpenImportManually = false;
 
   const titlebarIconButtonClass =
-    "h-8 w-8 flex items-center justify-center rounded-md cursor-pointer outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-accent bg-transparent border border-transparent text-text-secondary hover:bg-bg-tertiary hover:text-text-primary transition-colors";
+    "h-8 w-8 flex items-center justify-center rounded-md cursor-pointer outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-accent bg-transparent border border-transparent text-text-secondary hover:bg-bg-tertiary hover:text-text-primary";
   const titlebarActionButtonClass =
-    "h-8 px-3 flex items-center gap-1.5 rounded-md cursor-pointer outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-accent bg-accent-primary/12 border border-accent-primary/40 text-text-primary hover:bg-accent-primary/24 transition-colors text-[12px] font-medium whitespace-nowrap";
+    "h-8 px-3 flex items-center gap-1.5 rounded-md cursor-pointer outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-accent bg-accent-primary/12 border border-accent-primary/40 text-text-primary hover:bg-accent-primary/24 text-[12px] font-medium whitespace-nowrap";
+  const titlebarGameAddButtonClass =
+    "h-8 w-8 flex items-center justify-center rounded-md cursor-pointer outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-accent bg-transparent border border-transparent text-text-secondary hover:bg-bg-tertiary hover:text-text-primary";
   const titlebarToolButtonClass =
-    "h-8 px-2 xl:px-2.5 flex items-center gap-1.5 rounded-md cursor-pointer outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-accent bg-transparent border border-transparent text-text-secondary hover:bg-bg-tertiary hover:text-text-primary transition-colors text-[12px] font-medium whitespace-nowrap";
+    "h-8 px-2 xl:px-2.5 flex items-center gap-1.5 rounded-md cursor-pointer outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-accent bg-transparent border border-transparent text-text-secondary hover:bg-bg-tertiary hover:text-text-primary text-[12px] font-medium whitespace-nowrap";
   const titlebarDividerClass = "h-5 w-px bg-border-primary/80 mx-1";
+  const titlebarTooltipAction = (node: HTMLElement, label: string) => {
+    const tp = tippy(node, {
+      content: label,
+      placement: "bottom",
+      theme: "titlebar",
+      arrow: false,
+      delay: [0, 0],
+      offset: [0, 6],
+    } satisfies Partial<TippyOption>);
+
+    return {
+      update(nextLabel: string) {
+        tp.setProps({ content: nextLabel });
+      },
+      destroy() {
+        tp.destroy();
+      },
+    };
+  };
 
   const importManually = async (arg: {
     exePath: string | null;
@@ -154,7 +176,7 @@
         <button
           type="button"
           aria-label={navLabels.toggleSidebar}
-          title={navLabels.toggleSidebar}
+          use:titlebarTooltipAction={navLabels.toggleSidebar}
           class={titlebarIconButtonClass}
           on:click={() => showSidebar.update((v) => !v)}
         >
@@ -163,7 +185,7 @@
         <button
           type="button"
           aria-label={navLabels.back}
-          title={navLabels.back}
+          use:titlebarTooltipAction={navLabels.back}
           class={`${titlebarIconButtonClass} disabled:opacity-30 disabled:pointer-events-none`}
           disabled={!$canGoBack}
           on:click={goBack}
@@ -173,7 +195,7 @@
         <button
           type="button"
           aria-label={navLabels.forward}
-          title={navLabels.forward}
+          use:titlebarTooltipAction={navLabels.forward}
           class={`${titlebarIconButtonClass} disabled:opacity-30 disabled:pointer-events-none`}
           disabled={!$canGoForward}
           on:click={goForward}
@@ -184,7 +206,7 @@
           href={isDemoBuild ? "/demo" : "/"}
           use:link
           aria-label={navLabels.home}
-          title={navLabels.home}
+          use:titlebarTooltipAction={navLabels.home}
           class={titlebarIconButtonClass}
           tabindex="-1"
         >
@@ -196,11 +218,10 @@
             slot="button"
             type="button"
             aria-label={navLabels.gameAdd}
-            title={navLabels.gameAdd}
-            class={titlebarActionButtonClass}
+            use:titlebarTooltipAction={navLabels.gameAdd}
+            class={titlebarGameAddButtonClass}
           >
-            <div class="i-material-symbols:add-rounded text-[18px]" />
-            <span>{navLabels.addShort}</span>
+            <div class="i-material-symbols:library-add-outline-rounded text-[18px]" />
           </button>
           <ImportPopover
             on:close={() => close(null)}
@@ -223,7 +244,7 @@
         <button
           type="button"
           aria-label={navLabels.shortcut}
-          title={navLabels.shortcut}
+          use:titlebarTooltipAction={navLabels.shortcut}
           class={titlebarToolButtonClass}
           on:click={openShortcutSettingsTab}
         >
@@ -233,7 +254,7 @@
         <button
           type="button"
           aria-label={navLabels.display}
-          title={navLabels.display}
+          use:titlebarTooltipAction={navLabels.display}
           class={titlebarToolButtonClass}
           on:click={openDisplaySettingsTab}
         >
@@ -243,7 +264,7 @@
         <button
           type="button"
           aria-label={navLabels.bulkEdit}
-          title={navLabels.bulkEdit}
+          use:titlebarTooltipAction={navLabels.bulkEdit}
           class={titlebarToolButtonClass}
           on:click={openSettingsTab}
         >
@@ -255,7 +276,7 @@
           target="_blank"
           rel="noopener noreferrer"
           aria-label={navLabels.help}
-          title={navLabels.help}
+          use:titlebarTooltipAction={navLabels.help}
           class={titlebarIconButtonClass}
           tabindex="-1"
         >
