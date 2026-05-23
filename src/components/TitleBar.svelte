@@ -22,6 +22,7 @@
   import { sidebarCollectionElements } from "@/store/sidebarCollectionElements";
   import { enqueueGameScreenshotPrefetch } from "@/lib/useGameScreenshots";
   import { autoImportProgress } from "@/store/autoImportProgress";
+  import { showSidebar } from "@/store/showSidebar";
 
   export let variant: "main" | "screenshot" = "main";
   export let heightClass: string = "h-8";
@@ -38,6 +39,7 @@
     display: "\u8868\u793a",
     bulkEdit: "\u30d7\u30ec\u30a4\u72b6\u614b\u4e00\u62ec\u7de8\u96c6",
     help: "\u30d8\u30eb\u30d7",
+    toggleSidebar: "\u30b5\u30a4\u30c9\u30d0\u30fc\u306e\u5207\u308a\u66ff\u3048",
   };
   const demoRegistrationDisabledMessage =
     "demo \u3067\u306f\u30b2\u30fc\u30e0\u767b\u9332\u306f\u3067\u304d\u307e\u305b\u3093\u3002\u30db\u30fc\u30e0\u306e\u300c\u30d5\u30a9\u30eb\u30c0\u7d10\u3065\u3051\u3092\u8a66\u3059\u300d\u3067\u5224\u5b9a\u3060\u3051\u78ba\u8a8d\u3067\u304d\u307e\u3059\u3002";
@@ -146,11 +148,17 @@
 
 <div class="{heightClass} bg-bg-primary/92 border-b border-solid border-border-primary flex items-center select-none w-full z-50 shrink-0 relative backdrop-blur-xl">
   <div class="flex h-full min-w-0 flex-1 items-center overflow-hidden pr-[132px]">
-    <div class="flex items-center h-full gap-1 pl-2 pr-2 shrink-0">
+    <div class="flex items-center h-full gap-1 pl-1.5 pr-2 shrink-0">
       {#if variant === "main"}
-        <div class="flex h-8 w-8 items-center justify-center pointer-events-none">
-          <img src={Icon} alt="launcherg icon" class="h-4 w-4" />
-        </div>
+        <button
+          type="button"
+          aria-label={navLabels.toggleSidebar}
+          title={navLabels.toggleSidebar}
+          class={titlebarIconButtonClass}
+          on:click={() => showSidebar.update((v) => !v)}
+        >
+          <div class={$showSidebar ? "i-material-symbols:left-panel-close-outline text-[18px]" : "i-material-symbols:left-panel-open-outline text-[18px]"} />
+        </button>
         <button
           type="button"
           aria-label={navLabels.back}

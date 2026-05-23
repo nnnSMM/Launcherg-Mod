@@ -1,6 +1,4 @@
 <script lang="ts">
-  import { showSidebar } from "@/store/showSidebar";
-
   export let totalCount = 0;
   export let shownCount = 0;
 
@@ -8,7 +6,6 @@
     library: "\u30e9\u30a4\u30d6\u30e9\u30ea",
     shown: "\u8868\u793a",
     registered: "\u767b\u9332",
-    close: "\u30b5\u30a4\u30c9\u30d0\u30fc\u3092\u9589\u3058\u308b",
   };
 </script>
 
@@ -31,15 +28,5 @@
         <span>{labels.registered} {totalCount}</span>
       </div>
     </div>
-
-    <button
-      type="button"
-      class="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-transparent text-text-secondary transition-colors hover:bg-white/10 hover:text-text-primary focus-visible:ring-2 focus-visible:ring-accent-accent"
-      on:click={() => showSidebar.set(false)}
-      aria-label={labels.close}
-      title={labels.close}
-    >
-      <div class="i-material-symbols:left-panel-close-outline h-5 w-5" />
-    </button>
   </div>
 </div>

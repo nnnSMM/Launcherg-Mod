@@ -4,7 +4,6 @@
   import CollectionElements from "@/components/Sidebar/CollectionElements.svelte";
   import { sidebarCollectionElements } from "@/store/sidebarCollectionElements";
   import { createWritable } from "@/lib/utils";
-  import type { SortOrder } from "@/components/Sidebar/sort";
   import {
     type Option,
     collectionElementsToOptions,
@@ -12,7 +11,6 @@
   } from "@/lib/filter";
   import Search from "@/components/Sidebar/Search.svelte";
   import { showSidebar } from "@/store/showSidebar";
-  import MinimalSidebar from "@/components/Sidebar/MinimalSidebar.svelte";
   import { fly } from "svelte/transition";
   import SubHeader from "@/components/Sidebar/SubHeader.svelte";
   import {
@@ -92,12 +90,12 @@
 <svelte:window on:mousemove={onMouseMove} on:mouseup={onMouseUp} />
 
 <div
-  class="h-full min-h-0 relative border-r-1px border-solid border-border-primary bg-bg-secondary flex-shrink-0 overflow-hidden"
-  class:transition-all={!isResizing}
-  style="width: {$showSidebar ? `${$sidebarWidth}px` : '3rem'};"
+  class="h-full min-h-0 relative border-solid border-border-primary bg-bg-secondary flex-shrink-0 overflow-hidden"
+  class:border-r-1px={$showSidebar}
+  style="width: {$showSidebar ? `${$sidebarWidth}px` : '0px'};"
 >
   {#if $showSidebar}
-    <div class="absolute inset-0 min-w-0 flex flex-col" transition:fly={{ x: -40, duration: 150 }}>
+    <div class="absolute inset-0 min-w-0 flex flex-col">
       <div
         class="min-h-0 min-w-0 w-full flex-1 grid grid-rows-[min-content_min-content_1fr]"
       >
@@ -125,10 +123,6 @@
         class="absolute top-0 right-0 w-1.5 h-full cursor-col-resize hover:bg-accent-primary/50 transition-colors z-50 -mr-[1px]"
         on:mousedown={startResize}
       ></div>
-    </div>
-  {:else}
-    <div class="absolute inset-0" transition:fly={{ x: 40, duration: 150 }}>
-      <MinimalSidebar />
     </div>
   {/if}
 </div>
