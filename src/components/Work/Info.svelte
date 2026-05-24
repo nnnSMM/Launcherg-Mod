@@ -205,7 +205,6 @@
                 ele?.removeEventListener("paste", onPaste);
                 unsubscribe();
                 clearInterval(syncTimer);
-                easyMDE.toTextArea();
             },
         };
     };
@@ -250,6 +249,7 @@
     $: overviewDescription = normalizeDescription(work.description);
 </script>
 
+{#if work && work.id && element}
 <div>
     {#if page === "overview"}
         <div class="grid grid-cols-1 2xl:grid-cols-[minmax(0,1fr)_minmax(340px,0.52fr)] gap-5 lg:gap-6">
@@ -459,3 +459,4 @@
         </section>
     {/if}
 </div>
+{/if}
