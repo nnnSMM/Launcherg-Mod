@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { onMount, createEventDispatcher } from "svelte";
+    import { onMount } from "svelte";
     import { convertFileSrc } from "@tauri-apps/api/core";
     import { open } from "@tauri-apps/plugin-dialog";
     import { listen } from "@tauri-apps/api/event";
@@ -13,9 +13,54 @@
     export let gameId: number;
 
     let screenshots: Screenshot[] = [];
+    let gridWidth = 0;
+    let viewportHeight = 0;
+    let currentPage = 1;
+    const TILE_GAP = 6;
+    const APP_CHROME_HEIGHT = 80;
+    const GALLERY_HEADER_HEIGHT = 58;
+    const GALLERY_FOOTER_HEIGHT = 58;
+    const GRID_VERTICAL_PADDING = 32;
+    const BOTTOM_BREATHING_ROOM = 44;
+    const MIN_PREVIEW_ROWS = 2;
+    const MAX_PREVIEW_COLUMNS = 8;
+    const MIN_TILE_WIDTH = 240;
+    const MAX_TILE_WIDTH = 340;
 
-    // 表示する最新スクリーンショットの最大数
-    const PREVIEW_LIMIT = 4;
+    const getTileHeight = (width: number, columns: number) => {
+        if (!width || columns <= 0) return 1;
+        const tileWidth = (width - TILE_GAP * (columns - 1)) / columns;
+        return Math.max(1, tileWidth * 9 / 16);
+    };
+
+    const getFitRows = (height: number, tileHeight: number) =>
+        Math.max(1, Math.floor((height + TILE_GAP) / (tileHeight + TILE_GAP)));
+
+    const choosePreviewColumns = (width: number, height: number) => {
+        if (!width || !height) return 2;
+
+        const minColumns = Math.max(
+            2,
+            Math.ceil((width + TILE_GAP) / (MAX_TILE_WIDTH + TILE_GAP)),
+        );
+        const maxColumns = Math.max(
+            minColumns,
+            Math.min(
+                MAX_PREVIEW_COLUMNS,
+                Math.floor((width + TILE_GAP) / (MIN_TILE_WIDTH + TILE_GAP)),
+            ),
+        );
+
+        for (let columns = minColumns; columns <= maxColumns; columns++) {
+            const rows = getFitRows(height, getTileHeight(width, columns));
+            if (rows < MIN_PREVIEW_ROWS) {
+                continue;
+            }
+            return columns;
+        }
+
+        return maxColumns;
+    };
 
     onMount(async () => {
         await loadScreenshots();
@@ -84,59 +129,144 @@
         );
     };
 
-    $: previewScreenshots = [...screenshots]
-        .sort(
-            (a, b) =>
-                new Date(b.createdAt).getTime() -
-                new Date(a.createdAt).getTime(),
-        )
-        .slice(0, PREVIEW_LIMIT);
+    const formatCreatedAt = (value: string) =>
+        new Date(value).toLocaleDateString("ja-JP", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+        });
+
+    $: sortedScreenshots = [...screenshots].sort(
+        (a, b) =>
+            new Date(b.createdAt).getTime() -
+            new Date(a.createdAt).getTime(),
+    );
+    $: availableGalleryHeight = Math.max(
+        1,
+        viewportHeight -
+            APP_CHROME_HEIGHT -
+            GALLERY_HEADER_HEIGHT -
+            GRID_VERTICAL_PADDING -
+            BOTTOM_BREATHING_ROOM,
+    );
+    $: previewColumns = choosePreviewColumns(gridWidth, availableGalleryHeight);
+    $: tileHeight = getTileHeight(gridWidth, previewColumns);
+    $: rowsWithoutFooter = Math.max(
+        1,
+        Math.floor((availableGalleryHeight + TILE_GAP) / (tileHeight + TILE_GAP)),
+    );
+    $: needsFooter = screenshots.length > previewColumns * rowsWithoutFooter;
+    $: availableRowsHeight = needsFooter
+        ? Math.max(tileHeight, availableGalleryHeight - GALLERY_FOOTER_HEIGHT)
+        : availableGalleryHeight;
+    $: previewRows = Math.max(
+        1,
+        Math.floor((availableRowsHeight + TILE_GAP) / (tileHeight + TILE_GAP)),
+    );
+    $: pageSize = previewColumns * previewRows;
+    $: pageCount = Math.max(1, Math.ceil(screenshots.length / pageSize));
+    $: if (currentPage > pageCount) currentPage = pageCount;
+    $: if (currentPage < 1) currentPage = 1;
+    $: pageStart = (currentPage - 1) * pageSize;
+    $: pageEnd = Math.min(pageStart + pageSize, screenshots.length);
+    $: previewScreenshots = sortedScreenshots.slice(pageStart, pageEnd);
+    $: hasMultiplePages = pageCount > 1;
+    $: visibleRangeText =
+        screenshots.length === 0
+            ? "0"
+            : `${pageStart + 1}-${pageEnd} / ${screenshots.length}`;
+
+    const goToPrevPage = () => {
+        currentPage = Math.max(1, currentPage - 1);
+    };
+
+    const goToNextPage = () => {
+        currentPage = Math.min(pageCount, currentPage + 1);
+    };
 </script>
 
-<div class="w-full rounded-lg border border-border-primary bg-bg-primary/72 shadow-lg p-4 lg:p-5">
-    <div class="flex flex-col gap-3 mb-4">
-        <div class="flex items-center gap-2">
-            <div class="i-material-symbols-image-outline w-5 h-5 color-ui-tertiary" />
-            <h2 class="text-h3 font-bold text-text-primary">
-                スクリーンショット <span
-                    class="text-sm font-normal text-text-secondary ml-2"
-                    >({screenshots.length})</span
-                >
+<svelte:window bind:innerHeight={viewportHeight} />
+
+<div class="w-full rounded-lg border border-border-primary bg-bg-primary/56 shadow-sm backdrop-blur-md">
+    <div
+        class="flex flex-col gap-3 border-b border-border-primary/70 px-4 py-3 sm:flex-row sm:items-center sm:justify-between lg:px-5"
+    >
+        <div class="flex min-w-0 items-center gap-2">
+            <div class="i-material-symbols-image-outline h-5 w-5 shrink-0 color-ui-tertiary" />
+            <h2 class="truncate text-h3 font-bold text-text-primary">
+                最近のスクリーンショット
             </h2>
+            <span
+                class="rounded border border-border-primary bg-bg-secondary/30 px-2 py-0.5 text-caption font-semibold text-text-secondary"
+            >
+                {visibleRangeText}
+            </span>
         </div>
         <div class="flex items-center gap-2">
+            {#if hasMultiplePages}
+                <div class="mr-1 flex items-center gap-1">
+                    <button
+                        type="button"
+                        on:click={goToPrevPage}
+                        disabled={currentPage === 1}
+                        aria-label="前のページ"
+                        class="inline-flex h-8 w-8 items-center justify-center rounded border border-border-primary bg-bg-button/20 text-text-primary transition-colors hover:bg-bg-button-hover disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                        <div class="i-material-symbols-chevron-left-rounded h-5 w-5" />
+                    </button>
+                    <div class="min-w-12 text-center text-caption font-semibold text-text-secondary">
+                        {currentPage} / {pageCount}
+                    </div>
+                    <button
+                        type="button"
+                        on:click={goToNextPage}
+                        disabled={currentPage === pageCount}
+                        aria-label="次のページ"
+                        class="inline-flex h-8 w-8 items-center justify-center rounded border border-border-primary bg-bg-button/20 text-text-primary transition-colors hover:bg-bg-button-hover disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                        <div class="i-material-symbols-chevron-right-rounded h-5 w-5" />
+                    </button>
+                </div>
+            {/if}
             <button
+                type="button"
                 on:click={handleImport}
                 aria-label="スクリーンショットをインポート"
-                class="flex items-center gap-1 px-3 py-1.5 bg-bg-tertiary text-text-primary hover:bg-bg-button transition-colors text-sm rounded focus-visible:ring-2 focus-visible:ring-accent-accent"
+                class="inline-flex h-8 items-center gap-1.5 rounded border border-border-primary bg-bg-button/25 px-2.5 text-body3 font-medium text-text-primary transition-colors hover:bg-bg-button-hover focus-visible:ring-2 focus-visible:ring-accent-accent"
                 title="インポート"
             >
-                <div class="i-material-symbols-upload text-lg" />
+                <div class="i-material-symbols-upload h-4 w-4" />
+                インポート
             </button>
             <button
+                type="button"
                 on:click={() => openViewer()}
                 aria-label="スクリーンショット一覧を開く"
-                class="flex items-center gap-1 px-3 py-1.5 bg-accent-accent text-white hover:bg-accent-accent/80 transition-colors text-sm whitespace-nowrap rounded focus-visible:ring-2 focus-visible:ring-accent-accent"
+                class="inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded bg-accent-accent px-2.5 text-body3 font-medium text-white transition-colors hover:bg-accent-accent/80 focus-visible:ring-2 focus-visible:ring-accent-accent"
             >
-                <div class="i-material-symbols-open-in-new text-lg" />
-                すべて見る
+                <div class="i-material-symbols-open-in-new h-4 w-4" />
+                一覧
             </button>
         </div>
     </div>
 
     {#if screenshots.length === 0}
         <div
-            class="text-center text-text-secondary py-12 text-sm bg-bg-secondary/35 rounded-lg border border-dashed border-border-primary"
+            class="m-4 rounded-lg border border-dashed border-border-primary bg-bg-secondary/20 px-4 py-12 text-center text-body3 text-text-secondary lg:m-5"
         >
-            まだスクリーンショットを撮影していません。<br
-            />Windows+Shift+SやWindows+PrintScreenを押して撮影してください。
+            まだスクリーンショットはありません。
         </div>
     {:else}
-        <div class="grid grid-cols-2 gap-2">
+        <div
+            bind:clientWidth={gridWidth}
+            class="grid gap-1.5 p-3 lg:p-4"
+            style="grid-template-columns: repeat({previewColumns}, minmax(0, 1fr));"
+        >
             {#each previewScreenshots as screenshot (screenshot.id)}
-                <div class="relative group/tooltip">
+                <div class="min-w-0">
                     <button
-                        class="w-full relative aspect-video group overflow-hidden transition-all cursor-pointer shadow-sm hover:shadow-md rounded focus-visible:ring-2 focus-visible:ring-accent-accent"
+                        type="button"
+                        class="group relative aspect-video w-full cursor-pointer overflow-hidden rounded border border-border-primary/60 bg-bg-secondary/20 shadow-sm transition-all hover:-translate-y-0.5 hover:border-accent-accent/70 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-accent-accent"
                         on:click={() => openViewer(screenshot)}
                         aria-label={`${screenshot.filename}を開く`}
                     >
@@ -146,46 +276,36 @@
                                     screenshot.filename,
                             )}
                             alt={screenshot.filename}
-                            class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                            class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                             loading="lazy"
                         />
                         <div
-                            class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors"
+                            class="absolute inset-0 bg-gradient-to-t from-black/65 via-black/0 to-black/0 opacity-75 transition-opacity group-hover:opacity-100"
                         />
-                    </button>
-
-                    <!-- ホバー時ツールチップ -->
-                    <div
-                        class="pointer-events-none absolute right-[105%] top-1/2 -translate-y-1/2 z-50 w-96 opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all duration-75 group-hover/tooltip:duration-200 delay-0 group-hover/tooltip:delay-200"
-                    >
-                        <!-- 吹き出しの枠 -->
                         <div
-                            class="bg-bg-primary border border-border-primary p-2 shadow-2xl"
+                            class="absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 p-2"
                         >
-                            <img
-                                src={convertFileSrc(screenshot.filename)}
-                                alt={screenshot.filename}
-                                class="w-full aspect-video object-cover mb-2"
-                                loading="lazy"
-                            />
                             <div
-                                class="text-xs text-text-secondary text-center font-mono"
+                                class="min-w-0 truncate text-left text-[11px] font-medium leading-tight text-white/90"
                             >
-                                {new Date(
-                                    screenshot.createdAt,
-                                ).toLocaleString()}
+                                {formatCreatedAt(screenshot.createdAt)}
                             </div>
+                            <div
+                                class="i-material-symbols-open-in-new-rounded h-4 w-4 shrink-0 text-white/90 opacity-0 transition-opacity group-hover:opacity-100"
+                            />
                         </div>
-                        <!-- 吹き出しの三角形 (右向き) -->
-                        <div
-                            class="absolute top-1/2 -right-2 -translate-y-1/2 w-0 h-0 border-y-8 border-y-transparent border-l-8 border-l-border-primary"
-                        ></div>
-                        <div
-                            class="absolute top-1/2 -right-[7px] -translate-y-1/2 w-0 h-0 border-y-[7px] border-y-transparent border-l-[7px] border-l-bg-primary"
-                        ></div>
-                    </div>
+                    </button>
                 </div>
             {/each}
         </div>
+        {#if hasMultiplePages}
+            <div
+                class="flex flex-col gap-2 border-t border-border-primary/70 px-4 py-3 text-body3 text-text-secondary sm:flex-row sm:items-center sm:justify-between lg:px-5"
+            >
+                <span>
+                    {pageStart + 1}-{pageEnd} 件目を表示中です。
+                </span>
+            </div>
+        {/if}
     {/if}
 </div>
