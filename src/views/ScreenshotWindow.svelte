@@ -14,6 +14,7 @@
     import TitleBar from "@/components/TitleBar.svelte";
     import emblaCarouselSvelte from "embla-carousel-svelte";
     import type { EmblaCarouselType, EmblaOptionsType } from "embla-carousel";
+    import { isNearTopEdge, isNearBottomEdge } from "@/lib/edgeDetection";
 
     let allScreenshots: Screenshot[] = [];
     let allGames: CollectionElement[] = [];
@@ -32,6 +33,8 @@
     let showFullscreenCursor = false;
     let showFullscreenChrome = false;
     let showFullscreenFilmstrip = false;
+    let isHoveringChromeArea = false;
+    let isHoveringFilmstripArea = false;
     let fullscreenUiTimer: ReturnType<typeof setTimeout> | null = null;
     let fullscreenFilmstripApi: EmblaCarouselType | null = null;
     const fullscreenFilmstripOptions: EmblaOptionsType = {
@@ -358,8 +361,12 @@
         if (!isFullscreenViewer) return;
         fullscreenUiTimer = setTimeout(() => {
             showFullscreenCursor = false;
-            showFullscreenChrome = false;
-            showFullscreenFilmstrip = false;
+            if (!isHoveringChromeArea) {
+                showFullscreenChrome = false;
+            }
+            if (!isHoveringFilmstripArea) {
+                showFullscreenFilmstrip = false;
+            }
             fullscreenUiTimer = null;
         }, 1600);
     };
@@ -374,15 +381,42 @@
         showFullscreenFilmstrip = false;
     };
 
+    const handleChromeMouseLeave = (e: MouseEvent) => {
+        if (e.buttons === 1) return; // ドラッグ中なら無視する
+        if (e.clientY < 120) return; // エリア内（120px未満）なら無視する
+        isHoveringChromeArea = false;
+        hideFullscreenUi();
+    };
+
+    const handleFilmstripMouseLeave = (e: MouseEvent) => {
+        if (e.buttons === 1) return; // ドラッグ中なら無視する
+        if (e.clientY >= window.innerHeight - 130) return; // エリア内（130px以内）なら無視する
+        isHoveringFilmstripArea = false;
+        hideFullscreenUi();
+    };
+
     const revealFullscreenUi = () => {
         showFullscreenCursor = true;
         scheduleFullscreenUiHide();
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+        if (!isFullscreenViewer) return;
+        revealFullscreenUi();
+
+        // ドラッグ中（e.buttons === 1）なら、ストリップの再初期化（reInit）によるフリーズを防ぐため、トリガー処理を完全にスキップする
+        if (e.buttons === 1) return;
+
+        if (isNearTopEdge(e.clientY, 5) || (showFullscreenChrome && e.clientY < 120)) {
+            revealFullscreenChrome();
+        }
     };
 
     const revealFullscreenChrome = () => {
         showFullscreenCursor = true;
         showFullscreenChrome = true;
         showFullscreenFilmstrip = false;
+        isHoveringChromeArea = true;
         scheduleFullscreenUiHide();
     };
 
@@ -390,6 +424,7 @@
         showFullscreenCursor = true;
         showFullscreenFilmstrip = true;
         showFullscreenChrome = false;
+        isHoveringFilmstripArea = true;
         scheduleFullscreenUiHide();
         fullscreenFilmstripApi?.reInit();
     };
@@ -465,9 +500,13 @@
             viewerScreenshots.length;
     };
 
-    const selectViewerIndex = (index: number) => {
+    const selectViewerIndex = async (index: number) => {
         currentIndex = index;
-        if (isFullscreenViewer) revealFullscreenFilmstrip();
+        if (isFullscreenViewer) {
+            revealFullscreenFilmstrip();
+            await tick();
+            fullscreenFilmstripApi?.scrollTo(index, true);
+        }
     };
 
     const horizontalWheelScroll = (node: HTMLElement) => {
@@ -600,7 +639,9 @@
 
     $: if (fullscreenFilmstripApi && showFullscreenFilmstrip) {
         fullscreenFilmstripApi.reInit();
-        fullscreenFilmstripApi.scrollTo(currentIndex, true);
+        if (!isHoveringFilmstripArea) {
+            fullscreenFilmstripApi.scrollTo(currentIndex, true);
+        }
     }
 </script>
 
@@ -647,10 +688,11 @@
         <!-- Image Content -->
         <div
             class="flex-1 min-h-0 relative bg-black flex items-center justify-center"
+            style="cursor: default !important;"
             class:fullscreen-viewer-stage={isFullscreenViewer}
             class:fullscreen-cursor-hidden={isFullscreenViewer && !showFullscreenCursor && !showFullscreenChrome && !showFullscreenFilmstrip}
             on:click|self={handleViewerBackdropClick}
-            on:mousemove={isFullscreenViewer ? revealFullscreenUi : undefined}
+            on:mousemove={handleMouseMove}
             role="button"
             tabindex="0"
             on:keydown={(e) => {
@@ -665,14 +707,13 @@
             {#if isFullscreenViewer}
                 <div
                     class="absolute inset-x-0 top-0 z-60 h-28"
-                    on:mouseenter={revealFullscreenChrome}
-                    on:mouseleave={hideFullscreenUi}
+                    on:mouseleave={handleChromeMouseLeave}
                 >
                     <button
                         type="button"
                         class="absolute left-1/2 top-0 inline-flex h-12 w-12 -translate-x-1/2 items-center justify-center rounded-full bg-black/70 text-white/90 shadow-2xl ring-1 ring-white/15 backdrop-blur transition-all duration-200 ease-out hover:bg-black/85 hover:text-white"
-                        class:translate-y-7={showFullscreenChrome}
-                        class:-translate-y-16={!showFullscreenChrome}
+                        class:translate-y-12={showFullscreenChrome}
+                        class:-translate-y-20={!showFullscreenChrome}
                         aria-label="全画面を解除"
                         on:click|stopPropagation={() => void setFullscreenViewer(false)}
                     >
@@ -684,6 +725,7 @@
             <!-- Navigation arrows -->
             <button
                 class="absolute left-0 top-0 h-full px-6 flex items-center justify-center text-white bg-black/0 hover:bg-black/30 transition-all z-40 opacity-0 hover:opacity-100"
+                style="cursor: default !important;"
                 class:!hidden={isZoomed || viewerScreenshots.length <= 1}
                 on:click|stopPropagation={prev}
             >
@@ -694,6 +736,7 @@
 
             <button
                 class="absolute right-0 top-0 h-full px-6 flex items-center justify-center text-white bg-black/0 hover:bg-black/30 transition-all z-40 opacity-0 hover:opacity-100"
+                style="cursor: default !important;"
                 class:!hidden={isZoomed || viewerScreenshots.length <= 1}
                 on:click|stopPropagation={next}
             >
@@ -714,7 +757,7 @@
                 <div
                     class="absolute inset-x-0 bottom-0 z-50 px-4 pb-4 pt-10"
                     on:mouseenter={revealFullscreenFilmstrip}
-                    on:mouseleave={hideFullscreenUi}
+                    on:mouseleave={handleFilmstripMouseLeave}
                 >
                     <div
                         class="mx-auto max-w-[min(92vw,1200px)] overflow-hidden rounded-xl bg-black/55 p-2 shadow-2xl ring-1 ring-white/10 backdrop-blur transition-all duration-200 cursor-grab active:cursor-grabbing"
