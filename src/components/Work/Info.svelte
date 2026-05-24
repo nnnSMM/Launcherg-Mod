@@ -7,11 +7,208 @@
     import Detail from "@/components/Work/Detail.svelte";
     import ScreenshotGallery from "@/components/Work/ScreenshotGallery.svelte";
     import { formatLastPlayed, formatPlayTime } from "@/lib/utils";
+    import { memo } from "@/store/memo";
+    import { onMount, onDestroy } from "svelte";
+    import { readImage } from "@tauri-apps/plugin-clipboard-manager";
+    import { commandUploadImage, commandSaveScreenshotByPid } from "@/lib/command";
+    import { startProcessMap } from "@/store/startProcessMap";
+    import { showErrorToast } from "@/lib/toast";
+    import EasyMDE from "easymde";
+    import { open } from "@tauri-apps/plugin-dialog";
+    import { convertFileSrc } from "@tauri-apps/api/core";
+    import { skyWay } from "@/store/skyway";
 
     export let work: Work;
     export let element: CollectionElement;
     export let page: "overview" | "record" | "memo" | "screenshots" =
         "overview";
+
+    const mde = (node: HTMLElement) => {
+        const easyMDE = new EasyMDE({
+            element: node,
+            spellChecker: false,
+            sideBySideFullscreen: false,
+            previewImagesInEditor: true,
+            autofocus: true,
+            autosave: {
+                enabled: true,
+                delay: 1000,
+                uniqueId: `memo-${work.id}`,
+            },
+            toolbar: [
+                "bold",
+                "italic",
+                "heading",
+                "|",
+                "quote",
+                "unordered-list",
+                "ordered-list",
+                "|",
+                "link",
+                {
+                    name: "image",
+                    action: async () => {
+                        const selected = await open({
+                            multiple: false,
+                            filters: [
+                                {
+                                    name: "Image",
+                                    extensions: ["png", "jpeg", "jpg", "*"],
+                                },
+                            ],
+                        });
+                        if (selected === null || Array.isArray(selected)) {
+                            return;
+                        }
+                        insertImage(selected.path);
+                    },
+                    className: "fa fa-picture-o",
+                    title: "Insert image",
+                },
+                {
+                    name: "screenshot",
+                    action: async () => {
+                        const startProcessId = $startProcessMap[work.id];
+                        try {
+                            const screenshotPath = await commandSaveScreenshotByPid(
+                                work.id,
+                                startProcessId,
+                            );
+                            insertImage(screenshotPath);
+                        } catch (e) {
+                            showErrorToast("スクリーンショットの取得に失敗しました");
+                            console.error(e);
+                        }
+                    },
+                    className: "fa fa-desktop",
+                    title: "Insert screenshot",
+                },
+            ],
+            imagesPreviewHandler: (imagePath) => convertFileSrc(imagePath),
+        });
+
+        const onPaste = async () => {
+            try {
+                const image = await readImage();
+                const rgba = await image.rgba();
+                const size = await image.size();
+
+                const canvas = document.createElement("canvas");
+                canvas.width = size.width;
+                canvas.height = size.height;
+                const ctx = canvas.getContext("2d");
+                if (!ctx) return;
+                const imageData = new ImageData(
+                    new Uint8ClampedArray(rgba),
+                    size.width,
+                    size.height,
+                );
+                ctx.putImageData(imageData, 0, 0);
+                const base64Image = canvas.toDataURL("image/png").split(",")[1];
+
+                const imagePath = await commandUploadImage(work.id, base64Image);
+                insertImage(imagePath);
+            } catch {}
+        };
+
+        const insertImage = (imagePath: string) => {
+            const cursor = easyMDE.codemirror.getCursor();
+            const prev = easyMDE.value();
+            const lines = prev.split("\n");
+            const newLines: string[] = [];
+            for (let i = 0; i < lines.length; i++) {
+                newLines.push(lines[i]);
+                if (i === cursor.line) {
+                    newLines.push(`![](${imagePath})`);
+                    newLines.push("");
+                }
+            }
+            easyMDE.codemirror.setValue(newLines.join("\n"));
+            easyMDE.codemirror.setCursor({ line: cursor.line + 2, ch: 0 });
+        };
+
+        const ele = node.closest(".EasyMDEContainer") || node.parentElement;
+        setTimeout(() => {
+            const container = node.parentElement?.querySelector(".EasyMDEContainer") || node.parentElement;
+            if (container) {
+                const toolbar = container.querySelector<HTMLElement>(".editor-toolbar");
+                if (toolbar) {
+                    toolbar.style.backgroundColor = "rgba(45, 51, 59, 0.2)";
+                    toolbar.style.backdropFilter = "blur(12px)";
+                    toolbar.style.border = "1px solid rgba(255, 255, 255, 0.08)";
+                    toolbar.style.borderBottom = "none";
+                    toolbar.style.borderTopLeftRadius = "8px";
+                    toolbar.style.borderTopRightRadius = "8px";
+
+                    const buttons = toolbar.querySelectorAll<HTMLElement>("button");
+                    buttons.forEach((btn) => {
+                        btn.style.backgroundColor = "transparent";
+                        btn.style.color = "var(--color-text-primary, #ffffff)";
+                        btn.style.border = "none";
+                        btn.style.borderRadius = "4px";
+                        btn.style.transition = "all 0.2s ease";
+                        
+                        btn.addEventListener("mouseenter", () => {
+                            btn.style.backgroundColor = "rgba(255, 255, 255, 0.1)";
+                        });
+                        btn.addEventListener("mouseleave", () => {
+                            btn.style.backgroundColor = "transparent";
+                        });
+                    });
+
+                    const separators = toolbar.querySelectorAll<HTMLElement>(".separator");
+                    separators.forEach((sep) => {
+                        sep.style.borderLeft = "1px solid rgba(255, 255, 255, 0.1)";
+                        sep.style.borderRight = "none";
+                    });
+                }
+                const codeMirror = container.querySelector<HTMLElement>(".CodeMirror");
+                if (codeMirror) {
+                    codeMirror.style.backgroundColor = "rgba(34, 39, 46, 0.2)";
+                    codeMirror.style.backdropFilter = "blur(12px)";
+                    codeMirror.style.border = "1px solid rgba(255, 255, 255, 0.08)";
+                    codeMirror.style.borderBottomLeftRadius = "8px";
+                    codeMirror.style.borderBottomRightRadius = "8px";
+                }
+            }
+        }, 0);
+
+        ele?.addEventListener("paste", onPaste);
+
+        const syncTimer = setInterval(() => {
+            const current = easyMDE.value();
+            if ($memo.find((v) => v.workId === work.id)?.value !== current) {
+                memo.update((memos) =>
+                    memos.reduce(
+                        (acc, cur) => {
+                            if (cur.workId !== work.id) acc.push(cur);
+                            return acc;
+                        },
+                        [
+                            { workId: work.id, value: current, lastModified: "local" },
+                        ] as typeof $memo,
+                    ),
+                );
+                skyWay.syncMemo(work.id, current);
+            }
+        }, 1000);
+
+        const unsubscribe = memo.subscribe((memos) => {
+            const targetMemo = memos.find((v) => v.workId === work.id);
+            if (targetMemo?.lastModified === "remote" && easyMDE.value() !== targetMemo.value) {
+                easyMDE.value(targetMemo.value);
+            }
+        });
+
+        return {
+            destroy: () => {
+                ele?.removeEventListener("paste", onPaste);
+                unsubscribe();
+                clearInterval(syncTimer);
+                easyMDE.toTextArea();
+            },
+        };
+    };
 
     $: seiyaUrlPromise = seiya.getUrl(work.name);
 
@@ -220,7 +417,7 @@
     {:else if page === "memo"}
         <section
             id="work-memo"
-            class="rounded-lg border border-border-primary bg-bg-primary/30 backdrop-blur-md shadow-sm p-4 lg:p-5"
+            class="rounded-lg border border-border-primary/40 bg-bg-primary/20 backdrop-blur-lg shadow-xl p-4 lg:p-5 transition-all duration-300"
             aria-labelledby="work-memo-title"
         >
             <div class="flex items-start gap-3">
@@ -235,11 +432,20 @@
                     <a
                         href={`/memos/${work.id}?gamename=${encodeURIComponent(element.gamename)}`}
                         use:link
-                        class="mt-4 inline-flex items-center gap-2 rounded bg-bg-button px-3 py-2 text-body2 text-text-primary hover:bg-bg-button-hover focus-visible:ring-2 focus-visible:ring-accent-accent"
+                        class="mt-4 inline-flex items-center gap-2 rounded border border-border-primary/40 bg-bg-button/20 backdrop-blur-md px-3 py-2 text-body2 text-text-primary hover:bg-bg-button/45 transition-colors focus-visible:ring-2 focus-visible:ring-accent-accent"
                     >
                         <div class="i-material-symbols-open-in-new-rounded w-4 h-4" />
                         メモを開く
                     </a>
+
+                    <div class="mt-6 border-t border-border-primary/50 pt-5">
+                        <h3 class="text-body2 font-semibold text-text-primary mb-3">
+                            メモ
+                        </h3>
+                        {#key work.id}
+                            <textarea use:mde />
+                        {/key}
+                    </div>
                 </div>
             </div>
         </section>

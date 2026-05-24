@@ -6,6 +6,7 @@ import {
     selected,
     setDemoBuildForTest,
     syncSelectedToLocation,
+    routeLoaded,
 } from "./tabs";
 import { push, replace } from "svelte-spa-router";
 import { get } from "svelte/store";
@@ -100,4 +101,29 @@ describe("tabs", () => {
             expect(get(selected)).toBe(-1);
         });
     });
+
+    describe("routeLoaded - メモタブの自動挿入位置", () => {
+        it("対応するゲームタブが存在する場合、そのゲームタブのすぐ右隣に新規メモタブを作成すること", () => {
+            tabs.set([
+                { id: 101, type: "settings", scrollTo: 0, title: "設定", path: "/settings/shortcut" },
+                { id: 10, type: "works", workId: 10, scrollTo: 0, title: "Game 10", path: "/works/10?gamename=Game%2010" },
+                { id: 20, type: "works", workId: 20, scrollTo: 0, title: "Game 20", path: "/works/20?gamename=Game%2020" },
+            ]);
+            selected.set(0);
+
+            routeLoaded({
+                detail: {
+                    location: "/memos/10",
+                    querystring: "gamename=Game%2010",
+                },
+            } as any);
+
+            const currentTabs = get(tabs);
+            expect(currentTabs.length).toBe(4);
+            expect(currentTabs[2].type).toBe("memos");
+            expect(currentTabs[2].workId).toBe(10);
+            expect(get(selected)).toBe(2);
+        });
+    });
 });
+

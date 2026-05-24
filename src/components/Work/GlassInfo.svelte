@@ -72,7 +72,18 @@
             value: PlayStatus.Shelved,
         },
     ];
-    let activePage: DetailPage = "overview";
+    const savedPage = localStorage.getItem("last_active_detail_page") as DetailPage;
+    const initialPage: DetailPage = ["overview", "record", "screenshots", "memo"].includes(savedPage)
+        ? savedPage
+        : "overview";
+
+    let activePage: DetailPage = initialPage;
+
+    $: {
+        if (activePage) {
+            localStorage.setItem("last_active_detail_page", activePage);
+        }
+    }
     let isAddingUntrackedPlayTime = false;
     let playTimeAdjustmentInput = "";
 

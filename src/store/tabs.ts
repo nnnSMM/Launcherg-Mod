@@ -42,11 +42,15 @@ const createTabs = () => {
     -1,
   );
 
-  const insertNewTab = (newTab: Tab): number => {
+  const insertNewTab = (newTab: Tab, preferredIndex?: number): number => {
     const currentIndex = getSelected();
     const currentTabs = getTabs();
     const insertIndex =
-      currentIndex === -1 ? currentTabs.length : currentIndex + 1;
+      preferredIndex !== undefined && preferredIndex >= 0
+        ? preferredIndex
+        : currentIndex === -1
+        ? currentTabs.length
+        : currentIndex + 1;
 
     tabs.update((current) => {
       const next = [...current];
@@ -197,6 +201,15 @@ const createTabs = () => {
           title = `メモ - ${title}`;
         }
 
+        const correspondingWorkTabIndex = getTabs().findIndex(
+          (tab) => tab.workId === entityId && tab.type === "works",
+        );
+
+        const preferredIndex =
+          correspondingWorkTabIndex !== -1
+            ? correspondingWorkTabIndex + 1
+            : undefined;
+
         tabToSelectIndex = insertNewTab({
           id: new Date().getTime(),
           workId: entityId,
@@ -206,7 +219,7 @@ const createTabs = () => {
           path: `/${tabTypeSegment}/${entityId}${
             event.detail.querystring ? `?${event.detail.querystring}` : ""
           }`,
-        });
+        }, preferredIndex);
       }
     }
 
