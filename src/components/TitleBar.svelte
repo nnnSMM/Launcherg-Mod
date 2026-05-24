@@ -22,6 +22,8 @@
   import { sidebarCollectionElements } from "@/store/sidebarCollectionElements";
   import { enqueueGameScreenshotPrefetch } from "@/lib/useGameScreenshots";
   import { autoImportProgress } from "@/store/autoImportProgress";
+  import UpdateBadge from "@/components/Update/UpdateBadge.svelte";
+  import UpdateDialog from "@/components/Update/UpdateDialog.svelte";
 
   export let variant: "main" | "screenshot" = "main";
   export let heightClass: string = "h-8";
@@ -170,6 +172,9 @@
   </div>
   <div class="flex h-full items-center pr-[132px]">
     <slot name="right" />
+    {#if variant === "main"}
+      <UpdateBadge />
+    {/if}
   </div>
 
   <!-- window controls -->
@@ -213,6 +218,9 @@
     on:confirm={(e) => importManually(e.detail)}
     on:cancel={() => (isOpenImportManually = false)}
   />
+{/if}
+{#if variant === "main"}
+  <UpdateDialog />
 {/if}
 
 <style>

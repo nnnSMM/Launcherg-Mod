@@ -3,7 +3,7 @@ id: decision-log
 title: Decision Log
 type: log
 status: active
-updated: 2026-05-21
+updated: 2026-05-24
 links:
   - launcherg-improvement-moc
   - template-decision-record
@@ -11,6 +11,14 @@ links:
 ---
 
 # Decision Log
+
+## 2026-05-24: アプリ内更新通知は手動実行と demo 確認を前提にする
+
+- Context: 新しい Release を公開した時にアプリ内で知らせたいが、ユーザーの明示操作なしにダウンロード、インストール、再起動が走ると既存作業やゲーム管理を妨げる。
+- Decision: 起動時は Tauri updater の `check()` のみを実行し、更新がある場合だけタイトルバーに小さな通知を出す。`downloadAndInstall()` と `relaunch()` は UpdateDialog の「アップデート」押下後だけ呼ぶ。更新前の確認先として GitHub Pages demo と GitHub Release を分けて開く。
+- Rationale: Launcherg-Mod はローカルデータとプレイ中の状態を扱うため、更新処理はユーザーがタイミングを選べる必要がある。demo で先に見た目や機能を試せる導線を置くことで、更新判断の材料を増やせる。
+- Consequence: updater 用 `.tauri-updater.json` と UI 用 `update-info.json` は release workflow で分けて生成する。Mod版のReleaseタグは `YYYYMMDD` だけを使い、Tauri updater と Windows MSI の制約に合わせて内部バージョンだけ `YY.M.D` に変換する。demo/dev mock では更新通知 UI だけを確認し、実インストールは行わない。
+- Links: [[product-context]], [[architecture-map]], [[quality-gates]]
 
 ## 2026-05-21: 初プレイ日時は実プレイ時間の初回記録時に保存する
 
