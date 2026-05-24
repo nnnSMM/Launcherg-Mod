@@ -10,7 +10,7 @@
     title="更新があります"
     aria-label="更新があります"
     on:click={() => appUpdate.toggleDialog()}
-    class="mx-2 h-6 min-w-10 flex items-center justify-center rounded-full bg-[#2563eb] px-3 text-white shadow-sm transition-colors hover:bg-[#1d4ed8] outline-none border-none focus:outline-none focus-visible:outline-none"
+    class="mx-1 h-6 min-w-8 flex items-center justify-center rounded-full bg-[#0284c7] px-2 text-white shadow-sm transition-colors hover:bg-[#0369a1] outline-none border-none focus:outline-none focus-visible:outline-none"
   >
     <div class="i-material-symbols-system-update-alt-rounded text-[17px]" />
   </button>

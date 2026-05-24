@@ -244,6 +244,7 @@
             on:startManual={() => (isOpenImportManually = true)}
           />
         </APopover>
+        <UpdateBadge />
       {/if}
       <slot name="left" />
     </div>
@@ -255,8 +256,6 @@
 
     <div class="flex h-full min-w-0 shrink-0 items-center gap-1 px-2">
       {#if variant === "main"}
-        <UpdateBadge />
-        <div class="{titlebarDividerClass} hidden sm:block" />
         <button
           type="button"
           aria-label={navLabels.shortcut}
