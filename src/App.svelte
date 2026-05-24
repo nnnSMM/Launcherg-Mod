@@ -22,6 +22,7 @@
   import InitializationOverlay from "@/components/UI/InitializationOverlay.svelte";
   import TitleBar from "@/components/TitleBar.svelte";
   import { theme } from "@/store/theme";
+  import { appUpdate } from "@/store/update";
 
   const windowLabel = getCurrentWindow().label;
   const isPublicDemoBuild = __PUBLIC_DEMO_BUILD__;
@@ -54,6 +55,9 @@
     isMounted = true;
     if (!isLandingRoute) {
       initializeMainApp();
+      if (windowLabel === "main") {
+        void appUpdate.initialize();
+      }
     }
 
     const cleanupTooltips = setupGlobalTooltips();
@@ -80,6 +84,9 @@
 
   $: if (isMounted && !isLandingRoute) {
     initializeMainApp();
+    if (windowLabel === "main") {
+      void appUpdate.initialize();
+    }
   }
 </script>
 

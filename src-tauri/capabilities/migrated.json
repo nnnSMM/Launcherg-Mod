@@ -32,6 +32,9 @@
     },
     "shell:allow-open",
     "dialog:allow-open",
+    "updater:allow-check",
+    "updater:allow-download-and-install",
+    "process:allow-restart",
     {
       "identifier": "http:default",
       "allow": [
@@ -51,7 +54,16 @@
           "url": "https://seiya-saiga.com/game/*"
         },
         {
-          "url": "https://raw.githubusercontent.com/ryoha000/launcherg/*"
+          "url": "https://raw.githubusercontent.com/nnnSMM/Launcherg-Mod/*"
+        },
+        {
+          "url": "https://github.com/nnnSMM/Launcherg-Mod/releases/*"
+        },
+        {
+          "url": "https://api.vndb.org/kana/*"
+        },
+        {
+          "url": "https://nnnsmm.github.io/Launcherg-Mod/*"
         },
         {
           "url": "https://launcherg.ryoha.moe/*"

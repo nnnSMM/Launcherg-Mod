@@ -90,7 +90,7 @@ export const initializeAllGameCache = async () => {
         "ゲームデータベースの準備が完了するまで、アプリケーションの操作を制限しています。",
     }));
     const response = await fetch(
-      "https://raw.githubusercontent.com/ryoha000/launcherg/main/script/all_games.json",
+      "https://raw.githubusercontent.com/nnnSMM/Launcherg-Mod/main/script/all_games.json",
       { method: "GET" }
     );
     const initValue = (await response.json()) as AllGameCacheOne[];

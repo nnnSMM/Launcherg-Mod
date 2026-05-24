@@ -25,6 +25,8 @@
   import { showSidebar } from "@/store/showSidebar";
   import { canGoBack, canGoForward } from "@/lib/historyTrack";
   import { theme, type AppTheme } from "@/store/theme";
+  import UpdateBadge from "@/components/Update/UpdateBadge.svelte";
+  import UpdateDialog from "@/components/Update/UpdateDialog.svelte";
 
   export let variant: "main" | "screenshot" = "main";
   export let heightClass: string = "h-8";
@@ -253,6 +255,7 @@
 
     <div class="flex h-full min-w-0 shrink-0 items-center gap-1 px-2">
       {#if variant === "main"}
+        <UpdateBadge />
         <div class="{titlebarDividerClass} hidden sm:block" />
         <button
           type="button"
@@ -343,6 +346,9 @@
     on:confirm={(e) => importManually(e.detail)}
     on:cancel={() => (isOpenImportManually = false)}
   />
+{/if}
+{#if variant === "main"}
+  <UpdateDialog />
 {/if}
 
 <style>
