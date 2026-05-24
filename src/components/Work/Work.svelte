@@ -42,9 +42,11 @@
   class="work-detail-page h-full w-full overflow-x-hidden overflow-y-auto"
 >
   <div class="w-full min-h-0 flex justify-center">
-    {#key work.imgUrl}
-      <WorkLayout {work} {element} {scrollY} />
-    {/key}
+    {#if work && element}
+      {#key work.imgUrl}
+        <WorkLayout {work} {element} {scrollY} />
+      {/key}
+    {/if}
   </div>
 </div>
 

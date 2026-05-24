@@ -87,11 +87,16 @@
             imagesPreviewHandler: (imagePath) => convertFileSrc(imagePath),
         });
 
+        let destroyed = false;
+
         const onPaste = async () => {
             try {
+                if (destroyed) return;
                 const image = await readImage();
+                if (destroyed) return;
                 const rgba = await image.rgba();
                 const size = await image.size();
+                if (destroyed) return;
 
                 const canvas = document.createElement("canvas");
                 canvas.width = size.width;
@@ -107,11 +112,13 @@
                 const base64Image = canvas.toDataURL("image/png").split(",")[1];
 
                 const imagePath = await commandUploadImage(work.id, base64Image);
+                if (destroyed) return;
                 insertImage(imagePath);
             } catch {}
         };
 
         const insertImage = (imagePath: string) => {
+            if (destroyed) return;
             const cursor = easyMDE.codemirror.getCursor();
             const prev = easyMDE.value();
             const lines = prev.split("\n");
@@ -128,7 +135,8 @@
         };
 
         const ele = node.closest(".EasyMDEContainer") || node.parentElement;
-        setTimeout(() => {
+        const styleTimer = window.setTimeout(() => {
+            if (destroyed) return;
             const container = node.parentElement?.querySelector(".EasyMDEContainer") || node.parentElement;
             if (container) {
                 const toolbar = container.querySelector<HTMLElement>(".editor-toolbar");
@@ -176,6 +184,7 @@
         ele?.addEventListener("paste", onPaste);
 
         const syncTimer = setInterval(() => {
+            if (destroyed) return;
             const current = easyMDE.value();
             if ($memo.find((v) => v.workId === work.id)?.value !== current) {
                 memo.update((memos) =>
@@ -194,6 +203,7 @@
         }, 1000);
 
         const unsubscribe = memo.subscribe((memos) => {
+            if (destroyed) return;
             const targetMemo = memos.find((v) => v.workId === work.id);
             if (targetMemo?.lastModified === "remote" && easyMDE.value() !== targetMemo.value) {
                 easyMDE.value(targetMemo.value);
@@ -202,14 +212,22 @@
 
         return {
             destroy: () => {
+                destroyed = true;
                 ele?.removeEventListener("paste", onPaste);
                 unsubscribe();
                 clearInterval(syncTimer);
+                clearTimeout(styleTimer);
+                easyMDE.cleanup();
+                const wrapper = easyMDE.codemirror.getWrapperElement();
+                const container = wrapper.parentElement;
+                if (node.isConnected && container?.parentElement) {
+                    easyMDE.toTextArea();
+                }
             },
         };
     };
 
-    $: seiyaUrlPromise = seiya.getUrl(work.name);
+    $: seiyaUrlPromise = work ? seiya.getUrl(work.name) : Promise.resolve("");
 
     const formatDate = (value: string | null | undefined) => {
         if (!value) return "未記録";
@@ -222,7 +240,8 @@
             .replace(/\n{3,}/g, "\n\n")
             .trim() ?? "";
 
-    $: recordRows = [
+    $: recordRows = element
+        ? [
         {
             label: "総プレイ時間",
             value: formatPlayTime(element.totalPlayTimeSeconds),
@@ -243,10 +262,11 @@
             value: playStatusLabel[element.playStatus] ?? playStatusLabel[PlayStatus.Unplayed],
             icon: "i-material-symbols-check-circle-outline-rounded",
         },
-    ];
+    ]
+        : [];
 
-    $: overviewBrand = work.brandName || element.brandname || "ブランド未登録";
-    $: overviewDescription = normalizeDescription(work.description);
+    $: overviewBrand = work?.brandName || element?.brandname || "ブランド未登録";
+    $: overviewDescription = normalizeDescription(work?.description);
 </script>
 
 {#if work && work.id && element}
