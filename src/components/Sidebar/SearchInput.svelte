@@ -27,10 +27,10 @@
   }}
 />
 <div
-  class="border-2px border-solid border-transparent focus-within:border-accent-accent rounded transition-all min-w-0 w-full"
+  class="min-w-0 w-full"
 >
   <div
-    class="group w-full flex items-center gap-2 px-2 py-1 border border-border-primary rounded bg-transparent hover:bg-white/5 hover:border-border-button-hover focus-within:border-accent-accent focus-within:bg-transparent transition-all relative min-w-0"
+    class="group w-full flex items-center gap-2 px-2 py-1 border border-border-primary rounded bg-transparent focus-within:border-accent-accent focus-within:ring-2 focus-within:ring-accent-accent/20 focus-within:bg-transparent transition-all relative min-w-0"
   >
     <div class="w-5 h-5 i-material-symbols-search color-text-primary shrink-0" />
     <input
