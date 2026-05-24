@@ -18,6 +18,41 @@ export type Layout = Cell[][];
 
 const hasCells = (layout: Layout): boolean => layout.some(col => col.length > 0);
 
+const getLayoutHeightKey = (layout: Layout): string =>
+  layout
+    .map((col) => {
+      const height = col.length > 0 ? col[col.length - 1].top + col[col.length - 1].height : 0;
+      return Math.round(height / 64);
+    })
+    .join(",");
+
+const getBeamDiversityKey = (layout: Layout, lastColumn?: number): string =>
+  `${getLayoutHeightKey(layout)}|${lastColumn ?? -1}`;
+
+const pruneDiverseBeams = <T extends { layout: Layout; lastColumn?: number }>(
+  beams: T[],
+  limit: number,
+  maxPerKey = 2
+): T[] => {
+  const counts = new Map<string, number>();
+  const result: T[] = [];
+
+  for (const beam of beams) {
+    const key = getBeamDiversityKey(beam.layout, beam.lastColumn);
+    const count = counts.get(key) ?? 0;
+    if (count >= maxPerKey) {
+      continue;
+    }
+    counts.set(key, count + 1);
+    result.push(beam);
+    if (result.length >= limit) {
+      break;
+    }
+  }
+
+  return result;
+};
+
 const findFirstVisibleByBottom = (col: Cell[], scrollTop: number): number => {
   let low = 0;
   let high = col.length;
@@ -93,7 +128,7 @@ export const calculateLayouts = (
   const itemWidth = Math.floor((containerWidth - itemGap * (itemNumPerRow - 1)) / itemNumPerRow);
 
   // beams の score の型を [number, number] に変更
-  type Beam = { layout: Layout; score: [number, number] };
+  type Beam = { layout: Layout; score: [number, number]; lastColumn?: number };
 
   const initialLayout: Layout = Array.from({ length: itemNumPerRow }, () => []);
   // 初期ビームのスコアも新しい評価関数で計算
@@ -150,7 +185,7 @@ export const calculateLayouts = (
         const remaining = elements.slice(idx + 1);
         // 新しい評価関数でスコアを取得
         const score = evaluateGreedy(nextLayout, remaining, itemWidth);
-        newBeams.push({ layout: nextLayout, score });
+        newBeams.push({ layout: nextLayout, score, lastColumn: colIdx });
       } // end for colIdx
     } // end for beam
 
@@ -171,7 +206,7 @@ export const calculateLayouts = (
         fallbackLayout[fallbackColIdx].push({ top: fallbackTop, left: fallbackColIdx * (itemWidth + itemGap), width: itemWidth, height: h, element: ele });
         // スコアもペアで計算
         const fallbackScore = evaluateGreedy(fallbackLayout, elements.slice(idx + 1), itemWidth);
-        beams = [{ layout: fallbackLayout, score: fallbackScore }];
+        beams = [{ layout: fallbackLayout, score: fallbackScore, lastColumn: fallbackColIdx }];
       } else {
         beams = [];
         break;
@@ -186,7 +221,7 @@ export const calculateLayouts = (
         // 2. 最長列の長さが同じなら、差で比較
         return a.score[1] - b.score[1]; // 差が小さい方が良い
       });
-      beams = newBeams.slice(0, beamWidth);
+      beams = pruneDiverseBeams(newBeams, beamWidth);
     }
   } // end for elements
 
