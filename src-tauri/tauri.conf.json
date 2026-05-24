@@ -25,7 +25,7 @@
       "bin/extract-icon"
     ]
   },
-  "productName": "Launcherg",
+  "productName": "Launcherg-Mod",
   "version": "0.3.3",
   "identifier": "ryoha.moe",
   "plugins": {
@@ -33,7 +33,7 @@
       "endpoints": [
         "https://github.com/nnnSMM/Launcherg-Mod/releases/latest/download/.tauri-updater.json"
       ],
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEMxMUQ0QjI0QjczRDhGQUIKUldTcmp6MjNKRXNkd1VNejBIZytZeHdhWW9pZWJwenNDOEtCa0tVM0VvcU8xcVMrR1FLQ1VhQ1cK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDdCQTA0QTREREJERUFEMTMKUldRVHJkN2JUVXFnZXpOcFFBK0FyeVV2dEFFb3V0cVlxdkZtTHp2cVhadjNiRjVaSkVCQ0lPSW0K",
       "windows": {
         "installMode": "passive",
         "installerArgs": []

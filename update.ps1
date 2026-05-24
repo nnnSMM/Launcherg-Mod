@@ -22,8 +22,8 @@ $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD = $env:TAURI_KEY_PASSWORD
 Invoke-Expression "npm i"
 Invoke-Expression "npm run tauri build"
 
-$builtArtifactName = "Launcherg_${appVersion}_x64_ja-JP.msi.zip"
-$releaseArtifactName = "Launcherg_${displayVersion}_x64_ja-JP.msi.zip"
+$builtArtifactName = "Launcherg-Mod_${appVersion}_x64_ja-JP.msi.zip"
+$releaseArtifactName = "Launcherg-Mod_${displayVersion}_x64_ja-JP.msi.zip"
 $builtArtifactPath = ".\src-tauri\target\release\bundle\msi\${builtArtifactName}"
 $builtSignaturePath = "${builtArtifactPath}.sig"
 $releaseArtifactPath = ".\src-tauri\target\release\bundle\msi\${releaseArtifactName}"
