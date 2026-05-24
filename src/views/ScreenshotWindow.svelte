@@ -12,6 +12,8 @@
     import GameSelector from "@/components/ScreenshotWindow/GameSelector.svelte";
     import ZoomableImage from "@/components/UI/ZoomableImage.svelte";
     import TitleBar from "@/components/TitleBar.svelte";
+    import emblaCarouselSvelte from "embla-carousel-svelte";
+    import type { EmblaCarouselType, EmblaOptionsType } from "embla-carousel";
 
     let allScreenshots: Screenshot[] = [];
     let allGames: CollectionElement[] = [];
@@ -26,6 +28,17 @@
     let currentFileSize: number | null = null;
     let isZoomed = false;
     let showDeleteConfirm = false;
+    let isFullscreenViewer = false;
+    let showFullscreenCursor = false;
+    let showFullscreenChrome = false;
+    let showFullscreenFilmstrip = false;
+    let fullscreenUiTimer: ReturnType<typeof setTimeout> | null = null;
+    let fullscreenFilmstripApi: EmblaCarouselType | null = null;
+    const fullscreenFilmstripOptions: EmblaOptionsType = {
+        align: "start",
+        containScroll: "trimSnaps",
+        dragFree: true,
+    };
     let currentWindowHandle: Awaited<
         ReturnType<typeof import("@tauri-apps/api/window").getCurrentWindow>
     > | null = null;
@@ -231,6 +244,13 @@
                 clearTimeout(readyFallbackTimer);
                 readyFallbackTimer = null;
             }
+            if (fullscreenUiTimer) {
+                clearTimeout(fullscreenUiTimer);
+                fullscreenUiTimer = null;
+            }
+            if (isFullscreenViewer) {
+                void currentWindow.setFullscreen(false);
+            }
             unlisten();
         };
     });
@@ -319,12 +339,90 @@
     };
 
     const backToGrid = () => {
+        if (isFullscreenViewer) {
+            void setFullscreenViewer(false);
+        }
         viewMode = "grid";
         isZoomed = false;
     };
 
     const handleViewerImageReady = () => {
         viewerImageReady = true;
+    };
+
+    const scheduleFullscreenUiHide = () => {
+        if (fullscreenUiTimer) {
+            clearTimeout(fullscreenUiTimer);
+            fullscreenUiTimer = null;
+        }
+        if (!isFullscreenViewer) return;
+        fullscreenUiTimer = setTimeout(() => {
+            showFullscreenCursor = false;
+            showFullscreenChrome = false;
+            showFullscreenFilmstrip = false;
+            fullscreenUiTimer = null;
+        }, 1600);
+    };
+
+    const hideFullscreenUi = () => {
+        if (fullscreenUiTimer) {
+            clearTimeout(fullscreenUiTimer);
+            fullscreenUiTimer = null;
+        }
+        showFullscreenCursor = false;
+        showFullscreenChrome = false;
+        showFullscreenFilmstrip = false;
+    };
+
+    const revealFullscreenUi = () => {
+        showFullscreenCursor = true;
+        scheduleFullscreenUiHide();
+    };
+
+    const revealFullscreenChrome = () => {
+        showFullscreenCursor = true;
+        showFullscreenChrome = true;
+        showFullscreenFilmstrip = false;
+        scheduleFullscreenUiHide();
+    };
+
+    const revealFullscreenFilmstrip = () => {
+        showFullscreenCursor = true;
+        showFullscreenFilmstrip = true;
+        showFullscreenChrome = false;
+        scheduleFullscreenUiHide();
+        fullscreenFilmstripApi?.reInit();
+    };
+
+    const setFullscreenViewer = async (nextState: boolean) => {
+        if (isFullscreenViewer === nextState) return;
+        try {
+            await currentWindowHandle?.setFullscreen(nextState);
+            isFullscreenViewer = nextState;
+            showFullscreenCursor = nextState;
+            showFullscreenChrome = false;
+            showFullscreenFilmstrip = false;
+            if (nextState) {
+                scheduleFullscreenUiHide();
+            } else if (fullscreenUiTimer) {
+                clearTimeout(fullscreenUiTimer);
+                fullscreenUiTimer = null;
+            }
+        } catch (e) {
+            console.error("Failed to toggle screenshot fullscreen", e);
+        }
+    };
+
+    const toggleFullscreenViewer = () => {
+        void setFullscreenViewer(!isFullscreenViewer);
+    };
+
+    const handleViewerBackdropClick = () => {
+        if (isFullscreenViewer) {
+            scheduleFullscreenUiHide();
+            return;
+        }
+        backToGrid();
     };
 
     const handleGameSelect = (id: number | null) => {
@@ -367,11 +465,52 @@
             viewerScreenshots.length;
     };
 
+    const selectViewerIndex = (index: number) => {
+        currentIndex = index;
+        if (isFullscreenViewer) revealFullscreenFilmstrip();
+    };
+
+    const horizontalWheelScroll = (node: HTMLElement) => {
+        const handleWheel = (event: WheelEvent) => {
+            event.preventDefault();
+            event.stopPropagation();
+            const delta = event.deltaX || event.deltaY;
+            if (delta > 0) {
+                fullscreenFilmstripApi?.scrollNext();
+            } else if (delta < 0) {
+                fullscreenFilmstripApi?.scrollPrev();
+            }
+            revealFullscreenFilmstrip();
+        };
+
+        node.addEventListener("wheel", handleWheel, { passive: false });
+
+        return {
+            destroy() {
+                node.removeEventListener("wheel", handleWheel);
+            },
+        };
+    };
+
+    const handleFullscreenFilmstripInit = (
+        event: CustomEvent<EmblaCarouselType>,
+    ) => {
+        fullscreenFilmstripApi = event.detail;
+        fullscreenFilmstripApi.scrollTo(currentIndex, true);
+    };
+
     const handleKeydown = (e: KeyboardEvent) => {
         if (viewMode !== "viewer") return;
-        if (e.key === "Escape") backToGrid();
+        if (e.key === "Escape") {
+            if (isFullscreenViewer) {
+                void setFullscreenViewer(false);
+            } else {
+                backToGrid();
+            }
+        }
         if (e.key === "ArrowRight") next();
         if (e.key === "ArrowLeft") prev();
+        if (e.key.toLowerCase() === "f") toggleFullscreenViewer();
     };
 
     // Selection Mode
@@ -453,6 +592,16 @@
         if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
         return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
     };
+
+    $: fullscreenFilmstripScreenshots = viewerScreenshots.map((screenshot) => ({
+        screenshot,
+        src: convertFileSrc(screenshot.thumbnailFilename ?? screenshot.filename),
+    }));
+
+    $: if (fullscreenFilmstripApi && showFullscreenFilmstrip) {
+        fullscreenFilmstripApi.reInit();
+        fullscreenFilmstripApi.scrollTo(currentIndex, true);
+    }
 </script>
 
 <svelte:window on:keydown={handleKeydown} />
@@ -464,48 +613,79 @@
         <TitleBar variant="screenshot" heightClass="h-12" />
         <div class="flex-1 min-h-0 bg-black" />
     {:else if viewMode === "viewer" && currentScreenshot}
-        <TitleBar variant="screenshot" heightClass="h-12">
-            <div slot="left" class="flex items-center pl-1 pr-4 shrink-0">
-                <button
-                    class="flex items-center gap-0 px-1 py-1.5 cursor-pointer outline-none bg-transparent border-none text-white/60 hover:text-white/80 transition-colors text-[16px] font-medium h-fit"
-                    on:click={backToGrid}
-                >
-                    <span class="i-material-symbols-chevron-left text-2xl" />
-                    <span>戻る</span>
-                </button>
-            </div>
-            <div slot="center" class="flex items-center space-x-2 pointer-events-none">
-                {#if currentGameIcon}
-                    <img
-                        src={currentGameIcon}
-                        alt=""
-                        class="w-5 h-5 rounded object-cover"
-                    />
-                {:else}
-                    <span
-                        class="i-material-symbols-image text-accent-primary"
-                    />
-                {/if}
-                <span class="text-sm text-[#c0c0c0]"
-                    >{currentGameName || "すべてのメディア"}</span
-                >
-            </div>
-        </TitleBar>
+        {#if !isFullscreenViewer}
+            <TitleBar variant="screenshot" heightClass="h-12">
+                <div slot="left" class="flex items-center pl-1 pr-4 shrink-0">
+                    <button
+                        class="flex items-center gap-0 px-1 py-1.5 cursor-pointer outline-none bg-transparent border-none text-white/60 hover:text-white/80 transition-colors text-[16px] font-medium h-fit"
+                        on:click={backToGrid}
+                    >
+                        <span class="i-material-symbols-chevron-left text-2xl" />
+                        <span>戻る</span>
+                    </button>
+                </div>
+                <div slot="center" class="flex items-center space-x-2 pointer-events-none">
+                    {#if currentGameIcon}
+                        <img
+                            src={currentGameIcon}
+                            alt=""
+                            class="w-5 h-5 rounded object-cover"
+                        />
+                    {:else}
+                        <span
+                            class="i-material-symbols-image text-accent-primary"
+                        />
+                    {/if}
+                    <span class="text-sm text-[#c0c0c0]"
+                        >{currentGameName || "すべてのメディア"}</span
+                    >
+                </div>
+            </TitleBar>
+        {/if}
 
 
         <!-- Image Content -->
         <div
             class="flex-1 min-h-0 relative bg-black flex items-center justify-center"
-            on:click|self={backToGrid}
+            class:fullscreen-viewer-stage={isFullscreenViewer}
+            class:fullscreen-cursor-hidden={isFullscreenViewer && !showFullscreenCursor && !showFullscreenChrome && !showFullscreenFilmstrip}
+            on:click|self={handleViewerBackdropClick}
+            on:mousemove={isFullscreenViewer ? revealFullscreenUi : undefined}
             role="button"
             tabindex="0"
-            on:keydown={(e) => e.key === "Escape" && backToGrid()}
+            on:keydown={(e) => {
+                if (e.key !== "Escape") return;
+                if (isFullscreenViewer) {
+                    void setFullscreenViewer(false);
+                } else {
+                    backToGrid();
+                }
+            }}
         >
+            {#if isFullscreenViewer}
+                <div
+                    class="absolute inset-x-0 top-0 z-60 h-28"
+                    on:mouseenter={revealFullscreenChrome}
+                    on:mouseleave={hideFullscreenUi}
+                >
+                    <button
+                        type="button"
+                        class="absolute left-1/2 top-0 inline-flex h-12 w-12 -translate-x-1/2 items-center justify-center rounded-full bg-black/70 text-white/90 shadow-2xl ring-1 ring-white/15 backdrop-blur transition-all duration-200 ease-out hover:bg-black/85 hover:text-white"
+                        class:translate-y-7={showFullscreenChrome}
+                        class:-translate-y-16={!showFullscreenChrome}
+                        aria-label="全画面を解除"
+                        on:click|stopPropagation={() => void setFullscreenViewer(false)}
+                    >
+                        <div class="i-material-symbols-close-rounded h-6 w-6" />
+                    </button>
+                </div>
+            {/if}
+
             <!-- Navigation arrows -->
             <button
-                class="absolute left-0 top-0 h-full px-6 flex items-center justify-center text-white bg-black/0 hover:bg-black/30 transition-all opacity-0 hover:opacity-100 z-40"
+                class="absolute left-0 top-0 h-full px-6 flex items-center justify-center text-white bg-black/0 hover:bg-black/30 transition-all z-40 opacity-0 hover:opacity-100"
                 class:!hidden={isZoomed || viewerScreenshots.length <= 1}
-                on:click={prev}
+                on:click|stopPropagation={prev}
             >
                 <div
                     class="i-material-symbols-chevron-left text-6xl drop-shadow-lg"
@@ -513,9 +693,9 @@
             </button>
 
             <button
-                class="absolute right-0 top-0 h-full px-6 flex items-center justify-center text-white bg-black/0 hover:bg-black/30 transition-all opacity-0 hover:opacity-100 z-40"
+                class="absolute right-0 top-0 h-full px-6 flex items-center justify-center text-white bg-black/0 hover:bg-black/30 transition-all z-40 opacity-0 hover:opacity-100"
                 class:!hidden={isZoomed || viewerScreenshots.length <= 1}
-                on:click={next}
+                on:click|stopPropagation={next}
             >
                 <div
                     class="i-material-symbols-chevron-right text-6xl drop-shadow-lg"
@@ -529,32 +709,79 @@
                 class="max-w-full max-h-full"
                 on:ready={handleViewerImageReady}
             />
+
+            {#if isFullscreenViewer && viewerScreenshots.length > 1}
+                <div
+                    class="absolute inset-x-0 bottom-0 z-50 px-4 pb-4 pt-10"
+                    on:mouseenter={revealFullscreenFilmstrip}
+                    on:mouseleave={hideFullscreenUi}
+                >
+                    <div
+                        class="mx-auto max-w-[min(92vw,1200px)] overflow-hidden rounded-xl bg-black/55 p-2 shadow-2xl ring-1 ring-white/10 backdrop-blur transition-all duration-200 cursor-grab active:cursor-grabbing"
+                        class:translate-y-0={showFullscreenFilmstrip}
+                        class:opacity-100={showFullscreenFilmstrip}
+                        class:translate-y-28={!showFullscreenFilmstrip}
+                        class:opacity-0={!showFullscreenFilmstrip}
+                        use:horizontalWheelScroll
+                        use:emblaCarouselSvelte={{ options: fullscreenFilmstripOptions, plugins: [] }}
+                        on:emblaInit={handleFullscreenFilmstripInit}
+                    >
+                        <div class="flex gap-2">
+                            {#each fullscreenFilmstripScreenshots as item, index (item.screenshot.id)}
+                                <button
+                                    type="button"
+                                    class="h-16 w-28 shrink-0 overflow-hidden rounded border bg-bg-secondary transition-all {index === currentIndex ? 'border-white opacity-100' : 'border-white/20 opacity-60 hover:opacity-100'}"
+                                    aria-label={`${index + 1}枚目を表示`}
+                                    on:click|stopPropagation={() => selectViewerIndex(index)}
+                                >
+                                    <img
+                                        src={item.src}
+                                        alt=""
+                                        class="h-full w-full object-cover"
+                                        loading="lazy"
+                                        decoding="async"
+                                    />
+                                </button>
+                            {/each}
+                        </div>
+                    </div>
+                </div>
+            {/if}
         </div>
 
         <!-- Bottom Bar -->
-        <div
-            class="h-12 flex items-center px-4 shrink-0 bg-[#1a1a1c] border-t border-[#333] justify-between z-10"
-            class:opacity-0={isZoomed}
-            class:pointer-events-none={isZoomed}
-        >
-            <div class="text-sm text-[#8b8b8b]">
-                撮影: {currentScreenshotCreatedAtText}
-                {#if currentFileSize !== null}
-                    <span class="mx-2">•</span>
-                    {formatFileSize(currentFileSize)}
-                {/if}
-            </div>
+        {#if !isFullscreenViewer}
+            <div
+                class="h-12 flex items-center px-4 shrink-0 bg-[#1a1a1c] border-t border-[#333] justify-between z-10"
+                class:opacity-0={isZoomed}
+                class:pointer-events-none={isZoomed}
+            >
+                <div class="text-sm text-[#8b8b8b]">
+                    撮影: {currentScreenshotCreatedAtText}
+                    {#if currentFileSize !== null}
+                        <span class="mx-2">•</span>
+                        {formatFileSize(currentFileSize)}
+                    {/if}
+                </div>
 
-            <div class="flex items-center space-x-2">
-                <button
-                    class="flex items-center space-x-1 px-3 py-1.5 rounded bg-[#333] text-white hover:bg-[#444] transition-colors"
-                    on:click={confirmDelete}
-                    title="削除"
-                >
-                    <span class="i-material-symbols-delete text-lg" />
-                </button>
+                <div class="flex items-center space-x-2">
+                    <button
+                        class="flex items-center space-x-1 px-3 py-1.5 rounded bg-[#333] text-white hover:bg-[#444] transition-colors"
+                        on:click={toggleFullscreenViewer}
+                        title="全画面"
+                    >
+                        <span class="i-material-symbols-fullscreen-rounded text-lg" />
+                    </button>
+                    <button
+                        class="flex items-center space-x-1 px-3 py-1.5 rounded bg-[#333] text-white hover:bg-[#444] transition-colors"
+                        on:click={confirmDelete}
+                        title="削除"
+                    >
+                        <span class="i-material-symbols-delete text-lg" />
+                    </button>
+                </div>
             </div>
-        </div>
+        {/if}
     {:else}
         <!-- Grid Mode -->
         <TitleBar variant="screenshot" heightClass="h-14">
@@ -664,3 +891,10 @@
         </div>
     {/if}
 </div>
+
+<style>
+    .fullscreen-viewer-stage.fullscreen-cursor-hidden,
+    .fullscreen-viewer-stage.fullscreen-cursor-hidden :global(*) {
+        cursor: none !important;
+    }
+</style>
