@@ -15,7 +15,7 @@
   <a
     href={`/works/${collectionElement.id}?gamename=${collectionElement.gamename}`}
     use:link
-    class="block w-full h-full relative group overflow-hidden rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
+    class="block w-full h-full relative group overflow-hidden rounded-md shadow-lg transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
   >
     <div class="w-full h-full bg-bg-secondary">
       {#if collectionElement.thumbnail}

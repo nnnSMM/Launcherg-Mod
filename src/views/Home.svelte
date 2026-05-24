@@ -194,7 +194,7 @@
           on:keydown={(e) =>
             e.key === "Enter" &&
             push(`/works/${heroGame.id}?gamename=${heroGame.gamename}`)}
-          class="relative w-full h-[400px] rounded-2xl overflow-hidden group mb-8 block cursor-pointer"
+          class="relative w-full h-[400px] rounded-lg overflow-hidden group mb-8 block cursor-pointer"
         >
           <!-- Background Image -->
           <div class="absolute inset-0 z-0">
@@ -220,7 +220,7 @@
             <!-- Cover Art -->
 
             <div
-              class="shrink-0 rounded-lg overflow-hidden shadow-2xl transform transition-transform duration-300 group-hover:-translate-y-2"
+              class="shrink-0 rounded-md overflow-hidden shadow-2xl transform transition-transform duration-300 group-hover:-translate-y-2"
               style="width: {imageWidth}px;"
             >
               <img
