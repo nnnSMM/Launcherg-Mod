@@ -7,9 +7,8 @@ use async_trait::async_trait;
 use chrono::{DateTime, Local, NaiveDate};
 
 #[derive(Debug, Clone)]
-pub struct VndbScreenshotCache {
+pub struct GameScreenshotCache {
     pub collection_element_id: i32,
-    pub vndb_id: Option<String>,
     pub matched_title: Option<String>,
     pub screenshots_json: String,
     pub fetched_at: String,
@@ -103,11 +102,11 @@ pub trait CollectionRepository {
     async fn get_app_setting(&self, key: String) -> Result<Option<String>>;
     async fn set_app_setting(&self, key: String, value: Option<String>) -> Result<()>;
 
-    async fn get_vndb_screenshot_cache(
+    async fn get_game_screenshot_cache(
         &self,
         collection_element_id: i32,
-    ) -> Result<Option<VndbScreenshotCache>>;
-    async fn upsert_vndb_screenshot_cache(&self, cache: VndbScreenshotCache) -> Result<()>;
+    ) -> Result<Option<GameScreenshotCache>>;
+    async fn upsert_game_screenshot_cache(&self, cache: GameScreenshotCache) -> Result<()>;
 
     async fn update_collection_element_path(
         &self,

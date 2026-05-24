@@ -23,7 +23,7 @@ use crate::{
             save_thumbnail_from_candidates,
         },
         repository::collection::CollectionRepository,
-        repository::collection::VndbScreenshotCache,
+        repository::collection::GameScreenshotCache,
         repository::screenshot::{Screenshot, ScreenshotRepository},
         Id,
     },
@@ -477,23 +477,23 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
             .await
     }
 
-    pub async fn get_vndb_screenshot_cache(
+    pub async fn get_game_screenshot_cache(
         &self,
         collection_element_id: i32,
-    ) -> anyhow::Result<Option<VndbScreenshotCache>> {
+    ) -> anyhow::Result<Option<GameScreenshotCache>> {
         self.repositories
             .collection_repository()
-            .get_vndb_screenshot_cache(collection_element_id)
+            .get_game_screenshot_cache(collection_element_id)
             .await
     }
 
-    pub async fn upsert_vndb_screenshot_cache(
+    pub async fn upsert_game_screenshot_cache(
         &self,
-        cache: VndbScreenshotCache,
+        cache: GameScreenshotCache,
     ) -> anyhow::Result<()> {
         self.repositories
             .collection_repository()
-            .upsert_vndb_screenshot_cache(cache)
+            .upsert_game_screenshot_cache(cache)
             .await
     }
 

@@ -211,7 +211,7 @@ export const fetch = async (url: string, options?: FetchOptions) => {
     return textResponse(queryTable([]));
   }
 
-  if (url.includes("vndb")) {
+  if (url.includes("game")) {
     return {
       ok: true,
       json: async () => ({ results: [] }),

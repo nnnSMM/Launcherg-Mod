@@ -4,7 +4,7 @@ import type {
   CollectionElementDetail,
   PlayStatus,
   Screenshot,
-  VndbScreenshotCache,
+  GameScreenshotCache,
 } from "@/lib/types";
 import { invoke } from "@tauri-apps/api/core";
 
@@ -218,18 +218,18 @@ export const commandSetAppSetting = async (
   return await invoke<void>("set_app_setting", { key, value });
 };
 
-export const commandGetVndbScreenshotCache = async (
+export const commandGetGameScreenshotCache = async (
   collectionElementId: number
 ) => {
-  return await invoke<VndbScreenshotCache | null>("get_vndb_screenshot_cache", {
+  return await invoke<GameScreenshotCache | null>("get_game_screenshot_cache", {
     collectionElementId,
   });
 };
 
-export const commandUpsertVndbScreenshotCache = async (
-  cache: VndbScreenshotCache
+export const commandUpsertGameScreenshotCache = async (
+  cache: GameScreenshotCache
 ) => {
-  return await invoke<void>("upsert_vndb_screenshot_cache", { cache });
+  return await invoke<void>("upsert_game_screenshot_cache", { cache });
 };
 
 export const commandTogglePauseTracking = async () => {

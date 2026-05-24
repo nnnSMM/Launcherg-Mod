@@ -1,7 +1,7 @@
 <script lang="ts">
   import GameHoverPreview from "@/components/UI/GameHoverPreview.svelte";
   import { loadGamePreviewScreenshots } from "@/lib/useGameScreenshots";
-  import type { CollectionElement, VndbScreenshot } from "@/lib/types";
+  import type { CollectionElement, GameScreenshot } from "@/lib/types";
   import { convertFileSrc } from "@tauri-apps/api/core";
   import { link } from "svelte-spa-router";
 
@@ -14,7 +14,7 @@
   let hoverNode: HTMLAnchorElement;
   let hoverTimer: ReturnType<typeof setTimeout> | null = null;
   let isPreviewVisible = false;
-  let previewScreenshots: VndbScreenshot[] = [];
+  let previewScreenshots: GameScreenshot[] = [];
   let hoverToken = 0;
 
   const closePreview = () => {

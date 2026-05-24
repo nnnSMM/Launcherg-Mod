@@ -14,7 +14,7 @@ use crate::{
             get_exe_path_from_lnk, get_file_created_at_sync, get_icon_path, get_lnk_metadatas,
             get_thumbnail_candidate_urls, get_thumbnail_path, normalize,
         },
-        repository::collection::VndbScreenshotCache as DomainVndbScreenshotCache,
+        repository::collection::GameScreenshotCache as DomainGameScreenshotCache,
         Id,
     },
     usecase::error::UseCaseError,
@@ -38,20 +38,18 @@ pub struct WindowScreenshot {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct VndbScreenshotCache {
+pub struct GameScreenshotCache {
     pub collection_element_id: i32,
-    pub vndb_id: Option<String>,
     pub matched_title: Option<String>,
     pub screenshots_json: String,
     pub fetched_at: String,
     pub status: String,
 }
 
-impl From<DomainVndbScreenshotCache> for VndbScreenshotCache {
-    fn from(value: DomainVndbScreenshotCache) -> Self {
+impl From<DomainGameScreenshotCache> for GameScreenshotCache {
+    fn from(value: DomainGameScreenshotCache) -> Self {
         Self {
             collection_element_id: value.collection_element_id,
-            vndb_id: value.vndb_id,
             matched_title: value.matched_title,
             screenshots_json: value.screenshots_json,
             fetched_at: value.fetched_at,
@@ -60,11 +58,10 @@ impl From<DomainVndbScreenshotCache> for VndbScreenshotCache {
     }
 }
 
-impl From<VndbScreenshotCache> for DomainVndbScreenshotCache {
-    fn from(value: VndbScreenshotCache) -> Self {
+impl From<GameScreenshotCache> for DomainGameScreenshotCache {
+    fn from(value: GameScreenshotCache) -> Self {
         Self {
             collection_element_id: value.collection_element_id,
-            vndb_id: value.vndb_id,
             matched_title: value.matched_title,
             screenshots_json: value.screenshots_json,
             fetched_at: value.fetched_at,
@@ -527,25 +524,25 @@ pub async fn get_app_setting(
 }
 
 #[tauri::command]
-pub async fn get_vndb_screenshot_cache(
+pub async fn get_game_screenshot_cache(
     modules: State<'_, Arc<Modules>>,
     collection_element_id: i32,
-) -> Result<Option<VndbScreenshotCache>, CommandError> {
+) -> Result<Option<GameScreenshotCache>, CommandError> {
     Ok(modules
         .collection_use_case()
-        .get_vndb_screenshot_cache(collection_element_id)
+        .get_game_screenshot_cache(collection_element_id)
         .await?
         .map(Into::into))
 }
 
 #[tauri::command]
-pub async fn upsert_vndb_screenshot_cache(
+pub async fn upsert_game_screenshot_cache(
     modules: State<'_, Arc<Modules>>,
-    cache: VndbScreenshotCache,
+    cache: GameScreenshotCache,
 ) -> Result<(), CommandError> {
     Ok(modules
         .collection_use_case()
-        .upsert_vndb_screenshot_cache(cache.into())
+        .upsert_game_screenshot_cache(cache.into())
         .await?)
 }
 

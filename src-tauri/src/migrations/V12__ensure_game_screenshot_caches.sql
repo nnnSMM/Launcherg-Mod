@@ -1,6 +1,5 @@
-CREATE TABLE IF NOT EXISTS vndb_screenshot_caches (
+CREATE TABLE IF NOT EXISTS game_screenshot_caches (
     collection_element_id INTEGER PRIMARY KEY,
-    vndb_id TEXT,
     matched_title TEXT,
     screenshots_json TEXT NOT NULL DEFAULT '[]',
     fetched_at DATETIME DEFAULT CURRENT_TIMESTAMP,

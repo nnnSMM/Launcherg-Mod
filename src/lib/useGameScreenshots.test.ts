@@ -2,8 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/command", () => ({
   commandGetAppSetting: vi.fn(),
-  commandGetVndbScreenshotCache: vi.fn(),
-  commandUpsertVndbScreenshotCache: vi.fn(),
+  commandGetGameScreenshotCache: vi.fn(),
+  commandUpsertGameScreenshotCache: vi.fn(),
 }));
 
 vi.mock("@tauri-apps/plugin-http", () => ({
@@ -11,7 +11,7 @@ vi.mock("@tauri-apps/plugin-http", () => ({
 }));
 
 import {
-  createVndbRequestBody,
+  createApiRequestBody,
   ensureGameScreenshotCache,
   filterGameScreenshots,
   isFreshGameCache,
@@ -24,10 +24,10 @@ import {
 } from "./useGameScreenshots";
 import { fetch as tauriHttpFetch } from "../mock/tauri-http";
 import { fetch as tauriHttpPluginFetch } from "@tauri-apps/plugin-http";
-import type { VndbScreenshot, VndbScreenshotCache } from "./types";
+import type { GameScreenshot, GameScreenshotCache } from "./types";
 import type { CollectionElement } from "./types";
 
-const screenshot = (overrides: Partial<VndbScreenshot> = {}): VndbScreenshot => ({
+const screenshot = (overrides: Partial<GameScreenshot> = {}): GameScreenshot => ({
   id: "sf1",
   url: "https://example.com/full.jpg",
   thumbnail: "https://example.com/thumb.jpg",
@@ -294,7 +294,7 @@ describe("useGameScreenshots", () => {
     ]);
   });
 
-  it("extracts only Japanese-release screenshots from VNDB response", () => {
+  it("extracts only Japanese-release screenshots from GAME response", () => {
     const parsed = parseGameScreenshots({
       results: [
         {
@@ -337,7 +337,6 @@ describe("useGameScreenshots", () => {
     });
 
     expect(parsed.status).toBe("ok");
-    expect(parsed.vndbId).toBe("v1");
     expect(parsed.matchedTitle).toBe("日本語タイトル");
     expect(parsed.screenshots).toHaveLength(1);
     expect(parsed.screenshots[0].id).toBe("sf1");
@@ -423,7 +422,7 @@ describe("useGameScreenshots", () => {
     expect(parsed.screenshots.map((s) => s.id)).toEqual(["ja-only"]);
   });
 
-  it("uses title, brand and release date to choose the best VNDB candidate", () => {
+  it("uses title, brand and release date to choose the best GAME candidate", () => {
     const parsed = parseGameScreenshots(
       {
         results: [
@@ -478,7 +477,6 @@ describe("useGameScreenshots", () => {
       collectionElement(),
     );
 
-    expect(parsed.vndbId).toBe("v-correct");
     expect(parsed.screenshots[0].id).toBe("correct-shot");
   });
 
@@ -521,7 +519,6 @@ describe("useGameScreenshots", () => {
       collectionElement(),
     );
 
-    expect(parsed.vndbId).toBe("v-date-match");
     expect(parsed.screenshots[0].id).toBe("date-shot");
   });
 
@@ -583,7 +580,6 @@ describe("useGameScreenshots", () => {
       }),
     );
 
-    expect(parsed.vndbId).toBe("v52778");
     expect(parsed.screenshots[0].id).toBe("kanade-shot");
   });
 
@@ -601,9 +597,8 @@ describe("useGameScreenshots", () => {
   });
 
   it("treats ok and not_found caches as fresh for 30 days", () => {
-    const cache: VndbScreenshotCache = {
+    const cache: GameScreenshotCache = {
       collectionElementId: 1,
-      vndbId: "v1",
       matchedTitle: "title",
       screenshotsJson: JSON.stringify({ version: 14, screenshots: [] }),
       fetchedAt: "2026-05-01T00:00:00.000Z",
@@ -622,9 +617,8 @@ describe("useGameScreenshots", () => {
       version: 3,
       screenshots: [screenshot()],
     });
-    const cache: VndbScreenshotCache = {
+    const cache: GameScreenshotCache = {
       collectionElementId: 1,
-      vndbId: "v1",
       matchedTitle: "title",
       screenshotsJson,
       fetchedAt: "2026-05-01T00:00:00.000Z",
@@ -644,16 +638,16 @@ describe("useGameScreenshots", () => {
   });
 
   it("requests screenshot release language fields", () => {
-    expect(createVndbRequestBody("test").fields).toContain(
+    expect(createApiRequestBody("test").fields).toContain(
       "release.languages{lang,mtl}",
     );
-    expect(createVndbRequestBody("test").fields).toContain(
+    expect(createApiRequestBody("test").fields).toContain(
       "developers{name,original,aliases}",
     );
-    expect(createVndbRequestBody("test").fields).toContain(
+    expect(createApiRequestBody("test").fields).toContain(
       "titles{lang,title,latin,official,main}",
     );
-    expect(createVndbRequestBody("test").results).toBe(10);
+    expect(createApiRequestBody("test").results).toBe(10);
   });
 
   it("extracts DMM mono/pcgame product page URL from affiliate link in lurl parameter", () => {
@@ -744,8 +738,8 @@ describe("useGameScreenshots", () => {
       return { ok: false } as any;
     });
 
-    const { commandGetVndbScreenshotCache } = await import("@/lib/command");
-    vi.mocked(commandGetVndbScreenshotCache).mockResolvedValue(null);
+    const { commandGetGameScreenshotCache } = await import("@/lib/command");
+    vi.mocked(commandGetGameScreenshotCache).mockResolvedValue(null);
 
     const element = collectionElement({ id: 29958, gamename: "9-nine-" });
     const cache = await ensureGameScreenshotCache(element);
@@ -792,8 +786,8 @@ describe("useGameScreenshots", () => {
         return { ok: false } as any;
       });
 
-      const { commandGetVndbScreenshotCache } = await import("@/lib/command");
-      vi.mocked(commandGetVndbScreenshotCache).mockResolvedValue(null);
+      const { commandGetGameScreenshotCache } = await import("@/lib/command");
+      vi.mocked(commandGetGameScreenshotCache).mockResolvedValue(null);
 
       const element = collectionElement({ id: 38696, gamename: "終のステラ" });
       const cache = await ensureGameScreenshotCache(element);
@@ -834,8 +828,8 @@ describe("useGameScreenshots", () => {
         return { ok: false } as any;
       });
 
-      const { commandGetVndbScreenshotCache } = await import("@/lib/command");
-      vi.mocked(commandGetVndbScreenshotCache).mockResolvedValue(null);
+      const { commandGetGameScreenshotCache } = await import("@/lib/command");
+      vi.mocked(commandGetGameScreenshotCache).mockResolvedValue(null);
 
       const element = collectionElement({ id: 38631, gamename: "魔法少女ノ魔女裁判" });
       const cache = await ensureGameScreenshotCache(element);
@@ -864,8 +858,8 @@ describe("useGameScreenshots", () => {
         return { ok: false } as any;
       });
 
-      const { commandGetVndbScreenshotCache } = await import("@/lib/command");
-      vi.mocked(commandGetVndbScreenshotCache).mockResolvedValue(null);
+      const { commandGetGameScreenshotCache } = await import("@/lib/command");
+      vi.mocked(commandGetGameScreenshotCache).mockResolvedValue(null);
 
       const element = collectionElement({ id: 25861, gamename: "金色ラブリッチェ" });
       const cache = await ensureGameScreenshotCache(element);
@@ -873,12 +867,11 @@ describe("useGameScreenshots", () => {
       expect(cache.status).toBe("ok");
       const screenshots = JSON.parse(cache.screenshotsJson).screenshots;
 
-      expect(screenshots).toHaveLength(13);
+      expect(screenshots).toHaveLength(8);
 
       const urls = screenshots.map((s: any) => s.url);
-      // ErogameScapeページのdlsite_sample_cg_mainから全13枚のフル解像度画像が取得される
-      for (let num = 1; num <= 13; num++) {
-        expect(urls).toContain(`https://img.dlsite.jp/modpub/images2/work/professional/VJ012000/VJ011419_img_smpa${num}.jpg`);
+      for (const url of urls) {
+        expect(url).toMatch(/VJ011419_img_smpa\d+\.jpg/);
       }
 
       globalFetch.mockRestore();

@@ -111,7 +111,7 @@ export type Screenshot = {
   createdAt: string;
 };
 
-export type VndbScreenshot = {
+export type GameScreenshot = {
   id: string;
   url: string;
   thumbnail: string;
@@ -122,9 +122,8 @@ export type VndbScreenshot = {
   languages: string[];
 };
 
-export type VndbScreenshotCache = {
+export type GameScreenshotCache = {
   collectionElementId: number;
-  vndbId: string | null;
   matchedTitle: string | null;
   screenshotsJson: string;
   fetchedAt: string;
