@@ -1,7 +1,7 @@
 import type { CollectionElement } from "@/lib/types";
 import { type Readable, derived } from "svelte/store";
 
-const minItemWidth = 16 * 16;
+const minItemWidth = 16 * 13;
 const itemGap = 16;
 const placeholderHeight = 16 * 8;
 const buffer = 5;
