@@ -1,7 +1,6 @@
 <script lang="ts">
-  import GameHoverPreview from "@/components/UI/GameHoverPreview.svelte";
-  import { loadGamePreviewScreenshots } from "@/lib/useGameScreenshots";
-  import type { CollectionElement, GameScreenshot } from "@/lib/types";
+  import type { CollectionElement } from "@/lib/types";
+  import { formatLastPlayed, formatPlayTime } from "@/lib/utils";
   import { convertFileSrc } from "@tauri-apps/api/core";
   import { link } from "svelte-spa-router";
 
@@ -10,45 +9,12 @@
   $: src = `${convertFileSrc(collectionElement.thumbnail)}?v=${
     collectionElement.updatedAt
   }`;
-
-  let hoverNode: HTMLAnchorElement;
-  let hoverTimer: ReturnType<typeof setTimeout> | null = null;
-  let isPreviewVisible = false;
-  let previewScreenshots: GameScreenshot[] = [];
-  let hoverToken = 0;
-
-  const closePreview = () => {
-    hoverToken += 1;
-    isPreviewVisible = false;
-    if (hoverTimer) {
-      clearTimeout(hoverTimer);
-      hoverTimer = null;
-    }
-  };
-
-  const openPreview = () => {
-    closePreview();
-    const token = hoverToken;
-    hoverTimer = setTimeout(async () => {
-      isPreviewVisible = true;
-      previewScreenshots = [];
-      const screenshots = await loadGamePreviewScreenshots(collectionElement);
-      if (token === hoverToken) {
-        previewScreenshots = screenshots;
-      }
-    }, 500);
-  };
 </script>
 
 <div class="w-full h-full relative">
   <a
-    bind:this={hoverNode}
     href={`/works/${collectionElement.id}?gamename=${collectionElement.gamename}`}
     use:link
-    on:mouseenter={openPreview}
-    on:mouseleave={closePreview}
-    on:focus={openPreview}
-    on:blur={closePreview}
     class="block w-full h-full relative group overflow-hidden rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
   >
     <div class="w-full h-full bg-bg-secondary">
@@ -81,10 +47,23 @@
     />
 
     <div
-      class="absolute bottom-0 left-0 right-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300"
+      class="absolute bottom-0 left-0 right-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300 flex flex-col gap-1"
     >
       <div class="text-white font-bold text-sm line-clamp-2 drop-shadow-md">
         {collectionElement.gamename}
+      </div>
+
+      <div
+        class="flex flex-col gap-0.5 text-xs text-gray-300 font-medium drop-shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-100"
+      >
+        {#if collectionElement.lastPlayAt}
+          <div>最終プレイ: {formatLastPlayed(collectionElement.lastPlayAt)}</div>
+        {/if}
+        {#if collectionElement.totalPlayTimeSeconds > 0}
+          <div>
+            プレイ時間: {formatPlayTime(collectionElement.totalPlayTimeSeconds)}
+          </div>
+        {/if}
       </div>
     </div>
 
@@ -96,12 +75,4 @@
       </div>
     {/if}
   </a>
-
-  {#if isPreviewVisible}
-    <GameHoverPreview
-      {collectionElement}
-      screenshots={previewScreenshots}
-      anchorElement={hoverNode}
-    />
-  {/if}
 </div>
