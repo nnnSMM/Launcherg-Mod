@@ -13,7 +13,7 @@ import Encoding from "encoding-japanese";
 
 
 const CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
-const CACHE_SCHEMA_VERSION = 15;
+const CACHE_SCHEMA_VERSION = 14;
 const EROGAMESCAPE_REQUEST_PATH =
   "https://erogamescape.dyndns.org/~ap2/ero/toukei_kaiseki";
 const SENSITIVE_THRESHOLD = 1.5;
@@ -773,7 +773,7 @@ const requestFanzaScreenshots = async (
         const productScreenshots = parseFanzaScreenshotsFromProductHtml(
           await productResponse.text(),
         );
-        if (productScreenshots.length > 0) {
+        if (productScreenshots.length > screenshots.length) {
           screenshots = productScreenshots;
         }
       }
@@ -790,7 +790,7 @@ const requestFanzaScreenshots = async (
         const productScreenshots = parseDlsiteScreenshotsFromProductHtml(
           await productResponse.text(),
         );
-        if (productScreenshots.length > 0) {
+        if (productScreenshots.length > screenshots.length) {
           screenshots = productScreenshots;
         }
       }
