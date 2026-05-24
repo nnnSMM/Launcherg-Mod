@@ -291,7 +291,7 @@
                                             bind:value={playTimeAdjustmentInput}
                                             type="text"
                                             inputmode="numeric"
-                                            placeholder="2:00"
+                                            placeholder="例: 2:00"
                                             disabled={isAddingUntrackedPlayTime}
                                             class="h-8 min-w-0 flex-1 rounded border border-border-primary bg-bg-primary px-2 text-body3 font-semibold text-text-primary outline-none transition-colors focus:border-accent-accent disabled:cursor-not-allowed disabled:opacity-60"
                                             on:blur={normalizePlayTimeAdjustmentInput}
