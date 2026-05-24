@@ -12,6 +12,8 @@
 
     export let gameId: number;
 
+    const isDemoBuild = import.meta.env.BASE_URL === "./";
+
     let screenshots: Screenshot[] = [];
     let gridWidth = 0;
     let viewportHeight = 0;
@@ -85,6 +87,7 @@
     };
 
     const handleImport = async () => {
+        if (isDemoBuild) return;
         try {
             const selected = await open({
                 multiple: true,
