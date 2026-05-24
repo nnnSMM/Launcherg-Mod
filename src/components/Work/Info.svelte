@@ -29,7 +29,7 @@
             spellChecker: false,
             sideBySideFullscreen: false,
             previewImagesInEditor: true,
-            autofocus: true,
+            autofocus: false,
             autosave: {
                 enabled: true,
                 delay: 1000,
@@ -446,9 +446,6 @@
                     <h2 id="work-memo-title" class="text-h3 text-text-primary font-bold">
                         Memo
                     </h2>
-                    <p class="text-body3 text-text-tertiary mt-1">
-                        既存のメモ画面を開きます。保存方式とスクリーンショット貼り付けは従来どおりです。
-                    </p>
                     <a
                         href={`/memos/${work.id}?gamename=${encodeURIComponent(element.gamename)}`}
                         use:link
