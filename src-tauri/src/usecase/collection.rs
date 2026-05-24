@@ -3,12 +3,14 @@ use std::{fs, sync::Arc};
 use chrono::Local;
 use derive_new::new;
 use tauri::{AppHandle, Emitter};
+use tauri_plugin_global_shortcut::GlobalShortcutExt;
 
-use tokio::time::Duration;
+use tokio::time::{Duration, Instant};
 
 use super::error::UseCaseError;
 use super::game_tracker::{
-    is_path_related_error, launch_game, GameProcessMonitor, ProcessSearchConfig,
+    is_path_related_error, launch_game, split_play_time_by_local_date, GameProcessMonitor,
+    ProcessSearchConfig,
 };
 use super::pause_manager::PauseManager;
 use crate::{
@@ -53,6 +55,8 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
         self.update_element_last_play_at(&Id::new(element_id))
             .await?;
 
+        let tracking_started_at = Instant::now();
+
         // ゲームを起動
         let launch_result = match launch_game(&element) {
             Ok(result) => result,
@@ -82,7 +86,7 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
             let monitor = GameProcessMonitor::new(
                 handle.clone(),
                 repositories,
-                pause_manager,
+                pause_manager.clone(),
                 screenshot_watcher,
                 element_id,
             );
@@ -100,7 +104,14 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
                 .await
             {
                 // プロセスを監視
-                monitor.monitor_process(pid, registered_shortcut).await;
+                monitor
+                    .monitor_process(pid, registered_shortcut, tracking_started_at)
+                    .await;
+            } else {
+                pause_manager.set_tracking(false);
+                if let Some(shortcut) = registered_shortcut {
+                    let _ = handle.global_shortcut().unregister(shortcut);
+                }
             }
         });
 
@@ -366,6 +377,67 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
             .collection_repository()
             .update_element_play_status_by_id(id, play_status)
             .await?;
+        Ok(())
+    }
+
+    pub async fn adjust_untracked_play_time_seconds(
+        &self,
+        handle: &Arc<AppHandle>,
+        id: &Id<CollectionElement>,
+        seconds: i32,
+    ) -> anyhow::Result<()> {
+        if seconds == 0 {
+            return Ok(());
+        }
+
+        let element = self
+            .repositories
+            .collection_repository()
+            .get_element_by_element_id(id)
+            .await?
+            .ok_or(UseCaseError::CollectionElementIsNotFound)?;
+        let bounded_seconds = if seconds < 0 {
+            seconds.max(-element.total_play_time_seconds)
+        } else {
+            seconds
+        };
+
+        if bounded_seconds == 0 {
+            return Ok(());
+        }
+
+        let now = Local::now();
+        self.repositories
+            .collection_repository()
+            .add_play_time_seconds(id, bounded_seconds)
+            .await?;
+
+        if bounded_seconds > 0 {
+            self.repositories
+                .collection_repository()
+                .update_element_first_play_at_if_null_by_id(id, now)
+                .await?;
+            self.repositories
+                .collection_repository()
+                .update_element_last_play_at_by_id(id, now)
+                .await?;
+
+            for (play_date, daily_seconds) in split_play_time_by_local_date(now, bounded_seconds) {
+                self.repositories
+                    .collection_repository()
+                    .add_daily_play_time_seconds(id, play_date, daily_seconds)
+                    .await?;
+            }
+        } else {
+            self.repositories
+                .collection_repository()
+                .subtract_daily_play_time_seconds_from_latest(id, -bounded_seconds)
+                .await?;
+        }
+
+        let _ = handle.emit("collection-element-updated", id.value);
+        let _ = handle.emit("recent-games-changed", ());
+
         Ok(())
     }
 

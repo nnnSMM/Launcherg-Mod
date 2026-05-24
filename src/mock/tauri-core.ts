@@ -365,6 +365,25 @@ export const invoke = async <T = unknown>(
     return undefined as T;
   }
 
+  if (cmd === "adjust_untracked_play_time_seconds") {
+    const id = Number(args?.id);
+    const seconds = Number(args?.seconds ?? 0);
+    const playedAt = nowString();
+    collectionElements = collectionElements.map((element) =>
+      element.id === id
+        ? {
+            ...element,
+            firstPlayAt: seconds > 0 ? element.firstPlayAt ?? playedAt : element.firstPlayAt,
+            lastPlayAt: seconds > 0 ? playedAt : element.lastPlayAt,
+            totalPlayTimeSeconds: Math.max(0, element.totalPlayTimeSeconds + seconds),
+            updatedAt: playedAt,
+          }
+        : element,
+    );
+    saveCollectionElements();
+    return undefined as T;
+  }
+
   if (cmd === "update_collection_element_path") {
     const id = Number(args?.id);
     const path = String(args?.path ?? "");

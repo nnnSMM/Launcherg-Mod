@@ -344,6 +344,51 @@ impl CollectionRepository for RepositoryImpl<CollectionElement> {
         .await?;
         Ok(())
     }
+
+    async fn subtract_daily_play_time_seconds_from_latest(
+        &self,
+        id: &Id<CollectionElement>,
+        seconds: i32,
+    ) -> anyhow::Result<()> {
+        if seconds <= 0 {
+            return Ok(());
+        }
+
+        let pool = self.pool.0.clone();
+        let mut remaining_seconds = seconds;
+        let rows: Vec<(String, i32)> = sqlx::query_as(
+            "SELECT play_date, play_time_seconds
+             FROM collection_element_daily_play_times
+             WHERE collection_element_id = ? AND play_time_seconds > 0
+             ORDER BY play_date DESC",
+        )
+        .bind(id.value)
+        .fetch_all(&*pool)
+        .await?;
+
+        for (play_date, play_time_seconds) in rows {
+            if remaining_seconds <= 0 {
+                break;
+            }
+
+            let subtract_seconds = remaining_seconds.min(play_time_seconds);
+            query(
+                "UPDATE collection_element_daily_play_times
+                 SET play_time_seconds = play_time_seconds - ?,
+                     updated_at = CURRENT_TIMESTAMP
+                 WHERE collection_element_id = ? AND play_date = ?",
+            )
+            .bind(subtract_seconds)
+            .bind(id.value)
+            .bind(play_date)
+            .execute(&*pool)
+            .await?;
+
+            remaining_seconds -= subtract_seconds;
+        }
+
+        Ok(())
+    }
     async fn delete_element_by_id(&self, id: &Id<CollectionElement>) -> anyhow::Result<()> {
         let pool = self.pool.0.clone();
         query("delete from collection_elements where id = ?") // collection_elements から削除

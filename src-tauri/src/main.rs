@@ -308,6 +308,7 @@ fn main() {
             command::get_all_elements,
             command::update_element_like,
             command::update_element_play_status, // 追加
+            command::adjust_untracked_play_time_seconds,
             command::open_folder,
             command::get_all_game_cache_last_updated,
             command::update_all_game_cache,

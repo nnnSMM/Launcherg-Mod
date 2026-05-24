@@ -4,12 +4,14 @@
 
   export let isRelativeRoot = true;
   export let panelClass = "";
+  export let placement: "auto" | "top" | "bottom" = "auto";
 
   let open = false;
   let root: HTMLDivElement | null = null;
   let buttonAnchor: HTMLDivElement | null = null;
   let panelElement: HTMLDivElement | null = null;
   let panelStyle = "";
+  let pointerDownStartedInside = false;
 
   const portal = (node: HTMLElement) => {
     document.body.appendChild(node);
@@ -42,7 +44,13 @@
     const panelHeight = panelElement?.offsetHeight ?? 0;
     const panelWidth = panelElement?.offsetWidth ?? 0;
 
-    if (panelHeight > 0 && top + panelHeight > window.innerHeight - margin) {
+    if (placement === "top" && panelHeight > 0) {
+      top = Math.max(margin, rect.top - panelHeight - gap);
+    } else if (
+      placement === "auto" &&
+      panelHeight > 0 &&
+      top + panelHeight > window.innerHeight - margin
+    ) {
       top = Math.max(margin, rect.top - panelHeight - gap);
     }
 
@@ -61,9 +69,22 @@
     }
   };
 
+  const handleWindowPointerDown = (event: PointerEvent) => {
+    const target = event.target as Node;
+    pointerDownStartedInside =
+      root?.contains(target) === true || panelElement?.contains(target) === true;
+  };
+
   const handleWindowClick = (event: MouseEvent) => {
     const target = event.target as Node;
-    if (root?.contains(target) || panelElement?.contains(target)) return;
+    if (root?.contains(target) || panelElement?.contains(target)) {
+      pointerDownStartedInside = false;
+      return;
+    }
+    if (pointerDownStartedInside) {
+      pointerDownStartedInside = false;
+      return;
+    }
     close();
   };
 
@@ -74,6 +95,7 @@
   };
 
   onMount(() => {
+    window.addEventListener("pointerdown", handleWindowPointerDown, { capture: true });
     window.addEventListener("click", handleWindowClick, { capture: true });
     window.addEventListener("resize", updatePanelPosition);
     window.addEventListener("scroll", updatePanelPosition, true);
@@ -81,6 +103,7 @@
   });
 
   onDestroy(() => {
+    window.removeEventListener("pointerdown", handleWindowPointerDown, { capture: true });
     window.removeEventListener("click", handleWindowClick, { capture: true });
     window.removeEventListener("resize", updatePanelPosition);
     window.removeEventListener("scroll", updatePanelPosition, true);

@@ -684,6 +684,19 @@ pub async fn update_element_play_status(
 }
 
 #[tauri::command]
+pub async fn adjust_untracked_play_time_seconds(
+    handle: AppHandle,
+    modules: State<'_, Arc<Modules>>,
+    id: i32,
+    seconds: i32,
+) -> Result<(), CommandError> {
+    Ok(modules
+        .collection_use_case()
+        .adjust_untracked_play_time_seconds(&Arc::new(handle), &Id::new(id), seconds)
+        .await?)
+}
+
+#[tauri::command]
 pub fn open_folder(path: String) -> Result<(), CommandError> {
     let p = std::path::Path::new(&path);
     let path = match p.is_file() {

@@ -10,6 +10,7 @@
   export let title: string | undefined = undefined;
   export let enableFilter: boolean = false;
   export let showSelectedCheck = true;
+  export let showSelectedBackground = true;
   export let filterPlaceholder = "";
   export let bottomCreateButtonText = "";
   export let value: string | number;
@@ -52,7 +53,7 @@
   <div class="flex flex-col overflow-y-auto min-h-full">
     {#each $filtered as option, i (option)}
       <button
-        class={`${value === option.value ? "bg-bg-tertiary/40" : "bg-transparent"}
+        class={`${showSelectedBackground && value === option.value ? "bg-bg-tertiary/40" : "bg-transparent"}
                 p-x-4 p-y-1 ${
                   options.length - 1 !== i
                     ? "border-b-1px border-solid border-border-primary"

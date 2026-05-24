@@ -89,6 +89,11 @@ pub trait CollectionRepository {
         play_date: NaiveDate,
         seconds: i32,
     ) -> Result<()>;
+    async fn subtract_daily_play_time_seconds_from_latest(
+        &self,
+        id: &Id<CollectionElement>,
+        seconds: i32,
+    ) -> Result<()>;
 
     #[allow(dead_code)]
     async fn delete_element_by_id(&self, id: &Id<CollectionElement>) -> Result<()>;

@@ -113,6 +113,13 @@ export const commandUpdateElementPlayStatus = async (id: number, playStatus: Pla
   return await invoke<void>("update_element_play_status", { id, playStatus });
 };
 
+export const commandAdjustUntrackedPlayTimeSeconds = async (
+  id: number,
+  seconds: number
+) => {
+  return await invoke<void>("adjust_untracked_play_time_seconds", { id, seconds });
+};
+
 export const commandOpenFolder = async (path: string) => {
   return await invoke<void>("open_folder", { path });
 };

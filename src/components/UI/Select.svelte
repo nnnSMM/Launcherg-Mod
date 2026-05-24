@@ -12,7 +12,9 @@
   export let filterPlaceholder = "";
   export let bottomCreateButtonText = "";
   export let showSelectedCheck = false;
+  export let showSelectedBackground = true;
   export let buttonBorderless = false;
+  export let popoverPlacement: "auto" | "top" | "bottom" = "auto";
 
   $: selectedLabel = options.find((v) => v.value === value)?.label ?? "";
   $: buttonBorderlessClass = buttonBorderless
@@ -22,7 +24,7 @@
   const dispather = createEventDispatcher<{ create: {} }>();
 </script>
 
-<APopover let:open let:close>
+<APopover let:open let:close placement={popoverPlacement}>
   <div slot="button">
     <slot>
       <button
@@ -48,6 +50,7 @@
     {options}
     {bottomCreateButtonText}
     {showSelectedCheck}
+    {showSelectedBackground}
     bind:value
     on:select
     on:create={() => {
