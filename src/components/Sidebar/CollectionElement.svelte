@@ -88,7 +88,7 @@
     <img
       alt="{collectionElement.gamename}_icon"
       src={iconSrc}
-      class="h-5 w-5 rounded object-cover shadow-sm transition-transform group-hover:scale-105"
+      class="h-5 w-5 rounded-sm object-cover shadow-sm transition-transform group-hover:scale-105"
       loading="lazy"
       on:error={(e) => {
         const img = e.currentTarget;
