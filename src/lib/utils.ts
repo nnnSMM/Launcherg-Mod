@@ -27,27 +27,70 @@ export const createLocalStorageWritable = <T>(key: string, initialValue: T) => {
 
 export type Cache<S extends string | number, U> = Record<
   S,
-  { createdAt: number; value: U }
+  { createdAt: number; value: U; version?: number }
 >;
+
+type LocalStorageCacheOptions = {
+  invalidateMilliseconds?: number;
+  version?: number;
+};
+
+const DAY_MILLISECONDS = 1000 * 60 * 60 * 24;
 
 export const createLocalStorageCache = <K extends string | number, T>(
   key: string,
   fetcher: (key: K) => Promise<T>,
-  invalidateMilliseconds = 1000 * 60 * 60 * 24
+  options: number | LocalStorageCacheOptions = DAY_MILLISECONDS
 ) => {
+  const invalidateMilliseconds =
+    typeof options === "number"
+      ? options
+      : options.invalidateMilliseconds ?? DAY_MILLISECONDS;
+  const version = typeof options === "number" ? undefined : options.version;
   const initialValue = {} as Cache<K, T>;
   const [cache, getCache] = createLocalStorageWritable(key, initialValue);
 
+  const isFresh = (
+    cached: Cache<K, T>[K] | undefined,
+    now: number
+  ): cached is Cache<K, T>[K] =>
+    !!cached &&
+    typeof cached.createdAt === "number" &&
+    now < cached.createdAt + invalidateMilliseconds &&
+    (version === undefined || cached.version === version);
+
+  const prune = (now: number) => {
+    cache.update((currentCache) => {
+      let changed = false;
+      const nextCache = {} as Cache<K, T>;
+      for (const [cacheKey, cached] of Object.entries(currentCache) as [
+        string,
+        Cache<K, T>[K],
+      ][]) {
+        if (isFresh(cached, now)) {
+          nextCache[cacheKey as K] = cached;
+        } else {
+          changed = true;
+        }
+      }
+      return changed ? nextCache : currentCache;
+    });
+  };
+
   const getter = async (key: K): Promise<T> => {
     const now = new Date().getTime();
+    prune(now);
     const cached = getCache()[key];
-    if (cached && now < cached.createdAt + invalidateMilliseconds) {
+    if (isFresh(cached, now)) {
       return cached.value;
     }
     const value = await fetcher(key);
+    const createdAt = new Date().getTime();
     cache.update((v) => {
-      v[key] = { value: value, createdAt: now };
-      return v;
+      return {
+        ...v,
+        [key]: { value: value, createdAt, version },
+      };
     });
     return value;
   };

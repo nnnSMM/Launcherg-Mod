@@ -3,7 +3,7 @@ id: decision-log
 title: Decision Log
 type: log
 status: active
-updated: 2026-05-24
+updated: 2026-05-26
 links:
   - launcherg-improvement-moc
   - template-decision-record
@@ -11,6 +11,14 @@ links:
 ---
 
 # Decision Log
+
+## 2026-05-26: 日本語説明文は販売ID直行に限定し公式サイトfallbackを廃止する
+
+- Context: `gamelist` の `dmm` / `dlsite_id` / `dlsite_domain` / `steam` で販売ページを確定できる一方、`shoukai` 公式サイトfallbackはページ構造差が大きく、ストーリー以外を拾う精度問題があった。FANZA本文は複数の `.text-overflow` や装飾区切りを含む場合があり、先頭要素だけの抽出では欠落リスクがあった。また Tauri の `plugin-http` は標準設定だと `Cookie` / `Referer` を送らず、FANZAの年齢確認を突破できない。
+- Decision: 日本語説明文取得は FANZA -> DLsite -> Steam の販売ID直行のみとし、公式サイトfallbackを取得経路から外す。FANZAは該当する `.text-overflow` を全て結合し、本文中の装飾区切りだけで収集を終了しない。FANZA取得のため `tauri-plugin-http` の `unsafe-headers` feature を有効化し、年齢確認Cookieを明示送信する。`steam` がDB未登録の作品だけ、`shoukai` 公式サイト本文は保存せずSteamストアリンク抽出のみに使う。DLsiteは確定済み `dlsite_id` の通常 `work` ページが消えている場合だけ、同じIDの `announce` ページを試す。作品情報キャッシュは抽出仕様バージョン付きで7日保持し、バージョン不一致または期限切れなら再取得する。
+- Rationale: 対象確定はDB由来IDの方が再現性が高く、公式サイト探索は誤取得の影響が大きい。販売ページ内のストーリー抽出は、複数段落と区切り線を許容する方が「取得済みなのに途中で欠ける」リスクを下げられる。FANZAはCookieが落ちると年齢確認HTMLになり、説明文抽出が全滅する。
+- Consequence: 公式サイトしか情報がない作品では説明文は空になる。今後の追加取得先も、名前検索や公式探索ではなく、DBで確定できるID/URLがある場合に限定する。
+- Links: [[architecture-map]], [[quality-gates]], [[known-risks]]
 
 ## 2026-05-25: 全画面スクリーンショット時の操作インタラクション改善（上下端ホバー検知の厳格化）
 

@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
 import {
+    createLocalStorageCache,
     formatPlayTime,
     formatLastPlayed,
     isNotNullOrUndefined,
@@ -83,6 +84,73 @@ describe('rand', () => {
         const value = rand();
         expect(value).toBeGreaterThanOrEqual(0);
         expect(value).toBeLessThan(100000);
+    });
+});
+
+describe('createLocalStorageCache', () => {
+    beforeEach(() => {
+        localStorage.clear();
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2026-05-26T00:00:00Z'));
+    });
+
+    afterEach(() => {
+        vi.useRealTimers();
+        localStorage.clear();
+    });
+
+    it('同じバージョンの有効期限内キャッシュを使う', async () => {
+        const fetcher = vi.fn(async () => 'fresh');
+        const getter = createLocalStorageCache<'master', string>(
+            'versioned-cache',
+            fetcher,
+            { version: 3, invalidateMilliseconds: 1000 * 60 * 60 * 24 * 7 }
+        );
+
+        await expect(getter('master')).resolves.toBe('fresh');
+        await expect(getter('master')).resolves.toBe('fresh');
+
+        expect(fetcher).toHaveBeenCalledTimes(1);
+        expect(JSON.parse(localStorage.getItem('versioned-cache') ?? '{}')).toMatchObject({
+            master: { value: 'fresh', version: 3 },
+        });
+    });
+
+    it('バージョンが違うキャッシュは破棄する', async () => {
+        localStorage.setItem(
+            'versioned-cache',
+            JSON.stringify({
+                master: { value: 'old', createdAt: Date.now(), version: 2 },
+            })
+        );
+        const fetcher = vi.fn(async () => 'new');
+        const getter = createLocalStorageCache<'master', string>(
+            'versioned-cache',
+            fetcher,
+            { version: 3, invalidateMilliseconds: 1000 * 60 * 60 * 24 * 7 }
+        );
+
+        await expect(getter('master')).resolves.toBe('new');
+
+        expect(fetcher).toHaveBeenCalledTimes(1);
+    });
+
+    it('期限切れキャッシュは破棄する', async () => {
+        const fetcher = vi
+            .fn<[], Promise<string>>()
+            .mockResolvedValueOnce('old')
+            .mockResolvedValueOnce('new');
+        const getter = createLocalStorageCache<'master', string>(
+            'expiring-cache',
+            fetcher,
+            { version: 1, invalidateMilliseconds: 1000 * 60 * 60 * 24 * 7 }
+        );
+
+        await expect(getter('master')).resolves.toBe('old');
+        vi.setSystemTime(new Date('2026-06-03T00:00:00Z'));
+        await expect(getter('master')).resolves.toBe('new');
+
+        expect(fetcher).toHaveBeenCalledTimes(2);
     });
 });
 
