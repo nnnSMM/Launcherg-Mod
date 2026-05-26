@@ -28,9 +28,11 @@
   }>();
 
   let candidates: [number, string][] = [];
+  let candidateRequestId = 0;
   $: {
     (async () => {
-      if (isDemoBuild) {
+      const requestId = ++candidateRequestId;
+      if (isDemoBuild || !isOpen) {
         candidates = [];
         return;
       }
@@ -38,7 +40,10 @@
         candidates = [];
         return;
       }
-      candidates = await commandGetGameCandidates(path);
+      const nextCandidates = await commandGetGameCandidates(path);
+      if (requestId === candidateRequestId) {
+        candidates = nextCandidates;
+      }
     })();
   }
   const clickCandidate = (id: number) => {

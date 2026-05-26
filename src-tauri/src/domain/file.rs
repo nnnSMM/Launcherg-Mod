@@ -477,16 +477,16 @@ pub fn get_game_candidates_by_exe_path(
     let mut distance_pairs = vec![];
 
     if let Some(id) = get_path_specific_game_id(grandparent.as_deref(), &parent) {
-        id_name_pairs.iter().find(|v| v.id == id).map(|v| {
-            distance_pairs.push((v.clone(), 1000.0));
-        });
+        if let Some(candidate) = id_name_pairs.iter().find(|v| v.id == id) {
+            return Ok(vec![candidate.clone()]);
+        }
     }
 
     for (equally_filename, id) in EQUALLY_FILENAME_GAME_ID_PAIR {
         if filename == *equally_filename {
-            id_name_pairs.iter().find(|v| v.id == id).map(|v| {
-                distance_pairs.push((v.clone(), 100.0));
-            });
+            if let Some(candidate) = id_name_pairs.iter().find(|v| v.id == id) {
+                return Ok(vec![candidate.clone()]);
+            }
         }
     }
 
@@ -815,6 +815,28 @@ mod tests {
             !res.is_empty(),
             "BGI.exeの親フォルダからサクラノ詩が推定できるべき"
         );
+        assert_eq!(res.first().unwrap().id, 4529);
+    }
+
+    #[test]
+    fn test_get_game_candidates_path_specific_rule_returns_only_exact_candidate() {
+        let cache = vec![
+            AllGameCacheOne::new(4529, "サクラノ詩 -櫻の森の上を舞う-".to_string()),
+            AllGameCacheOne::new(11396, "サクラノ詩 春ノ雪".to_string()),
+            AllGameCacheOne::new(
+                39075,
+                "サクラノ詩 -櫻の森の上を舞う- 10th Anniversary Edition".to_string(),
+            ),
+        ];
+        let res = get_game_candidates_by_exe_path(
+            &cache,
+            "E:\\VisualNovel\\枕\\サクラノ詩\\BGI.exe",
+            0.2,
+            5,
+        )
+        .unwrap();
+
+        assert_eq!(res.len(), 1);
         assert_eq!(res.first().unwrap().id, 4529);
     }
 
