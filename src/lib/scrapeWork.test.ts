@@ -571,6 +571,27 @@ describe("scrapeWork", () => {
       expect(description).toContain(continuation);
     });
 
+    it("preserves intentional FANZA blank lines from consecutive br tags", () => {
+      const quote =
+        "\u300c\u795e\u3005\u3068\u80a9\u3092\u4e26\u3079\u308b\u306b\u306f\u3001\u305f\u3063\u305f\u4e00\u3064\u306e\u3084\u308a\u65b9\u3057\u304b\u306a\u3044\u3002\u795e\u3005\u3068\u540c\u3058\u3088\u3046\u306b\u3001\u6b8b\u9177\u306b\u306a\u308b\u3053\u3068\u3060\u300dSalvador Dali";
+      const body =
+        "\u82e5\u304f\u3057\u3066\u3053\u306e\u4e16\u3092\u53bb\u3063\u305f\u5929\u624d\u5973\u512a\u3002";
+      const doc = new DOMParser().parseFromString(
+        `
+          <section class="universalSection">
+            <div class="area-detail-read">
+              <div class="read-text-area">
+                <p class="text-overflow">${quote}<br><br>${body}</p>
+              </div>
+            </div>
+          </section>
+        `,
+        "text/html",
+      );
+
+      expect(getFanzaDescriptionFromDocument(doc)).toContain(`${quote}\n\n${body}`);
+    });
+
     it("stops FANZA narrative lead extraction at long decorative separators", () => {
       const continuation =
         "\u533a\u5207\u308a\u7dda\u306e\u5f8c\u306b\u7d9a\u304f\u7269\u8a9e\u306e\u672c\u6587\u3067\u3059\u3002";

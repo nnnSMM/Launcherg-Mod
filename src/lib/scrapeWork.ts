@@ -446,6 +446,9 @@ const BLOCK_TAGS = new Set([
   "UL",
 ]);
 
+const STORY_BREAK_BLOCK: StoryBlock = { html: "<br>", text: "\n" };
+const isStoryBreakBlock = (block: StoryBlock) => block.html === "<br>";
+
 const splitLeafBlockByBreaks = (elm: Element) => {
   const wrapper = document.createElement("div");
   wrapper.innerHTML = elm.innerHTML.replace(/<br\s*\/?>/gi, "<x-story-break></x-story-break>");
@@ -466,14 +469,11 @@ const splitLeafBlockByBreaks = (elm: Element) => {
       (child as Element).tagName === "X-STORY-BREAK"
     ) {
       flush();
+      blocks.push(STORY_BREAK_BLOCK);
       continue;
     }
     if (child.nodeType === Node.TEXT_NODE) {
-      const lines = (child.textContent ?? "").split(/\n+/);
-      lines.forEach((line, index) => {
-        if (index > 0) flush();
-        htmlParts.push(line);
-      });
+      htmlParts.push(child.textContent ?? "");
       continue;
     }
     if (child.nodeType === Node.ELEMENT_NODE) {
@@ -506,14 +506,19 @@ const htmlToStoryBlocks = (html: string) => {
     if (["SCRIPT", "STYLE", "IMG", "VIDEO", "IFRAME"].includes(elm.tagName)) {
       return;
     }
-    if (elm.tagName === "BR") return;
+    if (elm.tagName === "BR") {
+      blocks.push(STORY_BREAK_BLOCK);
+      return;
+    }
 
     if (BLOCK_TAGS.has(elm.tagName)) {
       if (hasBlockElementChild(elm)) {
         elm.childNodes.forEach(walk);
+        blocks.push(STORY_BREAK_BLOCK);
         return;
       }
       blocks.push(...splitLeafBlockByBreaks(elm));
+      blocks.push(STORY_BREAK_BLOCK);
       return;
     }
 
@@ -527,7 +532,15 @@ const htmlToStoryBlocks = (html: string) => {
   };
 
   doc.body.childNodes.forEach(walk);
-  return blocks.filter((block) => cleanDescription(block.text));
+  return blocks.filter((block) => block.html === "<br>" || cleanDescription(block.text));
+};
+
+const trimStoryBreakEdges = (blocks: StoryBlock[]) => {
+  let start = 0;
+  let end = blocks.length;
+  while (start < end && isStoryBreakBlock(blocks[start])) start++;
+  while (end > start && isStoryBreakBlock(blocks[end - 1])) end--;
+  return blocks.slice(start, end);
 };
 
 const normalizeHeadingText = (value: string) =>
@@ -658,7 +671,9 @@ export const extractStorySectionHtml = (
     collected.push(block);
   }
 
-  const rawHtml = collected.map((block) => block.html).join("\n");
+  const rawHtml = trimStoryBreakEdges(collected)
+    .map((block) => block.html)
+    .join("");
   const descriptionHtml = sanitizeDescriptionHtml(rawHtml, options.baseUrl, {
     removeImages: options.removeImages ?? true,
   });
@@ -876,8 +891,8 @@ const isFanzaSeparatorBlock = (text: string) =>
 
 const isFanzaPromotionBlock = (text: string) => {
   const normalizedText = cleanDescription(text).normalize("NFKC");
+  if (!normalizedText) return false;
   return (
-    !normalizedText ||
     !/[A-Za-z0-9\u3041-\u3096\u30a1-\u30fa\u30fc\u3400-\u9fff]/.test(
       normalizedText
     ) ||
@@ -954,6 +969,10 @@ const collectFanzaLeadStoryBlocks = (blocks: StoryBlock[]) => {
   for (const block of blocks) {
     if (findStoryHeadingMatch(block.text, STORY_END_HEADINGS)) break;
     if (collected.length > 0 && isStoryEndBoundaryBlock(block.text)) break;
+    if (isStoryBreakBlock(block)) {
+      if (collected.length > 0) collected.push(block);
+      continue;
+    }
     if (isFanzaPromotionBlock(block.text)) {
       if (collected.length > 0) {
         if (isFanzaSeparatorBlock(block.text)) continue;
@@ -991,7 +1010,9 @@ const extractFanzaLeadStoryHtml = (html: string, sourceUrl?: string) => {
   const candidates = splitFanzaStorySegments(blocks)
     .map((segment) => {
       const collected = collectFanzaLeadStoryBlocks(segment);
-      const rawHtml = collected.map((block) => block.html).join("\n");
+      const rawHtml = trimStoryBreakEdges(collected)
+        .map((block) => block.html)
+        .join("");
       const descriptionHtml = sanitizeDescriptionHtml(rawHtml, sourceUrl, {
         removeImages: true,
       });
@@ -1026,7 +1047,7 @@ export const getFanzaDescriptionHtmlFromDocument = (
     ? [...root.querySelectorAll<HTMLElement>(".read-text-area p.text-overflow")]
     : [];
   const html = textOverflowBlocks.length
-    ? textOverflowBlocks.map((elm) => elm.innerHTML).join("\n")
+    ? textOverflowBlocks.map((elm) => elm.outerHTML).join("")
     : root?.innerHTML ?? "";
   return extractStorySectionHtml(html, {
     baseUrl: sourceUrl,

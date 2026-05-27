@@ -2,7 +2,7 @@ import { getWorkByScrape } from "@/lib/scrapeWork";
 import type { Work } from "@/lib/types";
 import { createLocalStorageCache } from "@/lib/utils";
 
-const WORKS_CACHE_VERSION = 1;
+const WORKS_CACHE_VERSION = 8;
 const WORKS_CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 7;
 
 const createWorks = () => {
