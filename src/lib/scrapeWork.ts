@@ -29,6 +29,7 @@ export type DescriptionResult = {
   sourceUrl?: string;
   title?: string;
   brand?: string;
+  imageUrl?: string;
   descriptionHtml: string;
 };
 
@@ -1223,6 +1224,9 @@ type SteamAppDetailsPayload = Record<
       short_description?: string;
       developers?: string[];
       publishers?: string[];
+      header_image?: string;
+      capsule_image?: string;
+      capsule_imagev5?: string;
     };
   }
 >;
@@ -1293,11 +1297,16 @@ const getSteamDescriptionResult = (
   const data = payload[`${appId}`]?.data;
   const descriptionHtml = getSteamDescriptionHtmlFromAppDetails(payload, appId);
   if (!data || !descriptionHtml) return null;
+  const sourceUrl = `https://store.steampowered.com/app/${appId}`;
   return {
     source: "steam",
-    sourceUrl: `https://store.steampowered.com/app/${appId}`,
+    sourceUrl,
     title: cleanDescription(data.name),
     brand: cleanDescription(data.developers?.join(", ")),
+    imageUrl: normalizeAssetUrl(
+      data.header_image ?? data.capsule_image ?? data.capsule_imagev5 ?? "",
+      sourceUrl
+    ),
     descriptionHtml,
   };
 };
@@ -1401,7 +1410,7 @@ export const getWorkByScrape = async (id: number) => {
     gamelistExternalIds,
     extractExternalIdsFromDocument(doc)
   );
-  const description = await fetchJapaneseDescription({
+  const descriptionResult = await fetchJapaneseDescriptionResult({
     title: name,
     brandName,
     sellday,
@@ -1409,6 +1418,11 @@ export const getWorkByScrape = async (id: number) => {
       ...externalIds,
     },
   });
+  const description = descriptionResult
+    ? htmlToDescriptionText(descriptionResult.descriptionHtml)
+    : undefined;
+  const erogeScapeImageUrl =
+    doc.getElementById("main_image")?.getElementsByTagName("img")[0].src ?? "";
 
   const work: Work = {
     id: id,
@@ -1422,9 +1436,7 @@ export const getWorkByScrape = async (id: number) => {
     brandName,
     description,
     sellday,
-    imgUrl:
-      doc.getElementById("main_image")?.getElementsByTagName("img")[0].src ??
-      "",
+    imgUrl: erogeScapeImageUrl || descriptionResult?.imageUrl || "",
     officialHomePage:
       gameTitle?.getElementsByTagName("a")[0].getAttribute("href") ?? "",
     statistics: {

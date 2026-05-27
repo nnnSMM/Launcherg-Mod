@@ -160,7 +160,14 @@ const steamAppToGameId = new Map<number, number>([
 
 const fanzaProductToGameId = new Map<string, number>([
   ["nightingale_0001", 20988],
+  ["vsat_0229", 25861],
+  ["favorite_0011", 26245],
+  ["cabbage_0003", 27059],
+  ["hobe_0494", 28941],
+  ["nightingale_0005", 30122],
+  ["akbs_0127", 31106],
   ["vsat_0288", 31597],
+  ["yuzu_0012", 38794],
   ["spal_0201", 39837],
 ]);
 
@@ -184,10 +191,20 @@ const buildVirtualGirlOfficialPage = () => `
   </html>
 `;
 
+const descriptionToStoryHtml = (description: string) =>
+  description
+    .split("\n")
+    .map((line) => (line.trim() ? `<p>${escapeHtml(line)}</p>` : "<br>"))
+    .join("");
+
 const buildFanzaProductPage = (productId: string) => {
   const gameId = fanzaProductToGameId.get(productId);
   const work = gameId ? getWorkById(gameId) : null;
   if (!work) return "";
+
+  const storyBody = work.description
+    ? descriptionToStoryHtml(work.description)
+    : `<p>${escapeHtml(work.name)}\u306eFANZA\u30b9\u30c8\u30fc\u30ea\u30fc\u672c\u6587\u3067\u3059\u3002</p>`;
 
   return `
     <html>
@@ -200,7 +217,7 @@ const buildFanzaProductPage = (productId: string) => {
         <section class="universalSection">
           <div class="area-detail-read">
             <h2>\u30b9\u30c8\u30fc\u30ea\u30fc</h2>
-            <p>${escapeHtml(work.name)}\u306eFANZA\u30b9\u30c8\u30fc\u30ea\u30fc\u672c\u6587\u3067\u3059\u3002\u7269\u8a9e\u306e\u5c0e\u5165\u3068\u4e3b\u4eba\u516c\u306e\u76ee\u7684\u3092\u65e5\u672c\u8a9e\u3067\u7d39\u4ecb\u3057\u307e\u3059\u3002</p>
+            ${storyBody}
             <h2>\u30ad\u30e3\u30e9\u30af\u30bf\u30fc</h2>
             <p>\u3053\u3053\u306f\u4fdd\u5b58\u3057\u306a\u3044\u30ad\u30e3\u30e9\u30af\u30bf\u30fc\u7d39\u4ecb\u3067\u3059\u3002</p>
           </div>
@@ -272,6 +289,9 @@ const buildSteamAppDetails = (appId: number) => {
         short_description: `${work.name}\u306eSteam\u77ed\u3044\u8aac\u660e\u3067\u3059\u3002`,
         developers: [work.brandName],
         publishers: [work.brandName],
+        header_image: work.imgUrl,
+        capsule_image: work.imgUrl,
+        capsule_imagev5: work.imgUrl,
       },
     },
   });

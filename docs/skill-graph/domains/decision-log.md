@@ -3,7 +3,7 @@ id: decision-log
 title: Decision Log
 type: log
 status: active
-updated: 2026-05-26
+updated: 2026-05-27
 links:
   - launcherg-improvement-moc
   - template-decision-record
@@ -11,6 +11,14 @@ links:
 ---
 
 # Decision Log
+
+## 2026-05-27: demo用 worksData は build-demo 前に本体スクレイパーで全再生成する
+
+- Context: 公開 demo の作品詳細は `src/mock/worksData.json` に固定されているが、説明文や統計値は外部サイト側と本体パーサー改善に追従させたい。手書きJSONや簡易パーサーを別に持つと、本体の `getWorkByScrape` と乖離しやすい。
+- Decision: `npm run build-demo` の前段で Vitest スクリプトを実行し、デモ対象IDごとに `getWorkByScrape(id)` を呼んで `worksData.json` を丸ごと再構築する。Vitest内では `@tauri-apps/plugin-http` を Node `fetch` に差し替え、FANZA/DLsite向けCookieを付与する。ErogeScape `gamelist` の外部ID欠落に左右されないよう、`scrapeSql` の `gamelist` 取得だけを手動マッピングで返す。公開demoの詳細画面では `@/store/works` をデモ用ストアへ確実に差し替え、再生成済み `worksData.json` を直接使う。demo成果物のJS/CSSファイル名には `DEMO_BUILD_ID`、`GITHUB_SHA`、または時刻由来IDを含める。
+- Rationale: 本体と同じHTML解析・説明文抽出・統計/スタッフ取得を使うため、demoだけ別実装になるリスクを避けられる。手動マッピングはdemo収録作品に限定し、外部サイトの登録漏れ対策として閉じ込める。
+- Consequence: demoビルドは外部サイトの応答に依存し、取得失敗時は古いJSONを使い回さずビルドを止める。公開側は毎回異なるasset URLになり、ブラウザやPages CDNが古いJSを掴み続ける問題を避ける。デモ対象を追加する時は、Vitest側の外部IDマッピングと `src/mock/tauri-http.ts` のデモHTTPマッピングを同時に更新する。
+- Links: [[architecture-map]], [[quality-gates]]
 
 ## 2026-05-26: 日本語説明文は販売ID直行に限定し公式サイトfallbackを廃止する
 

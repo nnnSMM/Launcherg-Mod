@@ -1000,3 +1000,4 @@ pub fn quit_app(handle: AppHandle) {
     let _ = save_current_window_state(&handle);
     handle.exit(0);
 }
+

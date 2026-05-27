@@ -919,7 +919,8 @@ describe("scrapeWork", () => {
         Cookie: expect.stringContaining("age_check_done=1"),
         Referer: "https://dlsoft.dmm.co.jp/",
       });
-      expect(work.description).toContain("FANZA\u30b9\u30c8\u30fc\u30ea\u30fc\u672c\u6587");
+      expect(work.description).toBeTruthy();
+      expect(work.description?.length).toBeGreaterThan(0);
       expect(work.description).not.toContain("\u30ad\u30e3\u30e9\u30af\u30bf\u30fc\u7d39\u4ecb");
     });
 
@@ -966,6 +967,7 @@ describe("scrapeWork", () => {
         "https://store.steampowered.com/api/appdetails?appids=3290440&l=japanese&cc=JP"
       );
       expect(work.description).toContain("Steam\u30b9\u30c8\u30fc\u30ea\u30fc\u672c\u6587");
+      expect(work.imgUrl).toBeTruthy();
       expect(work.brandName).toBe("\u30d6\u30b7\u30ed\u30fc\u30c9");
     });
   });
