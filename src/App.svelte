@@ -53,12 +53,24 @@
   onMount(async () => {
     void theme.initialize();
     isMounted = true;
+    // 以前の自動生成デモ用サンプルメモが残っている場合はクリーンアップ（削除）する
+    const demoIds = [39837, 27059, 38696, 38631, 26245, 28941, 30122, 25861, 20988, 31106, 31597, 38794];
+    demoIds.forEach((id) => {
+      const key = `smde_memo-${id}`;
+      const val = localStorage.getItem(key);
+      if (val && (val.includes("自動生成サンプルメモ") || val.includes("攻略進捗とメモ"))) {
+        localStorage.removeItem(key);
+      }
+    });
+
     if (!isLandingRoute) {
       initializeMainApp();
+
       if (windowLabel === "main") {
         void appUpdate.initialize();
       }
     }
+
 
     const cleanupTooltips = setupGlobalTooltips();
     const cleanupHistory = setupHistoryTracker();

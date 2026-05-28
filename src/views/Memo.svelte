@@ -86,6 +86,9 @@
           className: "fa fa-desktop",
           title: "Insert screenshot",
         },
+        "|",
+        "preview",
+        "side-by-side",
       ],
       imagesPreviewHandler: (imagePath) => convertFileSrc(imagePath),
     });
@@ -129,17 +132,8 @@
       easyMDE.codemirror.setValue(newLines.join("\n"));
       easyMDE.codemirror.setCursor({ line: cursor.line + 2, ch: 0 });
     };
-    const ele = document.querySelector(".EasyMDEContainer");
-    if (ele) {
-      const toolbar = ele.querySelector<HTMLElement>(".editor-toolbar");
-      if (toolbar) {
-        toolbar.style.backgroundColor = "#2d333b"; // bg-secondary
-      }
-      const codeMirror = ele.querySelector<HTMLElement>(".CodeMirror");
-      if (codeMirror) {
-        codeMirror.style.backgroundColor = "#22272e"; // bg-primary
-      }
-    }
+    const ele = node.closest(".EasyMDEContainer") || node.parentElement;
+
     ele?.addEventListener("paste", onPaste);
 
     const syncTimer = setInterval(() => {
@@ -171,6 +165,12 @@
         ele?.removeEventListener("paste", onPaste);
         unsubscribe();
         clearInterval(syncTimer);
+        easyMDE.cleanup();
+        const wrapper = easyMDE.codemirror.getWrapperElement();
+        const container = wrapper.parentElement;
+        if (node.isConnected && container?.parentElement) {
+          easyMDE.toTextArea();
+        }
       },
     };
   };

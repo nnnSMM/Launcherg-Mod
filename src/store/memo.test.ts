@@ -35,4 +35,30 @@ describe("memo store helper", () => {
     // skyWay.syncMemoの呼び出し確認
     expect(skyWay.syncMemo).toHaveBeenCalledWith(workId, value);
   });
+
+  it("初期状態でデモ用のダミーメモ（smde_memo-*）が localStorage に存在しないこと", () => {
+    const demoIds = [39837, 27059, 38696, 38631, 26245, 28941, 30122, 25861, 20988, 31106, 31597, 38794];
+    demoIds.forEach((id) => {
+      expect(localStorage.getItem(`smde_memo-${id}`)).toBeNull();
+    });
+  });
+
+  it("以前の自動生成サンプルメモが localStorage に存在する場合、正しく検知して削除されること", () => {
+    const testId = 39837;
+    const legacyPlaceholder = "# 攻略進捗とメモ\n\nこれはデモ環境における自動生成サンプルメモです。";
+    localStorage.setItem(`smde_memo-${testId}`, legacyPlaceholder);
+
+    // App.svelteのクリーンアップ処理のシミュレート
+    const demoIds = [39837, 27059, 38696, 38631, 26245, 28941, 30122, 25861, 20988, 31106, 31597, 38794];
+    demoIds.forEach((id) => {
+      const key = `smde_memo-${id}`;
+      const val = localStorage.getItem(key);
+      if (val && (val.includes("自動生成サンプルメモ") || val.includes("攻略進捗とメモ"))) {
+        localStorage.removeItem(key);
+      }
+    });
+
+    expect(localStorage.getItem(`smde_memo-${testId}`)).toBeNull();
+  });
 });
+

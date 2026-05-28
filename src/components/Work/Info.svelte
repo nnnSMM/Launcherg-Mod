@@ -8,224 +8,26 @@
     import ScreenshotGallery from "@/components/Work/ScreenshotGallery.svelte";
     import { formatLastPlayed, formatPlayTime } from "@/lib/utils";
     import { memo } from "@/store/memo";
-    import { onMount, onDestroy } from "svelte";
-    import { readImage } from "@tauri-apps/plugin-clipboard-manager";
-    import { commandUploadImage, commandSaveScreenshotByPid } from "@/lib/command";
-    import { startProcessMap } from "@/store/startProcessMap";
-    import { showErrorToast } from "@/lib/toast";
-    import EasyMDE from "easymde";
-    import { open } from "@tauri-apps/plugin-dialog";
-    import { convertFileSrc } from "@tauri-apps/api/core";
-    import { skyWay } from "@/store/skyway";
+    import { parseMarkdown } from "@/lib/markdown";
 
     export let work: Work;
     export let element: CollectionElement;
     export let page: "overview" | "record" | "memo" | "screenshots" =
         "overview";
 
-    const mde = (node: HTMLElement) => {
-        const easyMDE = new EasyMDE({
-            element: node,
-            spellChecker: false,
-            sideBySideFullscreen: false,
-            previewImagesInEditor: true,
-            autofocus: false,
-            autosave: {
-                enabled: true,
-                delay: 1000,
-                uniqueId: `memo-${work.id}`,
-            },
-            toolbar: [
-                "bold",
-                "italic",
-                "heading",
-                "|",
-                "quote",
-                "unordered-list",
-                "ordered-list",
-                "|",
-                "link",
-                {
-                    name: "image",
-                    action: async () => {
-                        const selected = await open({
-                            multiple: false,
-                            filters: [
-                                {
-                                    name: "Image",
-                                    extensions: ["png", "jpeg", "jpg", "*"],
-                                },
-                            ],
-                        });
-                        if (selected === null || Array.isArray(selected)) {
-                            return;
-                        }
-                        insertImage(selected.path);
-                    },
-                    className: "fa fa-picture-o",
-                    title: "Insert image",
-                },
-                {
-                    name: "screenshot",
-                    action: async () => {
-                        const startProcessId = $startProcessMap[work.id];
-                        try {
-                            const screenshotPath = await commandSaveScreenshotByPid(
-                                work.id,
-                                startProcessId,
-                            );
-                            insertImage(screenshotPath);
-                        } catch (e) {
-                            showErrorToast("スクリーンショットの取得に失敗しました");
-                            console.error(e);
-                        }
-                    },
-                    className: "fa fa-desktop",
-                    title: "Insert screenshot",
-                },
-            ],
-            imagesPreviewHandler: (imagePath) => convertFileSrc(imagePath),
-        });
+    $: if (work && work.id) {
+        if (!$memo.find((v) => v.workId === work.id)) {
+            const localVal = localStorage.getItem(`smde_memo-${work.id}`) || "";
+            memo.update((memos) => [
+                ...memos.filter((m) => m.workId !== work.id),
+                { workId: work.id, value: localVal, lastModified: "local" }
+            ]);
+        }
+    }
 
-        let destroyed = false;
+    $: currentMemoValue = $memo.find((v) => v.workId === work.id)?.value ?? "";
 
-        const onPaste = async () => {
-            try {
-                if (destroyed) return;
-                const image = await readImage();
-                if (destroyed) return;
-                const rgba = await image.rgba();
-                const size = await image.size();
-                if (destroyed) return;
-
-                const canvas = document.createElement("canvas");
-                canvas.width = size.width;
-                canvas.height = size.height;
-                const ctx = canvas.getContext("2d");
-                if (!ctx) return;
-                const imageData = new ImageData(
-                    new Uint8ClampedArray(rgba),
-                    size.width,
-                    size.height,
-                );
-                ctx.putImageData(imageData, 0, 0);
-                const base64Image = canvas.toDataURL("image/png").split(",")[1];
-
-                const imagePath = await commandUploadImage(work.id, base64Image);
-                if (destroyed) return;
-                insertImage(imagePath);
-            } catch {}
-        };
-
-        const insertImage = (imagePath: string) => {
-            if (destroyed) return;
-            const cursor = easyMDE.codemirror.getCursor();
-            const prev = easyMDE.value();
-            const lines = prev.split("\n");
-            const newLines: string[] = [];
-            for (let i = 0; i < lines.length; i++) {
-                newLines.push(lines[i]);
-                if (i === cursor.line) {
-                    newLines.push(`![](${imagePath})`);
-                    newLines.push("");
-                }
-            }
-            easyMDE.codemirror.setValue(newLines.join("\n"));
-            easyMDE.codemirror.setCursor({ line: cursor.line + 2, ch: 0 });
-        };
-
-        const ele = node.closest(".EasyMDEContainer") || node.parentElement;
-        const styleTimer = window.setTimeout(() => {
-            if (destroyed) return;
-            const container = node.parentElement?.querySelector(".EasyMDEContainer") || node.parentElement;
-            if (container) {
-                const toolbar = container.querySelector<HTMLElement>(".editor-toolbar");
-                if (toolbar) {
-                    toolbar.style.backgroundColor = "rgba(45, 51, 59, 0.2)";
-                    toolbar.style.backdropFilter = "blur(12px)";
-                    toolbar.style.border = "1px solid rgba(255, 255, 255, 0.08)";
-                    toolbar.style.borderBottom = "none";
-                    toolbar.style.borderTopLeftRadius = "8px";
-                    toolbar.style.borderTopRightRadius = "8px";
-
-                    const buttons = toolbar.querySelectorAll<HTMLElement>("button");
-                    buttons.forEach((btn) => {
-                        btn.style.backgroundColor = "transparent";
-                        btn.style.color = "var(--color-text-primary, #ffffff)";
-                        btn.style.border = "none";
-                        btn.style.borderRadius = "4px";
-                        btn.style.transition = "all 0.2s ease";
-                        
-                        btn.addEventListener("mouseenter", () => {
-                            btn.style.backgroundColor = "rgba(255, 255, 255, 0.1)";
-                        });
-                        btn.addEventListener("mouseleave", () => {
-                            btn.style.backgroundColor = "transparent";
-                        });
-                    });
-
-                    const separators = toolbar.querySelectorAll<HTMLElement>(".separator");
-                    separators.forEach((sep) => {
-                        sep.style.borderLeft = "1px solid rgba(255, 255, 255, 0.1)";
-                        sep.style.borderRight = "none";
-                    });
-                }
-                const codeMirror = container.querySelector<HTMLElement>(".CodeMirror");
-                if (codeMirror) {
-                    codeMirror.style.backgroundColor = "rgba(34, 39, 46, 0.2)";
-                    codeMirror.style.backdropFilter = "blur(12px)";
-                    codeMirror.style.border = "1px solid rgba(255, 255, 255, 0.08)";
-                    codeMirror.style.borderBottomLeftRadius = "8px";
-                    codeMirror.style.borderBottomRightRadius = "8px";
-                }
-            }
-        }, 0);
-
-        ele?.addEventListener("paste", onPaste);
-
-        const syncTimer = setInterval(() => {
-            if (destroyed) return;
-            const current = easyMDE.value();
-            if ($memo.find((v) => v.workId === work.id)?.value !== current) {
-                memo.update((memos) =>
-                    memos.reduce(
-                        (acc, cur) => {
-                            if (cur.workId !== work.id) acc.push(cur);
-                            return acc;
-                        },
-                        [
-                            { workId: work.id, value: current, lastModified: "local" },
-                        ] as typeof $memo,
-                    ),
-                );
-                skyWay.syncMemo(work.id, current);
-            }
-        }, 1000);
-
-        const unsubscribe = memo.subscribe((memos) => {
-            if (destroyed) return;
-            const targetMemo = memos.find((v) => v.workId === work.id);
-            if (targetMemo?.lastModified === "remote" && easyMDE.value() !== targetMemo.value) {
-                easyMDE.value(targetMemo.value);
-            }
-        });
-
-        return {
-            destroy: () => {
-                destroyed = true;
-                ele?.removeEventListener("paste", onPaste);
-                unsubscribe();
-                clearInterval(syncTimer);
-                clearTimeout(styleTimer);
-                easyMDE.cleanup();
-                const wrapper = easyMDE.codemirror.getWrapperElement();
-                const container = wrapper.parentElement;
-                if (node.isConnected && container?.parentElement) {
-                    easyMDE.toTextArea();
-                }
-            },
-        };
-    };
+    $: renderedMemoHtml = parseMarkdown(currentMemoValue);
 
     $: seiyaUrlPromise = work ? seiya.getUrl(work.name) : Promise.resolve("");
 
@@ -475,16 +277,23 @@
                         メモを開く
                     </a>
 
-                    <div class="mt-6 border-t border-black/10 dark:border-white/10 pt-5">
-                        <h3 class="text-[11px] tracking-widest text-text-tertiary uppercase mb-3 flex items-center gap-1.5">
-                            <div class="i-material-symbols-edit-note-rounded w-4 h-4 opacity-80" />
+                    <div class="mt-6 border-t border-black/10 dark:border-white/10 pt-6">
+                        <h3 class="text-[11px] tracking-widest text-text-tertiary uppercase mb-4 flex items-center gap-2 font-bold">
+                            <div class="i-material-symbols-auto-stories-outline-rounded w-4 h-4 color-ui-tertiary" />
                             内容
                         </h3>
-                        {#key work.id}
-                            <div class="rounded-lg border border-black/5 dark:border-white/5 bg-black/5 dark:bg-white/5 backdrop-blur-sm">
-                                <textarea use:mde />
-                            </div>
-                        {/key}
+                        <div class="rounded-xl border border-black/10 dark:border-white/10 bg-bg-secondary/40 backdrop-blur-lg p-6 text-text-primary overflow-auto max-h-[600px] shadow-lg inset-shadow-sm transition-all duration-300 hover:border-black/15 dark:hover:border-white/15">
+                            {#if renderedMemoHtml}
+                                <div class="markdown-body">
+                                    {@html renderedMemoHtml}
+                                </div>
+                            {:else}
+                                <div class="text-caption text-text-tertiary italic flex items-center gap-2">
+                                    <div class="i-material-symbols-edit-note-rounded w-4 h-4 opacity-60" />
+                                    メモは空です。「メモを開く」ボタンから編集できます。
+                                </div>
+                            {/if}
+                        </div>
                     </div>
                 </div>
             </div>
