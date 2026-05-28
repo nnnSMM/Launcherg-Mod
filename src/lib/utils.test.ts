@@ -172,3 +172,99 @@ describe('convertSpecialCharacters', () => {
         expect(convertSpecialCharacters('')).toBe('');
     });
 });
+
+import { handleExternalLink, handleMarkdownClick } from './utils';
+import { open as tauriOpen } from "@tauri-apps/plugin-shell";
+
+vi.mock("@tauri-apps/plugin-shell", () => ({
+  open: vi.fn(),
+}));
+
+describe('handleExternalLink', () => {
+  let originalWindowOpen: any;
+  let originalTauriInternals: any;
+
+  beforeEach(() => {
+    originalWindowOpen = window.open;
+    window.open = vi.fn();
+    vi.mocked(tauriOpen).mockClear();
+    
+    // window.__TAURI_INTERNALS__ の状態を保存
+    originalTauriInternals = (window as any).__TAURI_INTERNALS__;
+  });
+
+  afterEach(() => {
+    window.open = originalWindowOpen;
+    (window as any).__TAURI_INTERNALS__ = originalTauriInternals;
+  });
+
+  it('Tauri環境下であれば tauriOpen が呼び出されること', async () => {
+    (window as any).__TAURI_INTERNALS__ = {};
+    const url = 'https://google.com';
+    await handleExternalLink(url);
+    expect(tauriOpen).toHaveBeenCalledWith(url);
+    expect(window.open).not.toHaveBeenCalled();
+  });
+
+  it('Web環境下であれば window.open が呼び出されること', async () => {
+    (window as any).__TAURI_INTERNALS__ = undefined;
+    const url = 'https://google.com';
+    await handleExternalLink(url);
+    expect(tauriOpen).not.toHaveBeenCalled();
+    expect(window.open).toHaveBeenCalledWith(url, '_blank', 'noopener,noreferrer');
+  });
+
+  it('http/https 以外のURLは無視されること', async () => {
+    const url = 'file:///C:/path/to/file';
+    await handleExternalLink(url);
+    expect(tauriOpen).not.toHaveBeenCalled();
+    expect(window.open).not.toHaveBeenCalled();
+  });
+});
+
+describe('handleMarkdownClick', () => {
+  let originalWindowOpen: any;
+  let originalTauriInternals: any;
+
+  beforeEach(() => {
+    originalWindowOpen = window.open;
+    window.open = vi.fn();
+    vi.mocked(tauriOpen).mockClear();
+    (window as any).__TAURI_INTERNALS__ = undefined;
+  });
+
+  afterEach(() => {
+    window.open = originalWindowOpen;
+    (window as any).__TAURI_INTERNALS__ = originalTauriInternals;
+  });
+
+  it('a要素の外部リンククリック時にイベントが抑制され、window.open が呼ばれること', () => {
+    const anchor = document.createElement('a');
+    anchor.setAttribute('href', 'https://google.com');
+    
+    const event = {
+      target: anchor,
+      preventDefault: vi.fn(),
+    } as unknown as MouseEvent;
+
+    handleMarkdownClick(event);
+
+    expect(event.preventDefault).toHaveBeenCalled();
+    expect(window.open).toHaveBeenCalledWith('https://google.com', '_blank', 'noopener,noreferrer');
+  });
+
+  it('外部リンクではないa要素は抑制されず、処理されないこと', () => {
+    const anchor = document.createElement('a');
+    anchor.setAttribute('href', '#target');
+    
+    const event = {
+      target: anchor,
+      preventDefault: vi.fn(),
+    } as unknown as MouseEvent;
+
+    handleMarkdownClick(event);
+
+    expect(event.preventDefault).not.toHaveBeenCalled();
+    expect(window.open).not.toHaveBeenCalled();
+  });
+});

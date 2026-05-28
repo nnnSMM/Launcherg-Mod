@@ -13,6 +13,8 @@
   import { showErrorToast } from "@/lib/toast";
   import { onMount } from "svelte";
   import { backgroundState } from "@/store/background";
+  import { handleMarkdownClick } from "@/lib/utils";
+
 
   export let params: { id: string };
   $: id = +params.id;
@@ -176,6 +178,7 @@
   };
 </script>
 
-<div class="w-full h-full min-w-0 bg-bg-primary flex flex-col" bind:clientHeight={height}>
+<div class="w-full h-full min-w-0 bg-bg-primary flex flex-col" bind:clientHeight={height} on:click={handleMarkdownClick}>
   <textarea id="mde" use:mde />
 </div>
+

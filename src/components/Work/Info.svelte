@@ -6,9 +6,10 @@
     import LinkToSidebar from "@/components/Work/LinkToSidebar.svelte";
     import Detail from "@/components/Work/Detail.svelte";
     import ScreenshotGallery from "@/components/Work/ScreenshotGallery.svelte";
-    import { formatLastPlayed, formatPlayTime } from "@/lib/utils";
+    import { formatLastPlayed, formatPlayTime, handleMarkdownClick } from "@/lib/utils";
     import { memo } from "@/store/memo";
     import { parseMarkdown } from "@/lib/markdown";
+
 
     export let work: Work;
     export let element: CollectionElement;
@@ -284,7 +285,7 @@
                         </h3>
                         <div class="rounded-xl border border-black/10 dark:border-white/10 bg-bg-secondary/40 backdrop-blur-lg p-6 text-text-primary overflow-auto max-h-[600px] shadow-lg inset-shadow-sm transition-all duration-300 hover:border-black/15 dark:hover:border-white/15">
                             {#if renderedMemoHtml}
-                                <div class="markdown-body">
+                                <div class="markdown-body" on:click={handleMarkdownClick}>
                                     {@html renderedMemoHtml}
                                 </div>
                             {:else}

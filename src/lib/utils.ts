@@ -1,4 +1,6 @@
 import { writable } from "svelte/store";
+import { open as tauriOpen } from "@tauri-apps/plugin-shell";
+
 
 export function createWritable<T>(initialValue: T) {
   let _value = initialValue;
@@ -154,3 +156,33 @@ export const formatLastPlayed = (isoString: string | null | undefined): string =
   // 14日以上前なら年月日を表示
   return new Date(isoString).toLocaleDateString("ja-JP");
 };
+
+export async function handleExternalLink(url: string) {
+  const isWebUrl = url.startsWith("http://") || url.startsWith("https://");
+  if (!isWebUrl) return;
+
+  try {
+    if (typeof window !== "undefined" && (window as any).__TAURI_INTERNALS__) {
+      await tauriOpen(url);
+    } else {
+      window.open(url, "_blank", "noopener,noreferrer");
+    }
+  } catch (e) {
+    if (typeof window !== "undefined") {
+      window.open(url, "_blank", "noopener,noreferrer");
+    }
+  }
+}
+
+export function handleMarkdownClick(e: MouseEvent) {
+  const target = e.target as HTMLElement;
+  const anchor = target.closest("a");
+  if (anchor) {
+    const href = anchor.getAttribute("href") || "";
+    if (href.startsWith("http://") || href.startsWith("https://")) {
+      e.preventDefault();
+      void handleExternalLink(href);
+    }
+  }
+}
+

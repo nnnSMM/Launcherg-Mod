@@ -1,4 +1,4 @@
-﻿<script lang="ts">
+<script lang="ts">
   import Button from "@/components/UI/Button.svelte";
   import PlayButton from "@/components/Work/PlayButton.svelte";
   import {
