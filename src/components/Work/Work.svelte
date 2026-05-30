@@ -1,18 +1,52 @@
 <script lang="ts">
   import WorkLayout from "@/components/Work/WorkLayout.svelte";
   import type { Work } from "@/lib/types";
-  import { onMount } from "svelte";
+  import { onDestroy, onMount } from "svelte";
   import { backgroundState } from "@/store/background";
   import type { CollectionElement } from "@/lib/types";
   import { convertFileSrc } from "@tauri-apps/api/core";
   import SimpleBar from "simplebar";
+  import { location } from "svelte-spa-router";
+  import { get } from "svelte/store";
+  import { shouldCleanupBgImage } from "@/lib/routeHelper";
 
   export let work: Work;
   export let element: CollectionElement;
 
-  onMount(() => {
-    // Background is now handled by Hero.svelte internally
+  let registeredBgImage: string | null = null;
+
+  $: bgImage =
+    element.thumbnail && element.thumbnail.trim() !== ""
+      ? `${convertFileSrc(element.thumbnail)}?v=${element.updatedAt}`
+      : "/images/dummy_thumbnail.svg";
+
+  $: if (bgImage) {
+    backgroundState.set({
+      imageUrl: bgImage,
+      opacity: 1,
+    });
+    registeredBgImage = bgImage;
+  }
+
+  onDestroy(() => {
+    backgroundState.update((state) => {
+      const nextPath = get(location);
+      if (shouldCleanupBgImage(nextPath)) {
+        if (registeredBgImage && state.imageUrl === registeredBgImage) {
+          return {
+            imageUrl: null,
+            opacity: 0,
+          };
+        }
+      }
+      return state;
+    });
   });
+
+  onMount(() => {
+    // Background is now handled by store registration
+  });
+
   let scrollY = 0;
 
   const simplebar = (node: HTMLElement) => {

@@ -3,11 +3,14 @@
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import Icon from "/icon.png";
   import tippy, { type Props as TippyOption } from "tippy.js";
-  import { link, push } from "svelte-spa-router";
+  import { link, push, location } from "svelte-spa-router";
+  import { isWorkDetailRoute } from "@/lib/routeHelper";
   import {
     openSettingsTab,
     openShortcutSettingsTab,
   } from "@/store/tabs";
+
+  $: isWorkDetail = isWorkDetailRoute($location);
   import APopover from "@/components/UI/APopover.svelte";
   import ImportPopover from "@/components/Sidebar/ImportPopover.svelte";
   import ImportAutomatically from "@/components/Sidebar/ImportAutomatically.svelte";
@@ -184,7 +187,7 @@
   }
 </script>
 
-<div class="{heightClass} bg-bg-primary/92 border-b border-solid border-border-primary flex items-center select-none w-full z-50 shrink-0 relative backdrop-blur-xl">
+<div class="{heightClass} {isWorkDetail ? 'bg-transparent border-border-primary/30' : 'bg-bg-primary/92 border-border-primary'} border-b border-solid flex items-center select-none w-full z-50 shrink-0 relative backdrop-blur-xl transition-all duration-300">
   <div class="flex h-full min-w-0 flex-1 items-center pr-[132px]">
     <div class="flex items-center h-full gap-1 pl-1.5 pr-2 shrink-0">
       {#if variant === "main"}
@@ -305,7 +308,7 @@
   </div>
 
   <!-- window controls -->
-  <div class="absolute top-0 right-0 flex {heightClass} items-start border-l border-border-primary">
+  <div class="absolute top-0 right-0 flex {heightClass} items-start border-l {isWorkDetail ? 'border-border-primary/30' : 'border-border-primary'}">
     <button tabindex="-1" on:click={minimize} class="w-11 {heightClass} flex items-center justify-center bg-transparent hover:bg-bg-tertiary transition-colors text-text-secondary hover:text-text-primary outline-none border-none focus:outline-none focus-visible:outline-none">
       <div class="i-material-symbols:remove text-lg"></div>
     </button>

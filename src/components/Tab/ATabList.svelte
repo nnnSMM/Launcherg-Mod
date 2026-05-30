@@ -9,7 +9,10 @@
     getSelectedTab,
   } from "@/store/tabs";
   import { onDestroy, onMount, tick } from "svelte";
-  import { push } from "svelte-spa-router";
+  import { push, location } from "svelte-spa-router";
+  import { isWorkDetailRoute } from "@/lib/routeHelper";
+
+  $: isWorkDetail = isWorkDetailRoute($location);
 
   let tabElements: HTMLElement[] = [];
   let draggingTabId: number | null = null;
@@ -215,7 +218,7 @@
       {/if}
     </div>
     <div
-      class="w-full h-full bg-bg-disabled border-b-1px border-solid border-border-primary"
+      class="w-full h-full border-b-1px border-solid border-border-primary transition-colors duration-300 {isWorkDetail ? 'bg-accent-primary/8 border-border-primary/30' : 'bg-bg-disabled'}"
     />
   </div>
 </ScrollableHorizontal>

@@ -12,6 +12,10 @@
   import Search from "@/components/Sidebar/Search.svelte";
   import { showSidebar } from "@/store/showSidebar";
   import { fly } from "svelte/transition";
+  import { location } from "svelte-spa-router";
+  import { isWorkDetailRoute } from "@/lib/routeHelper";
+
+  $: isWorkDetail = isWorkDetailRoute($location);
   import SubHeader from "@/components/Sidebar/SubHeader.svelte";
   import {
     PLAY_STATUS_KEYS,
@@ -90,7 +94,7 @@
 <svelte:window on:mousemove={onMouseMove} on:mouseup={onMouseUp} />
 
 <div
-  class="h-full min-h-0 relative border-solid border-border-primary bg-bg-secondary flex-shrink-0 overflow-hidden"
+  class="h-full min-h-0 relative border-solid border-border-primary flex-shrink-0 overflow-hidden backdrop-blur-xl transition-all duration-300 {isWorkDetail ? 'bg-accent-primary/8 border-border-primary/30' : 'bg-bg-secondary'}"
   class:border-r-1px={$showSidebar}
   style="width: {$showSidebar ? `${$sidebarWidth}px` : '0px'};"
 >

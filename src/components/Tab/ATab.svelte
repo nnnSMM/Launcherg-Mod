@@ -1,6 +1,9 @@
 <script lang="ts">
   import { deleteTab, type Tab } from "@/store/tabs";
-  import { push } from "svelte-spa-router";
+  import { push, location } from "svelte-spa-router";
+  import { isWorkDetailRoute } from "@/lib/routeHelper";
+
+  $: isWorkDetail = isWorkDetailRoute($location);
 
   export let tab: Tab;
   export let selected: boolean;
@@ -53,11 +56,8 @@
   class:placeholder-style={isPlaceholder}
 >
   <div
-    class="tab-content-area flex items-center gap-2 px-3 h-10 transition-all border-b-1px border-r-1px border-solid border-border-primary group max-w-60"
-    class:bg-bg-primary={(selected && !isPlaceholder && !isDragging)}
+    class="tab-content-area flex items-center gap-2 px-3 h-10 transition-all border-b-1px border-r-1px border-solid border-border-primary group max-w-60 {isWorkDetail ? (selected ? 'bg-white/10 backdrop-blur-md' : 'bg-transparent') : (selected ? 'bg-bg-primary' : 'bg-bg-disabled')} {isWorkDetail && !selected && !isPlaceholder && !isDragging && !isAnyTabDragging ? 'hover:bg-white/10' : ''} {!selected && !isPlaceholder && !isDragging && !isAnyTabDragging && !isWorkDetail ? 'hover:bg-bg-primary' : ''}"
     class:border-b-transparent={(selected && !isPlaceholder && !isDragging)}
-    class:bg-bg-disabled={(!selected && !isPlaceholder && !isDragging)}
-    class:hover:bg-bg-primary={(!selected && !isPlaceholder && !isDragging && !isAnyTabDragging)}
     class:ghost-appearance={isDragging}
   >
     <div class="{tabIcon} w-5 h-5 flex-shrink-0" />

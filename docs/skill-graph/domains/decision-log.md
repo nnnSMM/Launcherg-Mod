@@ -3,7 +3,7 @@ id: decision-log
 title: Decision Log
 type: log
 status: active
-updated: 2026-05-27
+updated: 2026-05-30
 links:
   - launcherg-improvement-moc
   - template-decision-record
@@ -11,6 +11,20 @@ links:
 ---
 
 # Decision Log
+
+## 2026-05-30: ゲーム詳細画面の背景処理リファインと周辺 UI のグラスモーフィズム統合
+
+- Context: ノベルゲームや非Steamゲームなどの管理における没入感（UX）向上のため、詳細画面の背景デザインをさらにプレミアムなものへとリファインする要望があった。従来の Canvas にじみ描画や SVG フィルターを用いた背景処理を廃止し、よりモダンなグラスモーフィズム表現（すりガラス効果）をサイドバーやタイトルバー、タブバーを含む周辺 UI 全体に連動させ、ゲームごとのテーマカラーが美しく溶け込むデザインの統合が必要であった。
+- Decision:
+  1. 重たい Canvas 描画、ResizeObserver、SVG フィルター（ink-water）、背景色グラデーションを WorkLayout.svelte から完全に削除し、詳細画面の基本レイアウトを bg-transparent 化した。
+  2. 詳細画面表示中（isWorkDetailRoute）は、ゲームのカバー画像を最背面の固定背景レイヤー（App.svelte）に「強力にぼかした状態（blur-3xl、opacity-85、scale-105）」で配置し、ゲームごとの個別のテーマカラーを画面全体に優しく演出する設計とした。
+  3. 詳細画面表示中は、タイトルバー（TitleBar.svelte）の背景（bg-bg-primary/92）や、サイドバー（Sidebar.svelte）の背景（bg-bg-secondary）を透明（bg-transparent）に切り替え、既存の backdrop-blur-xl との相乗効果で背面のぼかし画像が美しく透けるようにした。
+  4. タブバー（ATabList.svelte）の右側空白領域（bg-bg-disabled）や、タブ自体（ATab.svelte）の背景も詳細画面表示中は透過させ、ホバー時に極薄の白（hover:bg-white/10）をあてることで視認性とプレミアムなグラスモーフィズム質感を両立させた。
+  5. グラス情報領域（GlassInfo.svelte）から背景色（bg-bg-primary/28）を取り除き、色なし透明（bg-transparent）に変更して完全に無色透明なブラー効果を実現した。
+  6. 詳細ルートの判定および画像URL生成ロジックに対して、t_wada氏のTDDスタイルを適用し、テストコード（routeHelper.test.ts）を先に設計・パスさせる形で開発を推進した。
+- Rationale: Canvas のにじみ処理を排してピュアな透過レイアウトにすることでパフォーマンス負荷が劇的に軽減される。同時に、アプリ最背面でゲーム画像を極限までぼかして固定配置し、周辺 UI をグラス透過させることで、画面全体がそのゲームの色彩テーマで優しく染まる、macOS や Windows Fluent Design の Acrylic 効果のようなきわめてプレミアムで一体感のある極上の没入体験を低負荷で実現できる。
+- Consequence: 詳細画面以外の画面（一覧画面や設定画面など）に遷移した際には、サイドバーやタイトルバーは従来のソリッドな背景色に戻り、背面背景画像も元のマイルドなぼかし（blur-2xl）と半透明（opacity-50）の通常仕様へとスムーズに復元される。
+- Links: [[architecture-map]], [[quality-gates]]
 
 ## 2026-05-28: ゲーム詳細画面のメモ欄プレビュー化と別タブ編集のプレビュー強化
 
