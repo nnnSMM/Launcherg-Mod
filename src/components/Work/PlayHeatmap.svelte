@@ -8,7 +8,7 @@
     import { formatPlayTime } from "@/lib/utils";
     import {
         buildPlayHeatmap,
-        calculateRmsColorFromImageData,
+        calculateDominantColorFromImageData,
         fallbackHeatmapColor,
         heatmapColorForLevel,
         parseLocalDateKey,
@@ -34,6 +34,8 @@
 
     $: if (element?.id && element.id !== loadedElementId) {
         loadedElementId = element.id;
+        baseColor = fallbackHeatmapColor;
+        loadedThumbnailSrc = "";
         void loadDailyPlayTimes(element.id);
     }
 
@@ -70,17 +72,23 @@
 
     const loadThumbnailColor = async (src: string) => {
         const requestId = ++colorRequestId;
+        let objectUrl = "";
         try {
+            // asset:// URL を img.src に直接渡すと canvas が CORS taint され
+            // getImageData が SecurityError になるため、fetch → Blob → ObjectURL 経由にする
+            const response = await fetch(src);
+            const blob = await response.blob();
+            objectUrl = URL.createObjectURL(blob);
+
             const image = await new Promise<HTMLImageElement>((resolve, reject) => {
                 const img = new Image();
-                img.decoding = "async";
                 img.onload = () => resolve(img);
                 img.onerror = () => reject(new Error("thumbnail load failed"));
-                img.src = src;
+                img.src = objectUrl;
             });
 
             const canvas = document.createElement("canvas");
-            const size = 48;
+            const size = 256; // 64pxのぼかしを正常に適用するためにサイズを拡張
             canvas.width = size;
             canvas.height = size;
             const context = canvas.getContext("2d", {
@@ -88,16 +96,21 @@
             });
             if (!context) return;
 
+            // 64pxで画像をぼかすフィルターを適用
+            context.filter = "blur(64px)";
             context.drawImage(image, 0, 0, size, size);
             const imageData = context.getImageData(0, 0, size, size);
-            const color = calculateRmsColorFromImageData(imageData.data);
+            const color = calculateDominantColorFromImageData(imageData.data);
             if (requestId === colorRequestId && color) {
                 baseColor = color;
             }
         } catch (e) {
+            console.error("Failed to extract thumbnail color", e);
             if (requestId === colorRequestId) {
                 baseColor = fallbackHeatmapColor;
             }
+        } finally {
+            if (objectUrl) URL.revokeObjectURL(objectUrl);
         }
     };
 
