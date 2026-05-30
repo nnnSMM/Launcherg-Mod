@@ -216,7 +216,8 @@
 </script>
 
 <div
-    class="relative z-20 bg-white/5 border-t border-border-primary/30 p-4 sm:p-6 lg:p-8 shadow-2xl backdrop-blur-xl"
+    class="relative z-20 bg-bg-primary/28 border-t border-border-primary p-4 sm:p-6 lg:p-8 shadow-2xl"
+    style="backdrop-filter: blur(8px);"
 >
     <div class="max-w-[1440px] mx-auto space-y-8">
         <div class="space-y-8" aria-label="作品操作">
@@ -379,7 +380,7 @@
                     class:border-transparent={activePage !== tab.id}
                     class:text-text-primary={activePage === tab.id}
                     class:text-text-secondary={activePage !== tab.id}
-                    class="inline-flex h-11 w-full min-w-0 cursor-pointer items-center justify-center whitespace-nowrap border-b-2 {activePage === tab.id ? 'bg-white/5 rounded-t-md border-accent-accent' : 'bg-transparent border-transparent'} px-1 text-body3 font-medium transition-colors hover:text-text-primary hover:bg-white/3 focus-visible:ring-2 focus-visible:ring-accent-accent"
+                    class="inline-flex h-11 w-full min-w-0 cursor-pointer items-center justify-center whitespace-nowrap border-b-2 bg-transparent px-1 text-body3 font-medium transition-colors hover:text-text-primary focus-visible:ring-2 focus-visible:ring-accent-accent"
                     on:click={() => (activePage = tab.id)}
                 >
                     <span>{tab.label}</span>

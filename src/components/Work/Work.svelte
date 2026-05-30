@@ -33,10 +33,7 @@
       const nextPath = get(location);
       if (shouldCleanupBgImage(nextPath)) {
         if (registeredBgImage && state.imageUrl === registeredBgImage) {
-          return {
-            imageUrl: null,
-            opacity: 0,
-          };
+          return { imageUrl: null, opacity: 0 };
         }
       }
       return state;
@@ -44,9 +41,8 @@
   });
 
   onMount(() => {
-    // Background is now handled by store registration
+    // Background is handled by store registration above
   });
-
   let scrollY = 0;
 
   const simplebar = (node: HTMLElement) => {

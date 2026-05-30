@@ -27,9 +27,9 @@ html {
   --color-border-button-hover: 118, 131, 144;
   --color-border-warning: 174, 124, 20;
   --color-border-success-disabled: rgba(35, 134, 54, 0.6);
-  --color-text-primary: 230, 237, 243;
-  --color-text-secondary: 208, 215, 222;
-  --color-text-tertiary: 139, 148, 158;
+  --color-text-primary: 255, 255, 255;
+  --color-text-secondary: 235, 240, 245;
+  --color-text-tertiary: 185, 195, 205;
   --color-text-link: 68, 147, 248;
   --color-text-white: 255, 255, 255;
   --color-text-disabled: 72, 79, 88;
@@ -77,9 +77,9 @@ html[data-theme="light"] {
   --color-border-button-hover: 87, 96, 106;
   --color-border-warning: 191, 135, 0;
   --color-border-success-disabled: rgba(46, 125, 50, 0.35);
-  --color-text-primary: 36, 41, 47;
-  --color-text-secondary: 61, 68, 77;
-  --color-text-tertiary: 110, 119, 129;
+  --color-text-primary: 0, 0, 0;
+  --color-text-secondary: 28, 32, 38;
+  --color-text-tertiary: 80, 88, 100;
   --color-text-link: 9, 105, 218;
   --color-text-white: 255, 255, 255;
   --color-text-disabled: 140, 149, 159;

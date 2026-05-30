@@ -156,12 +156,11 @@
         <div
           transition:fade={{ duration: 300 }}
           class="absolute inset-0 bg-cover bg-center z-0 transition-all duration-500 ease-out transform"
-          class:blur-3xl={isWorkDetail}
           class:opacity-85={isWorkDetail}
-          class:scale-105={isWorkDetail}
+          class:scale-100={isWorkDetail}
           class:blur-2xl={!isWorkDetail}
           class:opacity-50={!isWorkDetail}
-          style="background-image: url({$backgroundState.imageUrl});"
+          style="background-image: url({$backgroundState.imageUrl}); {isWorkDetail ? 'filter: blur(128px);' : ''}"
         />
       {/key}
     {/if}
