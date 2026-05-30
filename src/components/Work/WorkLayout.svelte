@@ -181,17 +181,11 @@
       />
       <!-- 背景色オーバーレイ: 曇りグラス効果（画像端とGlass端の「より高い方」から開始） -->
       <div
-        class="absolute left-0 right-0 bg-bg-primary/30 border-t border-border-primary"
+        class="absolute left-0 right-0 bg-bg-primary/40 border-t border-border-primary"
         style="top: {Math.min(actualRenderedH, glassTopY) + 30}px; bottom: 0; backdrop-filter: blur(24px);"
       />
     </div>
   </div>
-
-  <!-- Hero背景からページ背景色へ繋ぐグラデーション（下部を不透明化して白い露出を防ぐ） -->
-  <div 
-    class="absolute inset-0 pointer-events-none z-5"
-    style="background: linear-gradient(to bottom, transparent 0%, transparent 40vh, rgba(var(--color-bg-primary), 0.65) 100vh, rgba(var(--color-bg-primary), 0.65) 100%);"
-  />
 
   <Hero 
     {element} 
