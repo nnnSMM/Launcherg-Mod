@@ -6,6 +6,7 @@
     import LinkToSidebar from "@/components/Work/LinkToSidebar.svelte";
     import Detail from "@/components/Work/Detail.svelte";
     import ScreenshotGallery from "@/components/Work/ScreenshotGallery.svelte";
+    import PlayHeatmap from "@/components/Work/PlayHeatmap.svelte";
     import { formatLastPlayed, formatPlayTime, handleMarkdownClick } from "@/lib/utils";
     import { memo } from "@/store/memo";
     import { parseMarkdown } from "@/lib/markdown";
@@ -256,6 +257,7 @@
                     </div>
                 </div>
             </div>
+            <PlayHeatmap {element} />
         </section>
     {:else if page === "memo"}
         <section

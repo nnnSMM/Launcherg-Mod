@@ -12,6 +12,7 @@
   import { push, location } from "svelte-spa-router";
   import { isWorkDetailRoute } from "@/lib/routeHelper";
 
+  const isDemoBuild = import.meta.env.BASE_URL === "./";
   $: isWorkDetail = isWorkDetailRoute($location);
 
   let tabElements: HTMLElement[] = [];
@@ -218,7 +219,7 @@
       {/if}
     </div>
     <div
-      class="w-full h-full border-b-1px border-solid border-border-primary transition-colors duration-300 {isWorkDetail ? 'bg-accent-primary/8 border-border-primary/30' : 'bg-bg-disabled'}"
+      class="w-full h-full border-b-1px border-solid border-border-primary transition-colors duration-300 {isWorkDetail ? 'bg-accent-primary/8 border-border-primary' : 'bg-bg-disabled'}"
     />
   </div>
 </ScrollableHorizontal>

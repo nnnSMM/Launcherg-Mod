@@ -193,7 +193,7 @@
   }
 </script>
 
-<div class="{heightClass} {isWorkDetail ? 'bg-transparent border-border-primary/30' : 'bg-bg-primary/92 border-border-primary'} border-b border-solid flex items-center select-none w-full z-50 shrink-0 relative backdrop-blur-xl transition-all duration-300">
+<div class="{heightClass} {isWorkDetail ? 'bg-transparent border-border-primary' : 'bg-bg-primary/92 border-border-primary'} border-b border-solid flex items-center select-none w-full z-50 shrink-0 relative backdrop-blur-xl transition-all duration-300">
   <div class="flex h-full min-w-0 flex-1 items-center pr-[132px]">
     <div class="flex items-center h-full gap-1 pl-1.5 pr-2 shrink-0">
       {#if variant === "main"}

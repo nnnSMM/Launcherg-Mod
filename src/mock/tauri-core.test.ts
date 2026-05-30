@@ -48,6 +48,24 @@ describe("demo tauri core", () => {
     expect(added).toEqual([]);
   });
 
+  it("serves deterministic daily play times for the demo heatmap", async () => {
+    const { invoke } = await import("@/mock/tauri-core");
+
+    const rows = await invoke<
+      Array<{
+        collectionElementId: number;
+        playDate: string;
+        playTimeSeconds: number;
+      }>
+    >("get_collection_element_daily_play_times", {
+      collectionElementId: 27059,
+    });
+
+    expect(rows.length).toBeGreaterThan(1);
+    expect(rows.every((row) => row.collectionElementId === 27059)).toBe(true);
+    expect(rows.reduce((sum, row) => sum + row.playTimeSeconds, 0)).toBe(117360);
+  });
+
   it("uses an icon from the selected real folder when the browser exposes file contents", async () => {
     const makeFile = (content: string, name: string, type = "") =>
       Object.assign(new Blob([content], { type }), { name }) as File;

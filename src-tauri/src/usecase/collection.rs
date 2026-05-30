@@ -22,8 +22,7 @@ use crate::{
             get_screenshot_thumbnail_path, get_thumbnail_path, save_icon_to_png,
             save_thumbnail_from_candidates,
         },
-        repository::collection::CollectionRepository,
-        repository::collection::GameScreenshotCache,
+        repository::collection::{CollectionRepository, DailyPlayTime, GameScreenshotCache},
         repository::screenshot::{Screenshot, ScreenshotRepository},
         Id,
     },
@@ -456,6 +455,16 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
         self.repositories
             .collection_repository()
             .get_all_elements()
+            .await
+    }
+
+    pub async fn get_collection_element_daily_play_times(
+        &self,
+        id: &Id<CollectionElement>,
+    ) -> anyhow::Result<Vec<DailyPlayTime>> {
+        self.repositories
+            .collection_repository()
+            .get_daily_play_times(id)
             .await
     }
 

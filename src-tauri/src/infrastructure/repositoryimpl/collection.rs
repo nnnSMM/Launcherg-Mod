@@ -5,7 +5,7 @@ use sqlx::{query, query_as, QueryBuilder, Row};
 use super::{models::collection::CollectionElementTable, repository::RepositoryImpl};
 use crate::domain::{
     collection::{CollectionElement, NewCollectionElement, NewCollectionElementDetail},
-    repository::collection::{CollectionRepository, GameScreenshotCache},
+    repository::collection::{CollectionRepository, DailyPlayTime, GameScreenshotCache},
     Id,
 };
 
@@ -389,6 +389,31 @@ impl CollectionRepository for RepositoryImpl<CollectionElement> {
 
         Ok(())
     }
+    async fn get_daily_play_times(
+        &self,
+        id: &Id<CollectionElement>,
+    ) -> anyhow::Result<Vec<DailyPlayTime>> {
+        let pool = self.pool.0.clone();
+        let rows = query(
+            "SELECT collection_element_id, play_date, play_time_seconds
+             FROM collection_element_daily_play_times
+             WHERE collection_element_id = ? AND play_time_seconds > 0
+             ORDER BY play_date ASC",
+        )
+        .bind(id.value)
+        .fetch_all(&*pool)
+        .await?;
+
+        Ok(rows
+            .into_iter()
+            .map(|row| DailyPlayTime {
+                collection_element_id: row.get::<i64, _>("collection_element_id") as i32,
+                play_date: row.get("play_date"),
+                play_time_seconds: row.get::<i64, _>("play_time_seconds") as i32,
+            })
+            .collect())
+    }
+
     async fn delete_element_by_id(&self, id: &Id<CollectionElement>) -> anyhow::Result<()> {
         let pool = self.pool.0.clone();
         query("delete from collection_elements where id = ?") // collection_elements から削除

@@ -14,7 +14,7 @@
     import TitleBar from "@/components/TitleBar.svelte";
     import emblaCarouselSvelte from "embla-carousel-svelte";
     import type { EmblaCarouselType, EmblaOptionsType } from "embla-carousel";
-    import { isNearTopEdge } from "@/lib/edgeDetection";
+    import { isInsideTopEdgeArea, isNearTopEdge } from "@/lib/edgeDetection";
 
     let allScreenshots: Screenshot[] = [];
     let allGames: CollectionElement[] = [];
@@ -37,7 +37,7 @@
     let isHoveringFilmstripArea = false;
     let fullscreenUiTimer: ReturnType<typeof setTimeout> | null = null;
     let fullscreenFilmstripApi: EmblaCarouselType | null = null;
-    const fullscreenChromeHoverHeight = 112;
+    const fullscreenChromeHoverHeight = 104;
     const fullscreenFilmstripOptions: EmblaOptionsType = {
         align: "start",
         containScroll: "trimSnaps",
@@ -384,7 +384,7 @@
 
     const handleChromeMouseLeave = (e: MouseEvent) => {
         if (e.buttons === 1) return;
-        if (e.clientY < fullscreenChromeHoverHeight) return;
+        if (isInsideTopEdgeArea(e.clientY, fullscreenChromeHoverHeight)) return;
         isHoveringChromeArea = false;
         hideFullscreenUi();
     };
@@ -408,17 +408,19 @@
         // ドラッグ中（e.buttons === 1）なら、ストリップの再初期化（reInit）によるフリーズを防ぐため、トリガー処理を完全にスキップする
         if (e.buttons === 1) return;
 
-        if (
-            showFullscreenChrome &&
-            e.clientY >= fullscreenChromeHoverHeight
-        ) {
+        const isInsideChromeArea = isInsideTopEdgeArea(
+            e.clientY,
+            fullscreenChromeHoverHeight,
+        );
+
+        if (showFullscreenChrome && !isInsideChromeArea) {
             isHoveringChromeArea = false;
             showFullscreenChrome = false;
         }
 
         if (
             isNearTopEdge(e.clientY, 5) ||
-            (showFullscreenChrome && e.clientY < fullscreenChromeHoverHeight)
+            (showFullscreenChrome && isInsideChromeArea)
         ) {
             revealFullscreenChrome();
         }
@@ -719,6 +721,7 @@
             {#if isFullscreenViewer}
                 <div
                     class="absolute inset-x-0 top-0 z-60 h-28"
+                    style={`height: ${fullscreenChromeHoverHeight}px;`}
                     on:mouseleave={handleChromeMouseLeave}
                 >
                     <button

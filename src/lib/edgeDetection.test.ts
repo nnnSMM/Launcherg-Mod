@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { isNearTopEdge, isNearBottomEdge } from "./edgeDetection";
+import {
+    isNearTopEdge,
+    isNearBottomEdge,
+    isInsideTopEdgeArea,
+} from "./edgeDetection";
 
 describe("edgeDetection - 画面端のカーソル検知", () => {
     describe("isNearTopEdge", () => {
@@ -38,6 +42,15 @@ describe("edgeDetection - 画面端のカーソル検知", () => {
             expect(isNearBottomEdge(970, windowHeight, 30)).toBe(true);
             expect(isNearBottomEdge(971, windowHeight, 30)).toBe(true);
             expect(isNearBottomEdge(969, windowHeight, 30)).toBe(false);
+        });
+    });
+
+    describe("isInsideTopEdgeArea", () => {
+        it("指定した上部領域内だけtrueを返すこと", () => {
+            expect(isInsideTopEdgeArea(0, 104)).toBe(true);
+            expect(isInsideTopEdgeArea(103, 104)).toBe(true);
+            expect(isInsideTopEdgeArea(104, 104)).toBe(false);
+            expect(isInsideTopEdgeArea(160, 104)).toBe(false);
         });
     });
 });

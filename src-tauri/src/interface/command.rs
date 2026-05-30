@@ -14,7 +14,10 @@ use crate::{
             get_exe_path_from_lnk, get_file_created_at_sync, get_icon_path, get_lnk_metadatas,
             get_thumbnail_candidate_urls, get_thumbnail_path, normalize,
         },
-        repository::collection::GameScreenshotCache as DomainGameScreenshotCache,
+        repository::collection::{
+            DailyPlayTime as DomainDailyPlayTime,
+            GameScreenshotCache as DomainGameScreenshotCache,
+        },
         Id,
     },
     usecase::error::UseCaseError,
@@ -44,6 +47,24 @@ pub struct GameScreenshotCache {
     pub screenshots_json: String,
     pub fetched_at: String,
     pub status: String,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CollectionElementDailyPlayTime {
+    pub collection_element_id: i32,
+    pub play_date: String,
+    pub play_time_seconds: i32,
+}
+
+impl From<DomainDailyPlayTime> for CollectionElementDailyPlayTime {
+    fn from(value: DomainDailyPlayTime) -> Self {
+        Self {
+            collection_element_id: value.collection_element_id,
+            play_date: value.play_date,
+            play_time_seconds: value.play_time_seconds,
+        }
+    }
 }
 
 impl From<DomainGameScreenshotCache> for GameScreenshotCache {
@@ -691,6 +712,20 @@ pub async fn adjust_untracked_play_time_seconds(
         .collection_use_case()
         .adjust_untracked_play_time_seconds(&Arc::new(handle), &Id::new(id), seconds)
         .await?)
+}
+
+#[tauri::command]
+pub async fn get_collection_element_daily_play_times(
+    modules: State<'_, Arc<Modules>>,
+    collection_element_id: i32,
+) -> Result<Vec<CollectionElementDailyPlayTime>, CommandError> {
+    Ok(modules
+        .collection_use_case()
+        .get_collection_element_daily_play_times(&Id::new(collection_element_id))
+        .await?
+        .into_iter()
+        .map(Into::into)
+        .collect())
 }
 
 #[tauri::command]

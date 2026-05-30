@@ -117,6 +117,10 @@ export default defineConfig({
     "i-material-symbols-mic-outline-rounded",
     "i-material-symbols-music-note-rounded",
     "i-material-symbols-info-outline-rounded",
+    "bg-accent-primary/8",
+    "border-border-primary/30",
+    "bg-transparent",
+    "bg-bg-primary/92",
   ],
   transformers: [transformerVariantGroup()],
   shortcuts: {

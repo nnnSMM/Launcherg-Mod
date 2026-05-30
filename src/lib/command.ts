@@ -1,6 +1,7 @@
 import type {
   AllGameCacheOne,
   CollectionElement,
+  CollectionElementDailyPlayTime,
   CollectionElementDetail,
   PlayStatus,
   Screenshot,
@@ -118,6 +119,15 @@ export const commandAdjustUntrackedPlayTimeSeconds = async (
   seconds: number
 ) => {
   return await invoke<void>("adjust_untracked_play_time_seconds", { id, seconds });
+};
+
+export const commandGetCollectionElementDailyPlayTimes = async (
+  collectionElementId: number
+) => {
+  return await invoke<CollectionElementDailyPlayTime[]>(
+    "get_collection_element_daily_play_times",
+    { collectionElementId }
+  );
 };
 
 export const commandOpenFolder = async (path: string) => {

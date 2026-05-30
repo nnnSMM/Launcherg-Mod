@@ -9,6 +9,7 @@ import { invoke } from '@tauri-apps/api/core';
 import {
     commandGetAllGameCacheLastUpdated,
     commandGetAppSetting,
+    commandGetCollectionElementDailyPlayTimes,
     commandPlayGame,
 } from './command';
 
@@ -60,6 +61,27 @@ describe('command.ts', () => {
             );
 
             await expect(commandGetAppSetting('test')).rejects.toThrow('Network error');
+        });
+    });
+
+    describe('commandGetCollectionElementDailyPlayTimes', () => {
+        it('日別プレイ時間取得コマンドを正しい引数で呼ぶ', async () => {
+            const rows = [
+                {
+                    collectionElementId: 10,
+                    playDate: '2026-05-30',
+                    playTimeSeconds: 3600,
+                },
+            ];
+            (invoke as ReturnType<typeof vi.fn>).mockResolvedValue(rows);
+
+            const result = await commandGetCollectionElementDailyPlayTimes(10);
+
+            expect(result).toEqual(rows);
+            expect(invoke).toHaveBeenCalledWith(
+                'get_collection_element_daily_play_times',
+                { collectionElementId: 10 },
+            );
         });
     });
 

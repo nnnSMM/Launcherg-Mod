@@ -80,6 +80,12 @@ export type CollectionElement = {
 
 };
 
+export type CollectionElementDailyPlayTime = {
+  collectionElementId: number;
+  playDate: string;
+  playTimeSeconds: number;
+};
+
 export type CollectionElementsWithLabel = {
   label: string;
   elements: CollectionElement[];

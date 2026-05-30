@@ -15,6 +15,13 @@ pub struct GameScreenshotCache {
     pub status: String,
 }
 
+#[derive(Debug, Clone)]
+pub struct DailyPlayTime {
+    pub collection_element_id: i32,
+    pub play_date: String,
+    pub play_time_seconds: i32,
+}
+
 #[async_trait]
 pub trait CollectionRepository {
     async fn get_all_elements(&self) -> Result<Vec<CollectionElement>>;
@@ -93,6 +100,10 @@ pub trait CollectionRepository {
         id: &Id<CollectionElement>,
         seconds: i32,
     ) -> Result<()>;
+    async fn get_daily_play_times(
+        &self,
+        id: &Id<CollectionElement>,
+    ) -> Result<Vec<DailyPlayTime>>;
 
     #[allow(dead_code)]
     async fn delete_element_by_id(&self, id: &Id<CollectionElement>) -> Result<()>;

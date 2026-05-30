@@ -8,6 +8,7 @@
   export let work: Work;
   export let element: CollectionElement;
   export let scrollY: number = 0;
+  const isDemoBuild = import.meta.env.BASE_URL === "./";
 
   let actualRenderedH = 0;
   let heroHeight = 0;
