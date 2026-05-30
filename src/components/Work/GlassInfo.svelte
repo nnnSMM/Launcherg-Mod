@@ -266,7 +266,7 @@
                                 title="プレイ時間の詳細"
                             >
                                 <div
-                                    class="i-material-symbols-timer-outline-rounded h-8 w-8 color-ui-tertiary transition-colors group-hover:color-text-primary"
+                                    class="i-material-symbols-timer-outline-rounded h-8 w-8 color-text-tertiary transition-colors group-hover:color-text-primary"
                                 />
                             </div>
                             <div class="w-80 max-w-[calc(100vw-16px)] p-4">
@@ -354,7 +354,7 @@
                         </div>
                     </div>
                     <div class="flex min-w-0 items-center gap-3">
-                        <div class="i-material-symbols-update-rounded h-8 w-8 shrink-0 color-ui-tertiary" />
+                        <div class="i-material-symbols-update-rounded h-8 w-8 shrink-0 color-text-tertiary" />
                         <div class="w-24 min-w-0">
                             <div class="text-[12px] leading-none text-text-tertiary">最終プレイ</div>
                             <div class="mt-1.5 truncate text-body2 font-semibold text-text-primary">
