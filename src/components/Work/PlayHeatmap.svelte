@@ -16,7 +16,10 @@
         type RgbColor,
     } from "@/lib/playHeatmap";
 
-    export let element: CollectionElement;
+    export let element: CollectionElement | null = null;
+    export let isTotalHeatmap = false;
+    export let totalPlayTimes: CollectionElementDailyPlayTime[] = [];
+    export let baseColor: RgbColor = fallbackHeatmapColor;
 
     let dailyPlayTimes: CollectionElementDailyPlayTime[] = [];
     let isLoading = true;
@@ -25,26 +28,30 @@
     let playTimeRequestId = 0;
     let loadedThumbnailSrc = "";
     let colorRequestId = 0;
-    let baseColor: RgbColor = fallbackHeatmapColor;
+
+    $: if (isTotalHeatmap) {
+        isLoading = false;
+        hasLoadError = false;
+    }
 
     $: thumbnailSrc =
-        element?.thumbnail && element.thumbnail.trim() !== ""
+        !isTotalHeatmap && element?.thumbnail && element.thumbnail.trim() !== ""
             ? convertFileSrc(element.thumbnail)
             : "";
 
-    $: if (element?.id && element.id !== loadedElementId) {
+    $: if (!isTotalHeatmap && element?.id && element.id !== loadedElementId) {
         loadedElementId = element.id;
         baseColor = fallbackHeatmapColor;
         loadedThumbnailSrc = "";
         void loadDailyPlayTimes(element.id);
     }
 
-    $: if (thumbnailSrc && thumbnailSrc !== loadedThumbnailSrc) {
+    $: if (!isTotalHeatmap && thumbnailSrc && thumbnailSrc !== loadedThumbnailSrc) {
         loadedThumbnailSrc = thumbnailSrc;
         void loadThumbnailColor(thumbnailSrc);
     }
 
-    $: heatmap = buildPlayHeatmap(dailyPlayTimes);
+    $: heatmap = buildPlayHeatmap(isTotalHeatmap ? totalPlayTimes : dailyPlayTimes);
     $: baseColorText = `${baseColor.r}, ${baseColor.g}, ${baseColor.b}`;
     $: totalPlayTimeText = formatPlayTime(heatmap.totalSeconds);
     $: maxDailyPlayTimeText = formatPlayTime(heatmap.maxDailySeconds);
@@ -137,17 +144,21 @@
     <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
         <div class="flex items-center gap-2.5">
             <div class="heatmap-title-icon">
-                <div class="i-material-symbols-calendar-view-month-rounded h-4 w-4" />
+                {#if isTotalHeatmap}
+                    <div class="i-material-symbols-grid-view-rounded h-4 w-4" />
+                {:else}
+                    <div class="i-material-symbols-calendar-month-outline-rounded h-4 w-4" />
+                {/if}
             </div>
             <div>
                 <h3
                     id="work-play-heatmap-title"
                     class="text-h3 text-text-primary font-bold drop-shadow-sm"
                 >
-                    プレイヒートマップ
+                    {isTotalHeatmap ? "全体のアクティビティ" : "プレイヒートマップ"}
                 </h3>
                 <div class="text-caption text-text-tertiary mt-0.5">
-                    過去1年間の記録
+                    {isTotalHeatmap ? "すべてのゲームの合計記録" : "過去1年間の記録"}
                 </div>
             </div>
         </div>
