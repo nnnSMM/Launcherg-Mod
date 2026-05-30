@@ -32,8 +32,8 @@
     document?.documentElement?.dataset.theme === "light";
   $: itemStateClass = isActive
     ? isLightTheme
-      ? "bg-bg-button-hover/75"
-      : "bg-bg-button-hover/55"
+      ? "bg-bg-button-hover/50"
+      : "bg-bg-button-hover/35"
     : isLightTheme
       ? "hover:bg-bg-button-hover/50"
       : "hover:bg-bg-button-hover/35";
@@ -88,7 +88,7 @@
     <img
       alt="{collectionElement.gamename}_icon"
       src={iconSrc}
-      class="h-5 w-5 rounded-sm object-cover shadow-sm transition-transform group-hover:scale-105"
+      class="h-5 w-5 rounded-sm object-cover shadow-sm"
       loading="lazy"
       on:error={(e) => {
         const img = e.currentTarget;
