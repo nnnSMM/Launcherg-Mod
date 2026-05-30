@@ -67,6 +67,24 @@
       },
     },
   ];
+
+  let currentTitle = "";
+
+  function handleMouseEnter(e: MouseEvent) {
+    const target = e.currentTarget as HTMLElement;
+    const titleElement = target.querySelector(".truncate") as HTMLElement;
+    if (titleElement) {
+      if (titleElement.scrollWidth > titleElement.clientWidth) {
+        currentTitle = collectionElement.gamename;
+      } else {
+        currentTitle = "";
+      }
+    }
+  }
+
+  function handleMouseLeave() {
+    currentTitle = "";
+  }
 </script>
 
 <div
@@ -82,7 +100,9 @@
     href={`/works/${collectionElement.id}?gamename=${collectionElement.gamename}`}
     class="flex flex-1 w-full items-center gap-3 min-w-0 focus-visible:ring-2 focus-visible:ring-accent-accent rounded"
     aria-current={isActive ? "page" : undefined}
-    title={collectionElement.gamename}
+    title={currentTitle || undefined}
+    on:mouseenter={handleMouseEnter}
+    on:mouseleave={handleMouseLeave}
     use:link
   >
     <img

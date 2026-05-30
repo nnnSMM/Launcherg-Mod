@@ -14,7 +14,7 @@
     import TitleBar from "@/components/TitleBar.svelte";
     import emblaCarouselSvelte from "embla-carousel-svelte";
     import type { EmblaCarouselType, EmblaOptionsType } from "embla-carousel";
-    import { isNearTopEdge, isNearBottomEdge } from "@/lib/edgeDetection";
+    import { isNearTopEdge } from "@/lib/edgeDetection";
 
     let allScreenshots: Screenshot[] = [];
     let allGames: CollectionElement[] = [];
@@ -37,6 +37,7 @@
     let isHoveringFilmstripArea = false;
     let fullscreenUiTimer: ReturnType<typeof setTimeout> | null = null;
     let fullscreenFilmstripApi: EmblaCarouselType | null = null;
+    const fullscreenChromeHoverHeight = 112;
     const fullscreenFilmstripOptions: EmblaOptionsType = {
         align: "start",
         containScroll: "trimSnaps",
@@ -382,8 +383,8 @@
     };
 
     const handleChromeMouseLeave = (e: MouseEvent) => {
-        if (e.buttons === 1) return; // ドラッグ中なら無視する
-        if (e.clientY < 120) return; // エリア内（120px未満）なら無視する
+        if (e.buttons === 1) return;
+        if (e.clientY < fullscreenChromeHoverHeight) return;
         isHoveringChromeArea = false;
         hideFullscreenUi();
     };
@@ -407,7 +408,18 @@
         // ドラッグ中（e.buttons === 1）なら、ストリップの再初期化（reInit）によるフリーズを防ぐため、トリガー処理を完全にスキップする
         if (e.buttons === 1) return;
 
-        if (isNearTopEdge(e.clientY, 5) || (showFullscreenChrome && e.clientY < 120)) {
+        if (
+            showFullscreenChrome &&
+            e.clientY >= fullscreenChromeHoverHeight
+        ) {
+            isHoveringChromeArea = false;
+            showFullscreenChrome = false;
+        }
+
+        if (
+            isNearTopEdge(e.clientY, 5) ||
+            (showFullscreenChrome && e.clientY < fullscreenChromeHoverHeight)
+        ) {
             revealFullscreenChrome();
         }
     };

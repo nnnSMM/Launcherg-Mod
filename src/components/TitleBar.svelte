@@ -58,14 +58,20 @@
 
   $: themeButtonLabel = $theme === "dark" ? navLabels.dark : navLabels.light;
 
-  const titlebarIconButtonClass =
-    "h-8 w-8 flex items-center justify-center rounded-md cursor-pointer outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-accent bg-transparent border border-transparent text-text-secondary hover:bg-bg-tertiary/40 hover:text-text-primary";
+  $: titlebarIconButtonClass =
+    `h-8 w-8 flex items-center justify-center rounded-md cursor-pointer outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-accent bg-transparent border border-transparent text-text-secondary ${
+      $theme === "light" ? "hover:bg-black/10" : "hover:bg-bg-tertiary/40"
+    } hover:text-text-primary`;
   const titlebarActionButtonClass =
     "h-8 px-3 flex items-center gap-1.5 rounded-md cursor-pointer outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-accent bg-accent-primary/12 border border-accent-primary/40 text-text-primary hover:bg-accent-primary/24 text-[12px] font-medium whitespace-nowrap";
-  const titlebarGameAddButtonClass =
-    "h-8 w-8 flex items-center justify-center rounded-md cursor-pointer outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-accent bg-transparent border border-transparent text-text-secondary hover:bg-bg-tertiary/40 hover:text-text-primary";
-  const titlebarToolButtonClass =
-    "h-8 px-2 xl:px-2.5 flex items-center gap-1.5 rounded-md cursor-pointer outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-accent bg-transparent border border-transparent text-text-secondary hover:bg-bg-tertiary/40 hover:text-text-primary text-[12px] font-medium whitespace-nowrap";
+  $: titlebarGameAddButtonClass =
+    `h-8 w-8 flex items-center justify-center rounded-md cursor-pointer outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-accent bg-transparent border border-transparent text-text-secondary ${
+      $theme === "light" ? "hover:bg-black/10" : "hover:bg-bg-tertiary/40"
+    } hover:text-text-primary`;
+  $: titlebarToolButtonClass =
+    `h-8 px-2 xl:px-2.5 flex items-center gap-1.5 rounded-md cursor-pointer outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-accent bg-transparent border border-transparent text-text-secondary ${
+      $theme === "light" ? "hover:bg-black/10" : "hover:bg-bg-tertiary/40"
+    } hover:text-text-primary text-[12px] font-medium whitespace-nowrap`;
   const titlebarDividerClass = "h-5 w-px bg-border-primary/80 mx-1";
   const titlebarTooltipAction = (node: HTMLElement, label: string) => {
     const tp = tippy(node, {
@@ -309,13 +315,13 @@
 
   <!-- window controls -->
   <div class="absolute top-0 right-0 flex {heightClass} items-start border-l {isWorkDetail ? 'border-border-primary/30' : 'border-border-primary'}">
-    <button tabindex="-1" on:click={minimize} class="w-11 {heightClass} flex items-center justify-center bg-transparent hover:bg-bg-tertiary/40 transition-colors text-text-secondary hover:text-text-primary outline-none border-none focus:outline-none focus-visible:outline-none">
+    <button tabindex="-1" on:click={minimize} class="w-11 {heightClass} flex items-center justify-center bg-transparent {$theme === 'light' ? 'hover:bg-black/10' : 'hover:bg-bg-tertiary/40'} transition-colors text-text-secondary hover:text-text-primary outline-none border-none focus:outline-none focus-visible:outline-none">
       <div class="i-material-symbols:remove text-lg"></div>
     </button>
-    <button tabindex="-1" on:click={toggleMaximize} class="w-11 {heightClass} flex items-center justify-center bg-transparent hover:bg-bg-tertiary/40 transition-colors text-text-secondary hover:text-text-primary outline-none border-none focus:outline-none focus-visible:outline-none">
+    <button tabindex="-1" on:click={toggleMaximize} class="w-11 {heightClass} flex items-center justify-center bg-transparent {$theme === 'light' ? 'hover:bg-black/10' : 'hover:bg-bg-tertiary/40'} transition-colors text-text-secondary hover:text-text-primary outline-none border-none focus:outline-none focus-visible:outline-none">
       <div class={isMaximized ? "i-material-symbols:filter-none text-[14px]" : "i-material-symbols:check-box-outline-blank text-base"}></div>
     </button>
-    <button tabindex="-1" on:click={closeWindow} class="w-11 {heightClass} flex items-center justify-center bg-transparent hover:bg-accent-error/50 transition-colors text-text-secondary hover:text-text-white outline-none border-none focus:outline-none focus-visible:outline-none">
+    <button tabindex="-1" on:click={closeWindow} class="w-11 {heightClass} flex items-center justify-center bg-transparent {$theme === 'light' ? 'hover:bg-black/10' : 'hover:bg-bg-tertiary/40'} transition-colors text-text-secondary hover:text-accent-error outline-none border-none focus:outline-none focus-visible:outline-none">
       <div class="i-material-symbols:close text-lg"></div>
     </button>
   </div>
