@@ -75,9 +75,9 @@ jobs:
       - name: Update app version in tauri.conf.json
         shell: pwsh
         run: |
-          $json = Get-Content -Path "src-tauri\tauri.conf.json" -Raw | ConvertFrom-Json
+          $json = Get-Content -Path "src-tauri/tauri.conf.json" -Raw | ConvertFrom-Json
           $json.version = "${{ steps.variables.outputs.app_version }}"
-          $json | ConvertTo-Json -Depth 100 | Set-Content -Path "src-tauri\tauri.conf.json"
+          $json | ConvertTo-Json -Depth 100 | Set-Content -Path "src-tauri/tauri.conf.json"
 
       - uses: actions/cache@v4
         with:
@@ -105,9 +105,9 @@ jobs:
           $displayVersion = "${{ steps.variables.outputs.display_version }}"
           $builtArtifactName = "Launcherg-Mod_${appVersion}_x64_ja-JP.msi.zip"
           $releaseArtifactName = "Launcherg-Mod_${displayVersion}_x64_ja-JP.msi.zip"
-          $builtArtifactPath = ".\src-tauri\target\release\bundle\msi\${builtArtifactName}"
+          $builtArtifactPath = "src-tauri/target/release/bundle/msi/${builtArtifactName}"
           $builtSignaturePath = "${builtArtifactPath}.sig"
-          $releaseArtifactPath = ".\src-tauri\target\release\bundle\msi\${releaseArtifactName}"
+          $releaseArtifactPath = "src-tauri/target/release/bundle/msi/${releaseArtifactName}"
           $releaseSignaturePath = "${releaseArtifactPath}.sig"
           if (!(Test-Path $builtArtifactPath)) {
             throw "Updater artifact was not found: ${builtArtifactPath}"
@@ -164,11 +164,14 @@ jobs:
           Write-Host "Updater manifest verified: version=$($data.version), url=$($data.url)"
 
       - name: Format generated metadata
-        run: npx -y prettier .\src-tauri\tauri.conf.json .\default.tauri-updater.json .\update-info.json --write
+        run: npx -y prettier src-tauri/tauri.conf.json default.tauri-updater.json update-info.json --write
 
       - name: Create GitHub release
         uses: ncipollo/release-action@v1
         with:
           artifacts: "src-tauri/target/release/bundle/msi/Launcherg-Mod_${{ steps.variables.outputs.display_version }}_x64_ja-JP.msi.zip,src-tauri/target/release/bundle/msi/Launcherg-Mod_${{ steps.variables.outputs.display_version }}_x64_ja-JP.msi.zip.sig,default.tauri-updater.json,update-info.json"
           token: ${{ secrets.GITHUB_TOKEN }}
+          allowUpdates: true
+          removeArtifacts: true
+          replacesArtifacts: true
           prerelease: true
