@@ -99,6 +99,7 @@ export default defineConfig(async () => ({
   build: {
     outDir: "docs/demo",
     emptyOutDir: true,
+    chunkSizeWarningLimit: 7000,
     rollupOptions: {
       output: {
         entryFileNames: `assets/[name]-[hash]-${demoBuildId}.js`,

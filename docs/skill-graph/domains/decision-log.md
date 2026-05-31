@@ -12,6 +12,14 @@ links:
 
 # Decision Log
 
+## 2026-05-31: デモ環境における works.ensureRegisteredStories モック不足による画面遷移不具合の解消
+
+- Context: アプリ起動時に未取得のストーリー詳細を自動取得する機能として works.ensureRegisteredStories() が App.svelte の初期化処理に導入されたが、デモ環境（isPublicDemoBuild = true）で使用されるモック src/mock/works.ts に同メソッドが定義されていなかった。このため、紹介ページ（ランディングページ）からデモページへ遷移する際に works.ensureRegisteredStories is not a function という同期的 TypeError が発生し、Svelte のリアクティブ更新サイクルがクラッシュして画面が切り替わらない不具合が起きていた。
+- Decision: TDDスタイルに基づき、まずモック works が ensureRegisteredStories メソッドを安全に呼び出せる（例外を投げず Promise を解決する）ことを確認するテスト src/mock/works.test.ts を作成し、その後 src/mock/works.ts に Promise.resolve() を返すダミーの同メソッドを実装して不整合を解消した。
+- Rationale: デモ環境では実アプリのような外部からのストーリー事前取得は不要であるため、ダミー実装として定義だけを持たせることで、App.svelte 側の同期的例外の発生を防ぎ、画面遷移がクラッシュせず正常に行われるようにするため。
+- Consequence: デモ環境での紹介ページとデモページの双方向の遷移が、再読み込みなしでスムーズに機能するようになる。
+- Links: [[launcherg-improvement-moc]], [[quality-gates]]
+
 ## 2026-05-31: updaterリリースはdefaultマニフェストと現在鍵へ固定する
 
 - Context: 20260524 から 20260531 への自動更新で、旧アプリが参照するマニフェスト名と署名検証用公開鍵が現在のリリース成果物とずれ、更新検知または署名検証で失敗するリスクがあった。

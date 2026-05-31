@@ -287,6 +287,8 @@
                         </h3>
                         <div class="rounded-xl border border-black/10 dark:border-white/10 bg-bg-secondary/40 backdrop-blur-lg p-6 text-text-primary overflow-auto max-h-[600px] shadow-lg inset-shadow-sm transition-all duration-300 hover:border-black/15 dark:hover:border-white/15">
                             {#if renderedMemoHtml}
+                                <!-- svelte-ignore a11y-click-events-have-key-events -->
+                                <!-- svelte-ignore a11y-no-static-element-interactions -->
                                 <div class="markdown-body" on:click={handleMarkdownClick}>
                                     {@html renderedMemoHtml}
                                 </div>

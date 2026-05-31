@@ -7,6 +7,7 @@
         commandDeleteScreenshot,
     } from "@/lib/command";
     import { convertFileSrc } from "@tauri-apps/api/core";
+    import { getCurrentWindow } from "@tauri-apps/api/window";
     import { stat } from "@tauri-apps/plugin-fs";
     import ScreenshotGrid from "@/components/ScreenshotWindow/ScreenshotGrid.svelte";
     import GameSelector from "@/components/ScreenshotWindow/GameSelector.svelte";
@@ -195,7 +196,6 @@
 
     onMount(async () => {
         // Use getCurrentWindow().listen for window-specific events
-        const { getCurrentWindow } = await import("@tauri-apps/api/window");
         const currentWindow = getCurrentWindow();
         currentWindowHandle = currentWindow;
         readyFallbackTimer = setTimeout(() => {

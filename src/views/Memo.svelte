@@ -209,6 +209,8 @@
   };
 </script>
 
+<!-- svelte-ignore a11y-click-events-have-key-events -->
+<!-- svelte-ignore a11y-no-static-element-interactions -->
 <div class="w-full h-full min-w-0 bg-transparent flex flex-col" bind:clientHeight={height} on:click={handleMarkdownClick}>
   <textarea id="mde" use:mde />
 </div>

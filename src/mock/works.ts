@@ -13,7 +13,12 @@ const createWorks = () => {
     console.log(`[Mock Works] get(${id}) =>`, result ? result.name : "null");
     return result;
   };
-  return { get };
+  return {
+    get,
+    ensureRegisteredStories: async () => {
+      // デモ環境ではストーリー詳細のプリフェッチは不要なため、即座に解決するダミー実装
+    },
+  };
 };
 
 export const works = createWorks();
