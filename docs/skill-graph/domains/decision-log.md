@@ -15,8 +15,8 @@ links:
 ## 2026-05-31: updaterリリースはdefaultマニフェストと現在鍵へ固定する
 
 - Context: 20260524 から 20260531 への自動更新で、旧アプリが参照するマニフェスト名と署名検証用公開鍵が現在のリリース成果物とずれ、更新検知または署名検証で失敗するリスクがあった。
-- Decision: updater の公開マニフェスト名は `default.tauri-updater.json` に統一し、Tauri 設定の `pubkey` は現在の署名秘密鍵に対応する公開鍵へ揃える。Release workflow はアセット指定をスラッシュ形式へ寄せ、既存 Release が残っていても `allowUpdates` とアセット置換で再リリースできるようにする。
-- Rationale: 先頭ドットの隠しファイル名や手動アップロードに依存すると、CI/CD と GitHub Release の間で名前ずれが起きやすい。既存 Release 更新を workflow に任せることで、タグ再投入だけで署名済み成果物とマニフェストを一貫して差し替えられる。
+- Decision: updater の公開マニフェスト名は `default.tauri-updater.json` に統一し、Tauri 設定の `pubkey` は現在の署名秘密鍵に対応する公開鍵へ揃える。Release workflow はアセット指定をスラッシュ形式へ寄せ、既存 Release が残っていても `allowUpdates` とアセット置換で再リリースできるようにする。アプリが `/releases/latest/download/...` を参照するため、updater 対象の Release は prerelease ではなく通常 Release として公開する。
+- Rationale: 先頭ドットの隠しファイル名や手動アップロードに依存すると、CI/CD と GitHub Release の間で名前ずれが起きやすい。既存 Release 更新を workflow に任せることで、タグ再投入だけで署名済み成果物とマニフェストを一貫して差し替えられる。GitHub の latest は prerelease を対象にしないため、prerelease のままだとタグ直指定は成功してもアプリの latest endpoint が 404 になる。
 - Consequence: 20260524 のホットフィックス再リリースと 20260531 以降のリリースで、手動アセット調整なしに同じ updater 経路を使える。署名鍵を変更する場合は、旧版から次版へ渡るための互換リリースを先に用意する必要がある。
 - Links: [[architecture-map]], [[quality-gates]], [[maintenance-routine]]
 
