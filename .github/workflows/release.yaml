@@ -103,8 +103,8 @@ jobs:
           $tagName = "${{ steps.variables.outputs.tag_name }}"
           $appVersion = "${{ steps.variables.outputs.app_version }}"
           $displayVersion = "${{ steps.variables.outputs.display_version }}"
-          $builtArtifactName = "Launcherg-Mod_${appVersion}_x64_ja-JP.msi.zip"
-          $releaseArtifactName = "Launcherg-Mod_${displayVersion}_x64_ja-JP.msi.zip"
+          $builtArtifactName = "Launcherg_${appVersion}_x64_ja-JP.msi.zip"
+          $releaseArtifactName = "Launcherg_${displayVersion}_x64_ja-JP.msi.zip"
           $builtArtifactPath = "src-tauri/target/release/bundle/msi/${builtArtifactName}"
           $builtSignaturePath = "${builtArtifactPath}.sig"
           $releaseArtifactPath = "src-tauri/target/release/bundle/msi/${releaseArtifactName}"
@@ -150,7 +150,7 @@ jobs:
           $tagName = "${{ steps.variables.outputs.tag_name }}"
           $appVersion = "${{ steps.variables.outputs.app_version }}"
           $displayVersion = "${{ steps.variables.outputs.display_version }}"
-          $expectedUrl = "${{ env.RELEASE_URL }}/download/${tagName}/Launcherg-Mod_${displayVersion}_x64_ja-JP.msi.zip"
+          $expectedUrl = "${{ env.RELEASE_URL }}/download/${tagName}/Launcherg_${displayVersion}_x64_ja-JP.msi.zip"
           $data = Get-Content -Path "default.tauri-updater.json" -Raw | ConvertFrom-Json
           if ($data.version -ne $appVersion) {
             throw "Unexpected updater version: $($data.version)"
@@ -169,7 +169,7 @@ jobs:
       - name: Create GitHub release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: "src-tauri/target/release/bundle/msi/Launcherg-Mod_${{ steps.variables.outputs.display_version }}_x64_ja-JP.msi.zip,src-tauri/target/release/bundle/msi/Launcherg-Mod_${{ steps.variables.outputs.display_version }}_x64_ja-JP.msi.zip.sig,default.tauri-updater.json,update-info.json"
+          artifacts: "src-tauri/target/release/bundle/msi/Launcherg_${{ steps.variables.outputs.display_version }}_x64_ja-JP.msi.zip,src-tauri/target/release/bundle/msi/Launcherg_${{ steps.variables.outputs.display_version }}_x64_ja-JP.msi.zip.sig,default.tauri-updater.json,update-info.json"
           token: ${{ secrets.GITHUB_TOKEN }}
           allowUpdates: true
           removeArtifacts: true

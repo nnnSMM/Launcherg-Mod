@@ -25,7 +25,7 @@
       "bin/extract-icon"
     ]
   },
-  "productName": "Launcherg-Mod",
+  "productName": "Launcherg",
   "version": "0.3.3",
   "identifier": "ryoha.moe",
   "plugins": {
@@ -35,7 +35,7 @@
       ],
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDdCQTA0QTREREJERUFEMTMKUldRVHJkN2JUVXFnZXpOcFFBK0FyeVV2dEFFb3V0cVlxdkZtTHp2cVhadjNiRjVaSkVCQ0lPSW0K",
       "windows": {
-        "installMode": "basicUi",
+        "installMode": "passive",
         "installerArgs": []
       },
       "enable": true
