@@ -228,7 +228,7 @@ const createAppUpdateStore = () => {
         return;
       }
 
-      if (__PUBLIC_DEMO_BUILD__) {
+      if (import.meta.env.DEV || __PUBLIC_DEMO_BUILD__) {
         activeTauriUpdate = null;
         update((state) => ({ ...state, status: "none", update: null }));
         return;

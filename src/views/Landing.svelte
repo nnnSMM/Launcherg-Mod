@@ -7,8 +7,7 @@
   const releaseApi = "https://api.github.com/repos/nnnSMM/Launcherg-Mod/releases/latest";
   const fallbackDownloadZip =
     `${repo}/releases/download/20260505/Launcherg-Mod_20260505_x64_ja-JP.zip`;
-  const rawImages =
-    "https://raw.githubusercontent.com/nnnSMM/Launcherg-Mod/main/images";
+  const rawImages = "images";
   const autoSwitchMs = 2000;
   const pageTitle =
     "Launcherg-Mod | VN・ノベルゲームのプレイ時間とスクリーンショット管理";

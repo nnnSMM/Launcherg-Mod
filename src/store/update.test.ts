@@ -8,6 +8,7 @@ import { appUpdate } from "./update";
 import { get } from "svelte/store";
 import { commandGetAppSetting, commandSetAppSetting } from "@/lib/command";
 import { check } from "@tauri-apps/plugin-updater";
+import { fetch as httpFetch } from "@tauri-apps/plugin-http";
 
 vi.mock("@/lib/command", () => ({
   commandGetAppSetting: vi.fn(),
@@ -37,8 +38,12 @@ vi.mock("@tauri-apps/plugin-updater", () => ({
 describe("appUpdate store", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllEnvs();
+    vi.stubEnv("DEV", false);
+    vi.mocked(httpFetch).mockResolvedValue({ ok: false } as any);
     appUpdate.resetForTest();
     localStorage.clear();
+    window.history.replaceState({}, "", "/");
   });
 
   describe("初期状態", () => {
@@ -74,6 +79,31 @@ describe("appUpdate store", () => {
   });
 
   describe("初期化とバージョンチェックの振る舞い", () => {
+    it("dev 起動では mock 指定がない限り updater check を呼ばないこと", async () => {
+      vi.stubEnv("DEV", true);
+
+      await appUpdate.initialize();
+
+      const state = get(appUpdate);
+      expect(check).not.toHaveBeenCalled();
+      expect(state.status).toBe("none");
+      expect(state.update).toBeNull();
+    });
+
+    it("dev 起動でも mockUpdate 指定時は mock 更新通知を表示すること", async () => {
+      vi.stubEnv("DEV", true);
+      window.history.replaceState({}, "", "/?mockUpdate=1");
+      vi.mocked(commandGetAppSetting).mockResolvedValue(null);
+
+      await appUpdate.initialize();
+
+      const state = get(appUpdate);
+      expect(check).not.toHaveBeenCalled();
+      expect(state.status).toBe("available");
+      expect(state.update?.isMock).toBe(true);
+      expect(state.update?.canInstall).toBe(false);
+    });
+
     it("アップデートがない場合は status が none になること", async () => {
       vi.mocked(check).mockResolvedValue(null);
 

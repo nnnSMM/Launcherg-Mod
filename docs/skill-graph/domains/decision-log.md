@@ -3,7 +3,7 @@ id: decision-log
 title: Decision Log
 type: log
 status: active
-updated: 2026-05-31
+updated: 2026-06-01
 links:
   - launcherg-improvement-moc
   - template-decision-record
@@ -11,6 +11,14 @@ links:
 ---
 
 # Decision Log
+
+## 2026-06-01: dev起動では実updater確認を走らせない
+
+- Context: `npm run tauri dev` でスクリーンショット撮影中に、GitHub Release を見に行く実更新通知が反応して作業状態を妨げた。
+- Decision: `import.meta.env.DEV` または public demo build では実 updater の `check()` を呼ばず、明示的な `mockUpdate` 指定がある場合だけ更新通知UIの確認を許可する。
+- Rationale: 開発・撮影・demo確認では実インストール経路に触れる必要がなく、更新UIの検証は mock で再現できる。production では従来どおり起動時の確認だけ行い、インストールはユーザー操作後に限定する。
+- Consequence: `npm run tauri dev` で予期せず更新通知が出なくなる。更新通知UIを確認したい時は `?mockUpdate=1` または mock 用 localStorage を使う。
+- Links: [[architecture-map]], [[quality-gates]]
 
 ## 2026-05-31: デモ環境における works.ensureRegisteredStories モック不足による画面遷移不具合の解消
 
