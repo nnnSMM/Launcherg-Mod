@@ -1,2 +1,5 @@
 # Exclude demo build artifacts from GitHub language statistics
 docs/demo/** linguist-vendored
+
+# Exclude captured demo HTML fixtures from GitHub language statistics
+public/demo-data/** linguist-vendored
