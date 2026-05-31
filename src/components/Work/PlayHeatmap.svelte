@@ -5,7 +5,6 @@
         CollectionElement,
         CollectionElementDailyPlayTime,
     } from "@/lib/types";
-    import { formatPlayTime } from "@/lib/utils";
     import {
         buildPlayHeatmap,
         calculateDominantColorFromImageData,
@@ -53,8 +52,11 @@
 
     $: heatmap = buildPlayHeatmap(isTotalHeatmap ? totalPlayTimes : dailyPlayTimes);
     $: baseColorText = `${baseColor.r}, ${baseColor.g}, ${baseColor.b}`;
-    $: totalPlayTimeText = formatPlayTime(heatmap.totalSeconds);
-    $: maxDailyPlayTimeText = formatPlayTime(heatmap.maxDailySeconds);
+    $: latestActiveDay =
+        [...heatmap.days].reverse().find((day) => day.seconds > 0) ?? null;
+    $: latestActiveDayText = latestActiveDay
+        ? formatHeatmapDate(latestActiveDay.date)
+        : "なし";
 
     const loadDailyPlayTimes = async (collectionElementId: number) => {
         const requestId = ++playTimeRequestId;
@@ -132,6 +134,16 @@
             : dateKey;
     };
 
+    const getHeatmapDayLabel = (day: PlayHeatmapDay) => {
+        if (day.isFuture) {
+            return `${formatHeatmapDate(day.date)}: 未到来`;
+        }
+        if (day.seconds <= 0) {
+            return `${formatHeatmapDate(day.date)}: 記録なし`;
+        }
+        return `${formatHeatmapDate(day.date)}: 記録あり`;
+    };
+
     const legendLevels = [0, 1, 2, 3, 4, 5];
 </script>
 
@@ -166,24 +178,24 @@
         <!-- 統計カード -->
         <div class="flex flex-wrap items-center gap-2">
             <div class="stat-card">
-                <div class="stat-card-icon i-material-symbols-hourglass-outline-rounded" />
+                <div class="stat-card-icon i-material-symbols-calendar-today-rounded" />
                 <div>
-                    <div class="stat-card-label">合計</div>
-                    <div class="stat-card-value">{totalPlayTimeText}</div>
+                    <div class="stat-card-label">記録日</div>
+                    <div class="stat-card-value">{heatmap.activeDays}日</div>
                 </div>
             </div>
             <div class="stat-card">
-                <div class="stat-card-icon i-material-symbols-calendar-today-rounded" />
+                <div class="stat-card-icon i-material-symbols-history-rounded" />
                 <div>
-                    <div class="stat-card-label">プレイ日数</div>
-                    <div class="stat-card-value">{heatmap.activeDays}日</div>
+                    <div class="stat-card-label">最新記録</div>
+                    <div class="stat-card-value">{latestActiveDayText}</div>
                 </div>
             </div>
             <div class="stat-card">
                 <div class="stat-card-icon i-material-symbols-whatshot-rounded" />
                 <div>
-                    <div class="stat-card-label">最長</div>
-                    <div class="stat-card-value">{maxDailyPlayTimeText}</div>
+                    <div class="stat-card-label">最長連続</div>
+                    <div class="stat-card-value">{heatmap.longestStreakDays}日</div>
                 </div>
             </div>
         </div>
@@ -221,7 +233,7 @@
                         class="heatmap-grid"
                         style="grid-template-columns: repeat({heatmap.weekCount}, var(--heatmap-cell));"
                         role="grid"
-                        aria-label="日別プレイ時間"
+                        aria-label="日別プレイ記録"
                     >
                         {#each heatmap.days as day (day.date)}
                             <div
@@ -230,8 +242,8 @@
                                 class:future={day.isFuture}
                                 class:active={day.seconds > 0 && !day.isFuture}
                                 role="gridcell"
-                                title={`${day.isFuture ? formatHeatmapDate(day.date) + ': 未到来' : day.seconds <= 0 ? formatHeatmapDate(day.date) + ': 記録なし' : formatHeatmapDate(day.date) + ': ' + formatPlayTime(day.seconds)}`}
-                                aria-label={`${day.isFuture ? formatHeatmapDate(day.date) + ': 未到来' : day.seconds <= 0 ? formatHeatmapDate(day.date) + ': 記録なし' : formatHeatmapDate(day.date) + ': ' + formatPlayTime(day.seconds)}`}
+                                title={getHeatmapDayLabel(day)}
+                                aria-label={getHeatmapDayLabel(day)}
                                 style="grid-column: {day.weekIndex + 1}; grid-row: {day.weekday + 1}; background-color: {heatmapColorForLevel(baseColor, day.level)};"
                             />
                         {/each}
@@ -251,7 +263,7 @@
                     <span>読み込み失敗</span>
                 {:else}
                     <div class="i-material-symbols-check-circle-outline-rounded w-3.5 h-3.5 opacity-60" />
-                    <span>{heatmap.activeDays > 0 ? `${heatmap.activeDays}日分の記録` : "記録なし"}</span>
+                    <span>{heatmap.activeDays > 0 ? `${heatmap.activeDays}日の記録` : "記録なし"}</span>
                 {/if}
             </div>
 

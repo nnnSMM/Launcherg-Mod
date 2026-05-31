@@ -18,6 +18,8 @@
       ? "i-material-symbols-drive-file-rename-outline color-accent-edit"
       : tab.type === "settings"
       ? "i-material-symbols-label-outline-rounded color-text-tertiary"
+      : tab.type === "stats"
+      ? "i-material-symbols-bar-chart-rounded color-accent-primary"
       : "";
 
   const closeWheelClick = (e: MouseEvent) => {

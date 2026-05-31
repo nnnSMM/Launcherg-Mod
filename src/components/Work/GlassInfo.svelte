@@ -24,8 +24,8 @@
         [PlayStatus.Unplayed]: "color-ui-tertiary",
         [PlayStatus.Playing]: "color-accent-primary",
         [PlayStatus.Cleared]: "color-accent-success",
-        [PlayStatus.Multiple]: "color-accent-warning",
-        [PlayStatus.Shelved]: "color-ui-tertiary",
+        [PlayStatus.Interrupted]: "color-accent-warning",
+        [PlayStatus.LegacyShelved]: "color-accent-warning",
     };
 
     const pageTabs: {
@@ -64,12 +64,8 @@
             value: PlayStatus.Cleared,
         },
         {
-            label: playStatusLabel[PlayStatus.Multiple],
-            value: PlayStatus.Multiple,
-        },
-        {
-            label: playStatusLabel[PlayStatus.Shelved],
-            value: PlayStatus.Shelved,
+            label: playStatusLabel[PlayStatus.Interrupted],
+            value: PlayStatus.Interrupted,
         },
     ];
     const savedPage = localStorage.getItem("last_active_detail_page") as DetailPage;

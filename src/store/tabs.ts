@@ -12,7 +12,7 @@ export const setDemoBuildForTest = (val: boolean) => {
 export type Tab = {
   id: number;
   workId?: number;
-  type: "works" | "memos" | "settings";
+  type: "works" | "memos" | "settings" | "stats";
   scrollTo: number;
   title: string;
   path: string;
@@ -20,8 +20,13 @@ export type Tab = {
 
 export const isValidTabType = (
   src: string,
-): src is "works" | "memos" | "settings" => {
-  return src === "works" || src === "memos" || src === "settings";
+): src is "works" | "memos" | "settings" | "stats" => {
+  return (
+    src === "works" ||
+    src === "memos" ||
+    src === "settings" ||
+    src === "stats"
+  );
 };
 
 const PLAY_STATUS_EDITOR_TAB_ID = -100;
@@ -31,6 +36,10 @@ const PLAY_STATUS_EDITOR_TITLE = "プレイ状態一括編集";
 const SHORTCUT_SETTINGS_TAB_ID = -101;
 const SHORTCUT_SETTINGS_PATH = "/settings/shortcut";
 const SHORTCUT_SETTINGS_TITLE = "ショートカット設定";
+
+const STATS_TAB_ID = -102;
+const STATS_PATH = "/stats";
+const STATS_TITLE = "統計";
 
 const LEGACY_DISPLAY_SETTINGS_PATH = "/settings/display";
 const ROOT_PATHS = new Set(["/", "/demo"]);
@@ -61,19 +70,20 @@ const createTabs = () => {
     return insertIndex;
   };
 
-  const findOrCreateSettingsTab = (
+  const findOrCreateFixedTab = (
     tabId: number,
     tabPath: string,
     tabTitle: string,
+    tabType: "settings" | "stats",
   ): number => {
     let index = getTabs().findIndex(
-      (tab) => tab.id === tabId && tab.type === "settings",
+      (tab) => tab.id === tabId && tab.type === tabType,
     );
 
     if (index === -1) {
       index = insertNewTab({
         id: tabId,
-        type: "settings",
+        type: tabType,
         scrollTo: 0,
         title: tabTitle,
         path: tabPath,
@@ -107,6 +117,12 @@ const createTabs = () => {
       );
     }
 
+    if (location === STATS_PATH) {
+      return getTabs().findIndex(
+        (tab) => tab.id === STATS_TAB_ID && tab.type === "stats",
+      );
+    }
+
     const pathSegments = location.split("/").filter(Boolean);
     const tabTypeSegment = pathSegments[0];
     const entityId =
@@ -118,6 +134,7 @@ const createTabs = () => {
     if (
       !isValidTabType(tabTypeSegment) ||
       tabTypeSegment === "settings" ||
+      tabTypeSegment === "stats" ||
       !entityId ||
       Number.isNaN(entityId)
     ) {
@@ -166,19 +183,28 @@ const createTabs = () => {
     let tabToSelectIndex = -1;
 
     if (location === PLAY_STATUS_EDITOR_PATH && tabTypeSegment === "settings") {
-      tabToSelectIndex = findOrCreateSettingsTab(
+      tabToSelectIndex = findOrCreateFixedTab(
         PLAY_STATUS_EDITOR_TAB_ID,
         PLAY_STATUS_EDITOR_PATH,
         PLAY_STATUS_EDITOR_TITLE,
+        "settings",
       );
     } else if (
       location === SHORTCUT_SETTINGS_PATH &&
       tabTypeSegment === "settings"
     ) {
-      tabToSelectIndex = findOrCreateSettingsTab(
+      tabToSelectIndex = findOrCreateFixedTab(
         SHORTCUT_SETTINGS_TAB_ID,
         SHORTCUT_SETTINGS_PATH,
         SHORTCUT_SETTINGS_TITLE,
+        "settings",
+      );
+    } else if (location === STATS_PATH && tabTypeSegment === "stats") {
+      tabToSelectIndex = findOrCreateFixedTab(
+        STATS_TAB_ID,
+        STATS_PATH,
+        STATS_TITLE,
+        "stats",
       );
     } else if (tabTypeSegment === "works" || tabTypeSegment === "memos") {
       if (!entityId || Number.isNaN(entityId)) {
@@ -350,10 +376,11 @@ const createTabs = () => {
     });
   };
 
-  const openSpecificSettingsTab = (
+  const openSpecificTab = (
     tabId: number,
     tabPath: string,
     tabTitle: string,
+    tabType: "settings" | "stats",
   ) => {
     const existingTabIndex = getTabs().findIndex((tab) => tab.id === tabId);
 
@@ -365,7 +392,7 @@ const createTabs = () => {
 
     const newIndex = insertNewTab({
       id: tabId,
-      type: "settings",
+      type: tabType,
       scrollTo: 0,
       title: tabTitle,
       path: tabPath,
@@ -375,19 +402,25 @@ const createTabs = () => {
   };
 
   const openSettingsTab = () => {
-    openSpecificSettingsTab(
+    openSpecificTab(
       PLAY_STATUS_EDITOR_TAB_ID,
       PLAY_STATUS_EDITOR_PATH,
       PLAY_STATUS_EDITOR_TITLE,
+      "settings",
     );
   };
 
   const openShortcutSettingsTab = () => {
-    openSpecificSettingsTab(
+    openSpecificTab(
       SHORTCUT_SETTINGS_TAB_ID,
       SHORTCUT_SETTINGS_PATH,
       SHORTCUT_SETTINGS_TITLE,
+      "settings",
     );
+  };
+
+  const openStatsTab = () => {
+    openSpecificTab(STATS_TAB_ID, STATS_PATH, STATS_TITLE, "stats");
   };
 
   return {
@@ -400,6 +433,7 @@ const createTabs = () => {
     reorderTabs,
     openSettingsTab,
     openShortcutSettingsTab,
+    openStatsTab,
     syncSelectedToLocation,
   };
 };
@@ -414,6 +448,7 @@ interface TabsStore {
   reorderTabs: (oldIndex: number, newIndex: number) => void;
   openSettingsTab: () => void;
   openShortcutSettingsTab: () => void;
+  openStatsTab: () => void;
   syncSelectedToLocation: (rawLocation: string) => void;
 }
 
@@ -429,5 +464,6 @@ export const {
   reorderTabs,
   openSettingsTab,
   openShortcutSettingsTab,
+  openStatsTab,
   syncSelectedToLocation,
 } = createdTabs;

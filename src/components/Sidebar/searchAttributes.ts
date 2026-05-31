@@ -6,8 +6,7 @@ export const ATTRIBUTES = {
   UNPLAYED: "unplayed",
   PLAYING: "playing",
   CLEARED: "cleared",
-  MULTIPLE: "multiple",
-  SHELVED: "shelved",
+  INTERRUPTED: "interrupted",
   NUKIGE: "nukige",
   NOT_NUKIGE: "not_nukige",
   LIKE: "like",
@@ -18,8 +17,7 @@ export const ATTRIBUTE_LABELS: { [key in AttributeKey]: string } = {
   unplayed: "未プレイ",
   playing: "プレイ中",
   cleared: "クリア済み",
-  multiple: "複数進行",
-  shelved: "棚上げ",
+  interrupted: "中断",
   nukige: "抜きゲー",
   not_nukige: "非抜きゲー",
   like: "お気に入り",
@@ -32,8 +30,7 @@ export const PLAY_STATUS_KEYS: AttributeKey[] = [
   ATTRIBUTES.UNPLAYED,
   ATTRIBUTES.PLAYING,
   ATTRIBUTES.CLEARED,
-  ATTRIBUTES.MULTIPLE,
-  ATTRIBUTES.SHELVED,
+  ATTRIBUTES.INTERRUPTED,
 ];
 const NUKIGE_KEYS: AttributeKey[] = [ATTRIBUTES.NUKIGE, ATTRIBUTES.NOT_NUKIGE]; // 抜きゲー関連キーを追加
 
@@ -134,6 +131,10 @@ export const FILTER_BY_ATTRIBUTE: {
   unplayed: (src) => src.filter((v) => v.playStatus === PlayStatus.Unplayed),
   playing: (src) => src.filter((v) => v.playStatus === PlayStatus.Playing),
   cleared: (src) => src.filter((v) => v.playStatus === PlayStatus.Cleared),
-  multiple: (src) => src.filter((v) => v.playStatus === PlayStatus.Multiple),
-  shelved: (src) => src.filter((v) => v.playStatus === PlayStatus.Shelved),
+  interrupted: (src) =>
+    src.filter(
+      (v) =>
+        v.playStatus === PlayStatus.Interrupted ||
+        v.playStatus === PlayStatus.LegacyShelved,
+    ),
 };

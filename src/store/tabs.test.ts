@@ -38,6 +38,10 @@ describe("tabs", () => {
             expect(isValidTabType("settings")).toBe(true);
         });
 
+        it("should return true for 'stats'", () => {
+            expect(isValidTabType("stats")).toBe(true);
+        });
+
         it("should return false for invalid type", () => {
             expect(isValidTabType("invalid")).toBe(false);
             expect(isValidTabType("")).toBe(false);
@@ -88,6 +92,7 @@ describe("tabs", () => {
                 { id: 1, type: "works", workId: 10, scrollTo: 0, title: "Game 10", path: "/works/10?gamename=Game%2010" },
                 { id: 2, type: "memos", workId: 10, scrollTo: 0, title: "Memo - Game 10", path: "/memos/10?gamename=Game%2010" },
                 { id: -101, type: "settings", scrollTo: 0, title: "ショートカット設定", path: "/settings/shortcut" },
+                { id: -102, type: "stats", scrollTo: 0, title: "統計", path: "/stats" },
             ]);
             selected.set(0);
 
@@ -97,8 +102,28 @@ describe("tabs", () => {
             syncSelectedToLocation("/settings/shortcut");
             expect(get(selected)).toBe(2);
 
+            syncSelectedToLocation("/stats");
+            expect(get(selected)).toBe(3);
+
             syncSelectedToLocation("/");
             expect(get(selected)).toBe(-1);
+        });
+    });
+
+    describe("routeLoaded - 統計タブ", () => {
+        it("統計ページを固定タブとして作成すること", () => {
+            routeLoaded({
+                detail: {
+                    location: "/stats",
+                    querystring: "",
+                },
+            } as any);
+
+            const currentTabs = get(tabs);
+            expect(currentTabs).toEqual([
+                { id: -102, type: "stats", scrollTo: 0, title: "統計", path: "/stats" },
+            ]);
+            expect(get(selected)).toBe(0);
         });
     });
 

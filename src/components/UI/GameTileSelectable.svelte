@@ -59,16 +59,16 @@
       baseColorCode: "#48BB78",
       selectedIconColor: "#FFFFFF",
     }, // 選択時アイコンは白
-    [PSConst.Multiple]: {
-      label: "複数進行",
-      icon: "i-material-symbols:alt-route-rounded",
+    [PSConst.Interrupted]: {
+      label: "中断",
+      icon: "i-material-symbols-stop-circle-outline-rounded",
       baseColorCode: "#D97706",
       selectedIconColor: "#FFFFFF",
     },
-    [PSConst.Shelved]: {
-      label: "棚上げ",
-      icon: "i-material-symbols:schedule-rounded",
-      baseColorCode: "#64748B",
+    [PSConst.LegacyShelved]: {
+      label: "中断",
+      icon: "i-material-symbols-stop-circle-outline-rounded",
+      baseColorCode: "#D97706",
       selectedIconColor: "#FFFFFF",
     },
   };

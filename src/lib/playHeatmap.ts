@@ -30,7 +30,9 @@ export type PlayHeatmap = {
   weekCount: number;
   totalSeconds: number;
   activeDays: number;
+  activeWeeks: number;
   maxDailySeconds: number;
+  longestStreakDays: number;
 };
 
 const DEFAULT_WEEK_COUNT = 53;
@@ -117,6 +119,18 @@ export const buildPlayHeatmap = (
         ? 0
         : Math.max(1, Math.ceil((day.seconds / maxDailySeconds) * 5)),
   }));
+  const activeDays = days.filter((day) => day.seconds > 0);
+  const activeWeeks = new Set(activeDays.map((day) => day.weekIndex)).size;
+  let longestStreakDays = 0;
+  let currentStreakDays = 0;
+  for (const day of days) {
+    if (day.seconds > 0) {
+      currentStreakDays += 1;
+      longestStreakDays = Math.max(longestStreakDays, currentStreakDays);
+    } else {
+      currentStreakDays = 0;
+    }
+  }
 
   const months: PlayHeatmapMonth[] = [];
   let previousMonth = -1;
@@ -137,8 +151,10 @@ export const buildPlayHeatmap = (
     months,
     weekCount,
     totalSeconds: days.reduce((sum, day) => sum + day.seconds, 0),
-    activeDays: days.filter((day) => day.seconds > 0).length,
+    activeDays: activeDays.length,
+    activeWeeks,
     maxDailySeconds,
+    longestStreakDays,
   };
 };
 

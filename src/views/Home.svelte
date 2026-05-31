@@ -1,9 +1,7 @@
 <script lang="ts">
   import { commandGetAppSetting, commandPlayGame } from "@/lib/command";
   import { convertFileSrc } from "@tauri-apps/api/core";
-  import Icon from "/icon.png";
-  import { link, push } from "svelte-spa-router";
-  import LinkText from "@/components/UI/LinkText.svelte";
+  import { push } from "svelte-spa-router";
   import { sidebarCollectionElements } from "@/store/sidebarCollectionElements";
   import VirtualScroller from "@/components/UI/VirtualScroller.svelte";
   import VirtualScrollerMasonry from "@/components/UI/VirtualScrollerMasonry.svelte";
@@ -14,21 +12,16 @@
   import GameCard from "@/components/UI/GameCard.svelte";
   import { formatLastPlayed, localStorageWritable } from "@/lib/utils";
   import Card from "@/components/UI/Card.svelte";
-  import type { SvelteComponent } from "svelte";
   import ArrowButton from "@/components/Home/ArrowButton.svelte";
-  import { onDestroy, onMount, tick } from "svelte";
+  import { onMount, tick } from "svelte";
   import { backgroundState } from "@/store/background";
   import { startProcessMap } from "@/store/startProcessMap";
   import { listen, type UnlistenFn } from "@tauri-apps/api/event";
   import DemoMatchingTrial from "@/components/Home/DemoMatchingTrial.svelte";
-  import PlayHeatmap from "@/components/Work/PlayHeatmap.svelte";
-  import { commandGetCollectionElementDailyPlayTimes } from "@/lib/command";
-  import { mergeDailyPlayTimes } from "@/lib/playHeatmapHelper";
-  import type { CollectionElementDailyPlayTime } from "@/lib/types";
 
   const isDemoBuild = import.meta.env.BASE_URL === "./";
 
-  let scrollable: RecentlyPlayedScroller;
+  let scrollable: RecentlyPlayedScroller | null = null;
   let shortcutGameId: number | null = null;
   let unlistenShortcutGameChanged: UnlistenFn | null = null;
 
@@ -58,8 +51,11 @@
   });
 
   $: if ($recentlyPlayed && scrollable) {
+    const currentScrollable = scrollable;
     tick().then(() => {
-      scrollable.reInit();
+      if (typeof currentScrollable?.reInit === "function") {
+        currentScrollable.reInit();
+      }
     });
   }
 
@@ -113,35 +109,6 @@
       showErrorToast(e as string);
     }
   };
-
-  let totalPlayTimes: CollectionElementDailyPlayTime[] = [];
-  let isTotalHeatmapLoading = true;
-  const totalHeatmapColor = { r: 99, g: 102, b: 241 }; // アプリ標準 of インディゴ/アクセントベース
-
-  const unsubscribeCollection = sidebarCollectionElements.subscribe(async (elements) => {
-    if (elements && elements.length > 0) {
-      isTotalHeatmapLoading = true;
-      try {
-        const promises = elements.map((element) =>
-          commandGetCollectionElementDailyPlayTimes(element.id)
-        );
-        const results = await Promise.all(promises);
-        const flattened = results.flat();
-        totalPlayTimes = mergeDailyPlayTimes(flattened);
-      } catch (e) {
-        console.error("Failed to load total play times for dashboard:", e);
-      } finally {
-        isTotalHeatmapLoading = false;
-      }
-    } else {
-      totalPlayTimes = [];
-      isTotalHeatmapLoading = false;
-    }
-  });
-
-  onDestroy(() => {
-    unsubscribeCollection();
-  });
 </script>
 
 <svelte:window bind:innerWidth />
@@ -157,16 +124,6 @@
   <div class="space-y-8 mb-2" slot="header">
     {#if isDemoBuild}
       <DemoMatchingTrial />
-    {/if}
-
-    {#if !isTotalHeatmapLoading}
-      <div class="mb-6">
-        <PlayHeatmap
-          isTotalHeatmap={true}
-          {totalPlayTimes}
-          baseColor={totalHeatmapColor}
-        />
-      </div>
     {/if}
 
     <div class="grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-6">
@@ -318,8 +275,8 @@
               最近の履歴
             </h3>
             <div class="flex items-center">
-              <ArrowButton back on:click={() => scrollable.scrollPrev()} />
-              <ArrowButton on:click={() => scrollable.scrollNext()} />
+              <ArrowButton back on:click={() => scrollable?.scrollPrev?.()} />
+              <ArrowButton on:click={() => scrollable?.scrollNext?.()} />
             </div>
           </div>
           <div class="relative">

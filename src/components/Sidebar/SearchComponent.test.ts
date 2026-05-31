@@ -18,8 +18,7 @@ describe("SearchComponent", () => {
     { key: "unplayed", enabled: false },
     { key: "playing", enabled: false },
     { key: "cleared", enabled: false },
-    { key: "multiple", enabled: false },
-    { key: "shelved", enabled: false },
+    { key: "interrupted", enabled: false },
   ];
 
   const dummyOtherAttributes: Attribute[] = [
@@ -84,7 +83,7 @@ describe("SearchComponent", () => {
 
     const buttons = target.querySelectorAll("button");
     const lastButton = Array.from(buttons).find(
-      (btn) => btn.textContent?.trim() === "棚上げ"
+      (btn) => btn.textContent?.trim() === "中断"
     );
 
     expect(lastButton).not.toBeNull();

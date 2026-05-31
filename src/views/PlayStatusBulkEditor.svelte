@@ -47,6 +47,9 @@
     "bulkEditorTargetPlayStatus",
     PlayStatus.Unplayed,
   );
+  $: if ($targetPlayStatusStore === PlayStatus.LegacyShelved) {
+    targetPlayStatusStore.set(PlayStatus.Interrupted);
+  }
   let isLoading = true;
   type ViewMode = "masonry" | "list";
   let viewModeStore = localStorageWritable<ViewMode>(
@@ -280,20 +283,11 @@
         "text-text-secondary bg-bg-button hover:bg-bg-button-hover border-border-primary",
     },
     {
-      label: "複数進行",
-      value: PlayStatus.Multiple,
-      icon: "i-material-symbols:alt-route-rounded",
+      label: "中断",
+      value: PlayStatus.Interrupted,
+      icon: "i-material-symbols-stop-circle-outline-rounded",
       activeStyleClasses:
         "bg-amber-600 !hover:bg-amber-500 border-amber-600",
-      inactiveStyleClasses:
-        "text-text-secondary bg-bg-button hover:bg-bg-button-hover border-border-primary",
-    },
-    {
-      label: "棚上げ",
-      value: PlayStatus.Shelved,
-      icon: "i-material-symbols:schedule-rounded",
-      activeStyleClasses:
-        "bg-slate-600 !hover:bg-slate-500 border-slate-600",
       inactiveStyleClasses:
         "text-text-secondary bg-bg-button hover:bg-bg-button-hover border-border-primary",
     },

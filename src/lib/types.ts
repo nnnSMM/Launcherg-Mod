@@ -50,8 +50,8 @@ export const PlayStatus = { // 追加
   Unplayed: 0,
   Playing: 1,
   Cleared: 2,
-  Multiple: 3,
-  Shelved: 4,
+  Interrupted: 3,
+  LegacyShelved: 4,
 } as const;
 export type PlayStatus = (typeof PlayStatus)[keyof typeof PlayStatus]; // 追加
 

@@ -23,6 +23,26 @@ describe("playHeatmap", () => {
     expect(heatmap.days.at(-1)?.date).toBe("2026-05-30");
     expect(heatmap.totalSeconds).toBe(10800);
     expect(heatmap.activeDays).toBe(2);
+    expect(heatmap.activeWeeks).toBe(1);
+    expect(heatmap.longestStreakDays).toBe(1);
+  });
+
+  it("counts active weeks and longest consecutive active days", () => {
+    const heatmap = buildPlayHeatmap(
+      [
+        { playDate: "2026-05-20", playTimeSeconds: 1 },
+        { playDate: "2026-05-21", playTimeSeconds: 1 },
+        { playDate: "2026-05-23", playTimeSeconds: 1 },
+        { playDate: "2026-05-25", playTimeSeconds: 1 },
+        { playDate: "2026-05-26", playTimeSeconds: 1 },
+        { playDate: "2026-05-27", playTimeSeconds: 1 },
+      ],
+      new Date(2026, 4, 30),
+    );
+
+    expect(heatmap.activeDays).toBe(6);
+    expect(heatmap.activeWeeks).toBe(2);
+    expect(heatmap.longestStreakDays).toBe(3);
   });
 
   it("aggregates duplicate date rows and scales levels by the max day", () => {

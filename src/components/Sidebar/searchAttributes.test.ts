@@ -124,28 +124,17 @@ describe('FILTER_BY_ATTRIBUTE', () => {
             expect(result[0].id).toBe(1);
         });
 
-        it('multiple filters playStatus=3 only', () => {
+        it('interruptedはplayStatus=3と旧棚上げのplayStatus=4を返す', () => {
             const elements = [
-                createMockElement({ id: 1, playStatus: PlayStatus.Multiple }),
-                createMockElement({ id: 2, playStatus: PlayStatus.Shelved }),
+                createMockElement({ id: 1, playStatus: PlayStatus.Interrupted }),
+                createMockElement({ id: 2, playStatus: PlayStatus.LegacyShelved }),
+                createMockElement({ id: 3, playStatus: PlayStatus.Playing }),
             ];
 
-            const result = FILTER_BY_ATTRIBUTE.multiple(elements);
+            const result = FILTER_BY_ATTRIBUTE.interrupted(elements);
 
-            expect(result).toHaveLength(1);
-            expect(result[0].id).toBe(1);
-        });
-
-        it('shelved filters playStatus=4 only', () => {
-            const elements = [
-                createMockElement({ id: 1, playStatus: PlayStatus.Multiple }),
-                createMockElement({ id: 2, playStatus: PlayStatus.Shelved }),
-            ];
-
-            const result = FILTER_BY_ATTRIBUTE.shelved(elements);
-
-            expect(result).toHaveLength(1);
-            expect(result[0].id).toBe(2);
+            expect(result).toHaveLength(2);
+            expect(result.map((element) => element.id)).toEqual([1, 2]);
         });
     });
 

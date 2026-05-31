@@ -8,6 +8,7 @@
   import {
     openSettingsTab,
     openShortcutSettingsTab,
+    openStatsTab,
   } from "@/store/tabs";
 
   $: isWorkDetail = isWorkDetailRoute($location);
@@ -45,6 +46,7 @@
     shortcut: "\u30b7\u30e7\u30fc\u30c8\u30ab\u30c3\u30c8",
     dark: "\u30c0\u30fc\u30af\u30e2\u30fc\u30c9",
     light: "\u30e9\u30a4\u30c8\u30e2\u30fc\u30c9",
+    stats: "\u7d71\u8a08",
     bulkEdit: "\u30d7\u30ec\u30a4\u72b6\u614b\u4e00\u62ec\u7de8\u96c6",
     help: "\u30d8\u30eb\u30d7",
     toggleSidebar: "\u30b5\u30a4\u30c9\u30d0\u30fc\u306e\u5207\u308a\u66ff\u3048",
@@ -286,6 +288,15 @@
               ? "i-material-symbols:dark-mode-outline-rounded"
               : "i-material-symbols:light-mode-outline-rounded"} text-[18px]`}
           />
+        </button>
+        <button
+          type="button"
+          aria-label={navLabels.stats}
+          use:titlebarTooltipAction={navLabels.stats}
+          class={titlebarIconButtonClass}
+          on:click={openStatsTab}
+        >
+          <div class="i-material-symbols-bar-chart-rounded text-[18px]" />
         </button>
         <button
           type="button"
