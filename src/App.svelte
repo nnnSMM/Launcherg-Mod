@@ -160,7 +160,7 @@
           class:scale-100={isWorkDetail}
           class:blur-2xl={!isWorkDetail}
           class:opacity-50={!isWorkDetail}
-          style="background-image: url('{$backgroundState.imageUrl}'); {isWorkDetail ? 'filter: blur(32px) brightness(0.65);' : ''}"
+          style="background-image: url('{$backgroundState.imageUrl}'); {isWorkDetail ? 'filter: blur(64px) brightness(1.0);' : ''}"
         />
       {/key}
     {/if}

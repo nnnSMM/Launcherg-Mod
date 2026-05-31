@@ -95,7 +95,7 @@
 <svelte:window on:mousemove={onMouseMove} on:mouseup={onMouseUp} />
 
 <div
-  class="h-full min-h-0 relative border-solid border-border-primary flex-shrink-0 overflow-hidden backdrop-blur-xl transition-colors duration-300 {isWorkDetail ? 'bg-accent-primary/8 border-border-primary' : 'bg-bg-secondary'}"
+  class="h-full min-h-0 relative border-solid border-border-primary flex-shrink-0 overflow-hidden transition-colors duration-300 {isWorkDetail ? 'bg-transparent border-border-primary backdrop-blur-none' : 'bg-bg-secondary'}"
   class:border-r-1px={$showSidebar}
   style="width: {$showSidebar ? `${$sidebarWidth}px` : '0px'};"
 >
