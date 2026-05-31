@@ -51,7 +51,7 @@ jobs:
         run: npm run check
 
       - name: Build demo before release
-        run: npm run build-demo
+        run: vite build -c vite.demo.config.ts
 
       - name: Verify demo build output
         shell: pwsh
