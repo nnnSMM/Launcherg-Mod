@@ -163,7 +163,7 @@
   async function closeWindow() {
     console.log("close clicked");
     if (isDemoBuild && variant === "main") {
-      push("/");
+      push("/landing");
       return;
     }
     await saveMainWindowStateIfNeeded();
