@@ -21,9 +21,7 @@
       "icons/icon.ico"
     ],
     "createUpdaterArtifacts": "v1Compatible",
-    "externalBin": [
-      "bin/extract-icon"
-    ]
+    "externalBin": ["bin/extract-icon"]
   },
   "productName": "Launcherg",
   "version": "0.3.3",
@@ -70,9 +68,7 @@
     ],
     "security": {
       "assetProtocol": {
-        "scope": [
-          "**"
-        ],
+        "scope": ["**"],
         "enable": true
       },
       "csp": null
