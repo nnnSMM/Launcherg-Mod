@@ -1,12 +1,12 @@
 import {
   commandGetAppSetting,
-  commandGetVndbScreenshotCache,
-  commandUpsertVndbScreenshotCache,
+  commandGetGameScreenshotCache,
+  commandUpsertGameScreenshotCache,
 } from "@/lib/command";
 import type {
   CollectionElement,
-  VndbScreenshot,
-  VndbScreenshotCache,
+  GameScreenshot,
+  GameScreenshotCache,
 } from "@/lib/types";
 import { fetch } from "@tauri-apps/plugin-http";
 import Encoding from "encoding-japanese";
@@ -18,9 +18,9 @@ const EROGAMESCAPE_REQUEST_PATH =
   "https://erogamescape.dyndns.org/~ap2/ero/toukei_kaiseki";
 const SENSITIVE_THRESHOLD = 1.5;
 const PREFETCH_INTERVAL_MS = 2000;
-const SHOW_SENSITIVE_SETTING_KEY = "show_sensitive_vndb_screenshots";
+const SHOW_SENSITIVE_SETTING_KEY = "show_sensitive_game_screenshots";
 
-type VndbApiScreenshot = {
+type ApiScreenshot = {
   id: string;
   url: string;
   thumbnail: string;
@@ -36,7 +36,7 @@ type VndbApiScreenshot = {
   } | null;
 };
 
-type VndbApiTitle = {
+type ApiTitle = {
   lang?: string | null;
   title?: string | null;
   latin?: string | null;
@@ -44,38 +44,38 @@ type VndbApiTitle = {
   main?: boolean | null;
 };
 
-type VndbApiDeveloper = {
+type ApiDeveloper = {
   name?: string | null;
   original?: string | null;
   aliases?: string[] | null;
 };
 
-type VndbApiResult = {
+type ApiResult = {
   id: string;
   title: string;
   alttitle?: string | null;
-  titles?: VndbApiTitle[];
+  titles?: ApiTitle[];
   aliases?: string[];
-  developers?: VndbApiDeveloper[];
+  developers?: ApiDeveloper[];
   released?: string | null;
-  screenshots?: VndbApiScreenshot[];
+  screenshots?: ApiScreenshot[];
 };
 
-type VndbApiResponse = {
-  results?: VndbApiResult[];
+type ApiResponse = {
+  results?: ApiResult[];
 };
 
 type CacheLookup = {
-  cache: VndbScreenshotCache | null;
+  cache: GameScreenshotCache | null;
   isFresh: boolean;
 };
 
-type VndbMatchContext = Pick<
+type MatchContext = Pick<
   CollectionElement,
   "gamename" | "gamenameRuby" | "brandname" | "brandnameRuby" | "sellday"
 >;
 
-const inFlight = new Map<number, Promise<VndbScreenshotCache>>();
+const inFlight = new Map<number, Promise<GameScreenshotCache>>();
 const queuedIds = new Set<number>();
 const queue: CollectionElement[] = [];
 let queueTimer: ReturnType<typeof setTimeout> | null = null;
@@ -93,7 +93,7 @@ const uniqNonEmpty = (values: Array<string | null | undefined>) => [
   ...new Set(values.map((v) => v?.trim()).filter((v): v is string => !!v)),
 ];
 
-const getCandidateTitles = (result: VndbApiResult) =>
+const getCandidateTitles = (result: ApiResult) =>
   uniqNonEmpty([
     result.title,
     result.alttitle,
@@ -101,7 +101,7 @@ const getCandidateTitles = (result: VndbApiResult) =>
     ...(result.titles ?? []).flatMap((title) => [title.title, title.latin]),
   ]);
 
-const getDeveloperNames = (result: VndbApiResult) =>
+const getDeveloperNames = (result: ApiResult) =>
   uniqNonEmpty(
     (result.developers ?? []).flatMap((developer) => [
       developer.name,
@@ -110,7 +110,7 @@ const getDeveloperNames = (result: VndbApiResult) =>
     ]),
   );
 
-const screenshotHasOnlyJapanese = (screenshot: VndbApiScreenshot) => {
+const screenshotHasOnlyJapanese = (screenshot: ApiScreenshot) => {
   const languages = screenshot.release?.languages ?? [];
   return (
     languages.length > 0 &&
@@ -118,12 +118,12 @@ const screenshotHasOnlyJapanese = (screenshot: VndbApiScreenshot) => {
   );
 };
 
-const screenshotHasJapanese = (screenshot: VndbApiScreenshot) => {
+const screenshotHasJapanese = (screenshot: ApiScreenshot) => {
   const languages = screenshot.release?.languages ?? [];
   return languages.some((language) => language.lang === "ja" && !language.mtl);
 };
 
-const mapVndbScreenshot = (s: VndbApiScreenshot): VndbScreenshot => ({
+const mapGameScreenshot = (s: ApiScreenshot): GameScreenshot => ({
       id: s.id,
       url: s.url,
       thumbnail: s.thumbnail,
@@ -136,15 +136,15 @@ const mapVndbScreenshot = (s: VndbApiScreenshot): VndbScreenshot => ({
         .filter((lang): lang is string => !!lang),
 });
 
-const parseJapaneseScreenshots = (result: VndbApiResult): VndbScreenshot[] => {
+const parseJapaneseScreenshots = (result: ApiResult): GameScreenshot[] => {
   const screenshots = (result.screenshots ?? []).filter(
     (s) => s.url && s.thumbnail,
   );
   const japaneseOnly = screenshots.filter(screenshotHasOnlyJapanese);
   if (japaneseOnly.length > 0) {
-    return japaneseOnly.map(mapVndbScreenshot);
+    return japaneseOnly.map(mapGameScreenshot);
   }
-  return screenshots.filter(screenshotHasJapanese).map(mapVndbScreenshot);
+  return screenshots.filter(screenshotHasJapanese).map(mapGameScreenshot);
 };
 
 const titleMatchScore = (source: string, candidates: string[]) => {
@@ -194,8 +194,8 @@ const releaseDateScore = (
 };
 
 const titleScoreForResult = (
-  result: VndbApiResult,
-  context: VndbMatchContext,
+  result: ApiResult,
+  context: MatchContext,
 ) => {
   const candidateTitles = getCandidateTitles(result);
   return Math.max(
@@ -205,8 +205,8 @@ const titleScoreForResult = (
 };
 
 const tieBreakScoreForResult = (
-  result: VndbApiResult,
-  context: VndbMatchContext,
+  result: ApiResult,
+  context: MatchContext,
 ) => {
   const developerNames = getDeveloperNames(result);
   return (
@@ -218,9 +218,9 @@ const tieBreakScoreForResult = (
   );
 };
 
-const selectBestVndbResult = (
-  results: VndbApiResult[],
-  context?: VndbMatchContext,
+const selectBestApiResult = (
+  results: ApiResult[],
+  context?: MatchContext,
 ) => {
   if (!context) return results[0] ?? null;
   if (results.length === 0) return null;
@@ -247,7 +247,7 @@ const selectBestVndbResult = (
     .filter((scored) => scored.dateScore === bestDateScore)
     .map((scored) => scored.result);
 
-  return dateMatchedResults.reduce<VndbApiResult | null>((best, current) => {
+  return dateMatchedResults.reduce<ApiResult | null>((best, current) => {
     if (!best) return current;
     return tieBreakScoreForResult(current, context) >
       tieBreakScoreForResult(best, context)
@@ -257,18 +257,16 @@ const selectBestVndbResult = (
 };
 
 export const parseGameScreenshots = (
-  response: VndbApiResponse,
-  context?: VndbMatchContext,
+  response: ApiResponse,
+  context?: MatchContext,
 ): {
-  vndbId: string | null;
   matchedTitle: string | null;
-  screenshots: VndbScreenshot[];
-  status: VndbScreenshotCache["status"];
+  screenshots: GameScreenshot[];
+  status: GameScreenshotCache["status"];
 } => {
-  const best = selectBestVndbResult(response.results ?? [], context);
+  const best = selectBestApiResult(response.results ?? [], context);
   if (!best) {
     return {
-      vndbId: null,
       matchedTitle: null,
       screenshots: [],
       status: "not_found",
@@ -278,7 +276,6 @@ export const parseGameScreenshots = (
   const screenshots = parseJapaneseScreenshots(best);
 
   return {
-    vndbId: best.id,
     matchedTitle: best.alttitle ?? best.title,
     screenshots,
     status: screenshots.length > 0 ? "ok" : "not_found",
@@ -286,7 +283,7 @@ export const parseGameScreenshots = (
 };
 
 export const filterGameScreenshots = (
-  screenshots: VndbScreenshot[],
+  screenshots: GameScreenshot[],
   showSensitive: boolean,
 ) => {
   if (showSensitive) return screenshots;
@@ -297,7 +294,7 @@ export const filterGameScreenshots = (
 };
 
 export const isFreshGameCache = (
-  cache: VndbScreenshotCache | null,
+  cache: GameScreenshotCache | null,
   now = new Date(),
 ) => {
   if (!cache || cache.status === "error") return false;
@@ -307,7 +304,7 @@ export const isFreshGameCache = (
   return now.getTime() - fetchedAt.getTime() < CACHE_TTL_MS;
 };
 
-const hasCurrentCacheSchema = (cache: VndbScreenshotCache) => {
+const hasCurrentCacheSchema = (cache: GameScreenshotCache) => {
   try {
     const parsed = JSON.parse(cache.screenshotsJson) as {
       version?: number;
@@ -322,18 +319,18 @@ const hasCurrentCacheSchema = (cache: VndbScreenshotCache) => {
   }
 };
 
-const stringifyScreenshotsCache = (screenshots: VndbScreenshot[]) =>
+const stringifyScreenshotsCache = (screenshots: GameScreenshot[]) =>
   JSON.stringify({
     version: CACHE_SCHEMA_VERSION,
     screenshots,
   });
 
-export const readScreenshotsFromCache = (cache: VndbScreenshotCache | null) => {
+export const readScreenshotsFromCache = (cache: GameScreenshotCache | null) => {
   if (!cache || cache.status !== "ok") return [];
   try {
     const parsed = JSON.parse(cache.screenshotsJson) as
-      | VndbScreenshot[]
-      | { screenshots?: VndbScreenshot[] };
+      | GameScreenshot[]
+      | { screenshots?: GameScreenshot[] };
     if (Array.isArray(parsed)) return parsed;
     return Array.isArray(parsed.screenshots) ? parsed.screenshots : [];
   } catch {
@@ -341,7 +338,7 @@ export const readScreenshotsFromCache = (cache: VndbScreenshotCache | null) => {
   }
 };
 
-export const createVndbRequestBody = (
+export const createApiRequestBody = (
   collectionElement: Pick<CollectionElement, "gamename"> | string,
 ) => ({
   filters: [
@@ -564,7 +561,7 @@ const getGenericProductImageUrls = (doc: Document) => {
 const toFanzaScreenshots = (urls: string[]) => {
   const seen = new Set<string>();
   return urls
-    .map((url, index): VndbScreenshot | null => {
+    .map((url, index): GameScreenshot | null => {
       const thumbnail = resolveFanzaImageUrl(url);
       if (!thumbnail || seen.has(thumbnail) || !isFanzaImageUrl(thumbnail)) {
         return null;
@@ -581,7 +578,7 @@ const toFanzaScreenshots = (urls: string[]) => {
         languages: ["ja"],
       };
     })
-    .filter((s): s is VndbScreenshot => !!s);
+    .filter((s): s is GameScreenshot => !!s);
 };
 
 const toDlsiteFullImageUrl = (url: string) =>
@@ -592,7 +589,7 @@ const toDlsiteFullImageUrl = (url: string) =>
 const toDlsiteScreenshots = (urls: string[]) => {
   const seen = new Set<string>();
   return urls
-    .map((url, index): VndbScreenshot | null => {
+    .map((url, index): GameScreenshot | null => {
       const thumbnail = resolveExternalImageUrl(url);
       if (!thumbnail || !isDlsiteImageUrl(thumbnail)) return null;
       const fullUrl = toDlsiteFullImageUrl(thumbnail);
@@ -609,7 +606,7 @@ const toDlsiteScreenshots = (urls: string[]) => {
         languages: ["ja"],
       };
     })
-    .filter((s): s is VndbScreenshot => !!s);
+    .filter((s): s is GameScreenshot => !!s);
 };
 
 const toSteamScreenshots = (urls: string[]) => {
@@ -649,7 +646,7 @@ const toGenericProductScreenshots = (
 ) => {
   const seen = new Set<string>();
   return urls
-    .map((url, index): VndbScreenshot | null => {
+    .map((url, index): GameScreenshot | null => {
       if (!url || seen.has(url)) return null;
       seen.add(url);
       return {
@@ -663,14 +660,14 @@ const toGenericProductScreenshots = (
         languages: ["ja"],
       };
     })
-    .filter((s): s is VndbScreenshot => !!s);
+    .filter((s): s is GameScreenshot => !!s);
 };
 
 export const parseFanzaScreenshotsFromHtml = (
   html: string,
 ): {
   matchedTitle: string | null;
-  screenshots: VndbScreenshot[];
+  screenshots: GameScreenshot[];
   productPageUrl: string | null;
   dlsiteProductPageUrl: string | null;
   steamProductPageUrl: string | null;
@@ -699,21 +696,21 @@ export const parseFanzaScreenshotsFromHtml = (
 
 export const parseFanzaScreenshotsFromProductHtml = (
   html: string,
-): VndbScreenshot[] => {
+): GameScreenshot[] => {
   const doc = new DOMParser().parseFromString(html, "text/html");
   return toFanzaScreenshots(getDmmProductSampleImageUrls(doc));
 };
 
 export const parseDlsiteScreenshotsFromProductHtml = (
   html: string,
-): VndbScreenshot[] => {
+): GameScreenshot[] => {
   const doc = new DOMParser().parseFromString(html, "text/html");
   return toDlsiteScreenshots(getDlsiteSampleImageUrls(doc, true));
 };
 
 export const parseSteamScreenshotsFromProductHtml = (
   html: string,
-): VndbScreenshot[] => {
+): GameScreenshot[] => {
   const steamScreenshots = toSteamScreenshots(getSteamSampleImageUrls(html));
   if (steamScreenshots.length > 0) {
     return steamScreenshots;
@@ -729,13 +726,13 @@ const getShowSensitiveSetting = async () => {
 };
 
 const getCache = async (collectionElementId: number): Promise<CacheLookup> => {
-  const cache = await commandGetVndbScreenshotCache(collectionElementId);
+  const cache = await commandGetGameScreenshotCache(collectionElementId);
   return { cache, isFresh: isFreshGameCache(cache) };
 };
 
 const requestFanzaScreenshots = async (
   collectionElement: CollectionElement,
-): Promise<VndbScreenshotCache> => {
+): Promise<GameScreenshotCache> => {
   const response = await fetch(
     `${EROGAMESCAPE_REQUEST_PATH}/game.php?game=${collectionElement.id}`,
     { method: "GET" },
@@ -812,16 +809,15 @@ const requestFanzaScreenshots = async (
       console.warn("[steam] failed to fetch product screenshots", error);
     }
   }
-  const cache: VndbScreenshotCache = {
+  const newCache: GameScreenshotCache = {
     collectionElementId: collectionElement.id,
-    vndbId: null,
     matchedTitle: parsed.matchedTitle ?? collectionElement.gamename,
     screenshotsJson: stringifyScreenshotsCache(screenshots),
     fetchedAt: new Date().toISOString(),
     status: screenshots.length > 0 ? "ok" : "not_found",
   };
-  await commandUpsertVndbScreenshotCache(cache);
-  return cache;
+  await commandUpsertGameScreenshotCache(newCache);
+  return newCache;
 };
 
 export const ensureGameScreenshotCache = async (
@@ -837,15 +833,14 @@ export const ensureGameScreenshotCache = async (
   const promise = requestFanzaScreenshots(collectionElement)
     .catch(async (error) => {
       console.warn("[fanza] failed to fetch screenshots", error);
-      const errorCache: VndbScreenshotCache = {
+      const errorCache: GameScreenshotCache = {
         collectionElementId: collectionElement.id,
-        vndbId: cache?.vndbId ?? null,
         matchedTitle: cache?.matchedTitle ?? null,
         screenshotsJson: cache?.screenshotsJson ?? "[]",
-        fetchedAt: new Date().toISOString(),
+        fetchedAt: cache?.fetchedAt ?? new Date().toISOString(),
         status: "error",
       };
-      await commandUpsertVndbScreenshotCache(errorCache);
+      await commandUpsertGameScreenshotCache(errorCache);
       return errorCache;
     })
     .finally(() => inFlight.delete(collectionElement.id));

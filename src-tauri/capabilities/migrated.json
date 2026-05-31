@@ -15,6 +15,7 @@
     "core:window:allow-close",
     "core:window:allow-minimize",
     "core:window:allow-toggle-maximize",
+    "core:window:allow-set-fullscreen",
     "core:app:default",
     "core:resources:default",
     "core:menu:default",
@@ -45,10 +46,22 @@
           "url": "https://dlsoft.dmm.com/detail/*"
         },
         {
+          "url": "https://dlsoft.dmm.co.jp/detail/*"
+        },
+        {
+          "url": "https://www.dmm.co.jp/dc/doujin/-/detail/=/cid=*"
+        },
+        {
           "url": "https://www.dlsite.com/*"
         },
         {
           "url": "https://store.steampowered.com/app/*"
+        },
+        {
+          "url": "https://store.steampowered.com/api/*"
+        },
+        {
+          "url": "https://*"
         },
         {
           "url": "https://seiya-saiga.com/game/*"

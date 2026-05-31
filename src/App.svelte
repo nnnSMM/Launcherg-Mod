@@ -2,14 +2,19 @@
   import Router from "svelte-spa-router";
   import Layout from "@/layouts/Layout.svelte";
   import { routes } from "@/router/route";
-  import { initialize, routeLoaded } from "@/store/tabs";
+  import { initialize, routeLoaded, syncSelectedToLocation } from "@/store/tabs";
   import { registerCollectionElementDetails } from "@/lib/registerCollectionElementDetails";
   import { onMount } from "svelte";
+  import { setupGlobalTooltips } from "@/lib/tooltip";
+  import { setupHistoryTracker } from "@/lib/historyTrack";
   import { initializeAllGameCache } from "@/lib/scrapeAllGame";
   import ImportDropFiles from "@/components/Home/ImportDropFiles.svelte";
   import { backgroundState } from "@/store/background";
-  import { location } from "svelte-spa-router";
+  import { location, replace } from "svelte-spa-router";
   import { fade } from "svelte/transition";
+  import { isWorkDetailRoute } from "@/lib/routeHelper";
+
+  $: isWorkDetail = isWorkDetailRoute($location);
 
   import { getCurrentWindow } from "@tauri-apps/api/window";
 
@@ -32,6 +37,19 @@
   $: setDetailPromise = isLandingRoute
     ? Promise.resolve()
     : registerCollectionElementDetails();
+  $: if ($location === "/settings/display") {
+    replace("/settings/shortcut");
+  }
+  $: if (!isLandingRoute) {
+    syncSelectedToLocation($location);
+  }
+
+  const handleMainScroll = (e: Event) => {
+    const target = e.currentTarget as HTMLElement;
+    if (target.scrollTop !== 0) {
+      target.scrollTop = 0;
+    }
+  };
 
   const initializeMainApp = () => {
     if (didInitializeMainApp) {
@@ -45,12 +63,48 @@
   onMount(async () => {
     void theme.initialize();
     isMounted = true;
+    // 以前の自動生成デモ用サンプルメモが残っている場合はクリーンアップ（削除）する
+    const demoIds = [39837, 27059, 38696, 38631, 26245, 28941, 30122, 25861, 20988, 31106, 31597, 38794];
+    demoIds.forEach((id) => {
+      const key = `smde_memo-${id}`;
+      const val = localStorage.getItem(key);
+      if (val && (val.includes("自動生成サンプルメモ") || val.includes("攻略進捗とメモ"))) {
+        localStorage.removeItem(key);
+      }
+    });
+
     if (!isLandingRoute) {
       initializeMainApp();
+
       if (windowLabel === "main") {
         void appUpdate.initialize();
       }
     }
+
+
+    const cleanupTooltips = setupGlobalTooltips();
+    const cleanupHistory = setupHistoryTracker();
+
+    // フォーカス取得時のWebView自動スクロールを防止
+    const handleFocusIn = () => {
+      setTimeout(() => {
+        if (window.scrollY !== 0) {
+          window.scrollTo(0, 0);
+        }
+        const mainElement = document.querySelector("main");
+        if (mainElement && mainElement.scrollTop !== 0) {
+          mainElement.scrollTop = 0;
+        }
+      }, 0);
+    };
+    document.addEventListener("focusin", handleFocusIn);
+
+    const preventScroll = () => {
+      if (window.scrollY !== 0) {
+        window.scrollTo(0, 0);
+      }
+    };
+    window.addEventListener("scroll", preventScroll, { passive: true });
 
     // F5とCtrl+Rによるリロードを無効化
     const handleKeydown = (e: KeyboardEvent) => {
@@ -66,6 +120,10 @@
 
     return () => {
       window.removeEventListener("keydown", handleKeydown);
+      document.removeEventListener("focusin", handleFocusIn);
+      window.removeEventListener("scroll", preventScroll);
+      cleanupTooltips();
+      cleanupHistory();
     };
   });
 
@@ -87,22 +145,31 @@
   <Landing />
 {:else}
   <main
-    class="relative h-full w-full bg-bg-primary font-sans overflow-hidden flex flex-col"
+    class="relative h-full w-full font-sans overflow-hidden flex flex-col transition-colors duration-300"
+    class:bg-bg-primary={!isWorkDetail}
+    class:bg-transparent={isWorkDetail}
+    on:scroll={handleMainScroll}
   >
-    <TitleBar heightClass="h-8" />
+    <TitleBar heightClass="h-10" />
     {#if $backgroundState.imageUrl}
-      <div
-        transition:fade={{ duration: 300 }}
-        class="absolute inset-0 bg-cover bg-center blur-2xl opacity-50 z-0"
-        style="background-image: url({$backgroundState.imageUrl});"
-      />
+      {#key $backgroundState.imageUrl}
+        <div
+          transition:fade={{ duration: 300 }}
+          class="absolute inset-0 bg-cover bg-center z-0 transition-all duration-500 ease-out transform"
+          class:opacity-85={isWorkDetail}
+          class:scale-100={isWorkDetail}
+          class:blur-2xl={!isWorkDetail}
+          class:opacity-50={!isWorkDetail}
+          style="background-image: url('{$backgroundState.imageUrl}'); {isWorkDetail ? 'filter: blur(64px) brightness(1.0);' : ''}"
+        />
+      {/key}
     {/if}
     <div class="relative flex-1 w-full z-10 min-h-0">
       {#await setDetailPromise then _}
         <Layout>
           {#key $location}
             <div
-              class="h-full w-full"
+              class="absolute inset-0"
               in:fade={{ duration: 200, delay: 200 }}
               out:fade={{ duration: 200 }}
             >

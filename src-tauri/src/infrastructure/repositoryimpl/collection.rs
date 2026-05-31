@@ -5,7 +5,7 @@ use sqlx::{query, query_as, QueryBuilder, Row};
 use super::{models::collection::CollectionElementTable, repository::RepositoryImpl};
 use crate::domain::{
     collection::{CollectionElement, NewCollectionElement, NewCollectionElementDetail},
-    repository::collection::{CollectionRepository, VndbScreenshotCache},
+    repository::collection::{CollectionRepository, DailyPlayTime, GameScreenshotCache},
     Id,
 };
 
@@ -344,6 +344,76 @@ impl CollectionRepository for RepositoryImpl<CollectionElement> {
         .await?;
         Ok(())
     }
+
+    async fn subtract_daily_play_time_seconds_from_latest(
+        &self,
+        id: &Id<CollectionElement>,
+        seconds: i32,
+    ) -> anyhow::Result<()> {
+        if seconds <= 0 {
+            return Ok(());
+        }
+
+        let pool = self.pool.0.clone();
+        let mut remaining_seconds = seconds;
+        let rows: Vec<(String, i32)> = sqlx::query_as(
+            "SELECT play_date, play_time_seconds
+             FROM collection_element_daily_play_times
+             WHERE collection_element_id = ? AND play_time_seconds > 0
+             ORDER BY play_date DESC",
+        )
+        .bind(id.value)
+        .fetch_all(&*pool)
+        .await?;
+
+        for (play_date, play_time_seconds) in rows {
+            if remaining_seconds <= 0 {
+                break;
+            }
+
+            let subtract_seconds = remaining_seconds.min(play_time_seconds);
+            query(
+                "UPDATE collection_element_daily_play_times
+                 SET play_time_seconds = play_time_seconds - ?,
+                     updated_at = CURRENT_TIMESTAMP
+                 WHERE collection_element_id = ? AND play_date = ?",
+            )
+            .bind(subtract_seconds)
+            .bind(id.value)
+            .bind(play_date)
+            .execute(&*pool)
+            .await?;
+
+            remaining_seconds -= subtract_seconds;
+        }
+
+        Ok(())
+    }
+    async fn get_daily_play_times(
+        &self,
+        id: &Id<CollectionElement>,
+    ) -> anyhow::Result<Vec<DailyPlayTime>> {
+        let pool = self.pool.0.clone();
+        let rows = query(
+            "SELECT collection_element_id, play_date, play_time_seconds
+             FROM collection_element_daily_play_times
+             WHERE collection_element_id = ? AND play_time_seconds > 0
+             ORDER BY play_date ASC",
+        )
+        .bind(id.value)
+        .fetch_all(&*pool)
+        .await?;
+
+        Ok(rows
+            .into_iter()
+            .map(|row| DailyPlayTime {
+                collection_element_id: row.get::<i64, _>("collection_element_id") as i32,
+                play_date: row.get("play_date"),
+                play_time_seconds: row.get::<i64, _>("play_time_seconds") as i32,
+            })
+            .collect())
+    }
+
     async fn delete_element_by_id(&self, id: &Id<CollectionElement>) -> anyhow::Result<()> {
         let pool = self.pool.0.clone();
         query("delete from collection_elements where id = ?") // collection_elements から削除
@@ -389,23 +459,22 @@ impl CollectionRepository for RepositoryImpl<CollectionElement> {
         Ok(())
     }
 
-    async fn get_vndb_screenshot_cache(
+    async fn get_game_screenshot_cache(
         &self,
         collection_element_id: i32,
-    ) -> anyhow::Result<Option<VndbScreenshotCache>> {
+    ) -> anyhow::Result<Option<GameScreenshotCache>> {
         let pool = self.pool.0.clone();
         let row = query(
-            "SELECT collection_element_id, vndb_id, matched_title, screenshots_json, fetched_at, status
-            FROM vndb_screenshot_caches
+            "SELECT collection_element_id, matched_title, screenshots_json, fetched_at, status
+            FROM game_screenshot_caches
             WHERE collection_element_id = ?",
         )
         .bind(collection_element_id)
         .fetch_optional(&*pool)
         .await?;
 
-        Ok(row.map(|row| VndbScreenshotCache {
+        Ok(row.map(|row| GameScreenshotCache {
             collection_element_id: row.get::<i64, _>("collection_element_id") as i32,
-            vndb_id: row.get("vndb_id"),
             matched_title: row.get("matched_title"),
             screenshots_json: row.get("screenshots_json"),
             fetched_at: row
@@ -415,21 +484,19 @@ impl CollectionRepository for RepositoryImpl<CollectionElement> {
         }))
     }
 
-    async fn upsert_vndb_screenshot_cache(&self, cache: VndbScreenshotCache) -> anyhow::Result<()> {
+    async fn upsert_game_screenshot_cache(&self, cache: GameScreenshotCache) -> anyhow::Result<()> {
         let pool = self.pool.0.clone();
         query(
-            "INSERT INTO vndb_screenshot_caches
-                (collection_element_id, vndb_id, matched_title, screenshots_json, fetched_at, status)
-            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, ?)
+            "INSERT INTO game_screenshot_caches
+                (collection_element_id, matched_title, screenshots_json, fetched_at, status)
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP, ?)
             ON CONFLICT(collection_element_id) DO UPDATE SET
-                vndb_id = excluded.vndb_id,
                 matched_title = excluded.matched_title,
                 screenshots_json = excluded.screenshots_json,
                 fetched_at = CURRENT_TIMESTAMP,
                 status = excluded.status",
         )
         .bind(cache.collection_element_id)
-        .bind(cache.vndb_id)
         .bind(cache.matched_title)
         .bind(cache.screenshots_json)
         .bind(cache.status)

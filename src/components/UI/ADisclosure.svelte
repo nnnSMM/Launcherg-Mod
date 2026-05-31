@@ -12,10 +12,10 @@
 
 <Disclosure let:open {defaultOpen}>
   <DisclosureButton
-    class="bg-transparent rounded transition-all hover:bg-bg-button-hover w-full"
+    class="bg-transparent rounded transition-all w-full"
   >
-    <div class="p-x-4 p-y-2 flex items-center gap-4 bg-transparent">
-      <div class="text-text-primary text-body2">{label}</div>
+    <div class="p-x-4 p-y-1 flex items-center gap-4 bg-transparent">
+      <div class="text-text-primary text-xs">{label}</div>
       <div
         class="i-material-symbols-arrow-drop-down ml-auto h-5 w-5 color-text-primary transition-all flex-shrink-0"
         class:rotate-180={open}

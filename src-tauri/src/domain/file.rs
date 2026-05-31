@@ -6,7 +6,12 @@ pub struct LnkMetadata {
     pub icon_index: i32,
 }
 
-use std::{collections::HashMap, fs, path::Path, sync::Arc};
+use std::{
+    collections::HashMap,
+    fs,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
 use chrono::{DateTime, Local};
 use image::{codecs::jpeg::JpegEncoder, imageops::FilterType, ColorType, GenericImageView};
@@ -185,6 +190,165 @@ fn get_ini_value(contents: &str, key: &str) -> Option<String> {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SteamAppPathMetadata {
+    pub app_id: u32,
+    pub install_dir: Option<String>,
+    pub name: Option<String>,
+}
+
+fn get_quoted_vdf_value(contents: &str, key: &str) -> Option<String> {
+    contents.lines().find_map(|line| {
+        let quoted: Vec<&str> = line.split('"').skip(1).step_by(2).collect();
+        if quoted.len() >= 2 && quoted[0].eq_ignore_ascii_case(key) {
+            Some(quoted[1].to_string())
+        } else {
+            None
+        }
+    })
+}
+
+fn parse_steam_appmanifest(contents: &str) -> Option<SteamAppPathMetadata> {
+    let app_id = get_quoted_vdf_value(contents, "appid")?
+        .parse::<u32>()
+        .ok()?;
+    Some(SteamAppPathMetadata {
+        app_id,
+        install_dir: get_quoted_vdf_value(contents, "installdir"),
+        name: get_quoted_vdf_value(contents, "name"),
+    })
+}
+
+fn get_steam_url_app_id(contents: &str) -> Option<u32> {
+    contents.lines().find_map(|line| {
+        let value = line.trim().strip_prefix("URL=")?.trim();
+        let normalized = value.replace('\\', "/").to_lowercase();
+        for marker in ["steam://rungameid/", "steam://run/"] {
+            if let Some(index) = normalized.find(marker) {
+                let rest = &normalized[index + marker.len()..];
+                let app_id = rest
+                    .chars()
+                    .take_while(|ch| ch.is_ascii_digit())
+                    .collect::<String>();
+                return app_id.parse::<u32>().ok();
+            }
+        }
+        None
+    })
+}
+
+fn get_steamapps_dir_and_install_dir(path: &str) -> Option<(PathBuf, String)> {
+    let normalized = path.replace('\\', "/");
+    let parts: Vec<&str> = normalized
+        .split('/')
+        .filter(|part| !part.is_empty())
+        .collect();
+    let sep = std::path::MAIN_SEPARATOR.to_string();
+
+    for index in 0..parts.len() {
+        if parts[index].eq_ignore_ascii_case("steamapps")
+            && parts
+                .get(index + 1)
+                .is_some_and(|part| part.eq_ignore_ascii_case("common"))
+            && parts.get(index + 2).is_some()
+        {
+            return Some((
+                PathBuf::from(parts[..=index].join(&sep)),
+                parts[index + 2].to_string(),
+            ));
+        }
+    }
+
+    None
+}
+
+pub fn get_steam_app_metadata_by_path(path: &str) -> Option<SteamAppPathMetadata> {
+    if path.to_lowercase().ends_with(".url") {
+        return fs::read_to_string(path)
+            .ok()
+            .and_then(|contents| get_steam_url_app_id(&contents))
+            .map(|app_id| SteamAppPathMetadata {
+                app_id,
+                install_dir: None,
+                name: None,
+            });
+    }
+
+    let (steamapps_dir, install_dir) = get_steamapps_dir_and_install_dir(path)?;
+    let install_dir_normalized = normalize(&install_dir);
+
+    let manifests = fs::read_dir(steamapps_dir).ok()?;
+    for entry in manifests.flatten() {
+        let path = entry.path();
+        let filename = path.file_name()?.to_string_lossy().to_lowercase();
+        if !filename.starts_with("appmanifest_") || !filename.ends_with(".acf") {
+            continue;
+        }
+
+        let Ok(contents) = fs::read_to_string(path) else {
+            continue;
+        };
+        let Some(metadata) = parse_steam_appmanifest(&contents) else {
+            continue;
+        };
+        if metadata
+            .install_dir
+            .as_deref()
+            .map(|dir| normalize(dir) == install_dir_normalized)
+            .unwrap_or(false)
+        {
+            return Some(metadata);
+        }
+    }
+
+    None
+}
+
+pub fn get_steam_thumbnail_candidate_urls(app_id: u32) -> Vec<String> {
+    vec![
+        format!(
+            "https://cdn.cloudflare.steamstatic.com/steam/apps/{app_id}/library_600x900_2x.jpg"
+        ),
+        format!("https://cdn.cloudflare.steamstatic.com/steam/apps/{app_id}/library_600x900.jpg"),
+        format!("https://cdn.cloudflare.steamstatic.com/steam/apps/{app_id}/capsule_616x353.jpg"),
+        format!("https://cdn.cloudflare.steamstatic.com/steam/apps/{app_id}/header.jpg"),
+    ]
+}
+
+fn get_thumbnail_source_path(element: &super::collection::NewCollectionElement) -> Option<String> {
+    if let Some(exe_path) = &element.exe_path {
+        return Some(exe_path.clone());
+    }
+
+    let lnk_path = element.lnk_path.as_ref()?;
+    if lnk_path.to_lowercase().ends_with(".lnk") {
+        if let Ok(metadatas) = get_lnk_metadatas(vec![lnk_path]) {
+            if let Some(metadata) = metadatas.get(lnk_path.as_str()) {
+                return Some(metadata.path.clone());
+            }
+        }
+    }
+
+    Some(lnk_path.clone())
+}
+
+pub fn get_thumbnail_candidate_urls(
+    element: &super::collection::NewCollectionElement,
+    fallback_thumbnail_url: String,
+) -> Vec<String> {
+    let mut urls = get_thumbnail_source_path(element)
+        .as_deref()
+        .and_then(get_steam_app_metadata_by_path)
+        .map(|metadata| get_steam_thumbnail_candidate_urls(metadata.app_id))
+        .unwrap_or_default();
+
+    if !fallback_thumbnail_url.trim().is_empty() {
+        urls.push(fallback_thumbnail_url);
+    }
+
+    urls
+}
+
 fn expand_env_vars(path: &str) -> String {
     use windows::Win32::System::Environment::ExpandEnvironmentStringsW;
     let input = path.to_wide_null_terminated();
@@ -313,16 +477,16 @@ pub fn get_game_candidates_by_exe_path(
     let mut distance_pairs = vec![];
 
     if let Some(id) = get_path_specific_game_id(grandparent.as_deref(), &parent) {
-        id_name_pairs.iter().find(|v| v.id == id).map(|v| {
-            distance_pairs.push((v.clone(), 1000.0));
-        });
+        if let Some(candidate) = id_name_pairs.iter().find(|v| v.id == id) {
+            return Ok(vec![candidate.clone()]);
+        }
     }
 
     for (equally_filename, id) in EQUALLY_FILENAME_GAME_ID_PAIR {
         if filename == *equally_filename {
-            id_name_pairs.iter().find(|v| v.id == id).map(|v| {
-                distance_pairs.push((v.clone(), 100.0));
-            });
+            if let Some(candidate) = id_name_pairs.iter().find(|v| v.id == id) {
+                return Ok(vec![candidate.clone()]);
+            }
         }
     }
 
@@ -515,6 +679,42 @@ mod tests {
         assert_eq!(result, Some("icon.ico".to_string()));
     }
 
+    #[test]
+    fn test_parse_steam_appmanifest() {
+        let contents = r#"
+"AppState"
+{
+    "appid"     "2818450"
+    "name"      "Steam Game"
+    "installdir"        "Steam Game Folder"
+}
+"#;
+        let metadata = parse_steam_appmanifest(contents).unwrap();
+        assert_eq!(metadata.app_id, 2818450);
+        assert_eq!(metadata.install_dir.as_deref(), Some("Steam Game Folder"));
+        assert_eq!(metadata.name.as_deref(), Some("Steam Game"));
+    }
+
+    #[test]
+    fn test_get_steam_url_app_id() {
+        let contents = "[InternetShortcut]\nURL=steam://rungameid/3101040\n";
+        assert_eq!(get_steam_url_app_id(contents), Some(3101040));
+    }
+
+    #[test]
+    fn test_get_steamapps_dir_and_install_dir() {
+        let result = get_steamapps_dir_and_install_dir(
+            r"C:\Program Files (x86)\Steam\steamapps\common\Steam Game\game.exe",
+        )
+        .unwrap();
+        assert!(result
+            .0
+            .to_string_lossy()
+            .to_lowercase()
+            .ends_with("steamapps"));
+        assert_eq!(result.1, "Steam Game");
+    }
+
     // ========================================
     // 既存テスト
     // ========================================
@@ -615,6 +815,28 @@ mod tests {
             !res.is_empty(),
             "BGI.exeの親フォルダからサクラノ詩が推定できるべき"
         );
+        assert_eq!(res.first().unwrap().id, 4529);
+    }
+
+    #[test]
+    fn test_get_game_candidates_path_specific_rule_returns_only_exact_candidate() {
+        let cache = vec![
+            AllGameCacheOne::new(4529, "サクラノ詩 -櫻の森の上を舞う-".to_string()),
+            AllGameCacheOne::new(11396, "サクラノ詩 春ノ雪".to_string()),
+            AllGameCacheOne::new(
+                39075,
+                "サクラノ詩 -櫻の森の上を舞う- 10th Anniversary Edition".to_string(),
+            ),
+        ];
+        let res = get_game_candidates_by_exe_path(
+            &cache,
+            "E:\\VisualNovel\\枕\\サクラノ詩\\BGI.exe",
+            0.2,
+            5,
+        )
+        .unwrap();
+
+        assert_eq!(res.len(), 1);
         assert_eq!(res.first().unwrap().id, 4529);
     }
 
@@ -1018,34 +1240,73 @@ pub fn ensure_screenshot_thumbnail(
     Ok(Some(thumbnail_path.to_string_lossy().to_string()))
 }
 
-pub fn save_thumbnail(
+pub fn save_thumbnail_from_candidates(
     handle: &Arc<AppHandle>,
     collection_element_id: &Id<CollectionElement>,
-    src_url: String,
+    src_urls: Vec<String>,
 ) -> JoinHandle<anyhow::Result<()>> {
     let collection_element_id = collection_element_id.clone();
     let handle_cloned = handle.clone();
     tauri::async_runtime::spawn(async move {
         let save_path = get_thumbnail_path(&handle_cloned, &collection_element_id);
-        if !(std::path::Path::new(&save_path).exists()) && src_url != "" {
-            let client = reqwest::Client::new();
-            let response = client.get(src_url).send().await?;
-            let bytes = response.bytes().await?;
-
-            // Offload CPU intensive work to Rayon thread pool
-            let (tx, rx) = tokio::sync::oneshot::channel();
-            rayon::spawn(move || {
-                let res = (|| -> anyhow::Result<()> {
-                    let img = image::load_from_memory(&bytes)?;
-                    img.save(&save_path)?;
-                    Ok(())
-                })();
-                let _ = tx.send(res);
-            });
-            rx.await??;
+        if std::path::Path::new(&save_path).exists() {
+            return Ok(());
         }
+
+        let src_urls: Vec<String> = src_urls
+            .into_iter()
+            .filter(|url| !url.trim().is_empty())
+            .collect();
+        if src_urls.is_empty() {
+            return Ok(());
+        }
+
+        let client = reqwest::Client::new();
+        let mut last_error: Option<anyhow::Error> = None;
+        for src_url in src_urls {
+            match save_thumbnail_url(&client, &src_url, &save_path).await {
+                Ok(_) => return Ok(()),
+                Err(e) => {
+                    eprintln!("[save_thumbnail_from_candidates] failed {}: {}", src_url, e);
+                    last_error = Some(e);
+                }
+            }
+        }
+
+        if let Some(e) = last_error {
+            return Err(e);
+        }
+
         Ok(())
     })
+}
+
+async fn save_thumbnail_url(
+    client: &reqwest::Client,
+    src_url: &str,
+    save_path: &str,
+) -> anyhow::Result<()> {
+    let response = client.get(src_url).send().await?;
+    if !response.status().is_success() {
+        return Err(anyhow::anyhow!(
+            "thumbnail request returned {}",
+            response.status()
+        ));
+    }
+    let bytes = response.bytes().await?;
+
+    let save_path = save_path.to_string();
+    let (tx, rx) = tokio::sync::oneshot::channel();
+    rayon::spawn(move || {
+        let res = (|| -> anyhow::Result<()> {
+            let img = image::load_from_memory(&bytes)?;
+            img.save(&save_path)?;
+            Ok(())
+        })();
+        let _ = tx.send(res);
+    });
+    rx.await??;
+    Ok(())
 }
 
 pub async fn get_exe_path_from_lnk(path: &str) -> anyhow::Result<String> {

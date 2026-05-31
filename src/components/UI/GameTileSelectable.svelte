@@ -59,6 +59,18 @@
       baseColorCode: "#48BB78",
       selectedIconColor: "#FFFFFF",
     }, // 選択時アイコンは白
+    [PSConst.Interrupted]: {
+      label: "中断",
+      icon: "i-material-symbols-stop-circle-outline-rounded",
+      baseColorCode: "#D97706",
+      selectedIconColor: "#FFFFFF",
+    },
+    [PSConst.LegacyShelved]: {
+      label: "中断",
+      icon: "i-material-symbols-stop-circle-outline-rounded",
+      baseColorCode: "#D97706",
+      selectedIconColor: "#FFFFFF",
+    },
   };
 
   $: displayPlayStatus =

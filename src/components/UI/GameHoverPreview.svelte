@@ -1,11 +1,11 @@
 <script lang="ts">
-  import type { CollectionElement, VndbScreenshot } from "@/lib/types";
+  import type { CollectionElement, GameScreenshot } from "@/lib/types";
   import { formatLastPlayed, formatPlayTime } from "@/lib/utils";
   import { convertFileSrc } from "@tauri-apps/api/core";
   import { onDestroy, onMount } from "svelte";
 
   export let collectionElement: CollectionElement;
-  export let screenshots: VndbScreenshot[] = [];
+  export let screenshots: GameScreenshot[] = [];
   export let anchorElement: HTMLElement | null = null;
 
   const WIDTH = 440;

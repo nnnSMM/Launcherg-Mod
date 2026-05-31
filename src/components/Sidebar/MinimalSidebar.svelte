@@ -1,18 +1,32 @@
 <script lang="ts">
   import { showSidebar } from "@/store/showSidebar";
-  import ButtonBase from "@/components/UI/ButtonBase.svelte";
+
+  const labels = {
+    open: "\u30b5\u30a4\u30c9\u30d0\u30fc\u3092\u958b\u304f",
+    library: "\u30e9\u30a4\u30d6\u30e9\u30ea",
+  };
 </script>
 
-<div class="flex flex-col h-full w-full items-center gap-4 py-4">
-  <div
-    class="p-1 rounded cursor-pointer hover:bg-white/10"
+<div class="flex h-full w-full flex-col items-center gap-3 py-3">
+  <button
+    type="button"
+    class="grid h-8 w-8 place-items-center rounded-md bg-bg-primary/30 text-text-secondary transition-colors hover:bg-white/10 hover:text-text-primary focus-visible:ring-2 focus-visible:ring-accent-accent"
     on:click={() => showSidebar.set(true)}
-    role="button"
-    tabindex="0"
-    on:keydown={(e) => e.key === "Enter" && showSidebar.set(true)}
+    aria-label={labels.open}
+    title={labels.open}
   >
     <div
-      class="i-material-symbols-left-panel-close-outline w-6 h-6 color-text-primary rotate-180"
+      class="i-material-symbols:left-panel-open-outline h-5 w-5"
+    />
+  </button>
+  <div class="h-px w-6 bg-border-primary" />
+  <div
+    class="grid h-8 w-8 place-items-center rounded-md text-text-tertiary"
+    aria-label={labels.library}
+    title={labels.library}
+  >
+    <div
+      class="i-material-symbols:video-library-outline-rounded h-5 w-5"
     />
   </div>
 </div>

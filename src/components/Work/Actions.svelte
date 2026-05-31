@@ -1,19 +1,16 @@
 <script lang="ts">
   import Button from "@/components/UI/Button.svelte";
   import PlayButton from "@/components/Work/PlayButton.svelte";
-  import { push } from "svelte-spa-router";
   import {
     commandDeleteCollectionElement,
     commandOpenFolder,
     commandPlayGame,
     commandUpdateElementLike,
-    commandUpdateElementPlayStatus,
     commandUpsertCollectionElement,
     commandSetAppSetting,
   } from "@/lib/command";
   import { showErrorToast, showInfoToast } from "@/lib/toast";
-  import { localStorageWritable, formatLastPlayed } from "@/lib/utils";
-  import ButtonIcon from "@/components/UI/ButtonIcon.svelte";
+  import { localStorageWritable } from "@/lib/utils";
   import ButtonCancel from "@/components/UI/ButtonCancel.svelte";
   import { sidebarCollectionElements } from "@/store/sidebarCollectionElements";
   import APopover from "@/components/UI/APopover.svelte";
@@ -21,30 +18,19 @@
   import ImportManually from "@/components/Sidebar/ImportManually.svelte";
   import { deleteTab, tabs, selected } from "@/store/tabs";
   import DeleteElement from "@/components/Work/DeleteElement.svelte";
-  import { formatPlayTime } from "@/lib/utils";
-  import type {
-    AllGameCacheOne,
-    PlayStatus as PlayStatusType,
-  } from "@/lib/types";
-  import { PlayStatus } from "@/lib/types";
+  import type { AllGameCacheOne } from "@/lib/types";
   import OtherInformation from "@/components/Work/OtherInformation.svelte";
   import { registerCollectionElementDetails } from "@/lib/registerCollectionElementDetails";
   import QrCode from "@/components/Work/QRCode.svelte";
   import { startProcessMap } from "@/store/startProcessMap";
-  import Select from "@/components/UI/Select.svelte";
-  import ButtonBase from "@/components/UI/ButtonBase.svelte";
   import { enqueueGameScreenshotPrefetch } from "@/lib/useGameScreenshots";
 
-  export let name: string;
   export let id: number;
   export let seiyaUrl: string;
 
   $: element = $sidebarCollectionElements.find((e) => e.id === id);
 
   $: isLike = !!element?.likeAt;
-  $: currentPlayStatus = element?.playStatus ?? PlayStatus.Unplayed;
-  $: playTimeText = formatPlayTime(element?.totalPlayTimeSeconds || 0);
-  $: lastPlayedText = formatLastPlayed(element?.lastPlayAt);
   $: isInstalled = !!(element?.exePath || element?.lnkPath);
 
   const isAdminRecord = localStorageWritable<Record<number, boolean>>(
@@ -112,59 +98,6 @@
     sidebarCollectionElements.updateLike(id, !isLike);
   };
 
-  const handlePlayStatusSelect = (
-    event: CustomEvent<{ value: string | number }>,
-  ) => {
-    const newStatus = event.detail.value as PlayStatusType;
-    updatePlayStatus(newStatus);
-  };
-
-  const updatePlayStatus = async (newStatus: PlayStatusType) => {
-    await commandUpdateElementPlayStatus(id, newStatus);
-    sidebarCollectionElements.updatePlayStatus(id, newStatus);
-  };
-
-  const playStatusOptionsData: {
-    label: string;
-    value: PlayStatusType;
-    icon: string;
-    activeStyleClasses: string;
-    activeIconTextColorClass: string;
-  }[] = [
-    {
-      label: "未プレイ",
-      value: PlayStatus.Unplayed,
-      icon: "i-material-symbols-play-circle-outline-rounded",
-      activeStyleClasses:
-        "bg-gray-400 !hover:bg-gray-300 text-white border-gray-400",
-      activeIconTextColorClass: "text-white",
-    },
-    {
-      label: "プレイ中",
-      value: PlayStatus.Playing,
-      icon: "i-material-symbols-pause-circle-outline-rounded",
-      activeStyleClasses:
-        "bg-blue-500 !hover:bg-blue-400 text-white border-blue-500",
-      activeIconTextColorClass: "text-white",
-    },
-    {
-      label: "クリア済み",
-      value: PlayStatus.Cleared,
-      icon: "i-material-symbols-check-circle-outline-rounded",
-      activeStyleClasses:
-        "bg-green-700 !hover:bg-green-600 text-white border-green-700",
-      activeIconTextColorClass: "text-white",
-    },
-  ];
-
-  $: selectOptionsForDropdown = playStatusOptionsData.map((opt) => ({
-    label: opt.label,
-    value: opt.value,
-  }));
-  $: currentActiveStyleInfo =
-    playStatusOptionsData.find((opt) => opt.value === currentPlayStatus) ||
-    playStatusOptionsData[0];
-
   let isOpenImportManually = false;
   const onChangeGame = async (arg: {
     exePath: string | null;
@@ -196,75 +129,33 @@
 </script>
 
 {#if element}
-  <div class="flex items-center gap-4 flex-wrap w-full min-w-0">
-    {#if isInstalled}
-      <PlayButton
-        text="Play"
-        icon="i-material-symbols-power-rounded"
-        variant="success"
-        on:play={handlePlayClick}
-      />
-    {:else}
-      <Button
-        text="パスを設定"
-        leftIcon="i-material-symbols-folder-open-rounded"
-        variant="warning"
-        on:click={() => (isOpenImportManually = true)}
-      />
-    {/if}
-    <Button
-      leftIcon="i-material-symbols-drive-file-rename-outline"
-      text="Memo"
-      on:click={() => push(`/memos/${id}?gamename=${name}`)}
-      borderless
-    />
-    <div class="flex items-center gap-2 ml-auto">
-      <Select
-        options={selectOptionsForDropdown}
-        bind:value={currentPlayStatus}
-        on:select={handlePlayStatusSelect}
-        showSelectedCheck={true}
-        title="プレイ状況を変更"
-      >
-        <ButtonBase
-          variant={"normal"}
-          appendClass={`h-8 px-3 flex items-center justify-between gap-1.5 min-w-32 text-sm transition-none ${currentActiveStyleInfo.activeStyleClasses}`}
-          borderless
-          tooltip={{
-            content: "プレイ状況: " + currentActiveStyleInfo.label,
-            placement: "bottom",
-            theme: "default",
-            delay: 1000,
-          }}
-        >
-          <div class="flex items-center gap-1 overflow-hidden">
-            <div
-              class="{currentActiveStyleInfo.icon} w-4 h-4 flex-shrink-0 {currentActiveStyleInfo.activeIconTextColorClass}"
-            />
-            <span
-              class="text-xs font-medium truncate {currentActiveStyleInfo.activeIconTextColorClass}"
-              >{currentActiveStyleInfo.label}</span
-            >
-          </div>
-          <div
-            class="i-material-symbols-arrow-drop-down w-4 h-4 flex-shrink-0 {currentActiveStyleInfo.activeIconTextColorClass}"
-          />
-        </ButtonBase>
-      </Select>
-      <ButtonCancel
-        icon="i-material-symbols-qr-code"
-        on:click={() => (isOpenQrCode = true)}
-      />
-      <ButtonCancel
-        icon={isLike
-          ? "i-material-symbols-favorite-rounded color-accent-error"
-          : "i-material-symbols-favorite-outline-rounded"}
-        on:click={toggleLike}
-      />
+  <div class="w-full min-w-0 flex flex-col gap-2 sm:flex-row sm:items-center">
+    <div class="min-w-0 flex flex-wrap items-center gap-2">
+      {#if isInstalled}
+        <PlayButton
+          text="Play"
+          icon="i-material-symbols-power-rounded"
+          variant="success"
+          wrapperClass="shrink-0"
+          buttonClass="h-9 min-w-24 justify-center px-3"
+          menuClass="h-9 w-9"
+          on:play={handlePlayClick}
+        />
+      {:else}
+        <Button
+          text="パスを設定"
+          leftIcon="i-material-symbols-folder-open-rounded"
+          variant="warning"
+          appendClass="h-9 justify-center px-3"
+          wrappable
+          on:click={() => (isOpenImportManually = true)}
+        />
+      {/if}
       <APopover let:close panelClass="right-0">
-        <ButtonIcon
-          icon="i-material-symbols-menu-rounded"
-          borderless
+        <ButtonCancel
+          icon="i-material-symbols-settings-rounded"
+          iconClass="h-6 w-6"
+          ariaLabel="その他の操作"
           slot="button"
         />
         <SettingPopover
@@ -279,21 +170,22 @@
           on:selectShortcut={setAsShortcutGame}
         />
       </APopover>
+      <ButtonCancel
+        icon={isLike
+          ? "i-material-symbols-favorite-rounded"
+          : "i-material-symbols-favorite-outline-rounded"}
+        colorClass={isLike
+          ? "color-text-primary hover:color-text-primary"
+          : "color-text-tertiary hover:color-text-primary"}
+        ariaLabel={isLike ? "お気に入りを解除" : "お気に入りに追加"}
+        on:click={toggleLike}
+      />
+      <ButtonCancel
+        icon="i-material-symbols-qr-code"
+        ariaLabel="QRコードを表示"
+        on:click={() => (isOpenQrCode = true)}
+      />
     </div>
-  </div>
-  <div class="flex items-center gap-4 text-text-tertiary pl-1 mt-2 flex-wrap">
-    {#if lastPlayedText}
-      <div class="flex items-center gap-1">
-        <div class="w-4 h-4 i-material-symbols-history-rounded" />
-        <div class="text-body2">最後にプレイ: {lastPlayedText}</div>
-      </div>
-    {/if}
-    {#if playTimeText}
-      <div class="flex items-center gap-1">
-        <div class="w-4 h-4 i-material-symbols-hourglass-outline-rounded" />
-        <div class="text-body2">プレイ時間: {playTimeText}</div>
-      </div>
-    {/if}
   </div>
 
   <ImportManually

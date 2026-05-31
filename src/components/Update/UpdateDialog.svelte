@@ -36,10 +36,10 @@
 {#if $appUpdate.isDialogOpen && updateInfo}
   <div
     bind:this={panelElement}
-    class="fixed right-[140px] top-9 z-[70] w-72 rounded-md border border-solid border-border-primary bg-bg-primary p-3 shadow-lg"
+    class="fixed left-[210px] top-9 z-[70] w-72 rounded-md border border-solid border-border-primary bg-bg-primary p-3 shadow-lg"
   >
     <div class="flex items-start gap-3">
-      <div class="h-8 w-8 flex shrink-0 items-center justify-center rounded-full bg-[#2563eb] text-white">
+      <div class="h-8 w-8 flex shrink-0 items-center justify-center rounded-full bg-[#0284c7] text-white">
         <div class="i-material-symbols-system-update-alt-rounded text-lg" />
       </div>
       <div class="min-w-0">
@@ -55,7 +55,7 @@
         {#if $appUpdate.installProgress !== null}
           <div class="mt-2 h-1.5 overflow-hidden rounded bg-bg-tertiary">
             <div
-              class="h-full bg-[#2563eb] transition-all"
+              class="h-full bg-[#0284c7] transition-all"
               style="width: {Math.round($appUpdate.installProgress * 100)}%;"
             />
           </div>

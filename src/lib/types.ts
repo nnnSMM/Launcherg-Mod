@@ -3,6 +3,7 @@ export type Work = {
   name: string;
   brandId: number;
   brandName: string;
+  description?: string;
   officialHomePage: string;
   sellday: string;
   imgUrl: string;
@@ -49,6 +50,8 @@ export const PlayStatus = { // 追加
   Unplayed: 0,
   Playing: 1,
   Cleared: 2,
+  Interrupted: 3,
+  LegacyShelved: 4,
 } as const;
 export type PlayStatus = (typeof PlayStatus)[keyof typeof PlayStatus]; // 追加
 
@@ -75,6 +78,12 @@ export type CollectionElement = {
   thumbnailHeight: number | null;
   updatedAt: string;
 
+};
+
+export type CollectionElementDailyPlayTime = {
+  collectionElementId: number;
+  playDate: string;
+  playTimeSeconds: number;
 };
 
 export type CollectionElementsWithLabel = {
@@ -108,7 +117,7 @@ export type Screenshot = {
   createdAt: string;
 };
 
-export type VndbScreenshot = {
+export type GameScreenshot = {
   id: string;
   url: string;
   thumbnail: string;
@@ -119,9 +128,8 @@ export type VndbScreenshot = {
   languages: string[];
 };
 
-export type VndbScreenshotCache = {
+export type GameScreenshotCache = {
   collectionElementId: number;
-  vndbId: string | null;
   matchedTitle: string | null;
   screenshotsJson: string;
   fetchedAt: string;

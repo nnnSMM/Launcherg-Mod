@@ -8,6 +8,7 @@
   export let work: Work;
   export let element: CollectionElement;
   export let scrollY: number = 0;
+  const isDemoBuild = import.meta.env.BASE_URL === "./";
 
   let actualRenderedH = 0;
   let heroHeight = 0;
@@ -152,7 +153,7 @@
 <svelte:window bind:innerHeight />
 
 <div 
-  class="w-full min-h-full relative bg-bg-primary" 
+  class="w-full min-h-full relative bg-transparent" 
   bind:clientWidth={layoutWidth}
   bind:clientHeight={layoutHeight}
 >
@@ -187,15 +188,10 @@
     </div>
   </div>
 
-  <!-- Hero背景からページ背景色へ繋ぐグラデーション（下部を不透明化して白い露出を防ぐ） -->
-  <div 
-    class="absolute inset-0 pointer-events-none z-5"
-    style="background: linear-gradient(to bottom, transparent 0%, transparent 40vh, rgba(var(--color-bg-primary), 0.65) 100vh, rgba(var(--color-bg-primary), 0.65) 100%);"
-  />
-
   <Hero 
     {element} 
     offset={effectiveOffset}
+    glassBoundaryY={glassTopY}
     bind:heroHeight
   />
 

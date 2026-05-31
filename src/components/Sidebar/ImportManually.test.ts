@@ -1,9 +1,17 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { tick } from "svelte";
+
+vi.mock("@/lib/command", () => ({
+  commandGetGameCandidates: vi.fn().mockResolvedValue([]),
+}));
+
 import ImportManually from "./ImportManually.svelte";
+import { commandGetGameCandidates } from "@/lib/command";
 
 describe("ImportManually - デモビルド環境", () => {
   beforeEach(() => {
     document.body.innerHTML = "";
+    vi.mocked(commandGetGameCandidates).mockClear();
     vi.stubEnv("BASE_URL", "./");
     class MockIntersectionObserver {
       observe() {}
@@ -33,5 +41,34 @@ describe("ImportManually - デモビルド環境", () => {
     expect(inputId.disabled).toBe(true);
     expect(inputFilePath.value).toBe("C:\\game\\demo\\game.exe");
     expect(inputId.value).toBe("12345");
+  });
+});
+
+describe("ImportManually - 候補取得", () => {
+  beforeEach(() => {
+    document.body.innerHTML = "";
+    vi.mocked(commandGetGameCandidates).mockClear();
+    vi.stubEnv("BASE_URL", "/");
+    class MockIntersectionObserver {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    }
+    vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
+  });
+
+  it("モーダルが閉じている間は既存パスがあっても候補検索を走らせないこと", async () => {
+    new ImportManually({
+      target: document.body,
+      props: {
+        isOpen: false,
+        idInput: "4529",
+        path: "E:\\VisualNovel\\枕\\サクラノ詩\\BGI.exe",
+      },
+    });
+
+    await tick();
+
+    expect(commandGetGameCandidates).not.toHaveBeenCalled();
   });
 });

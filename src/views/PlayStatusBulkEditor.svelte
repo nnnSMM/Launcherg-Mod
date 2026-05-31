@@ -6,6 +6,7 @@
     PlayStatus as PlayStatusType,
   } from "@/lib/types";
   import { PlayStatus } from "@/lib/types";
+  import { playStatusFilterKey } from "@/lib/playStatus";
   import {
     commandGetAllElements,
     commandUpdateElementPlayStatus,
@@ -46,6 +47,9 @@
     "bulkEditorTargetPlayStatus",
     PlayStatus.Unplayed,
   );
+  $: if ($targetPlayStatusStore === PlayStatus.LegacyShelved) {
+    targetPlayStatusStore.set(PlayStatus.Interrupted);
+  }
   let isLoading = true;
   type ViewMode = "masonry" | "list";
   let viewModeStore = localStorageWritable<ViewMode>(
@@ -278,6 +282,15 @@
       inactiveStyleClasses:
         "text-text-secondary bg-bg-button hover:bg-bg-button-hover border-border-primary",
     },
+    {
+      label: "中断",
+      value: PlayStatus.Interrupted,
+      icon: "i-material-symbols-stop-circle-outline-rounded",
+      activeStyleClasses:
+        "bg-amber-600 !hover:bg-amber-500 border-amber-600",
+      inactiveStyleClasses:
+        "text-text-secondary bg-bg-button hover:bg-bg-button-hover border-border-primary",
+    },
   ];
 </script>
 
@@ -295,12 +308,7 @@
         </div>
         <div class="flex gap-2 flex-wrap">
           {#each playStatusOptions as option (option.value)}
-            {@const filterKey =
-              option.value === PlayStatus.Unplayed
-                ? "unplayed"
-                : option.value === PlayStatus.Playing
-                  ? "playing"
-                  : "cleared"}
+            {@const filterKey = playStatusFilterKey[option.value]}
             {@const isActive = $currentAttributes.find(
               (a) => a.key === filterKey,
             )?.enabled}

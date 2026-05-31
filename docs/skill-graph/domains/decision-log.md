@@ -3,7 +3,7 @@ id: decision-log
 title: Decision Log
 type: log
 status: active
-updated: 2026-05-24
+updated: 2026-05-31
 links:
   - launcherg-improvement-moc
   - template-decision-record
@@ -12,12 +12,158 @@ links:
 
 # Decision Log
 
+## 2026-05-31: 通常時100%不透明および詳細時完全クリア透過・ぼかしなしのサイドバー背景設計
+
+- Context: プレミアムなグラスモーフィズム没入体験をサイドバーに統合する際、当初は通常時および詳細時にすりガラス効果（backdrop-blur-xl）を適用していた。しかし、背景色を完全に透明（0%）に設定しても、すりガラス of ぼかし効果自体がブラウザのレンダリング上で白濁したグレーの霧（ベール）を自動合成してしまい、サイドバー全体に白黒グレーの色が残って見えてしまう課題があった。また、通常時は背景画像が存在しないため、すりガラスにする意味がなく、文字の可読性が低下する課題もあった。
+- Decision: 通常表示時は、背景画像がないため元の安定したソリッドな「100%不透明背景（bg-bg-secondary）」に戻し、余分なすりガラスぼかし（backdrop-blur）も適用しない。詳細表示時のみ、サイドバーコンテナの背景色を完全に透明（bg-transparent）にし、かつ、すりガラスのぼかし効果も完全にオフ（backdrop-blur-none）に切り替える設計とした。以前「6%」や「10%」に調整していたSubHeaderやSearchなどの内部パネル背景クラスはすべて削除し、元の正常な標準表示（bg-bg-primary/20 および 30）に戻した。
+- Rationale: 通常時は100%不透明にすることで安定した高い可読性を保つ。一方、詳細画面に入った際には、背面の画像自体がすでに「64px」の超強力ぼかしによって極上の色彩グラデーションになっているため、サイドバー上のぼかし効果を完全にオフ（無効化）にすることで、余計な白濁ノイズを100%完全に消し去ることができる。これにより、背面画像の美しい色彩グラデーションが一切の濁りなく極限までクリアに透過する、洗練されたプレミアムな色彩没入体験が実現できるため。
+- Consequence: 通常時の可読性と、詳細画面での色彩透過・没入感が双方ともに完璧に向上する。
+- Links: [[launcherg-improvement-moc]], [[quality-gates]]
+
+## 2026-05-31: 詳細ページ背景ぼかし強度の64pxへの引き上げ
+
+- Context: プレミアムなグラスモーフィズム没入体験をより際立たせるため、詳細ページの背面に表示されるカバー画像のぼかし量が 32px では元の画像がやや視認されすぎ、透過する周辺UIの文字との競合や質感の一体感が不十分になる懸念があった。
+- Decision: 詳細ページ表示時の最背面カバー画像に適用される CSS ぼかし（filter: blur）の強さを 32px から 64px に引き上げる。
+- Rationale: ぼかし量を 64px に引き上げることで、画像自体の輪郭が程よく融解し、作品ごとの個別の色彩テーマが画面全体に自然かつ柔らかにグラデーションとして溶け込む。これにより、周辺のグラスモーフィズムUIとの一体感が向上し、高品質でプレミアムな没入感の高いビジュアル体験が実現できる。
+- Consequence: 最背面の画像は滑らかなグラデーション状になり、テキストの可読性と没入感が格段に向上する。
+- Links: [[launcherg-improvement-moc]], [[quality-gates]]
+
+## 2026-05-31: プレイ状況を4分類へ整理し中断を追加する
+
+- Context: プレイ状況に「複数進行」と「棚上げ」があり、運用上の意味が近く選択肢が増えすぎていた。ユーザーはこの2つを消し、代わりに「中断」を入れることを求めた。
+- Decision: UI上のプレイ状況は「未プレイ」「プレイ中」「クリア済み」「中断」の4つに整理する。保存値は既存互換のため `3` を「中断」として使い、過去の `4`（旧棚上げ）は表示・絞り込み・統計では「中断」に含める。
+- Rationale: DBマイグレーションなしで既存データを見失わず、今後の新規設定値は4分類に統一できるため。
+- Consequence: 旧「複数進行」の保存値は「中断」として表示される。旧「棚上げ」の保存値も中断として集計され、新規に棚上げ値を設定するUIはなくなる。
+- Links: [[product-context]], [[quality-gates]]
+
+## 2026-05-31: ヒートマップ内では時間量を文字表示しない
+
+- Context: プレイ時間の計上・補正により、合計プレイ時間とヒートマップ内の時間表記がそれぞれ変動し、ユーザーが「確定した実績値」として読み取りにくくなる懸念があった。
+- Decision: 統計ページと詳細ページで共通利用しているヒートマップから、合計時間、最大日別時間、セルホバーの日別時間表示を削除する。代わりに記録日数、最新記録日、最長連続記録日数を表示し、セルのラベルは「記録あり/なし」に留める。
+- Rationale: ヒートマップは日ごとの活動有無と密度を眺める部品として扱い、正確な時間量は他のプレイ時間表示に任せることで、同じ画面内で時間の意味が重複・競合するのを避けるため。
+- Consequence: 色の濃淡は従来どおり記録量に基づくが、文字としての時間値は出さない。今後ヒートマップに追加する情報も、時間量そのものではなく活動日・最新日・連続性のような俯瞰指標を優先する。
+- Links: [[product-context]], [[quality-gates]]
+
+## 2026-05-31: ホームの全体アクティビティを統計ページへ分離する
+
+- Context: ホーム画面に全ゲーム合算のアクティビティヒートマップが置かれていたが、ホームは最近の履歴と登録ゲーム一覧の入口として使う画面であり、ライブラリ全体の振り返り情報を増やすには表示密度と役割が合わなくなっていた。
+- Decision: 全体アクティビティは `/stats` の専用統計ページへ移し、タイトルバーから固定タブとして開けるようにする。統計ページには合算ヒートマップに加えて、登録数、総プレイ時間、今月/今年のプレイ、連続記録、クリア率、お気に入り数、プレイ状態分布、曜日リズム、累計プレイ時間上位、登録年、発売年代、最近登録したゲームを配置する。
+- Rationale: ホームは起動直後の行動導線を軽く保ち、統計ページは「眺める」「振り返る」情報を広い画面で扱えるように役割を分けるため。既存の日別プレイ時間と `CollectionElement` だけで算出できる情報に限定し、DB変更なしで安全に増やせる。
+- Consequence: 全体ヒートマップの取得負荷はホーム表示時には発生せず、統計ページを開いた時だけ全ゲーム分の日別記録を集計する。今後スクリーンショット数や月別推移などを足す場合も、統計ページに集約する。
+- Links: [[product-context]], [[architecture-map]], [[quality-gates]]
+
+## 2026-05-30: 詳細ページ記録下部への大型プレイヒートマップ追加
+
+- Context: 詳細ページの「記録」タブでは累計プレイ時間やコミュニティ統計は確認できるが、日ごとのプレイ傾向を俯瞰できなかった。GitHub の contribution graph のように、過去1年の活動密度を一目で見たいという要望があった。
+- Decision: 記録タブの一番下に大型のプレイヒートマップを追加する。データは `collection_element_daily_play_times` から日別プレイ時間を取得し、demo では既存の合計プレイ時間・最終プレイ日から決定的に日別データを生成する。ヒートマップの基準色はサムネイル画像を Canvas に読み込み、RGB 各チャンネルの二乗平均平方根（RMS）で算出した色を使う。
+- Rationale: 記録タブの末尾に大きく配置することで、既存の統計情報を読んだ後に活動履歴を広い面積で確認できる。色をサムネイル由来にすることで作品ごとの印象と記録表示が自然につながり、固定色の汎用グラフより詳細ページ全体のテーマに馴染む。
+- Consequence: 実アプリでは日別プレイ時間テーブルが表示元になる。demo では実データベースを持たないため、同じUIが確認できるようにモック側で日別レコードを保持・更新する。
+- Links: [[architecture-map]], [[quality-gates]]
+
+## 2026-05-30: ゲーム詳細画面の背景処理リファインと周辺 UI のグラスモーフィズム統合
+
+- Context: ノベルゲームや非Steamゲームなどの管理における没入感（UX）向上のため、詳細画面の背景デザインをさらにプレミアムなものへとリファインする要望があった。従来の Canvas にじみ描画や SVG フィルターを用いた背景処理を廃止し、よりモダンなグラスモーフィズム表現（すりガラス効果）をサイドバーやタイトルバー、タブバーを含む周辺 UI 全体に連動させ、ゲームごとのテーマカラーが美しく溶け込むデザインの統合が必要であった。
+- Decision:
+  1. 重たい Canvas 描画、ResizeObserver、SVG フィルター（ink-water）、背景色グラデーションを WorkLayout.svelte から完全に削除し、詳細画面の基本レイアウトを bg-transparent 化した。
+  2. 詳細画面表示中（isWorkDetailRoute）は、ゲームのカバー画像を最背面の固定背景レイヤー（App.svelte）に「強力にぼかした状態（blur-3xl、opacity-85、scale-105）」で配置し、ゲームごとの個別のテーマカラーを画面全体に優しく演出する設計とした。
+  3. 詳細画面表示中は、タイトルバー（TitleBar.svelte）の背景（bg-bg-primary/92）や、サイドバー（Sidebar.svelte）の背景（bg-bg-secondary）を透明（bg-transparent）に切り替え、既存の backdrop-blur-xl との相乗効果で背面のぼかし画像が美しく透けるようにした。
+  4. タブバー（ATabList.svelte）の右側空白領域（bg-bg-disabled）や、タブ自体（ATab.svelte）の背景も詳細画面表示中は透過させ、ホバー時に極薄の白（hover:bg-white/10）をあてることで視認性とプレミアムなグラスモーフィズム質感を両立させた。
+  5. グラス情報領域（GlassInfo.svelte）から背景色（bg-bg-primary/28）を取り除き、色なし透明（bg-transparent）に変更して完全に無色透明なブラー効果を実現した。
+  6. 詳細ルートの判定および画像URL生成ロジックに対して、t_wada氏のTDDスタイルを適用し、テストコード（routeHelper.test.ts）を先に設計・パスさせる形で開発を推進した。
+- Rationale: Canvas のにじみ処理を排してピュアな透過レイアウトにすることでパフォーマンス負荷が劇的に軽減される。同時に、アプリ最背面でゲーム画像を極限までぼかして固定配置し、周辺 UI をグラス透過させることで、画面全体がそのゲームの色彩テーマで優しく染まる、macOS や Windows Fluent Design の Acrylic 効果のようなきわめてプレミアムで一体感のある極上の没入体験を低負荷で実現できる。
+- Consequence: 詳細画面以外の画面（一覧画面や設定画面など）に遷移した際には、サイドバーやタイトルバーは従来のソリッドな背景色に戻り、背面背景画像も元のマイルドなぼかし（blur-2xl）と半透明（opacity-50）の通常仕様へとスムーズに復元される。
+- Links: [[architecture-map]], [[quality-gates]]
+
+## 2026-05-28: ゲーム詳細画面のメモ欄プレビュー化と別タブ編集のプレビュー強化
+
+- Context: ゲーム詳細画面のメモ欄はこれまでEasyMDEエディタが直接埋め込まれており、起動に負荷がかかるほか、閲覧するだけの場面でもエディタが表示されてしまっていた。一方で別タブ（Memo.svelte）は編集用画面でありながらプレビューツールバーがなく、編集しながら記述内容をプレビューする手段が不足していた。
+- Decision: ゲーム詳細画面（Info.svelte）のメモ欄ではEasyMDEによるテキストエリアを完全に削除し、安全かつ美麗なマークダウンパース（marked）によるHTMLでの「内容」表示へと変更する。表示するメモは、ゲーム切り替え時に localStorage から $memo ストアへ自動初期同期するリアクティブステートメントを導入し、ストア側の変更と完全連動するようにした。別タブ of 編集画面（Memo.svelte）は編集専用として維持しつつ、EasyMDEのツールバーに preview、side-by-side を追加し、いつでもプレビューができるように改善する（不要な fullscreen は除外）。また、標準の flexbox と EasyMDE が競合して左右分割表示（side-by-side）が崩れる問題に対し、モダンCSSの :has(.CodeMirror-sided) 擬似クラスを用いて親コンテナをCSSグリッド（2カラム配置）へと動的に切り替えることで、ズレのない100%確実な横並び配置を実現した。さらに、表示領域およびプレビュー領域を最高品質の美しさに仕上げるため、見出しのグラデーションテキスト、極細の枠線付きコードブロック、丸みのある陰影画像、半透明のプレミアムガラスモーフィズムパネル（backdrop-blur-lg、inset-shadow-sm、border-white/10）などを SCSS と HTML に適用してビジュアル面を極限まで美化した。マークダウン変換処理は新規モジュール `src/lib/markdown.ts` に切り出し、Tauri環境のローカル画像パスを表示するため convertFileSrc を適用するカスタムレンダラーを実装し、t_wada氏のTDDスタイルに従ってテスト駆動で開発・保証した。
+- Rationale: 閲覧が中心の詳細画面では表示を軽量化・プレビューのみにして誤操作を防ぎ、本格的な編集は「メモを開く」から別タブエディタで行うように役割を分離することで、操作性とパフォーマンスが向上する。また、マークダウン変換モジュールをテスト駆動で開発することで、Tauri環境固有の画像パス変換処理などのデグレを防ぎ、継続的な保守性を高められる。
+- Consequence: 詳細画面で直接メモを書き換えることはできなくなるため、編集する場合は必ず「メモを開く」ボタンから別タブ編集画面へ遷移する必要がある。
+- Links: [[architecture-map]], [[quality-gates]]
+
+## 2026-05-27: demo用 worksData は build-demo 前に本体スクレイパーで全再生成する
+
+- Context: 公開 demo の作品詳細は `src/mock/worksData.json` に固定されているが、説明文や統計値は外部サイト側と本体パーサー改善に追従させたい。手書きJSONや簡易パーサーを別に持つと、本体の `getWorkByScrape` と乖離しやすい。
+- Decision: `npm run build-demo` の前段で Vitest スクリプトを実行し、デモ対象IDごとに `getWorkByScrape(id)` を呼んで `worksData.json` を丸ごと再構築する。Vitest内では `@tauri-apps/plugin-http` を Node `fetch` に差し替え、FANZA/DLsite向けCookieを付与する。ErogeScape `gamelist` の外部ID欠落に左右されないよう、`scrapeSql` の `gamelist` 取得だけを手動マッピングで返す。公開demoの詳細画面では `@/store/works` をデモ用ストアへ確実に差し替え、再生成済み `worksData.json` を直接使う。demo成果物のJS/CSSファイル名には `DEMO_BUILD_ID`、`GITHUB_SHA`、または時刻由来IDを含める。
+- Rationale: 本体と同じHTML解析・説明文抽出・統計/スタッフ取得を使うため、demoだけ別実装になるリスクを避けられる。手動マッピングはdemo収録作品に限定し、外部サイトの登録漏れ対策として閉じ込める。
+- Consequence: demoビルドは外部サイトの応答に依存し、取得失敗時は古いJSONを使い回さずビルドを止める。公開側は毎回異なるasset URLになり、ブラウザやPages CDNが古いJSを掴み続ける問題を避ける。デモ対象を追加する時は、Vitest側の外部IDマッピングと `src/mock/tauri-http.ts` のデモHTTPマッピングを同時に更新する。
+- Links: [[architecture-map]], [[quality-gates]]
+
+## 2026-05-26: 日本語説明文は販売ID直行に限定し公式サイトfallbackを廃止する
+
+- Context: `gamelist` の `dmm` / `dlsite_id` / `dlsite_domain` / `steam` で販売ページを確定できる一方、`shoukai` 公式サイトfallbackはページ構造差が大きく、ストーリー以外を拾う精度問題があった。FANZA本文は複数の `.text-overflow` や装飾区切りを含む場合があり、先頭要素だけの抽出では欠落リスクがあった。また Tauri の `plugin-http` は標準設定だと `Cookie` / `Referer` を送らず、FANZAの年齢確認を突破できない。
+- Decision: 日本語説明文取得は FANZA -> DLsite -> Steam の販売ID直行のみとし、公式サイトfallbackを取得経路から外す。FANZAは該当する `.text-overflow` を全て結合し、本文中の装飾区切りだけで収集を終了しない。FANZA取得のため `tauri-plugin-http` の `unsafe-headers` feature を有効化し、年齢確認Cookieを明示送信する。`steam` がDB未登録の作品だけ、`shoukai` 公式サイト本文は保存せずSteamストアリンク抽出のみに使う。DLsiteは確定済み `dlsite_id` の通常 `work` ページが消えている場合だけ、同じIDの `announce` ページを試す。作品情報キャッシュは抽出仕様バージョン付きで7日保持し、バージョン不一致または期限切れなら再取得する。
+- Rationale: 対象確定はDB由来IDの方が再現性が高く、公式サイト探索は誤取得の影響が大きい。販売ページ内のストーリー抽出は、複数段落と区切り線を許容する方が「取得済みなのに途中で欠ける」リスクを下げられる。FANZAはCookieが落ちると年齢確認HTMLになり、説明文抽出が全滅する。
+- Consequence: 公式サイトしか情報がない作品では説明文は空になる。今後の追加取得先も、名前検索や公式探索ではなく、DBで確定できるID/URLがある場合に限定する。
+- Links: [[architecture-map]], [[quality-gates]], [[known-risks]]
+
+## 2026-05-25: 全画面スクリーンショット時の操作インタラクション改善（上下端ホバー検知の厳格化）
+
+- Context: 全画面スクリーンショット表示時に、マウスを画面中央で少し動かしただけで、またはキー操作やホイール操作をしただけで、×ボタンやフィルムストリップ（ストリップ）が表示されてしまい、没入感を妨げる課題があった。
+- Decision:
+  1. キーボード操作（左右キー等）やマウスホイール操作時の自動表示を防ぐため、selectViewerIndex や horizontalWheelScroll 内でストリップ（revealFullscreenFilmstrip）を自動表示するのを止め、単にカーソルタイマー（revealFullscreenUi）の延長のみに留める。
+  2. マウスのホバー検知領域（on:mouseenter）を上下端のコンポーネント検知divから削除する。
+  3. 新たに mousemove イベントでY座標を監視する handleMouseMove を追加し、Y座標が真に画面の最上端（20px以内）または最下端（20px以内）に達したときにのみ×ボタン（revealFullscreenChrome）またはストリップ（revealFullscreenFilmstrip）の表示をトリガーする。
+- Rationale: トリガーは画面の極端な上下端（20px以内）でのマウス移動のみに限定しつつ、表示された後は既存のmouseleave（上端112px、下端はストリップを覆うサイズ）や1.6秒自動非表示タイマーをそのまま再利用することで、変更差分を最小限に抑えつつユーザー要求を完璧に満たせる。
+- Consequence: 全画面表示時の誤表示が完全に抑止され、没入感の高い画像鑑賞体験が提供される。また、画面端の境界判定ロジックに対してTDDを適用し、ユニットテストを導入した。
+- Links: [[architecture-map]], [[quality-gates]]
+
 ## 2026-05-24: アプリ内更新通知は手動実行と demo 確認を前提にする
 
 - Context: 新しい Release を公開した時にアプリ内で知らせたいが、ユーザーの明示操作なしにダウンロード、インストール、再起動が走ると既存作業やゲーム管理を妨げる。
 - Decision: 起動時は Tauri updater の `check()` のみを実行し、更新がある場合だけタイトルバーに小さな通知を出す。`downloadAndInstall()` と `relaunch()` は UpdateDialog の「アップデート」押下後だけ呼ぶ。更新前の確認先として GitHub Pages demo と GitHub Release を分けて開く。
 - Rationale: Launcherg-Mod はローカルデータとプレイ中の状態を扱うため、更新処理はユーザーがタイミングを選べる必要がある。demo で先に見た目や機能を試せる導線を置くことで、更新判断の材料を増やせる。
 - Consequence: updater 用 `.tauri-updater.json` と UI 用 `update-info.json` は release workflow で分けて生成する。Mod版のReleaseタグは `YYYYMMDD` だけを使い、Tauri updater と Windows MSI の制約に合わせて内部バージョンだけ `YY.M.D` に変換する。demo/dev mock では更新通知 UI だけを確認し、実インストールは行わない。
+- Links: [[product-context]], [[architecture-map]], [[quality-gates]]
+
+## 2026-05-24: 監視開始前後の未計上プレイ時間を既存累積へ吸収する
+
+- Context: vnite 型の timer / fuzzy time へ近づける残課題として、ゲーム起動からプロセス監視が実際に始まるまでの時間や、最後の監視 tick から終了検知までの端数が、既存のプレイ時間記録に十分反映されない可能性があった。
+- Decision: 新しいテーブルや migration は追加せず、ゲーム起動命令時の `Instant` を `GameProcessMonitor` に渡す。監視側は `accounted_until` から現在までの差分を共通の commit 関数で `collection_elements.total_play_time_seconds` と `collection_element_daily_play_times` へ加算する。詳細ページではプレイ時間アイコンから時間詳細パネルを開き、下部の `H:MM` 入力で未記録分の計上と差し引きを行えるようにする。
+- Rationale: 現行の総プレイ時間・日別プレイ時間・初回プレイ日時の意味を保ったまま、監視開始前の短い未計上分と終了時の端数を吸収できる。session ledger / reconciliation UI は将来の精密化として残し、今回は既存データモデルの中で改善する。
+- Consequence: プレイ時間は起動命令から監視 tick / 終了検知までの実時間により近くなる。プロセス検出自体に失敗した `.lnk` 起動などは、プロセスが特定できないため今後の session ledger / fuzzy bucket の課題として残る。
+- Links: [[architecture-map]], [[quality-gates]]
+
+## 2026-05-23: サイドバー開閉コントロールのタイトルバー移行と完全非表示化
+
+- Context: サイドバー上部にあった「サイドバーを閉じる」ボタンの操作性と、閉じた際にも「最小化された細いサイドバー（MinimalSidebar）」が表示されていて作業領域が狭められるという課題があった。ユーザーはタイトルバーでの開閉管理と、非表示時にはサイドバーが完全に消え去るレイアウトを望んでいた。
+- Decision:
+  1. `SubHeader.svelte` の閉じるボタンを削除し、`TitleBar.svelte` の左端に `showSidebar` の状態に連動する開閉トグルボタンを新設。タイトルバーをシンプルにするため、アプリのロゴアイコン（Launchergアイコン）を完全に削除し、余白を調整。
+  2. `Sidebar.svelte` において、`showSidebar` が `false` のときの幅（width）を `3rem` から `0px` に変更。
+  3. `MinimalSidebar` コンポーネントおよびその描画を `Sidebar.svelte` から完全に排除。
+  4. 非表示時に境界線が残らないように、`border-r-1px` クラスの適用を `$showSidebar` が `true` の場合のみに制限。
+  5. 開閉がもたつかずキビキビと動作するよう、`Sidebar.svelte` から transition-all クラスおよび transition:fly アニメーションを削除して「瞬間的な移行」に変更。
+- Rationale: タイトルバーに開閉トグルがあることで、画面全体が広々と使えるようになり、かつサイドバーを完全に畳んで非表示にする（width: 0px）ことでグリッドレイアウト（`grid-cols-[min-content_1fr]`）によってメインコンテンツエリアが画面全体（左端から右端）へとシームレスに拡張される。トグル位置を左端にし、スライドアニメーションを排除して「瞬間的な移行」にすることで、もたつきのない俊敏なUXを実現する。ロゴを削除したことでよりフラットで美しいヘッダー構成になった。
+- Consequence: ミニマムサイドバーが廃止され、サイドバー非表示時は完全に画面をフル活用できるようになる。
+- Links: [[architecture-map]], [[quality-gates]]��に境界線が残らないように、`border-r-1px` クラスの適用を `$showSidebar` が `true` の場合のみに制限。
+  5. 開閉がもたつかずキビキビと動作するよう、`Sidebar.svelte` から transition-all クラスおよび transition:fly アニメーションを削除して「瞬間的な移行」に変更。
+- Rationale: タイトルバーに開閉トグルがあることで、画面全体が広々と使えるようになり、かつサイドバーを完全に畳んで非表示にする（width: 0px）ことでグリッドレイアウト（`grid-cols-[min-content_1fr]`）によってメインコンテンツエリアが画面全体（左端から右端）へとシームレスに拡張される。トグル位置を左端にし、スライドアニメーションを排除して「瞬間的な移行」にすることで、もたつきのない俊敏なUXを実現する。
+- Consequence: ミニマムサイドバーが廃止され、サイドバー非表示時は完全に画面をフル活用できるようになる。
+- Links: [[architecture-map]], [[quality-gates]]
+
+## 2026-05-23: グローバルな title 属性の自動 Tippy 化とテーマ追従型グラスモフィズムツールチップの導入
+
+- Context: アプリ全体でHTML標準の `title` 属性によるホバー表示が多用されており、これがブラウザ標準の「白地に黒文字」で表示され、アプリ全体のダーク/ライトテーマに合っていなかった。また既存のTippy.js（ButtonBase.svelte）もテーマ指定がなく、表示テーマに統合されていなかった。
+- Decision: MutationObserverとTippy.jsのデリゲーションを組み合わせた `setupGlobalTooltips` ユーティリティを `App.svelte` で一元的に導入する。これにより、動的追加・更新される要素も含めて `title` 属性を自動で `data-tippy-content` に移行してブラウザ標準の表示を無効化し、テーマ追従型の美しいTippyツールチップに置き換える。さらに、ツールチップのデザインを角丸、影、および `backdrop-filter` による半透明のグラスモフィズム効果を取り入れたプレミアムな外観へ美化する。
+- Rationale: 各コンポーネントの `title` 属性を一つ一つ修正すると差分が膨大になりデグレの危険性があるのに対し、グローバルに属性変更をフックして移行するアプローチは安全かつロータッチで完璧に要求を満たせる。TDDアプローチに沿って移行関数とテストを先に開発した。
+- Consequence: すべてのホバー表示が自動的にテーマ（ダーク/ライト）に合わせた美しいデザインに統一され、マウスポインタの移動時の遅延（delay）設定によりUIのプレミアム感が向上する。
+- Links: [[architecture-map]], [[quality-gates]]
+
+## 2026-05-23: Steam パス由来のサムネイル候補と 5 状態 play status を migration なしで導入する
+
+- Context: vnite は Steam など複数データソースと 5 状態の play status を持つ。一方、Launcherg-Mod は ErogameScape 由来 thumbnail と `play_status` INTEGER の 3 状態 UI が中心だった。ユーザー要望として Steam パスの場合の特殊処理、特にゲーム追加時 thumbnail が追加された。
+- Decision: Steam インストールパスは `steamapps/common/<install dir>` と近傍の `appmanifest_*.acf` から AppID を推定し、Steam `.url` は `steam://rungameid/<appid>` から推定する。新規追加時の thumbnail 候補は Steam 画像を先に試し、失敗時に既存 ErogameScape thumbnail へフォールバックする。play status は DB migration を追加せず、既存 INTEGER 列で `未プレイ / プレイ中 / クリア済み / 複数進行 / 棚上げ` を UI 全体に通す。
+- Rationale: Steam 固有の画像はパスから AppID を取れる場合に品質が高く、追加時だけ既存 thumbnail 保存経路へ候補を渡せば schema を増やさずに改善できる。play status は CHECK 制約がなく、まず UI と既存列の意味を広げるだけなら小さく始められる。
+- Consequence: 新状態を選ぶと既存 `play_status` 列に 3/4 が保存されるため、将来は履歴・text enum・bulk migration の設計を検討する。timer ledger / fuzzy time / media asset table / crop-WebP pipeline は別フェーズに残す。
+- Links: [[architecture-map]], [[quality-gates]]
+
+## 2026-05-22: vnite 参照の第一段階は UI-only の受け皿作りに限定する
+
+- Context: vnite 比較レポートでは詳細ページの Header / Tabs / Poster taxonomy と、将来の media / timer / status 拡張が提案されている。一方、今回の作業は既存データと挙動を壊さない安全な第一段階に限定されている。
+- Decision: 第一段階では `WorkLayout` と既存 command を維持し、詳細ページを Overview / Record / Memo / Screenshot の常時表示セクションへ整理する。ライブラリカードとサイドバーは既存データだけで見た目と可読性を改善する。DB、migration、SQL、保存データ、play time、play status 値は変更しない。
+- Rationale: 情報設計の受け皿を先に作ることで、将来の media asset、play session、extended status を小さく追加しやすくしつつ、現行ユーザーのデータと起動・メモ・スクリーンショット導線を保護できる。
+- Consequence: 今回の UI は既存フィールドの再配置に留まる。Background picker、crop/WebP、5状態 play status、playtime reconciliation、save management は別フェーズで DB 変更を含めて判断する。
 - Links: [[product-context]], [[architecture-map]], [[quality-gates]]
 
 ## 2026-05-21: 初プレイ日時は実プレイ時間の初回記録時に保存する

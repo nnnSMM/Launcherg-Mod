@@ -14,15 +14,20 @@
 
   export let query: string;
   export let order: SortOrder;
-  // export let attributes: Attribute[]; // 変更: このプロパティは削除
-  export let playStatusAttributes: Attribute[]; // 追加: プレイ状況属性リスト
-  export let otherAttributes: Attribute[]; // 追加: その他の属性リスト
+  export let playStatusAttributes: Attribute[];
+  export let otherAttributes: Attribute[];
 
   const dispatcher = createEventDispatcher<{
     toggleAttributeEnabled: { key: AttributeKey };
   }>();
 
-  // otherAttributes 用のスクロール制御
+  const labels = {
+    search: "\u30bf\u30a4\u30c8\u30eb\u30fb\u30d6\u30e9\u30f3\u30c9\u3067\u691c\u7d22",
+    sort: "\u30b2\u30fc\u30e0\u306e\u4e26\u3079\u66ff\u3048",
+    status: "\u30b9\u30c6\u30fc\u30bf\u30b9",
+    filters: "\u30d5\u30a3\u30eb\u30bf",
+  };
+
   let isShowBackOther = false;
   let isShowForwardOther = true;
   const onScrollOther = (e: Event) => {
@@ -37,7 +42,7 @@
     isShowForwardOther = right > 0;
   };
   let scrollableOther: SvelteComponent;
-  // playStatusAttributes 用のスクロール制御
+
   let isShowBackPlay = false;
   let isShowForwardPlay = true;
   const onScrollPlay = (e: Event) => {
@@ -52,6 +57,33 @@
     isShowForwardPlay = right > 0;
   };
   let scrollablePlay: SvelteComponent;
+
+  const handleAttributeClick = (e: MouseEvent, key: AttributeKey) => {
+    dispatcher("toggleAttributeEnabled", { key });
+    const button = e.currentTarget as HTMLElement;
+    if (button) {
+      const scrollContainer = button.closest(".simplebar-content-wrapper") as HTMLElement;
+      if (scrollContainer) {
+        const parent = button.parentElement;
+        if (parent) {
+          const buttons = Array.from(parent.children);
+          const index = buttons.indexOf(button);
+          
+          if (index <= 2) {
+            scrollContainer.scrollTo({
+              left: 0,
+              behavior: "smooth",
+            });
+          } else {
+            scrollContainer.scrollTo({
+              left: scrollContainer.scrollWidth,
+              behavior: "smooth",
+            });
+          }
+        }
+      }
+    }
+  };
 </script>
 
 <div class="space-y-2 w-full min-w-0">
@@ -59,19 +91,21 @@
     <div class="flex-1 min-w-0">
       <SearchInput
         bind:value={query}
-        placeholder="Filter by title, brand and more"
+        placeholder={labels.search}
+        ariaLabel={labels.search}
       />
     </div>
     <APopover panelClass="right-0" let:close>
       <ButtonBase
         appendClass="h-8 w-8 flex items-center justify-center !bg-transparent !border-border-primary !border-opacity-100 hover:!border-border-button-hover hover:!bg-white/10"
         tooltip={{
-          content: "ゲームの並べ替え",
+          content: labels.sort,
           placement: "bottom",
           theme: "default",
           delay: 1000,
         }}
         slot="button"
+        ariaLabel={labels.sort}
       >
         <div
           class="color-ui-tertiary w-5 h-5 i-material-symbols-sort-rounded"
@@ -81,9 +115,11 @@
     </APopover>
   </div>
 
-  <!-- プレイ状況ボタンセクション -->
   {#if playStatusAttributes && playStatusAttributes.length > 0}
-    <div class="relative min-w-0">
+    <div class="relative min-w-0 rounded-lg border border-border-primary bg-bg-primary/20 px-2 py-2">
+      <div class="mb-1 px-1 text-[11px] font-semibold uppercase tracking-wide text-text-tertiary">
+        {labels.status}
+      </div>
       <div
         class="hide-scrollbar"
         style="mask-image: linear-gradient(to right, {isShowBackPlay
@@ -104,8 +140,7 @@
             {#each playStatusAttributes as attribute (attribute.key)}
               <SearchAttribute
                 {attribute}
-                on:click={() =>
-                  dispatcher("toggleAttributeEnabled", { key: attribute.key })}
+                on:click={(e) => handleAttributeClick(e, attribute.key)}
               />
             {/each}
           </div>
@@ -114,9 +149,11 @@
     </div>
   {/if}
 
-  <!-- その他の属性ボタンセクション -->
   {#if otherAttributes && otherAttributes.length > 0}
-    <div class="relative">
+    <div class="relative rounded-lg border border-border-primary bg-bg-primary/20 px-2 py-2">
+      <div class="mb-1 px-1 text-[11px] font-semibold uppercase tracking-wide text-text-tertiary">
+        {labels.filters}
+      </div>
       <div
         class="hide-scrollbar"
         style="mask-image: linear-gradient(to right, {isShowBackOther
@@ -137,8 +174,7 @@
             {#each otherAttributes as attribute (attribute.key)}
               <SearchAttribute
                 {attribute}
-                on:click={() =>
-                  dispatcher("toggleAttributeEnabled", { key: attribute.key })}
+                on:click={(e) => handleAttributeClick(e, attribute.key)}
               />
             {/each}
           </div>

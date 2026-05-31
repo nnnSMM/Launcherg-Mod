@@ -13,23 +13,29 @@
     | "warning"
     | "error"
     | "normal" = "success";
+  export let wrapperClass = "";
+  export let buttonClass = "";
+  export let menuClass = "";
+  export let wrappable = false;
 
   const dispather = createEventDispatcher<{
     play: { isAdmin: boolean | undefined };
   }>();
 </script>
 
-<div class="flex items-center min-w-0">
+<div class={`flex items-center min-w-0 ${wrapperClass}`}>
   <Button
-    appendClass="rounded-r-0"
+    appendClass={`rounded-r-0 ${buttonClass}`}
     leftIcon={icon}
     {text}
     {variant}
+    {wrappable}
     on:click={() => dispather("play", { isAdmin: undefined })}
   />
   <APopover let:open let:close>
     <ButtonBase
-      appendClass="h-8 w-8 flex items-center justify-center rounded-l-0"
+      appendClass={`h-8 w-8 flex items-center justify-center rounded-l-0 ${menuClass}`}
+      ariaLabel="起動方法を選択"
       tooltip={{
         content: "このゲームの設定",
         placement: "bottom",

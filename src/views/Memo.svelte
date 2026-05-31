@@ -11,19 +11,52 @@
   import { skyWay } from "@/store/skyway";
   import { startProcessMap } from "@/store/startProcessMap";
   import { showErrorToast } from "@/lib/toast";
-  import { onMount } from "svelte";
+  import { onDestroy, onMount } from "svelte";
   import { backgroundState } from "@/store/background";
+  import { handleMarkdownClick } from "@/lib/utils";
+  import { sidebarCollectionElements } from "@/store/sidebarCollectionElements";
+  import { location } from "svelte-spa-router";
+  import { get } from "svelte/store";
+  import { shouldCleanupBgImage } from "@/lib/routeHelper";
 
   export let params: { id: string };
   $: id = +params.id;
 
   let height: number;
+  let registeredBgImage: string | null = null;
+
+  $: currentElement = $sidebarCollectionElements.find((e) => e.id === id);
+
+  $: bgImage =
+    currentElement?.thumbnail && currentElement.thumbnail.trim() !== ""
+      ? `${convertFileSrc(currentElement.thumbnail)}?v=${currentElement.updatedAt}`
+      : "/images/dummy_thumbnail.svg";
+
+  $: if (bgImage) {
+    backgroundState.set({
+      imageUrl: bgImage,
+      opacity: 1,
+    });
+    registeredBgImage = bgImage;
+  }
+
+  onDestroy(() => {
+    backgroundState.update((state) => {
+      const nextPath = get(location);
+      if (shouldCleanupBgImage(nextPath)) {
+        if (registeredBgImage && state.imageUrl === registeredBgImage) {
+          return {
+            imageUrl: null,
+            opacity: 0,
+          };
+        }
+      }
+      return state;
+    });
+  });
 
   onMount(() => {
-    backgroundState.set({
-      imageUrl: null,
-      opacity: 0,
-    });
+    // Background is now handled by reactive registration
   });
 
   const mde = (node: HTMLElement) => {
@@ -86,6 +119,9 @@
           className: "fa fa-desktop",
           title: "Insert screenshot",
         },
+        "|",
+        "preview",
+        "side-by-side",
       ],
       imagesPreviewHandler: (imagePath) => convertFileSrc(imagePath),
     });
@@ -129,17 +165,8 @@
       easyMDE.codemirror.setValue(newLines.join("\n"));
       easyMDE.codemirror.setCursor({ line: cursor.line + 2, ch: 0 });
     };
-    const ele = document.querySelector(".EasyMDEContainer");
-    if (ele) {
-      const toolbar = ele.querySelector<HTMLElement>(".editor-toolbar");
-      if (toolbar) {
-        toolbar.style.backgroundColor = "#2d333b"; // bg-secondary
-      }
-      const codeMirror = ele.querySelector<HTMLElement>(".CodeMirror");
-      if (codeMirror) {
-        codeMirror.style.backgroundColor = "#22272e"; // bg-primary
-      }
-    }
+    const ele = node.closest(".EasyMDEContainer") || node.parentElement;
+
     ele?.addEventListener("paste", onPaste);
 
     const syncTimer = setInterval(() => {
@@ -171,11 +198,18 @@
         ele?.removeEventListener("paste", onPaste);
         unsubscribe();
         clearInterval(syncTimer);
+        easyMDE.cleanup();
+        const wrapper = easyMDE.codemirror.getWrapperElement();
+        const container = wrapper.parentElement;
+        if (node.isConnected && container?.parentElement) {
+          easyMDE.toTextArea();
+        }
       },
     };
   };
 </script>
 
-<div class="w-full h-full min-w-0 bg-bg-primary flex flex-col" bind:clientHeight={height}>
+<div class="w-full h-full min-w-0 bg-transparent flex flex-col" bind:clientHeight={height} on:click={handleMarkdownClick}>
   <textarea id="mde" use:mde />
 </div>
+

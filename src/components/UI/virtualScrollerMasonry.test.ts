@@ -107,9 +107,9 @@ describe("virtualScrollerMasonry", () => {
 
         it("should use beam search to find balanced layout", () => {
             // containerWidth: 1000 (十分広い)
-            // minItemWidth = 256
+            // minItemWidth = 208
             // gap = 16
-            // columns = floor((1000+16)/(256+16)) = floor(1016/272) = 3.73 -> 3列
+            // columns = floor((1000+16)/(208+16)) = floor(1016/224) = 4.53 -> 4列
             const containerWidth = 1000;
 
             // 要素:
@@ -128,7 +128,7 @@ describe("virtualScrollerMasonry", () => {
 
             const { layout, columns } = calculateLayouts(elements, containerWidth);
 
-            expect(columns).toBe(3);
+            expect(columns).toBe(4);
 
             // 全要素が含まれているかカウント
             const count = layout.reduce((acc, col) => acc + col.length, 0);

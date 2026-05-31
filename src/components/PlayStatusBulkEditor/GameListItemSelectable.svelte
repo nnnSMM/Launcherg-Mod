@@ -54,6 +54,24 @@
       baseColorCode: "#48BB78",
       selectedIconColor: "#FFFFFF",
     },
+    [PSConst.Interrupted]: {
+      label: "中断",
+      icon: "i-material-symbols-stop-circle-outline-rounded",
+      textColorClass: "text-amber-600 dark:text-amber-400",
+      bgColorClass: "bg-amber-100 dark:bg-amber-800",
+      borderColorClass: "border-amber-500",
+      baseColorCode: "#D97706",
+      selectedIconColor: "#FFFFFF",
+    },
+    [PSConst.LegacyShelved]: {
+      label: "中断",
+      icon: "i-material-symbols-stop-circle-outline-rounded",
+      textColorClass: "text-amber-600 dark:text-amber-400",
+      bgColorClass: "bg-amber-100 dark:bg-amber-800",
+      borderColorClass: "border-amber-500",
+      baseColorCode: "#D97706",
+      selectedIconColor: "#FFFFFF",
+    },
   };
 
   $: displayPlayStatus =

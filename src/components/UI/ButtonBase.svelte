@@ -5,6 +5,7 @@
   export let tooltip: Partial<TippyOption> | undefined = undefined;
   export let disabled = false;
   export let borderless = false;
+  export let ariaLabel: string | undefined = undefined;
 
   const tooltipAction = (node: HTMLElement) => {
     if (!tooltip) {
@@ -13,6 +14,9 @@
 
     const tippyOptions: Partial<TippyOption> = {
       placement: "right",
+      theme: "default",
+      arrow: false, // 吹き出しの矢印を非表示にする
+      delay: [300, 50],
       ...tooltip,
     };
 
@@ -25,6 +29,9 @@
         }
         const tippyOptions: Partial<TippyOption> = {
           placement: "right",
+          theme: "default",
+          arrow: false, // 吹き出しの矢印を非表示にする
+          delay: [300, 50],
           ...tooltip,
         };
         tp.setProps(tippyOptions);
@@ -81,6 +88,7 @@
   use:tooltipAction
   {type}
   {disabled}
+  aria-label={ariaLabel}
   class={`rounded transition-all ${buttonVariantClass} ${borderlessClass} ${appendClass} focus-ring`}
   on:click
 >

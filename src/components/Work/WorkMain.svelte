@@ -25,7 +25,7 @@
 <div class="space-y-4 max-w-full">
   <div class="text-h1 text-text-primary font-bold">{work.name}</div>
   {#await seiyaUrlPromise then seiyaUrl}
-    <Actions id={work.id} name={work.name} {seiyaUrl} />
+    <Actions id={work.id} {seiyaUrl} />
   {/await}
   <div class="flex items-center">
     <LinkButton href={work.officialHomePage} text="Official" withIcon />

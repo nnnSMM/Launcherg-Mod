@@ -3,12 +3,14 @@ use std::{fs, sync::Arc};
 use chrono::Local;
 use derive_new::new;
 use tauri::{AppHandle, Emitter};
+use tauri_plugin_global_shortcut::GlobalShortcutExt;
 
-use tokio::time::Duration;
+use tokio::time::{Duration, Instant};
 
 use super::error::UseCaseError;
 use super::game_tracker::{
-    is_path_related_error, launch_game, GameProcessMonitor, ProcessSearchConfig,
+    is_path_related_error, launch_game, split_play_time_by_local_date, GameProcessMonitor,
+    ProcessSearchConfig,
 };
 use super::pause_manager::PauseManager;
 use crate::{
@@ -17,10 +19,10 @@ use crate::{
         collection::{CollectionElement, NewCollectionElement, NewCollectionElementDetail},
         file::{
             ensure_screenshot_thumbnail, get_icon_path, get_lnk_metadatas,
-            get_screenshot_thumbnail_path, get_thumbnail_path, save_icon_to_png, save_thumbnail,
+            get_screenshot_thumbnail_path, get_thumbnail_path, save_icon_to_png,
+            save_thumbnail_from_candidates,
         },
-        repository::collection::CollectionRepository,
-        repository::collection::VndbScreenshotCache,
+        repository::collection::{CollectionRepository, DailyPlayTime, GameScreenshotCache},
         repository::screenshot::{Screenshot, ScreenshotRepository},
         Id,
     },
@@ -52,6 +54,8 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
         self.update_element_last_play_at(&Id::new(element_id))
             .await?;
 
+        let tracking_started_at = Instant::now();
+
         // ゲームを起動
         let launch_result = match launch_game(&element) {
             Ok(result) => result,
@@ -81,7 +85,7 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
             let monitor = GameProcessMonitor::new(
                 handle.clone(),
                 repositories,
-                pause_manager,
+                pause_manager.clone(),
                 screenshot_watcher,
                 element_id,
             );
@@ -99,7 +103,14 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
                 .await
             {
                 // プロセスを監視
-                monitor.monitor_process(pid, registered_shortcut).await;
+                monitor
+                    .monitor_process(pid, registered_shortcut, tracking_started_at)
+                    .await;
+            } else {
+                pause_manager.set_tracking(false);
+                if let Some(shortcut) = registered_shortcut {
+                    let _ = handle.global_shortcut().unregister(shortcut);
+                }
             }
         });
 
@@ -229,29 +240,32 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
         Ok(save_icon_to_png(handle, &icon_path, id)?.await??)
     }
 
-    pub async fn save_element_thumbnail(
+    pub async fn save_element_thumbnail_from_candidates(
         &self,
         handle: &Arc<AppHandle>,
         id: &Id<CollectionElement>,
-        src_url: String,
+        src_urls: Vec<String>,
     ) -> anyhow::Result<()> {
-        Ok(save_thumbnail(handle, id, src_url).await??)
+        Ok(save_thumbnail_from_candidates(handle, id, src_urls).await??)
     }
 
-    pub async fn concurrency_save_thumbnails(
+    pub async fn concurrency_save_thumbnails_from_candidates(
         &self,
         handle: &Arc<AppHandle>,
-        args: Vec<(Id<CollectionElement>, String)>,
+        args: Vec<(Id<CollectionElement>, Vec<String>)>,
     ) -> anyhow::Result<()> {
         use futures::StreamExt as _;
 
         futures::stream::iter(args.into_iter())
-            .map(|(id, url)| save_thumbnail(handle, &id, url))
+            .map(|(id, urls)| save_thumbnail_from_candidates(handle, &id, urls))
             .buffered(50)
             .map(|v| v?)
             .for_each(|v| async move {
                 match v {
-                    Err(e) => eprintln!("[concurency_save_thumbnails] {}", e.to_string()),
+                    Err(e) => eprintln!(
+                        "[concurrency_save_thumbnails_from_candidates] {}",
+                        e.to_string()
+                    ),
                     _ => {}
                 }
             })
@@ -365,6 +379,67 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
         Ok(())
     }
 
+    pub async fn adjust_untracked_play_time_seconds(
+        &self,
+        handle: &Arc<AppHandle>,
+        id: &Id<CollectionElement>,
+        seconds: i32,
+    ) -> anyhow::Result<()> {
+        if seconds == 0 {
+            return Ok(());
+        }
+
+        let element = self
+            .repositories
+            .collection_repository()
+            .get_element_by_element_id(id)
+            .await?
+            .ok_or(UseCaseError::CollectionElementIsNotFound)?;
+        let bounded_seconds = if seconds < 0 {
+            seconds.max(-element.total_play_time_seconds)
+        } else {
+            seconds
+        };
+
+        if bounded_seconds == 0 {
+            return Ok(());
+        }
+
+        let now = Local::now();
+        self.repositories
+            .collection_repository()
+            .add_play_time_seconds(id, bounded_seconds)
+            .await?;
+
+        if bounded_seconds > 0 {
+            self.repositories
+                .collection_repository()
+                .update_element_first_play_at_if_null_by_id(id, now)
+                .await?;
+            self.repositories
+                .collection_repository()
+                .update_element_last_play_at_by_id(id, now)
+                .await?;
+
+            for (play_date, daily_seconds) in split_play_time_by_local_date(now, bounded_seconds) {
+                self.repositories
+                    .collection_repository()
+                    .add_daily_play_time_seconds(id, play_date, daily_seconds)
+                    .await?;
+            }
+        } else {
+            self.repositories
+                .collection_repository()
+                .subtract_daily_play_time_seconds_from_latest(id, -bounded_seconds)
+                .await?;
+        }
+
+        let _ = handle.emit("collection-element-updated", id.value);
+        let _ = handle.emit("recent-games-changed", ());
+
+        Ok(())
+    }
+
     pub async fn get_all_elements(
         &self,
         handle: &Arc<AppHandle>,
@@ -380,6 +455,16 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
         self.repositories
             .collection_repository()
             .get_all_elements()
+            .await
+    }
+
+    pub async fn get_collection_element_daily_play_times(
+        &self,
+        id: &Id<CollectionElement>,
+    ) -> anyhow::Result<Vec<DailyPlayTime>> {
+        self.repositories
+            .collection_repository()
+            .get_daily_play_times(id)
             .await
     }
 
@@ -401,23 +486,23 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
             .await
     }
 
-    pub async fn get_vndb_screenshot_cache(
+    pub async fn get_game_screenshot_cache(
         &self,
         collection_element_id: i32,
-    ) -> anyhow::Result<Option<VndbScreenshotCache>> {
+    ) -> anyhow::Result<Option<GameScreenshotCache>> {
         self.repositories
             .collection_repository()
-            .get_vndb_screenshot_cache(collection_element_id)
+            .get_game_screenshot_cache(collection_element_id)
             .await
     }
 
-    pub async fn upsert_vndb_screenshot_cache(
+    pub async fn upsert_game_screenshot_cache(
         &self,
-        cache: VndbScreenshotCache,
+        cache: GameScreenshotCache,
     ) -> anyhow::Result<()> {
         self.repositories
             .collection_repository()
-            .upsert_vndb_screenshot_cache(cache)
+            .upsert_game_screenshot_cache(cache)
             .await
     }
 

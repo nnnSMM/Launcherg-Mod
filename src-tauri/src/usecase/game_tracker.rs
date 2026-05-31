@@ -22,7 +22,10 @@ use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut};
 use super::pause_manager::PauseManager;
 use super::screenshot_watcher::ScreenshotWatcher;
 
-fn split_play_time_by_local_date(end_time: DateTime<Local>, seconds: i32) -> Vec<(NaiveDate, i32)> {
+pub(crate) fn split_play_time_by_local_date(
+    end_time: DateTime<Local>,
+    seconds: i32,
+) -> Vec<(NaiveDate, i32)> {
     if seconds <= 0 {
         return Vec::new();
     }
@@ -354,8 +357,43 @@ impl<R: RepositoriesExt + Send + Sync + 'static> GameProcessMonitor<R> {
         }
     }
 
+    async fn commit_play_time(&self, seconds: i32, end_time: DateTime<Local>) {
+        if seconds <= 0 {
+            return;
+        }
+
+        let id = Id::new(self.element_id);
+        let _ = self
+            .repositories
+            .collection_repository()
+            .add_play_time_seconds(&id, seconds)
+            .await;
+        let _ = self
+            .repositories
+            .collection_repository()
+            .update_element_first_play_at_if_null_by_id(&id, end_time)
+            .await;
+
+        for (play_date, daily_seconds) in split_play_time_by_local_date(end_time, seconds) {
+            let _ = self
+                .repositories
+                .collection_repository()
+                .add_daily_play_time_seconds(&id, play_date, daily_seconds)
+                .await;
+        }
+
+        let _ = self
+            .handle
+            .emit("collection-element-updated", self.element_id);
+    }
+
     /// プロセスを監視してプレイ時間を記録
-    pub async fn monitor_process(&self, pid: sysinfo::Pid, registered_shortcut: Option<Shortcut>) {
+    pub async fn monitor_process(
+        &self,
+        pid: sysinfo::Pid,
+        registered_shortcut: Option<Shortcut>,
+        tracking_started_at: Instant,
+    ) {
         println!("Start monitoring process (PID: {}) for game", pid);
 
         // スクリーンショットウォッチャーを開始
@@ -368,49 +406,27 @@ impl<R: RepositoriesExt + Send + Sync + 'static> GameProcessMonitor<R> {
 
         let mut interval = interval(Duration::from_secs(10));
         let mut system = System::new();
-        let mut last_check_time = Instant::now();
+        let mut accounted_until = tracking_started_at;
 
         loop {
             interval.tick().await;
             system.refresh_processes();
+            let process_alive = system.process(pid).is_some();
 
             if !self.pause_manager.is_paused() {
                 let now = Instant::now();
-                let duration = now.duration_since(last_check_time).as_secs() as i32;
+                let duration = now.duration_since(accounted_until).as_secs() as i32;
 
                 if duration > 0 {
-                    let now = Local::now();
-                    let id = Id::new(self.element_id);
-                    let _ = self
-                        .repositories
-                        .collection_repository()
-                        .add_play_time_seconds(&id, duration)
-                        .await;
-                    let _ = self
-                        .repositories
-                        .collection_repository()
-                        .update_element_first_play_at_if_null_by_id(&id, now)
-                        .await;
-
-                    for (play_date, daily_seconds) in split_play_time_by_local_date(now, duration) {
-                        let _ = self
-                            .repositories
-                            .collection_repository()
-                            .add_daily_play_time_seconds(&id, play_date, daily_seconds)
-                            .await;
-                    }
-
-                    let _ = self
-                        .handle
-                        .emit("collection-element-updated", self.element_id);
+                    self.commit_play_time(duration, Local::now()).await;
                 }
-                last_check_time = now;
+                accounted_until = now;
             } else {
-                last_check_time = Instant::now();
+                accounted_until = Instant::now();
             }
 
             // プロセスが終了したか確認
-            if system.process(pid).is_none() {
+            if !process_alive {
                 self.cleanup(registered_shortcut).await;
                 break;
             }

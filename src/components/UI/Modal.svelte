@@ -31,7 +31,7 @@
 >
   <div class="grid grid-rows-[min-content_1fr_min-content] h-full">
     <div
-      class="flex items-center bg-bg-secondary border-b-1px border-solid border-border-primary rounded-t-lg {headerClass}"
+      class="flex items-center bg-transparent border-b-1px border-solid border-border-primary rounded-t-md {headerClass}"
     >
       <div class="px-4 text-text-primary text-body font-medium">
         {title}
@@ -49,7 +49,7 @@
     </div>
     {#if withFooter}
       <slot name="footer">
-        <div class="flex items-center p-4 border-t-1px border-solid border-border-primary">
+        <div class="flex items-center p-4 border-t-1px border-solid border-border-primary bg-transparent">
           <div class="flex items-center ml-auto gap-2">
             <Button
               text={cancelText}

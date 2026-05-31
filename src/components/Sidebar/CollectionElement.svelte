@@ -6,6 +6,7 @@
   import { open } from "@tauri-apps/plugin-dialog";
   import { commandUpdateGameImage } from "@/lib/command";
   import { createEventDispatcher } from "svelte";
+  import { formatLastPlayed } from "@/lib/utils";
 
   export let collectionElement: CollectionElement;
 
@@ -26,6 +27,16 @@
   );
 
   $: isActive = $location.includes(`/works/${collectionElement.id}`);
+  $: lastPlayedText = formatLastPlayed(collectionElement.lastPlayAt);
+  $: isLightTheme =
+    document?.documentElement?.dataset.theme === "light";
+  $: itemStateClass = isActive
+    ? isLightTheme
+      ? "bg-bg-button-hover/50"
+      : "bg-bg-button-hover/35"
+    : isLightTheme
+      ? "hover:bg-bg-button-hover/50"
+      : "hover:bg-bg-button-hover/35";
 
   const handleContextMenu = (e: MouseEvent) => {
     e.preventDefault();
@@ -56,33 +67,62 @@
       },
     },
   ];
+
+  let currentTitle = "";
+
+  function handleMouseEnter(e: MouseEvent) {
+    const target = e.currentTarget as HTMLElement;
+    const titleElement = target.querySelector(".truncate") as HTMLElement;
+    if (titleElement) {
+      if (titleElement.scrollWidth > titleElement.clientWidth) {
+        currentTitle = collectionElement.gamename;
+      } else {
+        currentTitle = "";
+      }
+    }
+  }
+
+  function handleMouseLeave() {
+    currentTitle = "";
+  }
 </script>
 
 <div
-  class="flex items-center py-1.5 px-2 mx-2 rounded-lg transition-all hover:bg-white/5 overflow-hidden group relative"
+  class="flex items-center py-1 px-2 mx-2 rounded-lg transition-all overflow-hidden group relative {itemStateClass}"
   on:contextmenu={handleContextMenu}
-  class:bg-white-10={isActive}
 >
   {#if isActive}
     <div
-      class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-accent-accent rounded-r-full"
+      class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-accent-accent rounded-r-full"
     />
   {/if}
   <a
     href={`/works/${collectionElement.id}?gamename=${collectionElement.gamename}`}
-    class="flex flex-1 w-full items-center gap-3"
+    class="flex flex-1 w-full items-center gap-3 min-w-0 focus-visible:ring-2 focus-visible:ring-accent-accent rounded"
+    aria-current={isActive ? "page" : undefined}
+    title={currentTitle || undefined}
+    on:mouseenter={handleMouseEnter}
+    on:mouseleave={handleMouseLeave}
     use:link
   >
     <img
       alt="{collectionElement.gamename}_icon"
       src={iconSrc}
-      class="h-8 w-8 rounded-md object-cover shadow-sm transition-transform group-hover:scale-105"
+      class="h-5 w-5 rounded-sm object-cover shadow-sm"
       loading="lazy"
+      on:error={(e) => {
+        const img = e.currentTarget;
+        if (img instanceof HTMLImageElement) {
+          img.src = "/images/dummy_thumbnail.svg";
+        }
+      }}
     />
-    <div
-      class="text-sm font-medium text-text-secondary group-hover:text-text-primary truncate transition-colors"
-    >
-      {collectionElement.gamename}
+    <div class="min-w-0 flex-1">
+      <div
+        class="text-xs font-medium text-text-secondary group-hover:text-text-primary truncate transition-colors"
+      >
+        {collectionElement.gamename}
+      </div>
     </div>
   </a>
 </div>
@@ -92,6 +132,7 @@
     x={menu.x}
     y={menu.y}
     options={menuOptions}
+    disableHover
     on:close={() => (menu.isOpen = false)}
   />
 {/if}

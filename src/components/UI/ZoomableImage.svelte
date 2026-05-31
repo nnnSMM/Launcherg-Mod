@@ -294,9 +294,7 @@
         on:load={onImageLoad}
         class="absolute top-0 left-0 max-w-none max-h-none origin-top-left"
         class:invisible={!isImagePositioned}
-        class:cursor-grab={isZoomed && !isDragging}
-        class:cursor-grabbing={isDragging}
-        style="transform: translate({translateX}px, {translateY}px) scale({scale})"
+        style="transform: translate({translateX}px, {translateY}px) scale({scale}); cursor: {isZoomed ? (isDragging ? 'grabbing' : 'grab') : 'default'} !important;"
         on:click={handleClick}
         on:keydown={() => {}}
         draggable="false"

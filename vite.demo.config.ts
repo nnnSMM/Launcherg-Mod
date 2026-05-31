@@ -15,6 +15,11 @@ const getSiteUrl = () => {
 };
 
 const siteUrl = getSiteUrl();
+const demoBuildId = (
+  process.env.DEMO_BUILD_ID ||
+  process.env.GITHUB_SHA?.slice(0, 12) ||
+  Date.now().toString(36)
+).replace(/[^a-zA-Z0-9_-]/g, "");
 
 const escapeXml = (value: string) =>
   value
@@ -71,6 +76,7 @@ export default defineConfig(async () => ({
   resolve: {
     preserveSymlinks: true,
     alias: {
+      "@/store/works": fileURLToPath(new URL("./src/mock/works.ts", import.meta.url)),
       "@": fileURLToPath(new URL("./src", import.meta.url)),
       "@tauri-apps/api/app": fileURLToPath(new URL("./src/mock/tauri-app.ts", import.meta.url)),
       "@tauri-apps/api/core": fileURLToPath(new URL("./src/mock/tauri-core.ts", import.meta.url)),
@@ -83,7 +89,6 @@ export default defineConfig(async () => ({
       "@tauri-apps/plugin-fs": fileURLToPath(new URL("./src/mock/tauri-fs.ts", import.meta.url)),
       "@tauri-apps/plugin-clipboard-manager": fileURLToPath(new URL("./src/mock/tauri-clipboard.ts", import.meta.url)),
       "@tauri-apps/plugin-http": fileURLToPath(new URL("./src/mock/tauri-http.ts", import.meta.url)),
-      "@/store/works": fileURLToPath(new URL("./src/mock/works.ts", import.meta.url)),
     },
   },
 
@@ -94,5 +99,12 @@ export default defineConfig(async () => ({
   build: {
     outDir: "docs/demo",
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        entryFileNames: `assets/[name]-[hash]-${demoBuildId}.js`,
+        chunkFileNames: `assets/[name]-[hash]-${demoBuildId}.js`,
+        assetFileNames: `assets/[name]-[hash]-${demoBuildId}[extname]`,
+      },
+    },
   },
 }));

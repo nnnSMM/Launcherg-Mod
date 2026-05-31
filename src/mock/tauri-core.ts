@@ -365,6 +365,25 @@ export const invoke = async <T = unknown>(
     return undefined as T;
   }
 
+  if (cmd === "adjust_untracked_play_time_seconds") {
+    const id = Number(args?.id);
+    const seconds = Number(args?.seconds ?? 0);
+    const playedAt = nowString();
+    collectionElements = collectionElements.map((element) =>
+      element.id === id
+        ? {
+            ...element,
+            firstPlayAt: seconds > 0 ? element.firstPlayAt ?? playedAt : element.firstPlayAt,
+            lastPlayAt: seconds > 0 ? playedAt : element.lastPlayAt,
+            totalPlayTimeSeconds: Math.max(0, element.totalPlayTimeSeconds + seconds),
+            updatedAt: playedAt,
+          }
+        : element,
+    );
+    saveCollectionElements();
+    return undefined as T;
+  }
+
   if (cmd === "update_collection_element_path") {
     const id = Number(args?.id);
     const path = String(args?.path ?? "");
@@ -487,6 +506,76 @@ export const invoke = async <T = unknown>(
     return Math.floor((element?.totalPlayTimeSeconds ?? 0) / 60) as T;
   }
 
+  if (cmd === "get_collection_element_daily_play_times") {
+    const id = Number(args?.collectionElementId);
+    const element = collectionElements.find((v) => v.id === id);
+    if (!element) return [] as T;
+    const total = element.totalPlayTimeSeconds;
+    if (total <= 0) return [] as T;
+
+    // 決定論的な乱数生成器 (シード値に要素IDを使用)
+    let seedState = id ? id : 1;
+    const nextRandom = () => {
+      const x = Math.sin(seedState++) * 10000;
+      return x - Math.floor(x);
+    };
+    const nextRandomRange = (min: number, max: number) => {
+      return Math.floor(nextRandom() * (max - min + 1)) + min;
+    };
+
+    // プレイ日の起点。lastPlayAt があればその日付、なければ登録日、それもなければ "2026-05-21"
+    let currentDate = new Date("2026-05-21");
+    if (element.lastPlayAt) {
+      const parts = element.lastPlayAt.split(" ")[0].split("-");
+      if (parts.length === 3) {
+        currentDate = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+      }
+    } else if (element.registeredAt) {
+      const parts = element.registeredAt.split(" ")[0].split("-");
+      if (parts.length === 3) {
+        currentDate = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+      }
+    }
+
+    const rows: Array<{ collectionElementId: number; playDate: string; playTimeSeconds: number }> = [];
+    let remainingSeconds = total;
+
+    // 1日のセッション時間の上限・下限を設定（15分〜3時間）
+    const minSession = 900;
+    const maxSession = 10800;
+
+    while (remainingSeconds > 0) {
+      let sessionSeconds = nextRandomRange(minSession, maxSession);
+      if (sessionSeconds > remainingSeconds) {
+        sessionSeconds = remainingSeconds;
+      }
+      // 残り時間が最小セッション時間より少なくなる場合は全て合算
+      if (remainingSeconds - sessionSeconds < minSession) {
+        sessionSeconds = remainingSeconds;
+      }
+
+      const yyyy = currentDate.getFullYear();
+      const mm = String(currentDate.getMonth() + 1).padStart(2, "0");
+      const dd = String(currentDate.getDate()).padStart(2, "0");
+      const playDate = `${yyyy}-${mm}-${dd}`;
+
+      rows.push({
+        collectionElementId: id,
+        playDate,
+        playTimeSeconds: sessionSeconds,
+      });
+
+      remainingSeconds -= sessionSeconds;
+      if (remainingSeconds <= 0) break;
+
+      // 次のプレイ日を数日前（1日〜4日前）に遡る
+      const skipDays = nextRandomRange(1, 4);
+      currentDate.setDate(currentDate.getDate() - skipDays);
+    }
+
+    return rows.reverse() as T;
+  }
+
   if (cmd === "get_app_setting") {
     const settings = loadSettings();
     if (args?.key === "shortcut_game_id" && settings.shortcut_game_id === undefined) {
@@ -510,7 +599,7 @@ export const invoke = async <T = unknown>(
   if (cmd === "get_pause_state") return pauseState as T;
   if (cmd === "get_game_screenshots") return [] as T;
   if (cmd === "get_all_screenshots") return [] as T;
-  if (cmd === "get_vndb_screenshot_cache") return null as T;
+  if (cmd === "get_game_screenshot_cache") return null as T;
 
   if (
     cmd === "open_folder" ||
@@ -520,7 +609,7 @@ export const invoke = async <T = unknown>(
     cmd === "import_screenshot" ||
     cmd === "delete_screenshot" ||
     cmd === "update_screenshots_order" ||
-    cmd === "upsert_vndb_screenshot_cache" ||
+    cmd === "upsert_game_screenshot_cache" ||
     cmd === "open_screenshot_window" ||
     cmd === "launch_shortcut_game" ||
     cmd === "show_main_window" ||
