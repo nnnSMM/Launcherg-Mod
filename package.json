@@ -12,7 +12,8 @@
     "tauri": "tauri",
     "test": "vitest",
     "test:run": "vitest run",
-    "build-demo": "npx vitest run src/lib/fetch-demo-descriptions.test.ts && vite build -c vite.demo.config.ts",
+    "build-demo": "vite build -c vite.demo.config.ts",
+    "build-demo:refresh": "npx vitest run src/lib/fetch-demo-descriptions.test.ts && vite build -c vite.demo.config.ts",
     "graph:check": "node script/validate-skill-graph.mjs"
   },
   "dependencies": {

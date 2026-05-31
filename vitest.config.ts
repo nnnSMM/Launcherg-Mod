@@ -18,6 +18,8 @@ export default defineConfig({
         globals: true,
         environment: 'jsdom',
         include: ['src/**/*.{test,spec}.{js,ts}'],
+        // ネットワークアクセスが必要なデータ更新スクリプトは通常のテスト実行から除外
+        exclude: ['src/lib/fetch-demo-descriptions.test.ts'],
     },
     resolve: {
         alias: {
