@@ -132,7 +132,7 @@ jobs:
             signature = $signature
             url = $downloadUrl
           }
-          $updaterData | ConvertTo-Json -Depth 10 | Set-Content -Path ".tauri-updater.json"
+          $updaterData | ConvertTo-Json -Depth 10 | Set-Content -Path "default.tauri-updater.json"
 
           $uiInfo = @{
             version = $appVersion
@@ -151,7 +151,7 @@ jobs:
           $appVersion = "${{ steps.variables.outputs.app_version }}"
           $displayVersion = "${{ steps.variables.outputs.display_version }}"
           $expectedUrl = "${{ env.RELEASE_URL }}/download/${tagName}/Launcherg-Mod_${displayVersion}_x64_ja-JP.msi.zip"
-          $data = Get-Content -Path ".tauri-updater.json" -Raw | ConvertFrom-Json
+          $data = Get-Content -Path "default.tauri-updater.json" -Raw | ConvertFrom-Json
           if ($data.version -ne $appVersion) {
             throw "Unexpected updater version: $($data.version)"
           }
@@ -164,11 +164,11 @@ jobs:
           Write-Host "Updater manifest verified: version=$($data.version), url=$($data.url)"
 
       - name: Format generated metadata
-        run: npx -y prettier .\src-tauri\tauri.conf.json .\.tauri-updater.json .\update-info.json --write
+        run: npx -y prettier .\src-tauri\tauri.conf.json .\default.tauri-updater.json .\update-info.json --write
 
       - name: Create GitHub release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: ".\\src-tauri\\target\\release\\bundle\\msi\\Launcherg-Mod_${{ steps.variables.outputs.display_version }}_x64_ja-JP.msi.zip,.\\src-tauri\\target\\release\\bundle\\msi\\Launcherg-Mod_${{ steps.variables.outputs.display_version }}_x64_ja-JP.msi.zip.sig,.\\.tauri-updater.json,.\\update-info.json"
+          artifacts: "src-tauri/target/release/bundle/msi/Launcherg-Mod_${{ steps.variables.outputs.display_version }}_x64_ja-JP.msi.zip,src-tauri/target/release/bundle/msi/Launcherg-Mod_${{ steps.variables.outputs.display_version }}_x64_ja-JP.msi.zip.sig,default.tauri-updater.json,update-info.json"
           token: ${{ secrets.GITHUB_TOKEN }}
           prerelease: true
