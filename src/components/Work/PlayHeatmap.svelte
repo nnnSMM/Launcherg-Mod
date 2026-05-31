@@ -14,6 +14,7 @@
         type PlayHeatmapDay,
         type RgbColor,
     } from "@/lib/playHeatmap";
+    import { formatPlayTime } from "@/lib/utils";
 
     export let element: CollectionElement | null = null;
     export let isTotalHeatmap = false;
@@ -141,7 +142,7 @@
         if (day.seconds <= 0) {
             return `${formatHeatmapDate(day.date)}: 記録なし`;
         }
-        return `${formatHeatmapDate(day.date)}: 記録あり`;
+        return `${formatHeatmapDate(day.date)}: ${formatPlayTime(day.seconds)}`;
     };
 
     const legendLevels = [0, 1, 2, 3, 4, 5];
