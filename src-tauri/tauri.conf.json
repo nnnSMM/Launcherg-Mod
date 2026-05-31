@@ -33,7 +33,7 @@
       "endpoints": [
         "https://github.com/nnnSMM/Launcherg-Mod/releases/latest/download/default.tauri-updater.json"
       ],
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDg3RDI3NjI1MjM0MkI0NDMKUldWRHRFSWpKWGJTaCtEM1JHNEhPZGlIdzhnSWdMc1I0Unp2SXZ1NEl2Q0FmeU9QOFUxaUZuU3AK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDdCQTA0QTREREJERUFEMTMKUldRVHJkN2JUVXFnZXpOcFFBK0FyeVV2dEFFb3V0cVlxdkZtTHp2cVhadjNiRjVaSkVCQ0lPSW0K",
       "windows": {
         "installMode": "passive",
         "installerArgs": []
