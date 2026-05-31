@@ -8,6 +8,7 @@
   import { setupGlobalTooltips } from "@/lib/tooltip";
   import { setupHistoryTracker } from "@/lib/historyTrack";
   import { initializeAllGameCache } from "@/lib/scrapeAllGame";
+  import { works } from "@/store/works";
   import ImportDropFiles from "@/components/Home/ImportDropFiles.svelte";
   import { backgroundState } from "@/store/background";
   import { location, replace } from "svelte-spa-router";
@@ -58,6 +59,7 @@
     didInitializeMainApp = true;
     initialize();
     initializeAllGameCache();
+    void works.ensureRegisteredStories();
   };
 
   onMount(async () => {

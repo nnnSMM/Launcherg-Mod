@@ -39,11 +39,18 @@ type LocalStorageCacheOptions = {
 
 const DAY_MILLISECONDS = 1000 * 60 * 60 * 24;
 
+export type LocalStorageCacheGetter<K extends string | number, T> = ((
+  key: K
+) => Promise<T>) & {
+  peek: (key: K) => T | undefined;
+  setValue: (key: K, value: T) => void;
+};
+
 export const createLocalStorageCache = <K extends string | number, T>(
   key: string,
   fetcher: (key: K) => Promise<T>,
   options: number | LocalStorageCacheOptions = DAY_MILLISECONDS
-) => {
+): LocalStorageCacheGetter<K, T> => {
   const invalidateMilliseconds =
     typeof options === "number"
       ? options
@@ -79,7 +86,7 @@ export const createLocalStorageCache = <K extends string | number, T>(
     });
   };
 
-  const getter = async (key: K): Promise<T> => {
+  const getter = (async (key: K): Promise<T> => {
     const now = new Date().getTime();
     prune(now);
     const cached = getCache()[key];
@@ -95,7 +102,17 @@ export const createLocalStorageCache = <K extends string | number, T>(
       };
     });
     return value;
+  }) as LocalStorageCacheGetter<K, T>;
+
+  getter.peek = (key: K) => getCache()[key]?.value;
+  getter.setValue = (key: K, value: T) => {
+    const createdAt = new Date().getTime();
+    cache.update((v) => ({
+      ...v,
+      [key]: { value, createdAt, version },
+    }));
   };
+
   return getter;
 };
 
