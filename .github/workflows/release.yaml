@@ -31,12 +31,14 @@ jobs:
             $day = [int]$tagName.Substring(6, 2)
             $appVersion = "${year}.${month}.${day}"
             $displayVersion = $tagName
+            $releaseTitle = (Get-Content -Path 'src-tauri/tauri.conf.json' -Raw | ConvertFrom-Json).version
           } else {
             throw "Unsupported release tag '${tagName}'. Use YYYYMMDD, for example 20260524."
           }
           "tag_name=${tagName}" >> $env:GITHUB_OUTPUT
           "app_version=${appVersion}" >> $env:GITHUB_OUTPUT
           "display_version=${displayVersion}" >> $env:GITHUB_OUTPUT
+          "release_title=${releaseTitle}" >> $env:GITHUB_OUTPUT
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -169,7 +171,7 @@ jobs:
       - name: Create GitHub release
         uses: ncipollo/release-action@v1
         with:
-          name: Launcherg v${{ steps.variables.outputs.app_version }}
+          name: ${{ steps.variables.outputs.release_title }}
           artifacts: "src-tauri/target/release/bundle/msi/Launcherg_${{ steps.variables.outputs.display_version }}_x64_ja-JP.msi.zip,src-tauri/target/release/bundle/msi/Launcherg_${{ steps.variables.outputs.display_version }}_x64_ja-JP.msi.zip.sig,default.tauri-updater.json,update-info.json"
           token: ${{ secrets.GITHUB_TOKEN }}
           allowUpdates: true

@@ -111,7 +111,7 @@
 ### 2026-06-03: release title cleanup
 
 - Kept existing release tags and assets intact so historical download counts and URLs are preserved.
-- Updated the release workflow to name future releases as `Launcherg vYY.M.D` instead of leaving the title as the raw `YYYYMMDD` tag.
+- Updated the release workflow to name future releases from the product version, such as `0.3.3`, instead of leaving the title as the raw `YYYYMMDD` tag.
 
 ### Additional frontend stability
 
