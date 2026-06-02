@@ -108,6 +108,7 @@ jobs:
           $tagName = "${{ steps.variables.outputs.tag_name }}"
           $appVersion = "${{ steps.variables.outputs.app_version }}"
           $displayVersion = "${{ steps.variables.outputs.display_version }}"
+          $releaseTitle = "${{ steps.variables.outputs.release_title }}"
           $builtArtifactName = "Launcherg_${appVersion}_x64_ja-JP.msi.zip"
           $releaseArtifactName = "Launcherg_${displayVersion}_x64_ja-JP.msi.zip"
           $builtArtifactPath = "src-tauri/target/release/bundle/msi/${builtArtifactName}"
@@ -141,7 +142,7 @@ jobs:
 
           $uiInfo = @{
             version = $appVersion
-            displayVersion = $displayVersion
+            displayVersion = $releaseTitle
             pubDate = $pubDate
             demoUrl = "${{ env.DEMO_URL }}"
             releaseUrl = "${{ env.RELEASE_URL }}/tag/${tagName}"
@@ -165,6 +166,16 @@ jobs:
           }
           if ([string]::IsNullOrWhiteSpace($data.signature)) {
             throw "Updater signature is empty."
+          }
+          $uiInfo = Get-Content -Path "update-info.json" -Raw | ConvertFrom-Json
+          if ($uiInfo.version -ne $appVersion) {
+            throw "Unexpected update UI metadata version: $($uiInfo.version)"
+          }
+          if ($uiInfo.displayVersion -ne "${{ steps.variables.outputs.release_title }}") {
+            throw "Unexpected update UI display version: $($uiInfo.displayVersion)"
+          }
+          if ($uiInfo.releaseUrl -ne "${{ env.RELEASE_URL }}/tag/${tagName}") {
+            throw "Unexpected update UI release URL: $($uiInfo.releaseUrl)"
           }
           Write-Host "Updater manifest verified: version=$($data.version), url=$($data.url)"
 

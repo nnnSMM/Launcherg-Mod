@@ -113,6 +113,7 @@
 - Kept existing release tags and assets intact so historical download counts and URLs are preserved.
 - Updated the release workflow to name future releases from `release-display-version.txt`, such as `0.6.0`, instead of leaving the title as the raw `YYYYMMDD` tag.
 - Renamed existing GitHub Release titles to an artificial semver-style sequence from `0.1.0` through `0.6.0`; only large change ranges advance the minor version, while smaller updates use patch versions. Tags and assets were left unchanged.
+- Set the next display version to `0.6.1` and changed release-generated `update-info.json` to expose that display version while keeping the updater comparison version date-based.
 
 ### Additional frontend stability
 
