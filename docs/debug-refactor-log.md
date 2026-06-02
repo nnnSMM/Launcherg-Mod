@@ -102,6 +102,12 @@
 - The filmstrip now measures the selected thumbnail against the visible viewport and only scrolls by the clipped amount when the selected thumbnail is partially or fully out of view.
 - Kept the initial/reveal behavior compatible by ensuring the current thumbnail is visible without forcing left alignment.
 
+### 2026-06-03: public landing page mentions stats
+
+- Added a play-trend/statistics feature card to the public landing page.
+- Added the statistics screen to the main screen showcase and published `public/images/stats.png` for that section.
+- Kept the existing download and demo links unchanged.
+
 ### Additional frontend stability
 
 - `src/lib/registerCollectionElementDetails.ts`

@@ -26,6 +26,11 @@
       body: "起動したゲームのプレイ時間を\nタイトルごとに記録",
     },
     {
+      icon: "i-material-symbols:query-stats-rounded",
+      title: "プレイ傾向を振り返る",
+      body: "プレイ時間や日別の記録を\n統計画面で確認",
+    },
+    {
       icon: "i-material-symbols:photo-camera-outline-rounded",
       title: "スクリーンショットを整理",
       body: "撮影したスクリーンショットを\nプレイ中のゲームに関連付け",
@@ -55,6 +60,16 @@
         {
           title: "ゲーム詳細画面",
           src: `${rawImages}/game_details.png`,
+        },
+      ],
+    },
+    {
+      title: "統計",
+      caption: "プレイ時間、プレイ状況、日別のアクティビティをまとめて確認できます。",
+      images: [
+        {
+          title: "統計画面",
+          src: `${rawImages}/stats.png`,
         },
       ],
     },
@@ -215,7 +230,7 @@
           Launcherg-Mod
         </h1>
         <p class="mt-5 max-w-2xl text-base leading-8 text-[#e4d8c9] sm:text-lg">
-          散らばりがちなノベルゲームや非Steamゲームをひとつのライブラリにまとめ、ショートカット起動、プレイ時間の記録、スクリーンショット整理、メモ管理を同じ場所で扱う Windows アプリです。
+          散らばりがちなノベルゲームをひとつのライブラリにまとめ、ショートカット起動、プレイ時間の記録、スクリーンショット整理、メモ管理を同じ場所で扱う Windows アプリです。
         </p>
         <div class="mt-7 flex flex-col gap-3 sm:flex-row">
           <a
@@ -251,12 +266,12 @@
             できること
           </h2>
           <p class="mt-2 text-sm leading-6 text-[#b6aa9c]">
-            非Steamゲームを含む手元のゲームを、登録、起動、記録、整理の流れで扱います。
+            ゲームの登録、起動、記録、整理を、日常的に使いやすい形でまとめます。
           </p>
         </div>
       </div>
 
-      <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         {#each features as feature}
           <article class="group relative overflow-hidden rounded-xl border border-[#3a332d] bg-[#191612] p-4 shadow-[0_16px_50px_rgba(0,0,0,0.18)] transition hover:-translate-y-0.5 hover:border-[#5b5048] hover:bg-[#211d18]">
             <div class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#3bb7a9]/55 to-transparent opacity-0 transition group-hover:opacity-100" />
@@ -400,7 +415,7 @@
       <div class="flex flex-wrap gap-4">
         <a class="hover:text-[#f6f0e7]" href={repo} target="_blank" rel="noreferrer">GitHub</a>
         <a class="hover:text-[#f6f0e7]" href={usage} target="_blank" rel="noreferrer">Usage</a>
-        <a class="hover:text-[#f6f0e7]" href={downloadZip} target="_blank" rel="noreferrer" download>Download zip</a>
+        <a class="hover:text-[#f6f0e7]" href={downloadZip} target="_blank" rel="noreferrer" download>Download</a>
       </div>
     </div>
   </footer>
