@@ -3,3 +3,6 @@ docs/demo/** linguist-vendored
 
 # Exclude captured demo HTML fixtures from GitHub language statistics
 public/demo-data/** linguist-vendored
+
+# Exclude public-demo/mock runtime from GitHub language statistics
+src/mock/** linguist-vendored
