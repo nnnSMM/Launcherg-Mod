@@ -31,7 +31,10 @@ jobs:
             $day = [int]$tagName.Substring(6, 2)
             $appVersion = "${year}.${month}.${day}"
             $displayVersion = $tagName
-            $releaseTitle = (Get-Content -Path 'src-tauri/tauri.conf.json' -Raw | ConvertFrom-Json).version
+            $releaseTitle = (Get-Content -Path 'release-display-version.txt' -Raw).Trim()
+            if ($releaseTitle -notmatch '^\d+\.\d+\.\d+$') {
+              throw "Unsupported release display version '${releaseTitle}'. Use a semver-like value such as 0.4.0."
+            }
           } else {
             throw "Unsupported release tag '${tagName}'. Use YYYYMMDD, for example 20260524."
           }
