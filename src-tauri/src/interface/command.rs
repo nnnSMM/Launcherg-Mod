@@ -15,8 +15,7 @@ use crate::{
             get_thumbnail_candidate_urls, get_thumbnail_path, normalize,
         },
         repository::collection::{
-            DailyPlayTime as DomainDailyPlayTime,
-            GameScreenshotCache as DomainGameScreenshotCache,
+            DailyPlayTime as DomainDailyPlayTime, GameScreenshotCache as DomainGameScreenshotCache,
         },
         Id,
     },
@@ -171,7 +170,7 @@ pub async fn update_shortcut_registration(
     {
         if !old_shortcut_key.is_empty() {
             if let Ok(old_shortcut) = old_shortcut_key.parse::<Shortcut>() {
-                if handle.global_shortcut().is_registered(old_shortcut.clone()) {
+                if handle.global_shortcut().is_registered(old_shortcut) {
                     handle
                         .global_shortcut()
                         .unregister(old_shortcut)
@@ -216,7 +215,7 @@ pub async fn update_pause_shortcut_registration(
     {
         if !old_shortcut_key.is_empty() {
             if let Ok(old_shortcut) = old_shortcut_key.parse::<Shortcut>() {
-                if handle.global_shortcut().is_registered(old_shortcut.clone()) {
+                if handle.global_shortcut().is_registered(old_shortcut) {
                     handle
                         .global_shortcut()
                         .unregister(old_shortcut)
@@ -608,18 +607,14 @@ pub async fn get_collection_element(
     match modules
         .collection_use_case()
         .get_element_by_element_id(&Id::new(collection_element_id))
-        .await
-        .and_then(|v| Ok(CollectionElement::from_domain(&Arc::new(handle), v)))
+        .await.map(|v| CollectionElement::from_domain(&Arc::new(handle), v))
     {
         Ok(v) => Ok(v),
         Err(e) => {
-            if let Some(usecase_error) = e.downcast_ref::<UseCaseError>() {
-                match usecase_error {
-                    UseCaseError::CollectionElementIsNotFound => {
-                        return Err(CommandError::NotFound)
-                    }
-                    _ => {}
-                }
+            if let Some(UseCaseError::CollectionElementIsNotFound) =
+                e.downcast_ref::<UseCaseError>()
+            {
+                return Err(CommandError::NotFound);
             }
             Err(CommandError::Anyhow(e))
         }
@@ -670,10 +665,10 @@ pub async fn get_all_elements(
     let handle = &Arc::new(handle);
     Ok(modules
         .collection_use_case()
-        .get_all_elements(&handle)
+        .get_all_elements(handle)
         .await?
         .into_iter()
-        .map(|v| CollectionElement::from_domain(&handle, v))
+        .map(|v| CollectionElement::from_domain(handle, v))
         .collect())
 }
 
@@ -821,8 +816,7 @@ pub async fn get_game_cache_by_id(
     Ok(modules
         .all_game_cache_use_case()
         .get(id)
-        .await?
-        .and_then(|v| Some(v.into())))
+        .await?.map(|v| v.into()))
 }
 
 #[tauri::command]
@@ -885,7 +879,7 @@ pub async fn toggle_pause_tracking(
     handle: AppHandle,
     modules: State<'_, Arc<Modules>>,
 ) -> Result<bool, CommandError> {
-    Ok(super::logic::toggle_pause_and_notify(&handle, &modules).map_err(CommandError::Anyhow)?)
+    super::logic::toggle_pause_and_notify(&handle, &modules).map_err(CommandError::Anyhow)
 }
 
 #[tauri::command]
@@ -1035,4 +1029,3 @@ pub fn quit_app(handle: AppHandle) {
     let _ = save_current_window_state(&handle);
     handle.exit(0);
 }
-

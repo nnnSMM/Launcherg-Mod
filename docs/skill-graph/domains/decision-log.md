@@ -3,7 +3,7 @@ id: decision-log
 title: Decision Log
 type: log
 status: active
-updated: 2026-06-01
+updated: 2026-06-02
 links:
   - launcherg-improvement-moc
   - template-decision-record
@@ -11,6 +11,29 @@ links:
 ---
 
 # Decision Log
+
+## 2026-06-02: スクリーンショット候補取得は互換APIを残して停止する
+
+- Context: スクリーンショット候補は外部サイトから候補画像URLを取得して `game_screenshot_caches` に保存していたが、現行UIでは候補を表示する経路がなく、取り込み後の外部アクセスと未使用チャンクだけが残っていた。
+- Decision: 現アプリから候補取得の入口を削除し、未使用の候補解析モジュールとプレビューコンポーネントを削除する。一方で既存DBテーブル、マイグレーション、Tauriコマンドは互換用に残し、既存ユーザーDBや古い呼び出しを壊さない。
+- Rationale: 表示価値が出ていない外部取得は軽量化・省データ化の対象だが、DBスキーマやコマンドを同時に消すと過去バージョンからの移行リスクが上がる。まずは副作用の入口を閉じるのが安全。
+- Consequence: 新規/変更インポート後に候補画像URLの外部取得は走らない。過去に保存された `game_screenshot_caches` は未使用データとして残るが、起動や通常操作を妨げない。
+- Links: [[architecture-map]], [[quality-gates]], [[known-risks]]
+
+## 2026-06-02: 初期ロード最適化は画面単位・機能単位の遅延読み込みを優先する
+- Context: 安定化後の追加調査で、demo の初期 JS に route helper 経由の mock Tauri core / demo catalog が混入し、初期 CSS には Google WebFont 生成 CSS が大量に含まれていた。通常アプリ側でも Memo / SkyWay / markdown / updater / work registration など、初期画面で不要な機能が早く読み込まれていた。
+- Decision: 初期表示に必須ではない画面・機能・外部ライブラリは、Svelte route の `asyncComponent` と dynamic import で遅延読み込みする。画面判定などの純粋関数は Tauri API や demo data を top-level import しない。WebFont は外部生成 CSS ではなく OS フォント中心の fallback を使う。
+- Rationale: 起動直後に使わない依存を分離すると、クラッシュ面では初期化失敗の影響範囲が狭まり、性能面では初期転送量・解析量・CSS 量が下がる。demo では特に「見るだけ」の初期表示が重いと体験が悪化するため、データチャンクは必要な画面遷移後に読むべきである。
+- Consequence: 初期 JS/CSS は大幅に小さくなった。一方で Memo editor の EasyMDE 本体は機能利用時の大きな遅延チャンクとして残るため、将来さらに軽くするなら editor ライブラリ選定か専用 chunk 戦略を別途検討する。
+- Links: [[architecture-map]], [[quality-gates]], [[known-risks]]
+
+## 2026-06-02: 安定化リファクタリングは保存値復旧・購読寿命・panic削減を優先する
+
+- Context: 「全体的に動作が不安定」として、壊さない前提で広くデバッグとリファクタリングを行う依頼があった。初期検証では主要ゲートは通ったが、テスト後のSimpleBar/jsdomノイズ、ESLint設定不備、localStorage破損時の同期クラッシュ、Svelte storeの購読増殖、Rust/Tauriの起動経路 `unwrap()` が見つかった。
+- Decision: UIやDBスキーマの意味を変えず、まずは保存済み設定の復旧、コンポーネント寿命に沿った購読管理、SimpleBar破棄、Rust側のpanic削減、検査コマンドの復旧を優先する。大きなUX変更や機能追加は今回の安定化作業に混ぜない。
+- Rationale: 不安定さの原因は再現が難しいことが多いため、時間経過・画面遷移・壊れたローカル状態・OS連携失敗で落ちない土台を先に固める方が安全。既存のテスト・型検査・ビルドが通っている状態を保ちながら、回帰テストを追加できる箇所から固定する。
+- Consequence: 起動不能やリーク起因の重さは減る。DB接続不能などアプリ継続が難しい致命的失敗は引き続き起動失敗として扱うが、ログと原因特定はしやすくなる。Windows実機のトレイ・ショートカット・スクリーンショット挙動は別途手動QAが必要。
+- Links: [[architecture-map]], [[quality-gates]], [[known-risks]]
 
 ## 2026-06-01: dev起動では実updater確認を走らせない
 

@@ -4,7 +4,9 @@ import {
 } from "@/lib/command";
 import { scrapeSql } from "@/lib/scrapeSql";
 
-export const registerCollectionElementDetails = async () => {
+let registerDetailsInFlight: Promise<void> | null = null;
+
+const registerCollectionElementDetailsOnce = async () => {
   const ids = await commandGetNotRegisterdDetailElementIds();
   if (!ids.length) {
     return;
@@ -15,6 +17,23 @@ export const registerCollectionElementDetails = async () => {
   )});`;
   const rows = await scrapeSql(query, 6);
   await commandCreateElementDetails(rows.map(mapRowToElementDetail));
+};
+
+export const registerCollectionElementDetails = async () => {
+  if (registerDetailsInFlight) {
+    return registerDetailsInFlight;
+  }
+
+  registerDetailsInFlight = registerCollectionElementDetailsOnce().finally(
+    () => {
+      registerDetailsInFlight = null;
+    },
+  );
+  return registerDetailsInFlight;
+};
+
+export const __resetRegisterCollectionElementDetailsForTest = () => {
+  registerDetailsInFlight = null;
 };
 
 export const mapRowToElementDetail = (row: string[]) => ({

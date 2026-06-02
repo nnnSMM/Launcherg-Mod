@@ -76,7 +76,7 @@ fn emit_progress_with_time(
         "{}累計{}.{:03}秒経過しました.",
         base_announce,
         end.as_secs(),
-        end.subsec_nanos() / 1_000_000
+        end.subsec_millis()
     ))
 }
 
@@ -107,7 +107,7 @@ impl<R: ExplorersExt> FileUseCase<R> {
             match res.get(&cache.id) {
                 Some(current_filepath) => {
                     let current_filepath =
-                        get_file_name_without_extension(&normalize(&current_filepath))
+                        get_file_name_without_extension(&normalize(current_filepath))
                             .unwrap_or_default();
                     let filepath =
                         get_file_name_without_extension(&normalize(&filepath_unnormalized))
@@ -168,13 +168,11 @@ impl<R: ExplorersExt> FileUseCase<R> {
                 let res = get_most_probable_game_candidate(&all, path)?;
                 match mutex_cb.lock() {
                     Ok(cb) => {
-                        if let Err(e) = cb() {
-                            return Err(e);
-                        };
+                        cb()?;
                         Ok(res)
                     }
                     Err(e) => {
-                        return Err(anyhow::anyhow!(e.to_string()));
+                        Err(anyhow::anyhow!(e.to_string()))
                     }
                 }
             })
@@ -251,7 +249,7 @@ impl<R: ExplorersExt> FileUseCase<R> {
             .chain(lnk_files.into_iter().filter(|lnk_path| {
                 let is_valid = lnk_metadatas
                     .get(lnk_path.as_str())
-                    .map_or(false, |meta| std::path::Path::new(&meta.path).exists());
+                    .is_some_and(|meta| std::path::Path::new(&meta.path).exists());
                 if !is_valid {
                     skipped_count += 1;
                 }
@@ -268,7 +266,8 @@ impl<R: ExplorersExt> FileUseCase<R> {
             }
         }
 
-        let (exe_id_path_vec, lnk_id_path_vec): (Vec<(i32, String)>, Vec<(i32, String)>) = self
+        type IdPathPairs = Vec<(i32, String)>;
+        let (exe_id_path_vec, lnk_id_path_vec): (IdPathPairs, IdPathPairs) = self
             .concurrency_get_path_game_map(
                 normalized_all_games,
                 filtered_files,
@@ -381,11 +380,9 @@ impl<R: ExplorersExt> FileUseCase<R> {
         let reader = std::io::BufReader::new(file);
 
         let mut histories = vec![];
-        for line in reader.lines() {
-            if let Ok(line) = line {
-                if let Ok(history) = serde_json::from_str::<PlayHistory>(&line) {
-                    histories.push(history)
-                }
+        for line in reader.lines().map_while(Result::ok) {
+            if let Ok(history) = serde_json::from_str::<PlayHistory>(&line) {
+                histories.push(history)
             }
         }
 

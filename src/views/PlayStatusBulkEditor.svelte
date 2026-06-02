@@ -27,7 +27,7 @@
     currentAttributes,
     toggleAttribute,
   } from "@/store/viewSettings";
-  import { FILTER_BY_ATTRIBUTE } from "@/components/Sidebar/searchAttributes";
+  import { matchesAttribute } from "@/components/Sidebar/searchAttributes";
   import { sort as sortElementsOriginal } from "@/components/Sidebar/sort";
   import {
     collectionElementsToOptions as convertElementsToOptionsForFilter,
@@ -106,24 +106,26 @@
       currentSortOrder,
     ],
     ([$allGames, $textFilteredIdOpts, $attributeFilters, $sortOrder], set) => {
-      const textFilteredIdSet = new Set(
-        $textFilteredIdOpts.map((opt) => opt.value),
-      );
-      let filteredByText = $allGames.filter((game) =>
-        textFilteredIdSet.has(game.id),
-      );
+      let filteredByText = $allGames;
+      if ($textFilteredIdOpts.length !== $allGames.length) {
+        const textFilteredIdSet = new Set(
+          $textFilteredIdOpts.map((opt) => opt.value),
+        );
+        filteredByText = $allGames.filter((game) =>
+          textFilteredIdSet.has(game.id),
+        );
+      }
 
       const activeAttributeFilters = $attributeFilters.filter(
         (attr) => attr.enabled,
       );
       let filteredByAttributes = filteredByText;
       if (activeAttributeFilters.length > 0) {
-        filteredByAttributes = activeAttributeFilters.reduce(
-          (acc, currentFilter) => {
-            const filterFn = FILTER_BY_ATTRIBUTE[currentFilter.key];
-            return filterFn ? filterFn(acc) : acc;
-          },
-          filteredByText,
+        const activeAttributeKeys = activeAttributeFilters.map(
+          (attribute) => attribute.key,
+        );
+        filteredByAttributes = filteredByText.filter((game) =>
+          activeAttributeKeys.every((key) => matchesAttribute(game, key)),
         );
       }
 

@@ -1,7 +1,7 @@
 export type Option<T> = { label: string; value: T; otherLabels?: string[] };
 import type { CollectionElement } from "@/lib/types";
 import { isNotNullOrUndefined } from "@/lib/utils";
-import { writable, type Readable } from "svelte/store";
+import { readable, writable, type Readable } from "svelte/store";
 import TrieSearch from "trie-search";
 import { toHiragana, toRomaji } from "wanakana";
 
@@ -28,43 +28,54 @@ export const useTrieFilter = <T>(
   getOptions: () => Option<T>[]
 ) => {
   const query = writable("");
-  const filtered = writable<Option<T>[]>([...getOptions()]);
+  const filtered = readable<Option<T>[]>([...getOptions()], (set) => {
+    let latestQuery = "";
+    let optionMap = new Map<Option<T>["value"], Option<T>>();
+    let trie: TrieSearch<KeyValue<T>> = new TrieSearch<KeyValue<T>>("key");
 
-  const init = () => {
-    query.set("");
-    filtered.set([...getOptions()]);
+    const rebuildIndex = () => {
+      optionMap = new Map<Option<T>["value"], Option<T>>();
+      trie = new TrieSearch<KeyValue<T>>("key");
 
-    const optionMap = new Map<Option<T>["value"], Option<T>>();
-    for (const option of getOptions()) {
-      optionMap.set(option.value, option);
-    }
-
-    const trie: TrieSearch<KeyValue<T>> = new TrieSearch<KeyValue<T>>("key");
-    for (const option of getOptions()) {
-      trie.add({ key: option.label, value: option.value });
-      if (!option.otherLabels) {
-        continue;
+      for (const option of getOptions()) {
+        optionMap.set(option.value, option);
+        trie.add({ key: option.label, value: option.value });
+        for (const otherLabel of option.otherLabels ?? []) {
+          trie.add({ key: otherLabel, value: option.value });
+        }
       }
-      for (const otherLabel of option.otherLabels) {
-        trie.add({ key: otherLabel, value: option.value });
-      }
-    }
+    };
 
-    query.subscribe((_query) => {
-      if (!_query) {
-        return filtered.set([...getOptions()]);
+    const applyFilter = (rawQuery: string) => {
+      if (!rawQuery) {
+        set([...getOptions()]);
+        return;
       }
-      const searched = trie.search(_query);
-      filtered.set(
+      const searched = trie.search(rawQuery);
+      set(
         [...new Set(searched.map((v) => v.value))]
           .map((v) => optionMap.get(v))
-          .filter(isNotNullOrUndefined)
+          .filter(isNotNullOrUndefined),
       );
-    });
-  };
-  init();
+    };
 
-  options.subscribe(() => init());
+    rebuildIndex();
+
+    const unsubscribeQuery = query.subscribe((nextQuery) => {
+      latestQuery = nextQuery;
+      applyFilter(nextQuery);
+    });
+
+    const unsubscribeOptions = options.subscribe(() => {
+      rebuildIndex();
+      applyFilter(latestQuery);
+    });
+
+    return () => {
+      unsubscribeQuery();
+      unsubscribeOptions();
+    };
+  });
 
   return { query, filtered };
 };

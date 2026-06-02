@@ -58,8 +58,10 @@ fn find_candidate_process_ids_by_started(started_process_id: u32) -> ProcessIdCa
 }
 
 fn get_window_info(hwnd: HWND) -> anyhow::Result<RECT> {
-    let mut wi = WINDOWINFO::default();
-    wi.cbSize = std::mem::size_of::<WINDOWINFO>() as u32;
+    let mut wi = WINDOWINFO {
+        cbSize: std::mem::size_of::<WINDOWINFO>() as u32,
+        ..Default::default()
+    };
     unsafe { GetWindowInfo(hwnd, &mut wi)? };
 
     Ok(wi.rcClient)
@@ -75,11 +77,7 @@ fn find_capturable_window_by_pid(pid: u32) -> anyhow::Result<HWND> {
                         let width = rect.right - rect.left;
                         let height = rect.bottom - rect.top;
 
-                        if width > 400 && height > 200 {
-                            true
-                        } else {
-                            false
-                        }
+                        width > 400 && height > 200
                     })
                     .unwrap_or(false)
             })
@@ -104,7 +102,7 @@ pub fn find_capture_hwnd(started_process_id: u32) -> anyhow::Result<HWND> {
 
 pub fn find_top_window() -> anyhow::Result<HWND> {
     let hwnd = unsafe { windows::Win32::UI::WindowsAndMessaging::GetForegroundWindow() };
-    if hwnd.0 == 0 as isize {
+    if hwnd.0 == 0_isize {
         return Err(anyhow::anyhow!("No top window found"));
     }
     Ok(hwnd)

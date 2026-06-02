@@ -45,9 +45,10 @@ mod tests {
 
     #[test]
     fn test_all_game_cache_vec_operations() {
-        let mut cache: AllGameCache = vec![];
-        cache.push(AllGameCacheOne::new(1, "Game A".to_string()));
-        cache.push(AllGameCacheOne::new(2, "Game B".to_string()));
+        let cache: AllGameCache = vec![
+            AllGameCacheOne::new(1, "Game A".to_string()),
+            AllGameCacheOne::new(2, "Game B".to_string()),
+        ];
 
         assert_eq!(cache.len(), 2);
         assert_eq!(cache[0].id, 1);

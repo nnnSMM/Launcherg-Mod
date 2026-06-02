@@ -40,14 +40,10 @@ impl TryFrom<CollectionElementTable> for CollectionElement {
             st.is_nukige != 0,
             st.exe_path,
             st.lnk_path,
-            st.install_at
-                .and_then(|v| Some(v.and_utc().with_timezone(&Local))),
-            st.first_play_at
-                .and_then(|v| Some(v.and_utc().with_timezone(&Local))),
-            st.last_play_at
-                .and_then(|v| Some(v.and_utc().with_timezone(&Local))),
-            st.like_at
-                .and_then(|v| Some(v.and_utc().with_timezone(&Local))),
+            st.install_at.map(|v| v.and_utc().with_timezone(&Local)),
+            st.first_play_at.map(|v| v.and_utc().with_timezone(&Local)),
+            st.last_play_at.map(|v| v.and_utc().with_timezone(&Local)),
+            st.like_at.map(|v| v.and_utc().with_timezone(&Local)),
             st.play_status,
             st.total_play_time_seconds,
             st.thumbnail_width,
@@ -98,7 +94,7 @@ mod tests {
 
         assert_eq!(domain.id.value, 123);
         assert_eq!(domain.gamename, "テストゲーム");
-        assert_eq!(domain.is_nukige, false);
+        assert!(!domain.is_nukige);
         assert_eq!(domain.play_status, 1);
         assert_eq!(domain.total_play_time_seconds, 3600);
     }

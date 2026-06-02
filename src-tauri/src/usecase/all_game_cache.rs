@@ -23,8 +23,7 @@ impl<R: RepositoriesExt> AllGameCacheUseCase<R> {
             .all_game_cache_repository()
             .get_by_ids(vec![id])
             .await?
-            .first()
-            .and_then(|v| Some(v.clone())))
+            .first().cloned())
     }
     pub async fn get_by_ids(
         &self,

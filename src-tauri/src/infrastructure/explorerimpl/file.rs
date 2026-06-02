@@ -30,9 +30,9 @@ impl FileExplorer for ExplorerImpl<File> {
         let dir = Path::new(&get_save_root_abs_dir(handle))
             .join(MEMOS_ROOT_DIR)
             .join(id.to_string());
-        fs::create_dir_all(&dir).unwrap();
+        fs::create_dir_all(&dir)?;
         Ok(Path::new(&dir)
-            .join(format!("{}.png", Uuid::new_v4().to_string()))
+            .join(format!("{}.png", Uuid::new_v4()))
             .to_string_lossy()
             .to_string())
     }
@@ -42,7 +42,7 @@ impl FileExplorer for ExplorerImpl<File> {
         name: &str,
     ) -> anyhow::Result<String> {
         let dir = Path::new(&get_save_root_abs_dir(handle)).join(SCREENSHOTS_ROOT_DIR);
-        fs::create_dir_all(&dir).unwrap();
+        fs::create_dir_all(&dir)?;
         let timestamp = chrono::Local::now().format("%Y-%m-%d-%H-%M-%S");
         Ok(Path::new(&dir)
             .join(format!("{}-{}.png", name, timestamp))
@@ -53,7 +53,7 @@ impl FileExplorer for ExplorerImpl<File> {
         let dir = Path::new(&get_save_root_abs_dir(handle))
             .join(MEMOS_ROOT_DIR)
             .join(id.to_string());
-        fs::create_dir_all(&dir).unwrap();
+        fs::create_dir_all(&dir)?;
         Ok(Path::new(&dir)
             .join("untitled.md")
             .to_string_lossy()

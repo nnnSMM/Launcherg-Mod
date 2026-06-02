@@ -12,7 +12,6 @@
   import { onMount } from "svelte";
   import { listen } from "@tauri-apps/api/event";
   import { registerCollectionElementDetails } from "@/lib/registerCollectionElementDetails";
-  import { enqueueGameScreenshotPrefetch } from "@/lib/useGameScreenshots";
   import InputPath from "@/components/UI/InputPath.svelte";
   import { get } from "svelte/store";
   import {
@@ -108,7 +107,6 @@
       },
     );
 
-    const beforeIds = new Set(sidebarCollectionElements.value().map((v) => v.id));
     try {
       const res = await commandCreateElementsInPc(
         getPaths().map((v) => v.path),
@@ -116,9 +114,6 @@
       );
       await registerCollectionElementDetails();
       await sidebarCollectionElements.refetch();
-      enqueueGameScreenshotPrefetch(
-        sidebarCollectionElements.value().filter((v) => !beforeIds.has(v.id)),
-      );
 
       const text = res.length
         ? `${res[0]}${res.length === 1 ? "" : ` など${res.length}件`}追加しました`

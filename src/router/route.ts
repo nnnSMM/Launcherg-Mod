@@ -1,19 +1,29 @@
-import Home from "@/views/Home.svelte";
-import Memo from "@/views/Memo.svelte";
-import Work from "@/views/Work.svelte";
-import PlayStatusBulkEditor from "@/views/PlayStatusBulkEditor.svelte";
-import Settings from "@/views/Settings.svelte";
-import Overlay from "@/views/Overlay.svelte";
-import Stats from "@/views/Stats.svelte";
+import { wrap } from "svelte-spa-router/wrap";
+
+const homeRoute = wrap({
+  asyncComponent: () => import("@/views/Home.svelte"),
+});
 
 export const routes = {
-  "/": Home,
-  "/demo": Home,
-  "/stats": Stats,
-  "/works/:id": Work,
-  "/memos/:id": Memo,
-  "/settings/play-status": PlayStatusBulkEditor, // これが設定タブのコンテンツ
-  "/settings/shortcut": Settings,
-  "/overlay": Overlay,
+  "/": homeRoute,
+  "/demo": homeRoute,
+  "/stats": wrap({
+    asyncComponent: () => import("@/views/Stats.svelte"),
+  }),
+  "/works/:id": wrap({
+    asyncComponent: () => import("@/views/Work.svelte"),
+  }),
+  "/memos/:id": wrap({
+    asyncComponent: () => import("@/views/Memo.svelte"),
+  }),
+  "/settings/play-status": wrap({
+    asyncComponent: () => import("@/views/PlayStatusBulkEditor.svelte"),
+  }),
+  "/settings/shortcut": wrap({
+    asyncComponent: () => import("@/views/Settings.svelte"),
+  }),
+  "/overlay": wrap({
+    asyncComponent: () => import("@/views/Overlay.svelte"),
+  }),
   // TODO: 404
 };

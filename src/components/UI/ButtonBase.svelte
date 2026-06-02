@@ -1,5 +1,5 @@
 <script lang="ts">
-  import tippy, { type Props as TippyOption } from "tippy.js";
+  import type { Instance as TippyInstance, Props as TippyOption } from "tippy.js";
   export let appendClass = "";
   export let type: "button" | "submit" | undefined = undefined;
   export let tooltip: Partial<TippyOption> | undefined = undefined;
@@ -7,37 +7,57 @@
   export let borderless = false;
   export let ariaLabel: string | undefined = undefined;
 
-  const tooltipAction = (node: HTMLElement) => {
-    if (!tooltip) {
-      return;
-    }
+  const createTooltipOptions = (
+    value: Partial<TippyOption>,
+  ): Partial<TippyOption> => ({
+    placement: "right",
+    theme: "default",
+    arrow: false,
+    delay: [300, 50],
+    ...value,
+  });
 
-    const tippyOptions: Partial<TippyOption> = {
-      placement: "right",
-      theme: "default",
-      arrow: false, // 吹き出しの矢印を非表示にする
-      delay: [300, 50],
-      ...tooltip,
+  const tooltipAction = (
+    node: HTMLElement,
+    currentTooltip: Partial<TippyOption> | undefined,
+  ) => {
+    let instance: TippyInstance | null = null;
+    let destroyed = false;
+
+    const destroyInstance = () => {
+      instance?.destroy();
+      instance = null;
     };
 
-    const tp = tippy(node, tippyOptions);
+    const ensureInstance = async (value: Partial<TippyOption> | undefined) => {
+      if (!value || instance || destroyed) {
+        return;
+      }
+      const { default: tippy } = await import("tippy.js");
+      if (!currentTooltip || instance || destroyed) {
+        return;
+      }
+      instance = tippy(node, createTooltipOptions(currentTooltip));
+    };
+
+    void ensureInstance(currentTooltip);
 
     return {
-      update() {
-        if (!tooltip) {
+      update(nextTooltip: Partial<TippyOption> | undefined) {
+        currentTooltip = nextTooltip;
+        if (!currentTooltip) {
+          destroyInstance();
           return;
         }
-        const tippyOptions: Partial<TippyOption> = {
-          placement: "right",
-          theme: "default",
-          arrow: false, // 吹き出しの矢印を非表示にする
-          delay: [300, 50],
-          ...tooltip,
-        };
-        tp.setProps(tippyOptions);
+        if (!instance) {
+          void ensureInstance(currentTooltip);
+          return;
+        }
+        instance.setProps(createTooltipOptions(currentTooltip));
       },
       destroy() {
-        tp.destroy();
+        destroyed = true;
+        destroyInstance();
       },
     };
   };
@@ -73,9 +93,10 @@
           ? "bg-bg-button border border-solid border-border-button text-text-tertiary"
           : "bg-accent-primary border border-solid border-accent-primary text-text-white hover:bg-accent-primary-hover";
         break;
-      default:
+      default: {
         const _: never = variant;
         break;
+      }
     }
   }
 
@@ -85,7 +106,7 @@
 </script>
 
 <button
-  use:tooltipAction
+  use:tooltipAction={tooltip}
   {type}
   {disabled}
   aria-label={ariaLabel}

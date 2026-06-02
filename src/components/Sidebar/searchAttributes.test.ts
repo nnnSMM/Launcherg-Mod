@@ -1,5 +1,11 @@
-import { describe, it, expect } from 'vitest';
-import { FILTER_BY_ATTRIBUTE } from './searchAttributes';
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
+import { get } from 'svelte/store';
+import {
+    ATTRIBUTES,
+    FILTER_BY_ATTRIBUTE,
+    normalizeSearchAttributes,
+    searchAttributes,
+} from './searchAttributes';
 import type { CollectionElement } from '@/lib/types';
 import { PlayStatus } from '@/lib/types';
 
@@ -26,6 +32,55 @@ const createMockElement = (overrides: Partial<CollectionElement> = {}): Collecti
     thumbnailHeight: null,
     updatedAt: '2024-01-01',
     ...overrides,
+});
+
+describe('searchAttributes storage', () => {
+    beforeEach(() => {
+        localStorage.clear();
+    });
+
+    afterEach(() => {
+        localStorage.clear();
+        vi.restoreAllMocks();
+    });
+
+    it('normalizes valid stored attributes into canonical order', () => {
+        const stored = Object.values(ATTRIBUTES)
+            .map((key) => ({ key, enabled: key === ATTRIBUTES.LIKE }))
+            .reverse();
+
+        const result = normalizeSearchAttributes(stored);
+
+        expect(result.map((attribute) => attribute.key)).toEqual(Object.values(ATTRIBUTES));
+        expect(result.find((attribute) => attribute.key === ATTRIBUTES.LIKE)?.enabled).toBe(true);
+    });
+
+    it('resets malformed localStorage without throwing', () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        localStorage.setItem('search-attributes', '{ invalid json');
+
+        const { attributes } = searchAttributes();
+        const value = get(attributes);
+
+        expect(value).toEqual(
+            Object.values(ATTRIBUTES).map((key) => ({ key, enabled: false })),
+        );
+        expect(JSON.parse(localStorage.getItem('search-attributes') ?? '[]')).toEqual(value);
+        expect(warn).toHaveBeenCalled();
+    });
+
+    it('resets stored attributes with missing keys', () => {
+        localStorage.setItem(
+            'search-attributes',
+            JSON.stringify([{ key: ATTRIBUTES.LIKE, enabled: true }]),
+        );
+
+        const { attributes } = searchAttributes();
+
+        expect(get(attributes)).toEqual(
+            Object.values(ATTRIBUTES).map((key) => ({ key, enabled: false })),
+        );
+    });
 });
 
 describe('FILTER_BY_ATTRIBUTE', () => {

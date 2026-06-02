@@ -2,7 +2,6 @@ import { derived, get, writable } from "svelte/store";
 
 export const useVirtualScroller = () => {
   const virtualHeight = writable(0);
-  const setVirtualHeight = (value: number) => virtualHeight.set(value);
 
   const scrollY = writable(0);
   const containerHeight = writable(0);
@@ -30,11 +29,12 @@ export const useVirtualScroller = () => {
     notAppliedContentsScrollY = 0;
   };
 
-  virtualHeight.subscribe((v) => {
+  const setVirtualHeight = (value: number) => {
+    virtualHeight.set(value);
     if (notAppliedContentsScrollY) {
       contentsScrollTo(notAppliedContentsScrollY);
     }
-  });
+  };
 
   const header = (node: HTMLElement) => {
     const resizeObserver = new ResizeObserver((entries) => {

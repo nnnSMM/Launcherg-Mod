@@ -1,6 +1,7 @@
-import { describe, it, expect, vi } from 'vitest';
-import { collectionElementsToOptions, type Option } from './filter';
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
+import { collectionElementsToOptions, useFilter, type Option } from './filter';
 import type { CollectionElement } from './types';
+import { get, writable, type Writable } from 'svelte/store';
 
 // wanakanaのモック
 vi.mock('wanakana', () => ({
@@ -73,5 +74,67 @@ describe('collectionElementsToOptions', () => {
 
         expect(result).toHaveLength(3);
         expect(result.map(o => o.value)).toEqual([1, 2, 3]);
+    });
+});
+
+describe('useFilter', () => {
+    beforeEach(() => {
+        vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+        vi.useRealTimers();
+    });
+
+    it('options更新時にquery購読を増やさず、最新候補で絞り込む', () => {
+        let querySubscribeCount = 0;
+        let queryUnsubscribeCount = 0;
+        let latestQuery = "";
+        let querySubscriber: (value: string) => void = () => {};
+        const queryStore = {
+            subscribe(run: (value: string) => void) {
+                querySubscribeCount += 1;
+                querySubscriber = run;
+                run(latestQuery);
+                return () => {
+                    queryUnsubscribeCount += 1;
+                };
+            },
+            set(value: string) {
+                latestQuery = value;
+                querySubscriber(value);
+            },
+            update(updater: (value: string) => string) {
+                latestQuery = updater(latestQuery);
+                querySubscriber(latestQuery);
+            },
+        } as Writable<string>;
+
+        let options: Option<number>[] = [
+            { label: 'Alpha', value: 1 },
+            { label: 'Beta', value: 2 },
+        ];
+        const optionsStore = writable(options);
+        const { filtered } = useFilter(queryStore, optionsStore, () => options);
+        const unsubscribe = filtered.subscribe(() => {});
+
+        expect(querySubscribeCount).toBe(1);
+
+        queryStore.set('alp');
+        vi.advanceTimersByTime(200);
+        expect(get(filtered).map((option) => option.value)).toEqual([1]);
+
+        options = [
+            { label: 'Alpha', value: 1 },
+            { label: 'Alpine', value: 3 },
+            { label: 'Beta', value: 2 },
+        ];
+        optionsStore.set(options);
+
+        expect(querySubscribeCount).toBe(1);
+        expect(get(filtered).map((option) => option.value)).toEqual([1, 3]);
+
+        unsubscribe();
+        expect(queryUnsubscribeCount).toBe(1);
     });
 });

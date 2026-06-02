@@ -110,7 +110,7 @@ impl AllGameCacheRepository for RepositoryImpl<AllGameCache> {
         ))
     }
     async fn update(&self, cache: Vec<NewAllGameCacheOne>) -> anyhow::Result<()> {
-        if cache.len() == 0 {
+        if cache.is_empty() {
             return Ok(());
         }
         for c in cache.chunks(1000) {
@@ -130,7 +130,7 @@ impl AllGameCacheRepository for RepositoryImpl<AllGameCache> {
         Ok(())
     }
     async fn delete_by_ids(&self, ids: Vec<i32>) -> anyhow::Result<()> {
-        if ids.len() == 0 {
+        if ids.is_empty() {
             return Ok(());
         }
         let pool = self.pool.0.clone();

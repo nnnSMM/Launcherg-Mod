@@ -69,23 +69,20 @@ impl Distance {
 }
 
 pub fn get_comparable_distance(a: &str, b: &str) -> f32 {
-    let distance = Distance::new(&a, &b);
+    let distance = Distance::new(a, b);
     let distance_value = distance.onp();
 
     1.0 - (distance_value as f32 / a.len().max(b.len()) as f32)
 }
 
-pub fn find_nearest<'a>(
-    key: &'a String,
-    list: &'a Vec<(String, String)>,
-) -> (Option<&'a String>, f32) {
+pub fn find_nearest<'a>(key: &str, list: &'a [(String, String)]) -> (Option<&'a str>, f32) {
     let mut max_distance = 0.0;
     let mut max_distance_value = None;
     for (comp_key, comp_value) in list {
         let distance = get_comparable_distance(key, comp_key);
         if distance > max_distance {
             max_distance = distance;
-            max_distance_value = Some(comp_value);
+            max_distance_value = Some(comp_value.as_str());
         }
     }
     (max_distance_value, max_distance)

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { afterEach, describe, it, expect, beforeEach, vi } from "vitest";
 import SearchComponent from "./Search.svelte";
 import type { Attribute } from "./searchAttributes";
 
@@ -8,10 +8,19 @@ vi.mock("svelte-spa-router", () => ({
 }));
 
 describe("SearchComponent", () => {
+  let originalGetComputedStyle: typeof window.getComputedStyle;
+
   beforeEach(() => {
     document.body.innerHTML = "";
     // scrollTo のグローバルスタブ
     HTMLElement.prototype.scrollTo = vi.fn() as any;
+    originalGetComputedStyle = window.getComputedStyle;
+    window.getComputedStyle = ((element: Element) =>
+      originalGetComputedStyle(element)) as typeof window.getComputedStyle;
+  });
+
+  afterEach(() => {
+    window.getComputedStyle = originalGetComputedStyle;
   });
 
   const dummyPlayStatusAttributes: Attribute[] = [
@@ -28,7 +37,7 @@ describe("SearchComponent", () => {
   it("前半のボタンをクリックした際、左端(left: 0)にスムーズにスクロールされること", async () => {
     const target = document.body;
     
-    new SearchComponent({
+    const component = new SearchComponent({
       target,
       props: {
         query: "",
@@ -66,12 +75,13 @@ describe("SearchComponent", () => {
         behavior: "smooth",
       });
     }
+    component.$destroy();
   });
 
   it("後半のボタンをクリックした際、右端にスムーズにスクロールされること", async () => {
     const target = document.body;
     
-    new SearchComponent({
+    const component = new SearchComponent({
       target,
       props: {
         query: "",
@@ -109,5 +119,6 @@ describe("SearchComponent", () => {
         behavior: "smooth",
       });
     }
+    component.$destroy();
   });
 });

@@ -9,6 +9,7 @@ use crate::domain::{
     file::{get_icon_path, get_thumbnail_path},
 };
 
+#[allow(clippy::too_many_arguments)]
 #[derive(new, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CollectionElement {
@@ -51,10 +52,10 @@ impl CollectionElement {
             st.lnk_path,
             thumbnail,
             get_icon_path(handle, &st.id),
-            st.install_at.and_then(|v| Some(v.to_rfc3339())),
-            st.first_play_at.and_then(|v| Some(v.to_rfc3339())),
-            st.last_play_at.and_then(|v| Some(v.to_rfc3339())),
-            st.like_at.and_then(|v| Some(v.to_rfc3339())),
+            st.install_at.map(|v| v.to_rfc3339()),
+            st.first_play_at.map(|v| v.to_rfc3339()),
+            st.last_play_at.map(|v| v.to_rfc3339()),
+            st.like_at.map(|v| v.to_rfc3339()),
             st.play_status,
             st.total_play_time_seconds,
             st.updated_at.to_rfc3339(),

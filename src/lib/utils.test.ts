@@ -1,11 +1,13 @@
 import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
 import {
     createLocalStorageCache,
+    localStorageWritable,
     formatPlayTime,
     formatLastPlayed,
     isNotNullOrUndefined,
     rand,
 } from './utils';
+import { get } from 'svelte/store';
 
 describe('formatPlayTime', () => {
     it('2時間未満は分で表示する', () => {
@@ -84,6 +86,28 @@ describe('rand', () => {
         const value = rand();
         expect(value).toBeGreaterThanOrEqual(0);
         expect(value).toBeLessThan(100000);
+    });
+});
+
+describe('localStorageWritable', () => {
+    beforeEach(() => {
+        localStorage.clear();
+    });
+
+    afterEach(() => {
+        localStorage.clear();
+    });
+
+    it('壊れたJSONが保存されていても初期値へ戻して起動を継続する', () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        localStorage.setItem('broken-settings', '{ invalid json');
+
+        const store = localStorageWritable('broken-settings', { enabled: true });
+
+        expect(get(store)).toEqual({ enabled: true });
+        expect(localStorage.getItem('broken-settings')).toBe(JSON.stringify({ enabled: true }));
+        expect(warn).toHaveBeenCalled();
+        warn.mockRestore();
     });
 });
 

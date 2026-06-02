@@ -21,7 +21,7 @@ impl ProcessWindows for WindowsImpl<Process> {
             return Err(anyhow::anyhow!("cannot get top window"));
         }
         let mut window_text = vec![0u16; MAX_PATH as usize];
-        unsafe { GetWindowTextW(hwnd, &mut window_text.as_mut_slice()) };
+        unsafe { GetWindowTextW(hwnd, window_text.as_mut_slice()) };
         Ok(String::from_utf16_lossy(&window_text)
             .trim_end_matches('\0')
             .to_string())

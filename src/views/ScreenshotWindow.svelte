@@ -82,8 +82,23 @@
         }
     };
 
+    const groupScreenshotsByGameId = (screenshots: Screenshot[]) => {
+        const grouped = new Map<number, Screenshot[]>();
+        for (const screenshot of screenshots) {
+            const group = grouped.get(screenshot.gameId);
+            if (group) {
+                group.push(screenshot);
+            } else {
+                grouped.set(screenshot.gameId, [screenshot]);
+            }
+        }
+        return grouped;
+    };
+
+    $: screenshotsByGameId = groupScreenshotsByGameId(allScreenshots);
+
     // Filter games to only show those that have screenshots
-    $: gameIdsWithScreenshots = new Set(allScreenshots.map((s) => s.gameId));
+    $: gameIdsWithScreenshots = new Set(screenshotsByGameId.keys());
     $: gamesWithScreenshots = allGames.filter((g) =>
         gameIdsWithScreenshots.has(g.id),
     );
@@ -276,7 +291,7 @@
     }
 
     $: filteredScreenshots = selectedGameId
-        ? allScreenshots.filter((s) => s.gameId === selectedGameId)
+        ? screenshotsByGameId.get(selectedGameId) ?? []
         : allScreenshots;
 
     $: {
@@ -514,12 +529,41 @@
             viewerScreenshots.length;
     };
 
+    const keepFullscreenFilmstripIndexVisible = (index: number) => {
+        if (!fullscreenFilmstripApi) return;
+        const root = fullscreenFilmstripApi.rootNode();
+        const slide = fullscreenFilmstripApi.slideNodes()[index];
+        if (!root || !slide) return;
+
+        const rootRect = root.getBoundingClientRect();
+        const slideRect = slide.getBoundingClientRect();
+        const overflowLeft = rootRect.left - slideRect.left;
+        const overflowRight = slideRect.right - rootRect.right;
+        const rawDistance =
+            overflowLeft > 0
+                ? overflowLeft
+                : overflowRight > 0
+                    ? -overflowRight
+                    : 0;
+
+        if (Math.abs(rawDistance) < 1) return;
+
+        const engine = fullscreenFilmstripApi.internalEngine();
+        const currentTarget = engine.target.get();
+        const nextTarget = engine.limit.constrain(currentTarget + rawDistance);
+        const distance = nextTarget - currentTarget;
+        if (Math.abs(distance) < 1) return;
+
+        engine.scrollBody.useDuration(0).useBaseFriction();
+        engine.scrollTo.distance(distance, false);
+    };
+
     const selectViewerIndex = async (index: number) => {
         currentIndex = index;
         if (isFullscreenViewer) {
             revealFullscreenFilmstrip();
             await tick();
-            fullscreenFilmstripApi?.scrollTo(index, true);
+            keepFullscreenFilmstripIndexVisible(index);
         }
     };
 
@@ -549,7 +593,7 @@
         event: CustomEvent<EmblaCarouselType>,
     ) => {
         fullscreenFilmstripApi = event.detail;
-        fullscreenFilmstripApi.scrollTo(currentIndex, true);
+        void tick().then(() => keepFullscreenFilmstripIndexVisible(currentIndex));
     };
 
     const handleKeydown = (e: KeyboardEvent) => {
@@ -653,9 +697,7 @@
 
     $: if (fullscreenFilmstripApi && showFullscreenFilmstrip) {
         fullscreenFilmstripApi.reInit();
-        if (!isHoveringFilmstripArea) {
-            fullscreenFilmstripApi.scrollTo(currentIndex, true);
-        }
+        void tick().then(() => keepFullscreenFilmstripIndexVisible(currentIndex));
     }
 </script>
 

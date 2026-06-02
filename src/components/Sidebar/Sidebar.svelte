@@ -1,14 +1,9 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { derived } from "svelte/store";
+  import { derived, get } from "svelte/store";
   import CollectionElements from "@/components/Sidebar/CollectionElements.svelte";
   import { sidebarCollectionElements } from "@/store/sidebarCollectionElements";
-  import { createWritable } from "@/lib/utils";
-  import {
-    type Option,
-    collectionElementsToOptions,
-    useFilter,
-  } from "@/lib/filter";
+  import { collectionElementsToOptions, useFilter } from "@/lib/filter";
   import Search from "@/components/Sidebar/Search.svelte";
   import { showSidebar } from "@/store/showSidebar";
   import { fly } from "svelte/transition";
@@ -35,12 +30,11 @@
     await sidebarCollectionElements.refetch();
   });
 
-  const [elementOptions, getElementOptions] = createWritable<Option<number>[]>(
-    [],
+  const elementOptions = derived(
+    sidebarCollectionElements,
+    collectionElementsToOptions,
   );
-  sidebarCollectionElements.subscribe((v) =>
-    elementOptions.set(collectionElementsToOptions(v)),
-  );
+  const getElementOptions = () => get(elementOptions);
 
   const { filtered } = useFilter(query, elementOptions, getElementOptions);
 

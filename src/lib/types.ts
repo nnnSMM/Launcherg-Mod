@@ -116,22 +116,3 @@ export type Screenshot = {
   orderIndex: number;
   createdAt: string;
 };
-
-export type GameScreenshot = {
-  id: string;
-  url: string;
-  thumbnail: string;
-  dims: [number, number] | null;
-  thumbnailDims: [number, number] | null;
-  sexual: number;
-  violence: number;
-  languages: string[];
-};
-
-export type GameScreenshotCache = {
-  collectionElementId: number;
-  matchedTitle: string | null;
-  screenshotsJson: string;
-  fetchedAt: string;
-  status: "ok" | "not_found" | "error";
-};

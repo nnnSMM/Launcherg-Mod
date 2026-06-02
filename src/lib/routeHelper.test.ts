@@ -20,18 +20,18 @@ describe("routeHelper", () => {
   });
 
   describe("getWorkDetailBgImage", () => {
-    it("should return url containing thumbnail path when valid", () => {
+    it("should return url containing thumbnail path when valid", async () => {
       const element = {
         thumbnail: "C:\\path\\to\\thumbnail.jpg",
         updatedAt: "2026-05-30T10:00:00.000Z",
       };
-      const result = getWorkDetailBgImage(element.thumbnail, element.updatedAt);
+      const result = await getWorkDetailBgImage(element.thumbnail, element.updatedAt);
       expect(result).toContain("thumbnail.jpg");
       expect(result).toContain("v=2026-05-30T10:00:00.000Z");
     });
 
-    it("should return dummy thumbnail when thumbnail is empty", () => {
-      const result = getWorkDetailBgImage("", "2026-05-30T10:00:00.000Z");
+    it("should return dummy thumbnail when thumbnail is empty", async () => {
+      const result = await getWorkDetailBgImage("", "2026-05-30T10:00:00.000Z");
       expect(result).toBe("/images/dummy_thumbnail.svg");
     });
   });

@@ -17,7 +17,7 @@ impl ExploredCacheRepository for RepositoryImpl<ExploredCache> {
         Ok(paths.into_iter().map(|v| v.0).collect())
     }
     async fn add(&self, cache: ExploredCache) -> anyhow::Result<()> {
-        if cache.len() == 0 {
+        if cache.is_empty() {
             return Ok(());
         }
         // ref: https://docs.rs/sqlx-core/latest/sqlx_core/query_builder/struct.QueryBuilder.html#method.push_values

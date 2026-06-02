@@ -1,4 +1,8 @@
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, MutexGuard};
+
+fn lock_bool(lock: &Mutex<bool>) -> MutexGuard<'_, bool> {
+    lock.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
+}
 
 #[derive(Clone)]
 pub struct PauseManager {
@@ -15,19 +19,19 @@ impl PauseManager {
     }
 
     pub fn is_paused(&self) -> bool {
-        *self.is_paused.lock().unwrap()
+        *lock_bool(&self.is_paused)
     }
 
     pub fn set_paused(&self, paused: bool) {
-        *self.is_paused.lock().unwrap() = paused;
+        *lock_bool(&self.is_paused) = paused;
     }
 
     pub fn is_tracking(&self) -> bool {
-        *self.is_tracking.lock().unwrap()
+        *lock_bool(&self.is_tracking)
     }
 
     pub fn set_tracking(&self, tracking: bool) {
-        *self.is_tracking.lock().unwrap() = tracking;
+        *lock_bool(&self.is_tracking) = tracking;
         // Reset pause state when tracking changes
         if !tracking {
             self.set_paused(false);
@@ -39,7 +43,7 @@ impl PauseManager {
             return Err("No active game tracking session".to_string());
         }
 
-        let mut paused = self.is_paused.lock().unwrap();
+        let mut paused = lock_bool(&self.is_paused);
         *paused = !*paused;
         Ok(*paused)
     }

@@ -1,7 +1,6 @@
 import { writable } from "svelte/store";
 import { open as tauriOpen } from "@tauri-apps/plugin-shell";
 
-
 export function createWritable<T>(initialValue: T) {
   let _value = initialValue;
   const store = writable<T>(initialValue);
@@ -11,10 +10,44 @@ export function createWritable<T>(initialValue: T) {
   return [store, () => _value] as const;
 }
 
+export const readLocalStorageJson = <T>(key: string, initialValue: T): T => {
+  try {
+    const stored = localStorage.getItem(key);
+    if (stored === null) {
+      return initialValue;
+    }
+    return JSON.parse(stored) as T;
+  } catch (error) {
+    console.warn(
+      `[localStorageWritable] Resetting invalid value for "${key}".`,
+      error,
+    );
+    try {
+      localStorage.removeItem(key);
+    } catch (removeError) {
+      console.warn(
+        `[localStorageWritable] Failed to remove invalid value for "${key}".`,
+        removeError,
+      );
+    }
+    return initialValue;
+  }
+};
+
+export const writeLocalStorageJson = <T>(key: string, value: T) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (error) {
+    console.warn(
+      `[localStorageWritable] Failed to write value for "${key}".`,
+      error,
+    );
+  }
+};
+
 export const localStorageWritable = <T>(key: string, initialValue: T) => {
-  let stored = localStorage.getItem(key);
-  const store = writable<T>(stored ? JSON.parse(stored) : initialValue);
-  store.subscribe((value) => localStorage.setItem(key, JSON.stringify(value)));
+  const store = writable<T>(readLocalStorageJson(key, initialValue));
+  store.subscribe((value) => writeLocalStorageJson(key, value));
   return store;
 };
 
@@ -144,8 +177,9 @@ export const formatPlayTime = (totalSeconds: number): string => {
   return `${Math.floor(hours * 10) / 10}時間`;
 };
 
-
-export const formatLastPlayed = (isoString: string | null | undefined): string => {
+export const formatLastPlayed = (
+  isoString: string | null | undefined,
+): string => {
   if (!isoString) {
     return "";
   }
@@ -169,7 +203,7 @@ export const formatLastPlayed = (isoString: string | null | undefined): string =
   if (diffDays <= 14) {
     return `${diffDays}日前`;
   }
-  
+
   // 14日以上前なら年月日を表示
   return new Date(isoString).toLocaleDateString("ja-JP");
 };

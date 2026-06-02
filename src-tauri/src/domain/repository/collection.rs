@@ -59,7 +59,7 @@ pub trait CollectionRepository {
     #[allow(dead_code)]
     async fn get_element_ids_by_brandnames(
         &self,
-        brandnames: &Vec<String>,
+        brandnames: &[String],
     ) -> Result<Vec<Id<CollectionElement>>>;
     #[allow(dead_code)]
     async fn get_element_ids_by_sellday(
@@ -100,10 +100,7 @@ pub trait CollectionRepository {
         id: &Id<CollectionElement>,
         seconds: i32,
     ) -> Result<()>;
-    async fn get_daily_play_times(
-        &self,
-        id: &Id<CollectionElement>,
-    ) -> Result<Vec<DailyPlayTime>>;
+    async fn get_daily_play_times(&self, id: &Id<CollectionElement>) -> Result<Vec<DailyPlayTime>>;
 
     #[allow(dead_code)]
     async fn delete_element_by_id(&self, id: &Id<CollectionElement>) -> Result<()>;

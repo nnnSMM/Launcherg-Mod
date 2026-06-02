@@ -9,25 +9,26 @@
   let isHover = false;
 
   const simplebar = (node: HTMLElement) => {
-    let simplebar = new SimpleBar(node, {
+    const instance = new SimpleBar(node, {
       scrollbarMinSize: 64,
     });
 
     const onScroll = (e: Event) => {
       dispatcher("scroll", { event: e });
     };
-    simplebar.getScrollElement()?.addEventListener("scroll", onScroll);
+    instance.getScrollElement()?.addEventListener("scroll", onScroll);
 
     const onWheel = (e: WheelEvent) => {
       if (isHover) {
-        simplebar
+        e.preventDefault();
+        instance
           .getScrollElement()
           ?.scrollBy({ left: e.deltaY * 5, behavior: "smooth" });
       }
     };
-    window.addEventListener("wheel", onWheel);
+    window.addEventListener("wheel", onWheel, { passive: false });
 
-    const element = simplebar.getScrollElement();
+    const element = instance.getScrollElement();
     if (element) {
       scrollBy = (options?: ScrollToOptions | undefined) => {
         element.scrollBy(options);
@@ -35,8 +36,9 @@
     }
     return {
       destroy: () => {
-        removeEventListener("wheel", onWheel);
-        simplebar.getScrollElement()?.removeEventListener("scroll", onScroll);
+        window.removeEventListener("wheel", onWheel);
+        instance.getScrollElement()?.removeEventListener("scroll", onScroll);
+        instance.unMount();
         scrollBy = () => undefined;
       },
     };

@@ -7,7 +7,6 @@
   import { showErrorToast, showInfoToast } from "@/lib/toast";
   import { sidebarCollectionElements } from "@/store/sidebarCollectionElements";
   import type { AllGameCacheOne } from "@/lib/types";
-  import { enqueueGameScreenshotPrefetch } from "@/lib/useGameScreenshots";
 
   const isDemoBuild = import.meta.env.BASE_URL === "./";
   const demoRegistrationDisabledMessage =
@@ -86,12 +85,6 @@
     await commandUpsertCollectionElement(arg);
     await registerCollectionElementDetails();
     await sidebarCollectionElements.refetch();
-    const imported = sidebarCollectionElements
-      .value()
-      .find((v) => v.id === arg.gameCache.id);
-    if (imported) {
-      enqueueGameScreenshotPrefetch([imported]);
-    }
     showInfoToast(`${arg.gameCache.gamename}を登録しました。`);
     isOpenImportFileDrop = false;
     setTimeout(next, 0);

@@ -14,11 +14,11 @@ pub struct ExploredCacheUseCase<R: RepositoriesExt> {
 
 impl<R: RepositoriesExt> ExploredCacheUseCase<R> {
     pub async fn get_cache(&self) -> anyhow::Result<ExploredCache> {
-        Ok(self
+        self
             .repositories
             .explored_cache_repository()
             .get_all()
-            .await?)
+            .await
     }
     pub async fn add_cache(&self, adding_path: Vec<String>) -> anyhow::Result<()> {
         let before = self
@@ -33,10 +33,10 @@ impl<R: RepositoriesExt> ExploredCacheUseCase<R> {
                 false => Some(v),
             })
             .collect();
-        Ok(self
+        self
             .repositories
             .explored_cache_repository()
             .add(adding)
-            .await?)
+            .await
     }
 }

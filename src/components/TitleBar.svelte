@@ -24,7 +24,6 @@
   import { showErrorToast, showInfoToast } from "@/lib/toast";
   import type { AllGameCacheOne } from "@/lib/types";
   import { sidebarCollectionElements } from "@/store/sidebarCollectionElements";
-  import { enqueueGameScreenshotPrefetch } from "@/lib/useGameScreenshots";
   import { autoImportProgress } from "@/store/autoImportProgress";
   import { showSidebar } from "@/store/showSidebar";
   import { canGoBack, canGoForward } from "@/lib/historyTrack";
@@ -118,12 +117,6 @@
       showErrorToast(`${arg.gameCache.gamename}\u306e\u767b\u9332\u306b\u5931\u6557\u3057\u307e\u3057\u305f\u3002`);
     } finally {
       await sidebarCollectionElements.refetch();
-      const imported = sidebarCollectionElements
-        .value()
-        .find((v) => v.id === arg.gameCache.id);
-      if (imported) {
-        enqueueGameScreenshotPrefetch([imported]);
-      }
       isOpenImportManually = false;
     }
   };

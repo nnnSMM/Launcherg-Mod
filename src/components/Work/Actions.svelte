@@ -23,7 +23,6 @@
   import { registerCollectionElementDetails } from "@/lib/registerCollectionElementDetails";
   import QrCode from "@/components/Work/QRCode.svelte";
   import { startProcessMap } from "@/store/startProcessMap";
-  import { enqueueGameScreenshotPrefetch } from "@/lib/useGameScreenshots";
 
   export let id: number;
   export let seiyaUrl: string;
@@ -111,12 +110,6 @@
     await commandUpsertCollectionElement(arg);
     await registerCollectionElementDetails();
     await sidebarCollectionElements.refetch();
-    const imported = sidebarCollectionElements
-      .value()
-      .find((v) => v.id === arg.gameCache.id);
-    if (imported) {
-      enqueueGameScreenshotPrefetch([imported]);
-    }
     if (isChangedGameId) {
       deleteTab($tabs[$selected].id);
     }

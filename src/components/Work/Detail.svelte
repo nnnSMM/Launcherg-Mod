@@ -18,9 +18,10 @@
         return "text-text-secondary";
       case VoiceActorImportance.Mob:
         return "text-text-tertiary";
-      default:
+      default: {
         const _: never = importance;
         break;
+      }
     }
   };
 </script>

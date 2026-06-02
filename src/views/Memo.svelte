@@ -1,4 +1,5 @@
 <script lang="ts">
+  import "easymde/dist/easymde.min.css";
   import EasyMDE from "easymde";
   import { readImage } from "@tauri-apps/plugin-clipboard-manager";
   import {
@@ -8,7 +9,6 @@
   import { convertFileSrc } from "@tauri-apps/api/core";
   import { open } from "@tauri-apps/plugin-dialog";
   import { memo } from "@/store/memo";
-  import { skyWay } from "@/store/skyway";
   import { startProcessMap } from "@/store/startProcessMap";
   import { showErrorToast } from "@/lib/toast";
   import { onDestroy, onMount } from "svelte";
@@ -24,6 +24,14 @@
 
   let height: number;
   let registeredBgImage: string | null = null;
+  let skyWayImportPromise: Promise<typeof import("@/store/skyway")> | null =
+    null;
+
+  const syncSkyWayMemo = async (workId: number, text: string) => {
+    skyWayImportPromise ??= import("@/store/skyway");
+    const { skyWay } = await skyWayImportPromise;
+    await skyWay.syncMemo(workId, text);
+  };
 
   $: currentElement = $sidebarCollectionElements.find((e) => e.id === id);
 
@@ -183,7 +191,9 @@
             ] as typeof $memo,
           ),
         );
-        skyWay.syncMemo(id, current);
+        void syncSkyWayMemo(id, current).catch((error) => {
+          console.error("Failed to sync memo with SkyWay", error);
+        });
       }
     }, 1000);
 

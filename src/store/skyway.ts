@@ -16,42 +16,14 @@ import { commandSaveScreenshotByPid } from "@/lib/command";
 import { getStartProcessMap } from "@/store/startProcessMap";
 import { showErrorToast } from "@/lib/toast";
 import { useChunk } from "@/lib/chunk";
-
-type PingMessage = { type: "ping" };
-type MemoMessage = {
-  type: "memo";
-  text: string;
-  gameId: number;
-};
-type InitMessage = { type: "init"; gameId: number };
-type InitResponseMessage = {
-  type: "init_response";
-  gameId: number;
-  initialMemo: MemoMessage;
-};
-type TakeScreenshotMessage = {
-  type: "take_screenshot";
-  gameId: number;
-  cursorLine: number;
-};
-type ImageMetadataMessage = {
-  type: "image_metadata";
-  path: string;
-  key: number;
-  totalChunkLength: number;
-  mimeType: string;
-};
-
-type LocalMessage =
-  | PingMessage
-  | MemoMessage
-  | InitResponseMessage
-  | ImageMetadataMessage;
-type RemoteMessage =
-  | PingMessage
-  | MemoMessage
-  | InitMessage
-  | TakeScreenshotMessage;
+import {
+  parseRemoteMessage,
+  type ImageMetadataMessage,
+  type InitResponseMessage,
+  type LocalMessage,
+  type MemoMessage,
+  type PingMessage,
+} from "@/store/skywayMessage";
 
 const createSkyWay = () => {
   const roomId = uuidV4();
@@ -60,22 +32,19 @@ const createSkyWay = () => {
 
   const sendImagesAsChunks = async (imagePaths: string[]) => {
     await Promise.all(
-      imagePaths.map((path) => {
-        return new Promise<void>(async (resolve) => {
-          const [{ chunkId, mimeType, totalChunkLength }, chunks] =
-            await createChunks(path);
-          const message: ImageMetadataMessage = {
-            type: "image_metadata",
-            path,
-            key: chunkId,
-            totalChunkLength,
-            mimeType,
-          };
-          sendMessage(message);
-          chunks.forEach(sendBinaryMessage);
-          resolve();
-        });
-      })
+      imagePaths.map(async (path) => {
+        const [{ chunkId, mimeType, totalChunkLength }, chunks] =
+          await createChunks(path);
+        const message: ImageMetadataMessage = {
+          type: "image_metadata",
+          path,
+          key: chunkId,
+          totalChunkLength,
+          mimeType,
+        };
+        sendMessage(message);
+        chunks.forEach(sendBinaryMessage);
+      }),
     );
   };
 
@@ -166,7 +135,9 @@ const createSkyWay = () => {
       const { removeListener } = stream.onData.add(async (data) => {
         if (typeof data !== "string") return;
 
-        const message: RemoteMessage = JSON.parse(data);
+        const message = parseRemoteMessage(data);
+        if (!message) return;
+
         if (message.type !== "ping") {
           console.log("receive message", message);
         }
@@ -176,10 +147,11 @@ const createSkyWay = () => {
           case "memo":
             setRemoteMemo(message.gameId, message.text);
             return;
-          case "init":
+          case "init": {
             const response = await createInitResponseMessage(message.gameId);
             sendMessage(response);
             break;
+          }
           case "take_screenshot":
             try {
               const imagePath = await commandSaveScreenshotByPid(

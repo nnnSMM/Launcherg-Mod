@@ -599,7 +599,6 @@ export const invoke = async <T = unknown>(
   if (cmd === "get_pause_state") return pauseState as T;
   if (cmd === "get_game_screenshots") return [] as T;
   if (cmd === "get_all_screenshots") return [] as T;
-  if (cmd === "get_game_screenshot_cache") return null as T;
 
   if (
     cmd === "open_folder" ||
@@ -609,7 +608,6 @@ export const invoke = async <T = unknown>(
     cmd === "import_screenshot" ||
     cmd === "delete_screenshot" ||
     cmd === "update_screenshots_order" ||
-    cmd === "upsert_game_screenshot_cache" ||
     cmd === "open_screenshot_window" ||
     cmd === "launch_shortcut_game" ||
     cmd === "show_main_window" ||

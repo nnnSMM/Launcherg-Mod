@@ -35,4 +35,14 @@ describe("parseMarkdown", () => {
     expect(html).toContain('src="tauri-src://C:\\path\\to\\local\\image.png"');
     expect(html).toContain('alt="ローカル画像"');
   });
+
+  it("危険なHTMLとイベント属性を除去すること", () => {
+    const md = '<script>alert(1)</script><img src="https://example.com/a.png" onerror="alert(1)"><a href="javascript:alert(1)">x</a>';
+    const html = parseMarkdown(md);
+
+    expect(html).not.toContain("<script");
+    expect(html).not.toContain("onerror");
+    expect(html).not.toContain("javascript:");
+    expect(html).toContain('src="https://example.com/a.png"');
+  });
 });

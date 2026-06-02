@@ -53,7 +53,7 @@ pub(crate) fn split_play_time_by_local_date(
             results.push((play_date, seconds_for_date as i32));
         }
 
-        cursor = cursor + chrono::Duration::seconds(seconds_for_date);
+        cursor += chrono::Duration::seconds(seconds_for_date);
         remaining_seconds -= seconds_for_date;
     }
 
@@ -112,7 +112,7 @@ pub fn launch_game(element: &CollectionElement) -> anyhow::Result<LaunchResult> 
     let spawn_result = if is_lnk {
         // .lnkファイルの場合、cmd /c startを使用
         std::process::Command::new("cmd")
-            .args(&["/c", "start", "", &path_str])
+            .args(["/c", "start", "", &path_str])
             .spawn()
     } else {
         // .exeファイルの場合、直接起動
@@ -282,16 +282,12 @@ impl<R: RepositoriesExt + Send + Sync + 'static> GameProcessMonitor<R> {
                     if !self
                         .handle
                         .global_shortcut()
-                        .is_registered(shortcut.clone())
-                    {
-                        if self
+                        .is_registered(shortcut) && self
                             .handle
                             .global_shortcut()
-                            .register(shortcut.clone())
-                            .is_ok()
-                        {
-                            return Some(shortcut);
-                        }
+                            .register(shortcut)
+                            .is_ok() {
+                        return Some(shortcut);
                     }
                 }
             }

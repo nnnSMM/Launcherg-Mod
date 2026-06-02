@@ -37,7 +37,7 @@ mod tests {
     #[test]
     fn test_id_clone() {
         let id1: Id<TestEntity> = Id::new(100);
-        let id2 = id1.clone();
+        let id2 = id1;
         assert_eq!(id1.value, id2.value);
     }
 

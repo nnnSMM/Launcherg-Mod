@@ -41,6 +41,13 @@ export const usePlayStatusVirtualScrollerMasonry = (
 
   const hasCells = (layout: Layout): boolean => layout.some(col => col.length > 0);
 
+  const getMaxLayoutHeight = (layout: Layout): number => {
+    const heights = layout.map(col =>
+      col.length > 0 ? col[col.length - 1].top + col[col.length - 1].height : 0,
+    ).filter(h => !isNaN(h) && isFinite(h));
+    return heights.length > 0 ? Math.max(...heights) : 0;
+  };
+
   type ElementState = {
     id: number;
     playStatus: CollectionElement["playStatus"];
@@ -266,6 +273,7 @@ export const usePlayStatusVirtualScrollerMasonry = (
     ([$elements, $contentsWidth], set) => {
       if (!$contentsWidth || $elements.length === 0) {
         prevColumns = 0; prevLayout = []; prevElementStates = [];
+        setVirtualHeight(0);
         set([]); return;
       }
 
@@ -310,21 +318,11 @@ export const usePlayStatusVirtualScrollerMasonry = (
       prevColumns = newNumColumns;
       prevLayout = resultLayout;
       prevElementStates = $elements.map(toElementState);
+      setVirtualHeight(getMaxLayoutHeight(resultLayout));
       set(resultLayout);
     },
     []
   );
-
-  layouts.subscribe(cols => {
-    if (!cols || cols.length === 0) {
-        setVirtualHeight(0);
-        return;
-    }
-    const heights = cols.map(col =>
-      col.length > 0 ? col[col.length - 1].top + col[col.length - 1].height : 0
-    ).filter(h => !isNaN(h) && isFinite(h));
-    setVirtualHeight(heights.length > 0 ? Math.max(...heights) : 0);
-  });
 
   const calculateVisibleLayouts = (
     cols: Layout,

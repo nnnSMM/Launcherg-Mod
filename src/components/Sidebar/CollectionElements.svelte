@@ -9,7 +9,12 @@
   const dispatcher = createEventDispatcher();
 
   const simplebar = (node: HTMLElement) => {
-    new SimpleBar(node, { scrollbarMinSize: 64 });
+    const instance = new SimpleBar(node, { scrollbarMinSize: 64 });
+    return {
+      destroy() {
+        instance.unMount();
+      },
+    };
   };
 
   const emptyLabels = {

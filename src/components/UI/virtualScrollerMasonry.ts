@@ -29,6 +29,16 @@ const getLayoutHeightKey = (layout: Layout): string =>
 const getBeamDiversityKey = (layout: Layout, lastColumn?: number): string =>
   `${getLayoutHeightKey(layout)}|${lastColumn ?? -1}`;
 
+const getMaxLayoutHeight = (layout: Layout): number => {
+  if (layout.length === 0) {
+    return 0;
+  }
+  const heights = layout.map((col) =>
+    col.length > 0 ? col[col.length - 1].top + col[col.length - 1].height : 0,
+  );
+  return heights.length > 0 ? Math.max(...heights) : 0;
+};
+
 const pruneDiverseBeams = <T extends { layout: Layout; lastColumn?: number }>(
   beams: T[],
   limit: number,
@@ -266,6 +276,7 @@ export const useVirtualScrollerMasonry = (
         prevColumns = 0;
         prevLayout = [];
         prevElementIds = [];
+        setVirtualHeight(0);
         set([]);
         return;
       }
@@ -322,21 +333,11 @@ export const useVirtualScrollerMasonry = (
       prevElementIds = $elements.map(el => el.id);
 
       // 計算結果をセットしてストアを更新
+      setVirtualHeight(getMaxLayoutHeight(resultLayout));
       set(resultLayout);
     },
     [] // derived の初期値（空のレイアウト）
   );
-
-  layouts.subscribe(cols => {
-    if (cols.length === 0) {
-      setVirtualHeight(0);
-      return;
-    }
-    const heights = cols.map(col =>
-      col.length > 0 ? col[col.length - 1].top + col[col.length - 1].height : 0
-    );
-    setVirtualHeight(heights.length > 0 ? Math.max(...heights) : 0);
-  });
 
   const calculateVisibleLayouts = (
     cols: Layout,

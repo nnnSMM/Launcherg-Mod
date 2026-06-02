@@ -55,11 +55,11 @@ impl CollectionRepository for RepositoryImpl<CollectionElement> {
             .bind(new.gamename.clone())
             .bind(new.exe_path.clone())
             .bind(new.lnk_path.clone())
-            .bind(new.install_at.and_then(|v| Some(v.naive_utc())))
+            .bind(new.install_at.map(|v| v.naive_utc()))
             .bind(new.gamename.clone())
             .bind(new.exe_path.clone())
             .bind(new.lnk_path.clone())
-            .bind(new.install_at.and_then(|v| Some(v.naive_utc())))
+            .bind(new.install_at.map(|v| v.naive_utc()))
             .bind(Local::now().naive_utc())
             .execute(&*pool)
             .await?;
@@ -102,7 +102,7 @@ impl CollectionRepository for RepositoryImpl<CollectionElement> {
         .await?;
         let not_delete_ids: Vec<i32> = not_delete_ids.into_iter().map(|v| v.0).collect();
 
-        if not_delete_ids.len() == 0 {
+        if not_delete_ids.is_empty() {
             return Ok(());
         }
         let mut builder = sqlx::query_builder::QueryBuilder::new(
@@ -151,7 +151,7 @@ impl CollectionRepository for RepositoryImpl<CollectionElement> {
         &self,
         details: Vec<NewCollectionElementDetail>,
     ) -> anyhow::Result<()> {
-        if details.len() == 0 {
+        if details.is_empty() {
             return Ok(());
         }
         let mut query_builder = QueryBuilder::new(
@@ -216,7 +216,7 @@ impl CollectionRepository for RepositoryImpl<CollectionElement> {
     }
     async fn get_element_ids_by_brandnames(
         &self,
-        brandnames: &Vec<String>,
+        brandnames: &[String],
     ) -> anyhow::Result<Vec<Id<CollectionElement>>> {
         let pool = self.pool.0.clone();
         let mut builder = sqlx::query_builder::QueryBuilder::new(
@@ -236,7 +236,7 @@ impl CollectionRepository for RepositoryImpl<CollectionElement> {
             .filter_map(|v| v.ok())
             .collect();
 
-        Ok(ids.into_iter().map(|v| Id::new(v)).collect())
+        Ok(ids.into_iter().map(Id::new).collect())
     }
     async fn get_element_ids_by_sellday(
         &self,
@@ -286,7 +286,7 @@ impl CollectionRepository for RepositoryImpl<CollectionElement> {
     ) -> anyhow::Result<()> {
         let pool = self.pool.0.clone();
         query("update collection_elements set like_at = ? where id = ?")
-            .bind(like_at.and_then(|v| Some(v.naive_utc())))
+            .bind(like_at.map(|v| v.naive_utc()))
             .bind(id.value)
             .execute(&*pool)
             .await?;

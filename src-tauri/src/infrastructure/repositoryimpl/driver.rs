@@ -1,5 +1,6 @@
-use std::{path::Path, str::FromStr, sync::Arc};
+use std::{path::Path, sync::Arc};
 
+use anyhow::{Context, Result};
 use refinery::config::{Config, ConfigDbType};
 use sqlx::{
     sqlite::{SqliteConnectOptions, SqlitePoolOptions},
@@ -20,24 +21,20 @@ mod embedded {
 }
 
 impl Db {
-    pub async fn new(handle: &AppHandle) -> Db {
+    pub async fn new(handle: &AppHandle) -> Result<Db> {
         let root = get_save_root_abs_dir(handle);
-        let db_filename = Path::new(&root)
-            .join(Path::new(DB_FILE))
-            .as_path()
-            .to_str()
-            .unwrap()
-            .to_string();
+        let db_path = Path::new(&root).join(Path::new(DB_FILE));
+        let db_filename = db_path.to_string_lossy().to_string();
         let pool = SqlitePoolOptions::new()
             .max_connections(256)
             .connect_with(
-                SqliteConnectOptions::from_str(&format!("sqlite://{}?mode=rwc", db_filename))
-                    .unwrap()
+                SqliteConnectOptions::new()
+                    .filename(&db_path)
+                    .create_if_missing(true)
                     .foreign_keys(true),
             )
             .await
-            .map_err(|err| format!("{}\nfile: {}", err.to_string(), db_filename))
-            .unwrap();
+            .with_context(|| format!("Failed to connect SQLite database: {db_filename}"))?;
 
         // migrate
         let mut conf = Config::new(ConfigDbType::Sqlite).set_db_path(&db_filename);
@@ -45,8 +42,8 @@ impl Db {
             .set_abort_divergent(false)
             .set_abort_missing(false)
             .run(&mut conf)
-            .unwrap();
+            .with_context(|| format!("Failed to migrate SQLite database: {db_filename}"))?;
 
-        Db(Arc::new(pool))
+        Ok(Db(Arc::new(pool)))
     }
 }

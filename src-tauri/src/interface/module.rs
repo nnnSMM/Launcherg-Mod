@@ -67,8 +67,8 @@ impl ModulesExt for Modules {
 }
 
 impl Modules {
-    pub async fn new(handle: &AppHandle) -> Self {
-        let db = Db::new(handle).await;
+    pub async fn new(handle: &AppHandle) -> anyhow::Result<Self> {
+        let db = Db::new(handle).await?;
 
         let repositories = Arc::new(Repositories::new(db.clone()));
         let explorers = Arc::new(Explorers::new());
@@ -94,7 +94,7 @@ impl Modules {
             Arc::new(screenshot_watcher.clone()),
         );
 
-        Self {
+        Ok(Self {
             collection_use_case,
             explored_cache_use_case,
             all_game_cache_use_case,
@@ -102,6 +102,6 @@ impl Modules {
             file_use_case,
             process_use_case,
             pause_manager,
-        }
+        })
     }
 }

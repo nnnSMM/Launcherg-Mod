@@ -3,7 +3,7 @@ id: idea-bank
 title: Idea Bank
 type: backlog
 status: active
-updated: 2026-05-21
+updated: 2026-06-02
 links:
   - launcherg-improvement-moc
   - idea-pipeline
@@ -12,6 +12,14 @@ links:
 ---
 
 # Idea Bank
+
+### Memo editor の軽量化
+
+- Type: `performance`
+- 狙い: Memo 画面でだけ読む EasyMDE 本体チャンクをさらに小さくし、メモ初回表示の待ち時間を減らす。
+- 根拠: 2026-06-02 の最適化で EasyMDE は初期ロードから外せたが、機能利用時の遅延チャンクとして約 1MB の minified JS が残っている。
+- 最初の一歩: 現行 toolbar / autosave / image paste / preview 要件を棚卸しし、より小さい markdown editor か CodeMirror 個別 import への移行可否を比較する。
+- 注意: メモの autosave と画像貼り付けは実利用上重要なので、単純な textarea 退化ではなく機能要件を満たす候補に絞る。
 
 ### プレイ時間ヒートマップ
 

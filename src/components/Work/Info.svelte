@@ -9,13 +9,14 @@
     import PlayHeatmap from "@/components/Work/PlayHeatmap.svelte";
     import { formatLastPlayed, formatPlayTime, handleMarkdownClick } from "@/lib/utils";
     import { memo } from "@/store/memo";
-    import { parseMarkdown } from "@/lib/markdown";
 
 
     export let work: Work;
     export let element: CollectionElement;
     export let page: "overview" | "record" | "memo" | "screenshots" =
         "overview";
+    let markdownRequestId = 0;
+    let renderedMemoHtml = "";
 
     $: if (work && work.id) {
         if (!$memo.find((v) => v.workId === work.id)) {
@@ -29,7 +30,26 @@
 
     $: currentMemoValue = $memo.find((v) => v.workId === work.id)?.value ?? "";
 
-    $: renderedMemoHtml = parseMarkdown(currentMemoValue);
+    $: {
+        const memoValue = currentMemoValue;
+        const requestId = ++markdownRequestId;
+        if (page === "memo" && memoValue) {
+            import("@/lib/markdown")
+                .then(({ parseMarkdown }) => {
+                    if (requestId === markdownRequestId) {
+                        renderedMemoHtml = parseMarkdown(memoValue);
+                    }
+                })
+                .catch((error) => {
+                    console.error("Failed to render memo markdown", error);
+                    if (requestId === markdownRequestId) {
+                        renderedMemoHtml = "";
+                    }
+                });
+        } else {
+            renderedMemoHtml = "";
+        }
+    }
 
     $: seiyaUrlPromise = work ? seiya.getUrl(work.name) : Promise.resolve("");
 
@@ -289,6 +309,7 @@
                             {#if renderedMemoHtml}
                                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                                 <!-- svelte-ignore a11y-no-static-element-interactions -->
+                                <!-- svelte-ignore svelte/no-at-html-tags -->
                                 <div class="markdown-body" on:click={handleMarkdownClick}>
                                     {@html renderedMemoHtml}
                                 </div>

@@ -143,7 +143,7 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
             Err(e) => {
                 eprintln!(
                     "[upsert_collection_element_thumbnail_size] {}",
-                    e.to_string()
+                    e
                 );
             }
         }
@@ -167,22 +167,19 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
             })
             .buffered(50)
             .for_each(|v| async move {
-                match v {
-                    Err(e) => eprintln!(
-                        "[concurency_upsert_collection_element_thumbnail_size] {}",
-                        e.to_string()
-                    ),
-                    _ => {}
-                }
+                if let Err(e) = v { eprintln!(
+                    "[concurency_upsert_collection_element_thumbnail_size] {}",
+                    e
+                ) }
             })
             .await;
         Ok(())
     }
     pub async fn upsert_collection_elements(
         &self,
-        source: &Vec<NewCollectionElement>,
+        source: &[NewCollectionElement],
     ) -> anyhow::Result<()> {
-        for v in source.into_iter() {
+        for v in source.iter() {
             self.repositories
                 .collection_repository()
                 .upsert_collection_element(v)
@@ -237,7 +234,7 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
             eprintln!("lnk_path and exe_path are None");
             return Ok(());
         }
-        Ok(save_icon_to_png(handle, &icon_path, id)?.await??)
+        save_icon_to_png(handle, &icon_path, id)?.await?
     }
 
     pub async fn save_element_thumbnail_from_candidates(
@@ -246,7 +243,7 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
         id: &Id<CollectionElement>,
         src_urls: Vec<String>,
     ) -> anyhow::Result<()> {
-        Ok(save_thumbnail_from_candidates(handle, id, src_urls).await??)
+        save_thumbnail_from_candidates(handle, id, src_urls).await?
     }
 
     pub async fn concurrency_save_thumbnails_from_candidates(
@@ -261,13 +258,10 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
             .buffered(50)
             .map(|v| v?)
             .for_each(|v| async move {
-                match v {
-                    Err(e) => eprintln!(
-                        "[concurrency_save_thumbnails_from_candidates] {}",
-                        e.to_string()
-                    ),
-                    _ => {}
-                }
+                if let Err(e) = v { eprintln!(
+                    "[concurrency_save_thumbnails_from_candidates] {}",
+                    e
+                ) }
             })
             .await;
         Ok(())

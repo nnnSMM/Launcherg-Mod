@@ -79,7 +79,12 @@ impl<R: RepositoriesExt + Send + Sync + 'static> ScreenshotWatcher<R> {
             watcher.watch(&dir, RecursiveMode::NonRecursive)?;
         }
 
-        *self.watcher.lock().unwrap() = Some(watcher);
+        let mut current_watcher = self
+            .watcher
+            .lock()
+            .map_err(|_| anyhow::anyhow!("Screenshot watcher lock was poisoned"))?;
+        *current_watcher = Some(watcher);
+        drop(current_watcher);
 
         tauri::async_runtime::spawn(async move {
             while let Some(res) = rx.recv().await {
@@ -132,8 +137,12 @@ impl<R: RepositoriesExt + Send + Sync + 'static> ScreenshotWatcher<R> {
     }
 
     pub fn stop_watching(&self) {
-        let mut watcher = self.watcher.lock().unwrap();
-        *watcher = None;
+        match self.watcher.lock() {
+            Ok(mut watcher) => {
+                *watcher = None;
+            }
+            Err(e) => eprintln!("ScreenshotWatcher: Failed to stop watcher: {}", e),
+        }
     }
 }
 

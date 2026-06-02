@@ -1,6 +1,10 @@
 import type { CollectionElement } from "@/lib/types";
 import { PlayStatus } from "@/lib/types";
-import { createLocalStorageWritable } from "@/lib/utils";
+import {
+  createLocalStorageWritable,
+  readLocalStorageJson,
+  writeLocalStorageJson,
+} from "@/lib/utils";
 
 export const ATTRIBUTES = {
   UNPLAYED: "unplayed",
@@ -25,6 +29,7 @@ export const ATTRIBUTE_LABELS: { [key in AttributeKey]: string } = {
 } as const;
 
 export type AttributeKey = (typeof ATTRIBUTES)[keyof typeof ATTRIBUTES];
+export type Attribute = { key: AttributeKey; enabled: boolean };
 
 export const PLAY_STATUS_KEYS: AttributeKey[] = [
   ATTRIBUTES.UNPLAYED,
@@ -35,13 +40,10 @@ export const PLAY_STATUS_KEYS: AttributeKey[] = [
 const NUKIGE_KEYS: AttributeKey[] = [ATTRIBUTES.NUKIGE, ATTRIBUTES.NOT_NUKIGE]; // 抜きゲー関連キーを追加
 
 const EXPECTED_KEYS = Object.values(ATTRIBUTES);
-const INITIAL_ATTRIBUTES = EXPECTED_KEYS.map((v) => ({
+const INITIAL_ATTRIBUTES: Attribute[] = EXPECTED_KEYS.map((v) => ({
   key: v,
   enabled: false,
 }));
-
-
-export type Attribute = { key: AttributeKey; enabled: boolean };
 
 const sortAttributes = (a: Attribute, b: Attribute): number => {
   const indexOfA = EXPECTED_KEYS.indexOf(a.key);
@@ -49,36 +51,47 @@ const sortAttributes = (a: Attribute, b: Attribute): number => {
   return indexOfA - indexOfB;
 };
 
+const createInitialAttributes = (): Attribute[] =>
+  [...INITIAL_ATTRIBUTES].sort(sortAttributes);
+
+const isSearchAttribute = (value: unknown): value is Attribute => {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+  const candidate = value as Partial<Attribute>;
+  return (
+    EXPECTED_KEYS.includes(candidate.key as AttributeKey) &&
+    typeof candidate.enabled === "boolean"
+  );
+};
+
+export const normalizeSearchAttributes = (value: unknown): Attribute[] => {
+  if (!Array.isArray(value) || value.length !== EXPECTED_KEYS.length) {
+    return createInitialAttributes();
+  }
+
+  if (!value.every(isSearchAttribute)) {
+    return createInitialAttributes();
+  }
+
+  const storedMap = new Map<AttributeKey, boolean>(
+    value.map((attribute) => [attribute.key, attribute.enabled]),
+  );
+  if (storedMap.size !== EXPECTED_KEYS.length) {
+    return createInitialAttributes();
+  }
+
+  return EXPECTED_KEYS.map((key) => ({
+    key,
+    enabled: storedMap.get(key) ?? false,
+  })).sort(sortAttributes);
+};
 
 export const searchAttributes = () => {
-  let storedValue = localStorage.getItem("search-attributes");
-  let initialOrStoredAttributes = [...INITIAL_ATTRIBUTES];
-
-  if (storedValue) {
-    try {
-      const parsed = JSON.parse(storedValue) as Attribute[];
-      const allKeysValid = parsed.length === EXPECTED_KEYS.length && parsed.every(attr => EXPECTED_KEYS.includes(attr.key));
-
-      if (allKeysValid) {
-        const storedMap = new Map(parsed.map(attr => [attr.key, attr.enabled]));
-        initialOrStoredAttributes = EXPECTED_KEYS.map(key => ({
-            key,
-            enabled: storedMap.get(key) || false,
-        })).sort(sortAttributes);
-      } else {
-        console.warn("LocalStorage 'search-attributes' has unexpected structure or keys. Resetting to initial value and sorting.");
-        initialOrStoredAttributes.sort(sortAttributes);
-        localStorage.setItem("search-attributes", JSON.stringify(initialOrStoredAttributes));
-      }
-    } catch (e) {
-      console.error("Failed to parse 'search-attributes' from localStorage. Resetting and sorting.", e);
-      initialOrStoredAttributes.sort(sortAttributes);
-      localStorage.setItem("search-attributes", JSON.stringify(initialOrStoredAttributes));
-    }
-  } else {
-    initialOrStoredAttributes.sort(sortAttributes);
-    localStorage.setItem("search-attributes", JSON.stringify(initialOrStoredAttributes));
-  }
+  const initialOrStoredAttributes = normalizeSearchAttributes(
+    readLocalStorageJson("search-attributes", INITIAL_ATTRIBUTES),
+  );
+  writeLocalStorageJson("search-attributes", initialOrStoredAttributes);
 
   const [attributes, getAttributes] = createLocalStorageWritable<Attribute[]>(
     "search-attributes",
@@ -121,20 +134,42 @@ export const searchAttributes = () => {
   };
 };
 
+export const matchesAttribute = (
+  element: CollectionElement,
+  key: AttributeKey,
+): boolean => {
+  switch (key) {
+    case "nukige":
+      return element.isNukige;
+    case "not_nukige":
+      return !element.isNukige;
+    case "exist_path":
+      return !!element.installAt;
+    case "like":
+      return !!element.likeAt;
+    case "unplayed":
+      return element.playStatus === PlayStatus.Unplayed;
+    case "playing":
+      return element.playStatus === PlayStatus.Playing;
+    case "cleared":
+      return element.playStatus === PlayStatus.Cleared;
+    case "interrupted":
+      return (
+        element.playStatus === PlayStatus.Interrupted ||
+        element.playStatus === PlayStatus.LegacyShelved
+      );
+  }
+};
+
 export const FILTER_BY_ATTRIBUTE: {
   [key in AttributeKey]: (src: CollectionElement[]) => CollectionElement[];
 } = {
-  nukige: (src) => src.filter((v) => v.isNukige),
-  not_nukige: (src) => src.filter((v) => !v.isNukige),
-  exist_path: (src) => src.filter((v) => v.installAt),
-  like: (src) => src.filter((v) => v.likeAt),
-  unplayed: (src) => src.filter((v) => v.playStatus === PlayStatus.Unplayed),
-  playing: (src) => src.filter((v) => v.playStatus === PlayStatus.Playing),
-  cleared: (src) => src.filter((v) => v.playStatus === PlayStatus.Cleared),
-  interrupted: (src) =>
-    src.filter(
-      (v) =>
-        v.playStatus === PlayStatus.Interrupted ||
-        v.playStatus === PlayStatus.LegacyShelved,
-    ),
+  nukige: (src) => src.filter((v) => matchesAttribute(v, "nukige")),
+  not_nukige: (src) => src.filter((v) => matchesAttribute(v, "not_nukige")),
+  exist_path: (src) => src.filter((v) => matchesAttribute(v, "exist_path")),
+  like: (src) => src.filter((v) => matchesAttribute(v, "like")),
+  unplayed: (src) => src.filter((v) => matchesAttribute(v, "unplayed")),
+  playing: (src) => src.filter((v) => matchesAttribute(v, "playing")),
+  cleared: (src) => src.filter((v) => matchesAttribute(v, "cleared")),
+  interrupted: (src) => src.filter((v) => matchesAttribute(v, "interrupted")),
 };

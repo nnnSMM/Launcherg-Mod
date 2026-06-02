@@ -2,16 +2,29 @@
   import Modal from "@/components/UI/Modal.svelte";
   import QrCodeCanvas from "@/components/UI/QRCodeCanvas.svelte";
   import { showInfoToast } from "@/lib/toast";
-  import { skyWay } from "@/store/skyway";
 
   export let isOpen: boolean;
   export let id: number;
   export let seiyaUrl: string;
 
   let readyPromise: Promise<string> | undefined = undefined;
+  let readyRequestKey: string | undefined = undefined;
+
+  const connectSkyWay = async (workId: number, url: string) => {
+    const { skyWay } = await import("@/store/skyway");
+    return skyWay.connect(workId, url);
+  };
+
   $: {
     if (isOpen) {
-      readyPromise = skyWay.connect(id, seiyaUrl);
+      const nextRequestKey = `${id}:${seiyaUrl}`;
+      if (readyRequestKey !== nextRequestKey) {
+        readyRequestKey = nextRequestKey;
+        readyPromise = connectSkyWay(id, seiyaUrl);
+      }
+    } else {
+      readyRequestKey = undefined;
+      readyPromise = undefined;
     }
   }
 

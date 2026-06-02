@@ -84,7 +84,9 @@ fn main() {
                 .build(),
         )
         .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
-            app.emit("single-instance", ()).unwrap();
+            if let Err(e) = app.emit("single-instance", ()) {
+                eprintln!("Failed to emit single-instance event: {}", e);
+            }
         }))
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
@@ -93,7 +95,7 @@ fn main() {
                         return;
                     }
                     let app_handle = app.clone();
-                    let shortcut = shortcut.clone();
+                    let shortcut = *shortcut;
                     tauri::async_runtime::spawn(async move {
                         interface::shortcut::handle_shortcut(app_handle, shortcut).await;
                     });
@@ -124,7 +126,9 @@ fn main() {
                         save_current_window_state(window.app_handle());
                     }
                     // Hide other windows instead of closing
-                    window.hide().unwrap();
+                    if let Err(e) = window.hide() {
+                        eprintln!("Failed to hide window {}: {}", window.label(), e);
+                    }
                     api.prevent_close();
                 }
             }
@@ -133,7 +137,7 @@ fn main() {
             }
             _ => {}
         })
-        .setup(|app| {
+        .setup(|app| -> std::result::Result<(), Box<dyn std::error::Error>> {
             // デバッグビルドでは current_exe() が target/debug を返すため、
             // autostart 登録を実行するとリリース版のRunエントリを開発用パスで上書きしてしまう。
             // リリースビルドのみで登録・補修を行う。
@@ -167,15 +171,14 @@ fn main() {
             }
 
             // Modulesの初期化を先に行う
-            let modules = Arc::new(tauri::async_runtime::block_on(Modules::new(&app.handle())));
+            let modules = Arc::new(tauri::async_runtime::block_on(Modules::new(app.handle()))?);
             app.manage(modules);
 
             app.manage(TrayLeftClickMenuToken::new());
 
             create_tray_menu_window(app.handle())?;
 
-            let _tray = TrayIconBuilder::with_id("main-tray")
-                .icon(app.default_window_icon().unwrap().clone())
+            let mut tray_builder = TrayIconBuilder::with_id("main-tray")
                 .tooltip("Launcherg")
                 .show_menu_on_left_click(false)
                 .on_tray_icon_event(|tray, event| {
@@ -186,7 +189,7 @@ fn main() {
                                 let token_state = app.state::<TrayLeftClickMenuToken>();
                                 token_state.invalidate_scheduled_menu();
                                 token_state.arm_suppress_next_left_menu_open();
-                                if let Err(e) = show_main_window(&app) {
+                                    if let Err(e) = show_main_window(app) {
                                     eprintln!(
                                         "Failed to show main window from tray double-click: {}",
                                         e
@@ -213,7 +216,7 @@ fn main() {
                             }
                             match button {
                                 MouseButton::Right => {
-                                    if let Err(e) = toggle_tray_menu_window(&app, position) {
+                                    if let Err(e) = toggle_tray_menu_window(app, position) {
                                         eprintln!("Failed to toggle tray menu: {}", e);
                                     }
                                 }
@@ -243,8 +246,13 @@ fn main() {
                         }
                         _ => {}
                     }
-                })
-                .build(app)?;
+                });
+            if let Some(icon) = app.default_window_icon() {
+                tray_builder = tray_builder.icon(icon.clone());
+            } else {
+                eprintln!("Default tray icon is not available; building tray without an icon.");
+            }
+            let _tray = tray_builder.build(app)?;
 
             let app_handle = app.handle().clone();
             app.listen("single-instance", move |_event| {
@@ -273,7 +281,7 @@ fn main() {
                 {
                     if !shortcut_key.is_empty() {
                         if let Ok(shortcut) = shortcut_key.parse::<Shortcut>() {
-                            if !handle.global_shortcut().is_registered(shortcut.clone()) {
+                            if !handle.global_shortcut().is_registered(shortcut) {
                                 if let Err(e) = handle.global_shortcut().register(shortcut) {
                                     eprintln!("Failed to register shortcut on startup: {}", e);
                                 }

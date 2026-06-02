@@ -1,7 +1,7 @@
 export type Option<T> = { label: string; value: T; otherLabels?: string[] };
 
 import type { CollectionElement } from "@/lib/types";
-import { writable, type Readable, type Writable } from "svelte/store";
+import { readable, writable, type Readable, type Writable } from "svelte/store";
 import { toHiragana, toRomaji } from "wanakana";
 
 export const collectionElementsToOptions = (elements: CollectionElement[]) =>
@@ -22,49 +22,55 @@ export const useFilter = <T>(
   options: Readable<Option<T>[]>,
   getOptions: () => Option<T>[]
 ) => {
-  const filtered = writable<Option<T>[]>([...getOptions()]);
-
-  const init = () => {
-    const lazyQuery = writable("");
-    filtered.set([...getOptions()]);
-
-    const optionMap = new Map<Option<T>["value"], Option<T>>();
-    for (const option of getOptions()) {
-      optionMap.set(option.value, option);
-    }
-
-    const cache: Record<string, Option<T>[]> = {};
-
+  const filtered = readable<Option<T>[]>([...getOptions()], (set) => {
+    const cache = new Map<string, Option<T>[]>();
+    let latestQuery = "";
     let lazyQueryTimer: ReturnType<typeof setTimeout> | null = null;
-    query.subscribe((_query) => {
+
+    const applyFilter = (rawQuery: string) => {
+      const normalizedQuery = rawQuery.trim().toLowerCase();
+      if (!normalizedQuery) {
+        set([...getOptions()]);
+        return;
+      }
+
+      const cached = Array.from(cache.entries()).find(([input]) =>
+        normalizedQuery.includes(input),
+      );
+      const targetOptions = cached ? cached[1] : getOptions();
+      const nextFiltered = targetOptions.filter((option) =>
+        [option.label, ...(option.otherLabels ?? [])].some((key) =>
+          key.toLowerCase().includes(normalizedQuery),
+        ),
+      );
+      cache.set(normalizedQuery, nextFiltered);
+      set(nextFiltered);
+    };
+
+    const unsubscribeQuery = query.subscribe((nextQuery) => {
+      latestQuery = nextQuery;
       if (lazyQueryTimer) {
         clearTimeout(lazyQueryTimer);
       }
       lazyQueryTimer = setTimeout(() => {
-        lazyQuery.set(_query.toLowerCase());
+        applyFilter(latestQuery);
         lazyQueryTimer = null;
       }, 200);
     });
-    lazyQuery.subscribe((_query) => {
-      if (!_query) {
-        return filtered.set([...getOptions()]);
-      }
-      const cached = Object.entries(cache).find(([input, _]) =>
-        _query.includes(input)
-      );
-      const targetOptions = cached ? cached[1] : getOptions();
-      const _filtered = targetOptions.filter((option) =>
-        [option.label, ...(option.otherLabels ?? [])].find((key) =>
-          key.toLowerCase().includes(_query)
-        )
-      );
-      cache[_query] = _filtered;
-      filtered.set(_filtered);
-    });
-  };
-  init();
 
-  options.subscribe(() => init());
+    const unsubscribeOptions = options.subscribe(() => {
+      cache.clear();
+      applyFilter(latestQuery);
+    });
+
+    return () => {
+      if (lazyQueryTimer) {
+        clearTimeout(lazyQueryTimer);
+      }
+      unsubscribeQuery();
+      unsubscribeOptions();
+    };
+  });
 
   return { query, filtered };
 };

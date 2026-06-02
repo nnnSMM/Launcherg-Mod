@@ -1,7 +1,6 @@
 import { defineConfig } from "@unocss/vite";
 import presetWind from "@unocss/preset-wind";
 import presetAttributify from "@unocss/preset-attributify";
-import presetWebFonts from "@unocss/preset-web-fonts";
 import presetIcons from "@unocss/preset-icons";
 import transformerVariantGroup from "@unocss/transformer-variant-group";
 import extractorSvelte from "@unocss/extractor-svelte";
@@ -14,22 +13,6 @@ export default defineConfig({
     presetAttributify(),
     presetWind(),
     presetIcons(),
-    presetWebFonts({
-      fonts: {
-        sans: [
-          {
-            name: "Noto Sans JP",
-            weights: ["400", "500", "700"],
-          },
-        ],
-        logo: [
-          {
-            name: "Space Mono",
-            weights: ["400"],
-          },
-        ],
-      },
-    }),
   ],
   extractors: [extractorSvelte()],
   safelist: [
@@ -181,6 +164,10 @@ export default defineConfig({
         b_secondary: colorVar("text-b-secondary"),
         b_tertiary: colorVar("text-b-tertiary"),
       },
+    },
+    fontFamily: {
+      sans: '"Noto Sans JP", "Yu Gothic UI", "Hiragino Sans", Meiryo, system-ui, sans-serif',
+      logo: '"Space Mono", Consolas, "Courier New", monospace',
     },
     fontSize: {
       body: ["1rem", "160%"],

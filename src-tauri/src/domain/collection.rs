@@ -9,6 +9,7 @@ use super::Id;
 pub struct NewCollection {
     pub name: String,
 }
+#[allow(clippy::too_many_arguments)]
 #[derive(new, Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CollectionElement {

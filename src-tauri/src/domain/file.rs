@@ -137,9 +137,9 @@ pub fn get_file_name_without_extension(file_path: &str) -> Option<String> {
 pub fn normalize(s: &str) -> String {
     let mut result = String::new();
     for ch in s.chars() {
-        if ch >= 'Ａ' && ch <= 'Ｚ' || ch >= 'ａ' && ch <= 'ｚ' {
+        if ('Ａ'..='Ｚ').contains(&ch) || ('ａ'..='ｚ').contains(&ch) {
             result.push((ch as u32 - 'Ａ' as u32 + 'A' as u32) as u8 as char);
-        } else if ch >= '０' && ch <= '９' {
+        } else if ('０'..='９').contains(&ch) {
             result.push((ch as u32 - '０' as u32 + '0' as u32) as u8 as char);
         } else {
             result.push(ch);
@@ -445,8 +445,7 @@ pub fn get_game_candidates_by_exe_path(
     let parent = Path::new(&filepath)
         .parent()
         .and_then(|v| {
-            v.file_name()
-                .and_then(|name| Some(normalize(&name.to_string_lossy().to_string())))
+            v.file_name().map(|name| normalize(name.to_string_lossy().as_ref()))
         })
         .ok_or(anyhow::anyhow!("can not get parent"))?;
 
@@ -455,8 +454,7 @@ pub fn get_game_candidates_by_exe_path(
         .parent()
         .and_then(|p| p.parent())
         .and_then(|v| {
-            v.file_name()
-                .and_then(|name| Some(normalize(&name.to_string_lossy().to_string())))
+            v.file_name().map(|name| normalize(name.to_string_lossy().as_ref()))
         });
 
     let filename: String =
@@ -517,7 +515,7 @@ pub fn get_game_candidates_by_exe_path(
         }
     }
 
-    if distance_pairs.len() == 0 {
+    if distance_pairs.is_empty() {
         for pair in id_name_pairs.iter() {
             if filename.len() > 5 && pair.gamename.contains(&filename) {
                 distance_pairs.push((pair.clone(), filename.len() as f32));
@@ -923,16 +921,14 @@ mod tests {
     #[test]
     fn test_play_history_jsonl_format() {
         // 複数のPlayHistoryをJSONL形式でシリアライズ・デシリアライズ
-        let histories = vec![
-            PlayHistory {
+        let histories = [PlayHistory {
                 minutes: 10.0,
                 start_date: "2023-01-01".to_string(),
             },
             PlayHistory {
                 minutes: 20.0,
                 start_date: "2023-01-02".to_string(),
-            },
-        ];
+            }];
 
         let jsonl: String = histories
             .iter()
@@ -973,7 +969,7 @@ pub fn find_icon_in_dir_recursive(file_path: &str) -> Option<String> {
         let p = entry.path();
         if p.is_file()
             && p.extension()
-                .map_or(false, |ext| ext.to_string_lossy().to_lowercase() == "ico")
+                .is_some_and(|ext| ext.to_string_lossy().to_lowercase() == "ico")
         {
             return Some(p.to_string_lossy().to_string());
         }
@@ -1006,7 +1002,7 @@ pub fn save_icon_to_png(
     if Path::new(file_path).exists() {
         return save_exe_file_png(handle, file_path, &save_png_path);
     }
-    return save_default_icon(&save_png_path);
+    save_default_icon(&save_png_path)
 }
 
 pub fn save_default_icon(save_png_path: &str) -> anyhow::Result<JoinHandle<anyhow::Result<()>>> {
@@ -1015,7 +1011,7 @@ pub fn save_default_icon(save_png_path: &str) -> anyhow::Result<JoinHandle<anyho
         let default_icon = include_bytes!("../../icons/notfound.png");
         let mut file = tokio::fs::File::create(save_p).await?;
         file.write_all(default_icon).await?;
-        return Ok(());
+        Ok(())
     });
 
     Ok(handle)
@@ -1051,16 +1047,16 @@ pub fn save_ico_to_png_sync(file_path: &str, save_png_path: &str) -> anyhow::Res
 
     let largest_entry = icon_dir
         .entries()
-        .into_iter()
+        .iter()
         .fold(None, |largest, v| match largest {
             None => {
-                return Some(v);
+                Some(v)
             }
             Some(largest) => {
                 if largest.width() < v.width() {
                     return Some(v);
                 }
-                return Some(largest);
+                Some(largest)
             }
         });
 
@@ -1074,7 +1070,7 @@ pub fn save_ico_to_png_sync(file_path: &str, save_png_path: &str) -> anyhow::Res
         let file = std::fs::File::create(save_png_path)?;
         Ok(image.write_png(file)?)
     } else {
-        return Err(anyhow::anyhow!("icon_dir.entries() is empty"));
+        Err(anyhow::anyhow!("icon_dir.entries() is empty"))
     }
 }
 
@@ -1106,14 +1102,11 @@ pub fn save_exe_file_png(
         };
 
         while let Some(event) = rx.recv().await {
-            match event {
-                CommandEvent::Terminated(_) => {
-                    if std::path::Path::new(&save_png_path_cloned).exists() {
-                        return Ok(());
-                    }
-                    return save_default_icon(&save_png_path_cloned)?.await?;
+            if let CommandEvent::Terminated(_) = event {
+                if std::path::Path::new(&save_png_path_cloned).exists() {
+                    return Ok(());
                 }
-                _ => {}
+                return save_default_icon(&save_png_path_cloned)?.await?;
             }
         }
         // イベントループが終了してもTerminatedが来なかった場合
@@ -1150,8 +1143,7 @@ pub fn get_file_created_at_sync(path: &str) -> Option<DateTime<Local>> {
     let metadata = fs::metadata(path).ok();
     metadata.and_then(|meta| {
         meta.created()
-            .ok()
-            .and_then(|time| Some(DateTime::from(time)))
+            .ok().map(DateTime::from)
     })
 }
 
@@ -1315,8 +1307,8 @@ pub async fn get_exe_path_from_lnk(path: &str) -> anyhow::Result<String> {
     }
     let metadatas = get_lnk_metadatas(vec![path])?;
     if let Some(meta) = metadatas.get(path) {
-        return Ok(meta.path.clone());
+        Ok(meta.path.clone())
     } else {
-        return Err(anyhow::anyhow!("cannot get lnk metadata"));
+        Err(anyhow::anyhow!("cannot get lnk metadata"))
     }
 }
