@@ -111,8 +111,8 @@
 ### 2026-06-03: release title cleanup
 
 - Kept existing release tags and assets intact so historical download counts and URLs are preserved.
-- Updated the release workflow to name future releases from `release-display-version.txt`, such as `0.4.0`, instead of leaving the title as the raw `YYYYMMDD` tag.
-- Renamed existing GitHub Release titles to an artificial semver-style sequence from `0.1.0` through `0.4.0`; tags and assets were left unchanged.
+- Updated the release workflow to name future releases from `release-display-version.txt`, such as `0.6.0`, instead of leaving the title as the raw `YYYYMMDD` tag.
+- Renamed existing GitHub Release titles to an artificial semver-style sequence from `0.1.0` through `0.6.0`; only large change ranges advance the minor version, while smaller updates use patch versions. Tags and assets were left unchanged.
 
 ### Additional frontend stability
 
