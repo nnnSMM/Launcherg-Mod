@@ -169,6 +169,7 @@ jobs:
       - name: Create GitHub release
         uses: ncipollo/release-action@v1
         with:
+          name: Launcherg ${{ steps.variables.outputs.app_version }}
           artifacts: "src-tauri/target/release/bundle/msi/Launcherg_${{ steps.variables.outputs.display_version }}_x64_ja-JP.msi.zip,src-tauri/target/release/bundle/msi/Launcherg_${{ steps.variables.outputs.display_version }}_x64_ja-JP.msi.zip.sig,default.tauri-updater.json,update-info.json"
           token: ${{ secrets.GITHUB_TOKEN }}
           allowUpdates: true

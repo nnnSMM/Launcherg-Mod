@@ -108,6 +108,11 @@
 - Added the statistics screen to the main screen showcase and published `public/images/stats.png` for that section.
 - Kept the existing download and demo links unchanged.
 
+### 2026-06-03: release title cleanup
+
+- Kept existing release tags and assets intact so historical download counts and URLs are preserved.
+- Updated the release workflow to name future releases as `Launcherg YY.M.D` instead of leaving the title as the raw `YYYYMMDD` tag.
+
 ### Additional frontend stability
 
 - `src/lib/registerCollectionElementDetails.ts`
