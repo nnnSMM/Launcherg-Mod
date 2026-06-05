@@ -28,7 +28,7 @@
     | "offline"
     | "error"
     | "missing";
-  type ViewMode = "home" | "library" | "detail" | "controller";
+  type ViewMode = "home" | "library" | "detail" | "connect" | "controller";
   type LibraryFilter =
     | "all"
     | "playing"
@@ -116,6 +116,7 @@
   let lastActionText = "";
   let cachedAt: string | null = null;
   let didReceiveLibrary = false;
+  let didSelectGameManually = false;
   let libraryRequestAttempts = 0;
   let libraryRetryTimer: ReturnType<typeof setInterval> | undefined;
   let controlStatusTimer: ReturnType<typeof setInterval> | undefined;
@@ -161,6 +162,16 @@
   );
   $: homePrimaryGames =
     playingGames.length > 0 ? playingGames.slice(0, 3) : recentGames.slice(0, 3);
+  $: canControl = connectionState === "connected" && selectedGame !== null;
+  $: showNowPlayingBar =
+    activeView !== "controller" &&
+    activeView !== "detail" &&
+    selectedGame !== null &&
+    connectionState === "connected" &&
+    (selectedGame.playStatus === PLAY_STATUS.Playing ||
+      didSelectGameManually ||
+      hasInitialGameId);
+  $: memoPreview = memoText.trim();
   $: homeEmptyText =
     connectionState === "missing"
       ? "PCのスマホ連携QRから開いてください"
@@ -361,11 +372,26 @@
 
   const selectGame = (game: RemoteGameSummary, nextView: ViewMode = "detail") => {
     selectedGameId = game.id;
+    didSelectGameManually = true;
     memoText = "";
     isMemoOpen = false;
     lastActionText = `${game.title}を選択しました`;
     activeView = nextView;
     sendMessage({ type: "init", gameId: game.id });
+    requestControlStatus();
+  };
+
+  const openController = () => {
+    const target = selectedGame ?? playingGames[0] ?? games[0];
+    if (!target) return;
+
+    if (selectedGameId !== target.id) {
+      selectGame(target, "controller");
+      return;
+    }
+
+    isMemoOpen = false;
+    activeView = "controller";
     requestControlStatus();
   };
 
@@ -472,6 +498,17 @@
     });
     const { authToken } = (await response.json()) as { authToken: string };
     return authToken;
+  };
+
+  const getConnectionFailureText = (error: unknown) => {
+    const message = error instanceof Error ? error.message.toLowerCase() : "";
+    if (message.includes("token")) {
+      return "接続情報の期限が切れています。PC側のスマホ連携QRから開き直してください。";
+    }
+    if (message.includes("secure") || message.includes("https")) {
+      return "公開PWAのQRから、安全な接続で開き直してください。";
+    }
+    return "PCに接続できません。PC側のスマホ連携QRから開き直してください。";
   };
 
   const assertCanUseSkyWay = () => {
@@ -590,10 +627,7 @@
 
     void connect().catch((error) => {
       console.error("Mobile companion connection failed", error);
-      connectionErrorText =
-        error instanceof Error && error.message
-          ? error.message
-          : "接続に失敗しました";
+      connectionErrorText = getConnectionFailureText(error);
       connectionState = games.length > 0 ? "offline" : "error";
       statusText = games.length > 0 ? "PC未接続" : "接続に失敗しました";
     });
@@ -625,7 +659,7 @@
     </div>
   </header>
 
-  <section class="content">
+  <section class:controller-mode={activeView === "controller"} class="content">
     {#if activeView === "home"}
       <section class="hero-strip">
         <div>
@@ -656,22 +690,26 @@
       {#if homePrimaryGames.length > 0}
         <section class="section">
           <div class="section-head">
-            <h2>{playingGames.length > 0 ? "現在プレイ中" : "最近"}</h2>
+            <h2>{playingGames.length > 0 ? "続きから" : "最近"}</h2>
             <button type="button" on:click={() => (activeView = "library")}>
-              すべて
+              一覧
             </button>
           </div>
-          <div class="list">
+          <div class="library-list compact-list">
             {#each homePrimaryGames as game (game.id)}
               <button
                 type="button"
-                class="game-row prominent"
+                class="library-item prominent"
                 on:click={() => selectGame(game)}
               >
-                <div class="min-w-0 flex-1 text-left">
+                <div class="library-item-main">
                   <div class="game-title">{game.title}</div>
                   <div class="game-meta">
-                    {statusLabels[game.playStatus] ?? "不明"} / {formatPlayTime(game.totalPlayTimeSeconds)}
+                    {game.brandName || "ブランド未設定"}
+                  </div>
+                  <div class="meta-chips">
+                    <span>{statusLabels[game.playStatus] ?? "不明"}</span>
+                    <span>{formatPlayTime(game.totalPlayTimeSeconds)}</span>
                   </div>
                 </div>
                 <span class="i-material-symbols:chevron-right-rounded text-[22px] text-white/45" />
@@ -684,14 +722,14 @@
       {/if}
 
       {#if games.length > 0}
-        <section class="stats-grid">
+        <section class="home-shortcuts" aria-label="ライブラリショートカット">
+          <button type="button" on:click={() => openFilteredLibrary("playing")}>
+            <span>{playingGames.length}</span>
+            <small>プレイ中</small>
+          </button>
           <button type="button" on:click={() => openFilteredLibrary("unplayed")}>
             <span>{unplayedGames.length}</span>
             <small>未プレイ</small>
-          </button>
-          <button type="button" on:click={() => openFilteredLibrary("cleared")}>
-            <span>{clearedGames.length}</span>
-            <small>クリア</small>
           </button>
           <button type="button" on:click={() => openFilteredLibrary("liked")}>
             <span>{favoriteGames.length}</span>
@@ -700,19 +738,24 @@
         </section>
       {/if}
     {:else if activeView === "library"}
-      <section class="section">
-        <div class="library-head">
+      <section class="library-view">
+        <div class="library-toolbar">
           <div>
+            <div class="eyebrow">Library</div>
             <h2>ゲーム一覧</h2>
-            <div class="subtle">{filteredGames.length} / {games.length} 本</div>
           </div>
+          <div class="subtle">{filteredGames.length} / {games.length} 本</div>
+        </div>
+
+        <label class="search-shell">
+          <span class="i-material-symbols:search-rounded text-[20px]" />
           <input
             bind:value={searchText}
             type="search"
-            placeholder="検索"
+            placeholder="タイトル・ブランドで検索"
             class="search-input"
           />
-        </div>
+        </label>
 
         <div class="filter-strip" aria-label="絞り込み">
           {#each libraryFilters as filter}
@@ -726,7 +769,7 @@
           {/each}
         </div>
 
-        <div class="list">
+        <div class="library-list">
           {#if games.length === 0}
             <div class="empty-state">{libraryEmptyText}</div>
           {:else if filteredGames.length === 0}
@@ -736,17 +779,21 @@
               <button
                 type="button"
                 class:selected={game.id === selectedGameId}
-                class="game-row"
+                class="library-item"
                 on:click={() => selectGame(game)}
               >
-                <div class="min-w-0 flex-1 text-left">
+                <div class="library-item-main">
                   <div class="game-title">{game.title}</div>
                   <div class="game-meta">{game.brandName || "ブランド未設定"}</div>
+                  <div class="meta-chips">
+                    <span>{statusLabels[game.playStatus] ?? "不明"}</span>
+                    <span>{formatLastPlay(game.lastPlayAt)}</span>
+                    {#if game.installed}
+                      <span>導入済み</span>
+                    {/if}
+                  </div>
                 </div>
-                <div class="row-stat">
-                  <strong>{statusLabels[game.playStatus] ?? "不明"}</strong>
-                  <span>{formatLastPlay(game.lastPlayAt)}</span>
-                </div>
+                <span class="i-material-symbols:chevron-right-rounded text-[22px] text-white/35" />
               </button>
             {/each}
           {/if}
@@ -759,6 +806,7 @@
             <span class="i-material-symbols:arrow-back-rounded text-[20px]" />
             <span>一覧</span>
           </button>
+          <div class="detail-kicker">Game Detail</div>
           <div class="detail-title">{selectedGame.title}</div>
           <div class="detail-brand">{selectedGame.brandName || "ブランド未設定"}</div>
 
@@ -777,67 +825,71 @@
             </div>
           </div>
 
-          <div class="action-grid">
+          <div class="detail-actions">
             <button
               type="button"
               class="primary-action"
-              disabled={connectionState !== "connected"}
-              on:click={() => (activeView = "controller")}
+              disabled={!canControl}
+              on:click={openController}
             >
               <span class="i-material-symbols:gamepad-outline-rounded text-[24px]" />
-              <span>操作</span>
-            </button>
-            <button
-              type="button"
-              class="secondary-action"
-              disabled={connectionState !== "connected" || isSendingScreenshot}
-              on:click={takeScreenshot}
-            >
-              <span class="i-material-symbols:photo-camera-outline-rounded text-[22px]" />
-              <span>スクショ</span>
-            </button>
-            <button
-              type="button"
-              class:paused-action={isPaused}
-              class="secondary-action"
-              disabled={connectionState !== "connected" || isTogglingPause}
-              on:click={togglePause}
-            >
-              <span
-                class={`${isPaused
-                  ? "i-material-symbols:play-arrow-rounded"
-                  : "i-material-symbols:pause-rounded"} text-[22px]`}
-              />
-              <span>{isPaused ? "再開" : "Pause"}</span>
+              <span>補助を開く</span>
             </button>
           </div>
 
-          <button
-            type="button"
-            class="memo-toggle"
-            disabled={connectionState !== "connected"}
-            on:click={() => (isMemoOpen = !isMemoOpen)}
-          >
-            <span class="i-material-symbols:edit-note-outline-rounded text-[22px]" />
-            <span>メモ</span>
-          </button>
-
-          {#if isMemoOpen}
-            <section class="memo-panel">
-              <textarea bind:value={memoText} />
-              <button
-                type="button"
-                disabled={connectionState !== "connected"}
-                on:click={syncMemo}
-              >
-                同期
-              </button>
-            </section>
-          {/if}
+          <section class="memo-preview">
+            <div class="section-head">
+              <h2>メモ</h2>
+              <span class="subtle">閲覧のみ</span>
+            </div>
+            {#if memoPreview}
+              <pre>{memoPreview}</pre>
+            {:else}
+              <div class="empty-inline">同期済みのメモはありません</div>
+            {/if}
+          </section>
         </section>
       {:else}
         <section class="empty-state">ゲームを選択してください</section>
       {/if}
+    {:else if activeView === "connect"}
+      <section class="connect-view">
+        <section class="section">
+          <div class="section-head">
+            <h2>PC接続</h2>
+            <button
+              type="button"
+              disabled={connectionState !== "connected"}
+              on:click={refreshLibrary}
+            >
+              更新
+            </button>
+          </div>
+          <div
+            class:connected={connectionState === "connected"}
+            class:offline={connectionState === "offline"}
+            class:error={connectionState === "error" || connectionState === "missing"}
+            class="connect-card"
+          >
+            <span class="i-material-symbols:desktop-windows-outline-rounded text-[28px]" />
+            <div>
+              <strong>{statusText}</strong>
+              <span>{cachedAt ? `最終同期 ${formatSyncTime(cachedAt)}` : "未同期"}</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="section">
+          <h2>再接続</h2>
+          <div class="connect-copy">
+            PC側のスマホ連携QRから開くと、このPWAを同じPCに接続できます。ホーム画面アイコンが古い場合は削除して追加し直してください。
+          </div>
+          <button type="button" class="secondary-full-action" on:click={() => window.location.reload()}>
+            <span class="i-material-symbols:refresh-rounded text-[22px]" />
+            <span>再読み込み</span>
+          </button>
+        </section>
+      </section>
     {:else if activeView === "controller"}
       {#if selectedGame}
         <section class="controller-panel">
@@ -845,6 +897,7 @@
             <span class="i-material-symbols:arrow-back-rounded text-[20px]" />
             <span>詳細</span>
           </button>
+          <div class="controller-kicker">Now Playing</div>
           <div class="controller-game">{selectedGame.title}</div>
           <div class="controller-status">
             {connectionState === "connected" ? "PC接続中" : "PC未接続"} / {isPaused ? "Pause中" : "記録中"} / {formatPlayTime(selectedGame.totalPlayTimeSeconds)}
@@ -860,7 +913,7 @@
             <span
               class={`${isPaused
                 ? "i-material-symbols:play-arrow-rounded"
-                : "i-material-symbols:pause-rounded"} text-[28px]`}
+                : "i-material-symbols:pause-rounded"} text-[30px]`}
             />
             <span>{isPaused ? "記録再開" : "Pause"}</span>
           </button>
@@ -871,8 +924,8 @@
             disabled={connectionState !== "connected" || isSendingScreenshot}
             on:click={takeScreenshot}
           >
-            <span class="i-material-symbols:photo-camera-outline-rounded text-[34px]" />
-            <span>スクショ</span>
+            <span class="i-material-symbols:photo-camera-outline-rounded text-[36px]" />
+            <span>{isSendingScreenshot ? "撮影中" : "スクショ"}</span>
           </button>
 
           <button
@@ -882,7 +935,7 @@
             on:click={() => (isMemoOpen = !isMemoOpen)}
           >
             <span class="i-material-symbols:edit-note-outline-rounded text-[24px]" />
-            <span>メモ</span>
+            <span>クイックメモ</span>
           </button>
 
           {#if isMemoOpen}
@@ -903,38 +956,50 @@
       {/if}
     {/if}
 
+    {#if showNowPlayingBar && selectedGame}
+      <button type="button" class="now-playing-bar" on:click={openController}>
+        <span class="i-material-symbols:gamepad-outline-rounded text-[24px]" />
+        <span class="now-playing-copy">
+          <strong>{selectedGame.title}</strong>
+          <small>{isPaused ? "Pause中" : "補助操作を開く"}</small>
+        </span>
+        <span class="i-material-symbols:chevron-right-rounded text-[22px]" />
+      </button>
+    {/if}
+
     {#if lastActionText}
       <div class="toast-line">{lastActionText}</div>
     {/if}
   </section>
 
-  <nav class="bottom-nav" aria-label="スマホ連携">
-    <button
-      type="button"
-      class:active={activeView === "home"}
-      on:click={() => (activeView = "home")}
-    >
-      <span class="i-material-symbols:home-outline-rounded text-[22px]" />
-      <span>ホーム</span>
-    </button>
-    <button
-      type="button"
-      class:active={activeView === "library"}
-      on:click={() => (activeView = "library")}
-    >
-      <span class="i-material-symbols:format-list-bulleted-rounded text-[22px]" />
-      <span>一覧</span>
-    </button>
-    <button
-      type="button"
-      class:active={activeView === "controller"}
-      disabled={!selectedGame}
-      on:click={() => (activeView = "controller")}
-    >
-      <span class="i-material-symbols:gamepad-outline-rounded text-[22px]" />
-      <span>操作</span>
-    </button>
-  </nav>
+  {#if activeView !== "controller"}
+    <nav class="bottom-nav" aria-label="スマホ連携">
+      <button
+        type="button"
+        class:active={activeView === "home"}
+        on:click={() => (activeView = "home")}
+      >
+        <span class="i-material-symbols:home-outline-rounded text-[22px]" />
+        <span>ホーム</span>
+      </button>
+      <button
+        type="button"
+        class:active={activeView === "library" || activeView === "detail"}
+        on:click={() => (activeView = "library")}
+      >
+        <span class="i-material-symbols:format-list-bulleted-rounded text-[22px]" />
+        <span>一覧</span>
+      </button>
+      <button
+        type="button"
+        class:active={activeView === "connect"}
+        on:click={() => (activeView = "connect")}
+      >
+        <span class="i-material-symbols:wifi-tethering-rounded text-[22px]" />
+        <span>接続</span>
+      </button>
+    </nav>
+  {/if}
 </main>
 
 <style>
@@ -1015,14 +1080,19 @@
     flex: 1;
     min-height: 0;
     overflow-y: auto;
-    padding: 14px 14px 92px;
+    padding: 14px 14px calc(92px + env(safe-area-inset-bottom, 0px));
     display: grid;
     align-content: start;
     gap: 14px;
   }
 
+  .content.controller-mode {
+    padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  }
+
   .hero-strip,
   .section,
+  .library-view,
   .detail-panel,
   .controller-panel,
   .empty-state,
@@ -1066,6 +1136,7 @@
   }
 
   .section,
+  .library-view,
   .detail-panel,
   .controller-panel {
     padding: 14px;
@@ -1096,33 +1167,6 @@
     padding: 0;
   }
 
-  .list {
-    display: grid;
-    gap: 8px;
-    margin-top: 12px;
-  }
-
-  .game-row {
-    min-height: 68px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    border: 1px solid rgb(255 255 255 / 0.1);
-    border-radius: 8px;
-    background: rgb(255 255 255 / 0.045);
-    color: white;
-    padding: 10px 12px;
-  }
-
-  .game-row.prominent {
-    min-height: 76px;
-  }
-
-  .game-row.selected {
-    border-color: rgb(94 201 142 / 0.55);
-    background: rgb(94 201 142 / 0.13);
-  }
-
   .game-title {
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1139,59 +1183,6 @@
     color: rgb(255 255 255 / 0.5);
     font-size: 12px;
     font-weight: 600;
-  }
-
-  .row-stat {
-    flex: 0 0 auto;
-    min-width: 74px;
-    text-align: right;
-  }
-
-  .row-stat strong,
-  .row-stat span {
-    display: block;
-  }
-
-  .row-stat strong {
-    color: rgb(255 255 255 / 0.78);
-    font-size: 12px;
-  }
-
-  .row-stat span {
-    margin-top: 4px;
-    color: rgb(255 255 255 / 0.42);
-    font-size: 11px;
-  }
-
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
-  }
-
-  .stats-grid button {
-    min-height: 74px;
-    border: 1px solid rgb(255 255 255 / 0.1);
-    border-radius: 8px;
-    background: rgb(255 255 255 / 0.045);
-    color: white;
-  }
-
-  .stats-grid span,
-  .stats-grid small {
-    display: block;
-  }
-
-  .stats-grid span {
-    font-size: 22px;
-    font-weight: 900;
-  }
-
-  .stats-grid small {
-    margin-top: 3px;
-    color: rgb(255 255 255 / 0.48);
-    font-size: 11px;
-    font-weight: 700;
   }
 
   .search-input {
@@ -1236,6 +1227,133 @@
     color: #b7f3cb;
   }
 
+  .home-shortcuts {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .home-shortcuts button {
+    min-height: 72px;
+    border: 1px solid rgb(255 255 255 / 0.1);
+    border-radius: 8px;
+    background: rgb(255 255 255 / 0.045);
+    color: white;
+  }
+
+  .home-shortcuts span,
+  .home-shortcuts small {
+    display: block;
+  }
+
+  .home-shortcuts span {
+    font-size: 22px;
+    font-weight: 900;
+  }
+
+  .home-shortcuts small {
+    margin-top: 3px;
+    color: rgb(255 255 255 / 0.48);
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .library-toolbar {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .search-shell {
+    min-height: 46px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 14px;
+    border: 1px solid rgb(255 255 255 / 0.1);
+    border-radius: 8px;
+    background: rgb(0 0 0 / 0.22);
+    color: rgb(255 255 255 / 0.45);
+    padding: 0 12px;
+  }
+
+  .search-shell .search-input {
+    height: auto;
+    min-width: 0;
+    flex: 1;
+    border: 0;
+    background: transparent;
+    padding: 0;
+  }
+
+  .library-list {
+    display: grid;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .compact-list {
+    margin-top: 12px;
+  }
+
+  .library-item {
+    min-height: 82px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    border: 1px solid rgb(255 255 255 / 0.1);
+    border-radius: 8px;
+    background: rgb(255 255 255 / 0.045);
+    color: white;
+    padding: 11px 12px;
+  }
+
+  .library-item.prominent {
+    min-height: 92px;
+  }
+
+  .library-item.selected {
+    border-color: rgb(94 201 142 / 0.55);
+    background: rgb(94 201 142 / 0.13);
+  }
+
+  .library-item-main {
+    min-width: 0;
+    flex: 1;
+    text-align: left;
+  }
+
+  .library-item .game-title {
+    display: -webkit-box;
+    overflow: hidden;
+    text-overflow: initial;
+    white-space: normal;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-height: 1.35;
+  }
+
+  .meta-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 8px;
+  }
+
+  .meta-chips span {
+    min-height: 22px;
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    background: rgb(255 255 255 / 0.075);
+    color: rgb(255 255 255 / 0.62);
+    padding: 0 8px;
+    font-size: 11px;
+    font-weight: 800;
+  }
+
   .detail-title,
   .controller-game {
     margin-top: 10px;
@@ -1250,6 +1368,14 @@
     color: rgb(255 255 255 / 0.5);
     font-size: 13px;
     font-weight: 700;
+  }
+
+  .detail-kicker,
+  .controller-kicker {
+    margin-top: 8px;
+    color: #9ae6b4;
+    font-size: 12px;
+    font-weight: 900;
   }
 
   .detail-stats {
@@ -1283,9 +1409,8 @@
     font-weight: 700;
   }
 
-  .action-grid {
+  .detail-actions {
     display: grid;
-    grid-template-columns: 1fr 1fr;
     gap: 10px;
     margin-top: 16px;
   }
@@ -1293,7 +1418,8 @@
   .primary-action,
   .secondary-action,
   .memo-toggle,
-  .controller-memo {
+  .controller-memo,
+  .secondary-full-action {
     min-height: 56px;
     display: flex;
     align-items: center;
@@ -1312,7 +1438,8 @@
 
   .secondary-action,
   .memo-toggle,
-  .controller-memo {
+  .controller-memo,
+  .secondary-full-action {
     background: rgb(255 255 255 / 0.06);
     color: rgb(255 255 255 / 0.9);
   }
@@ -1328,6 +1455,89 @@
   .controller-memo {
     width: 100%;
     margin-top: 10px;
+  }
+
+  .secondary-full-action {
+    width: 100%;
+    margin-top: 12px;
+  }
+
+  .memo-preview {
+    margin-top: 14px;
+    border: 1px solid rgb(255 255 255 / 0.1);
+    border-radius: 8px;
+    background: rgb(0 0 0 / 0.16);
+    padding: 12px;
+  }
+
+  .memo-preview pre {
+    max-height: 180px;
+    overflow: auto;
+    margin: 12px 0 0;
+    white-space: pre-wrap;
+    color: rgb(255 255 255 / 0.72);
+    font-size: 13px;
+    line-height: 1.7;
+  }
+
+  .empty-inline {
+    margin-top: 12px;
+    color: rgb(255 255 255 / 0.45);
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .connect-view {
+    display: grid;
+    gap: 14px;
+  }
+
+  .connect-card {
+    min-height: 82px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 14px;
+    border: 1px solid rgb(255 255 255 / 0.1);
+    border-radius: 8px;
+    background: rgb(255 255 255 / 0.045);
+    padding: 12px;
+  }
+
+  .connect-card.connected {
+    border-color: rgb(94 201 142 / 0.45);
+  }
+
+  .connect-card.offline {
+    border-color: rgb(245 158 11 / 0.42);
+  }
+
+  .connect-card.error {
+    border-color: rgb(252 129 129 / 0.42);
+  }
+
+  .connect-card div > strong,
+  .connect-card div > span {
+    display: block;
+  }
+
+  .connect-card div > strong {
+    font-size: 15px;
+    font-weight: 900;
+  }
+
+  .connect-card div > span {
+    margin-top: 4px;
+    color: rgb(255 255 255 / 0.52);
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .connect-copy {
+    margin-top: 12px;
+    color: rgb(255 255 255 / 0.62);
+    font-size: 13px;
+    line-height: 1.65;
   }
 
   .memo-panel {
@@ -1396,6 +1606,48 @@
     font-weight: 950;
   }
 
+  .now-playing-bar {
+    position: sticky;
+    bottom: 0;
+    min-height: 64px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    border: 1px solid rgb(94 201 142 / 0.4);
+    border-radius: 8px;
+    background: rgb(31 44 37 / 0.96);
+    color: white;
+    padding: 10px 12px;
+    box-shadow: 0 12px 28px rgb(0 0 0 / 0.32);
+  }
+
+  .now-playing-copy {
+    min-width: 0;
+    flex: 1;
+    text-align: left;
+  }
+
+  .now-playing-copy strong,
+  .now-playing-copy small {
+    display: block;
+  }
+
+  .now-playing-copy strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+    font-weight: 900;
+  }
+
+  .now-playing-copy small {
+    margin-top: 4px;
+    color: #b7f3cb;
+    font-size: 11px;
+    font-weight: 800;
+  }
+
   .empty-state {
     min-height: 132px;
     display: grid;
@@ -1420,9 +1672,10 @@
     bottom: 0;
     transform: translateX(-50%);
     width: min(620px, 100vw);
-    height: 72px;
+    height: calc(72px + env(safe-area-inset-bottom, 0px));
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
     border-top: 1px solid rgb(255 255 255 / 0.1);
     background: rgb(25 25 25 / 0.96);
     backdrop-filter: blur(14px);

@@ -3,7 +3,7 @@ id: mobile-companion-service-blueprint
 title: Mobile Companion Service Blueprint
 type: improvement
 status: proposed
-updated: 2026-06-05
+updated: 2026-06-06
 links:
   - product-context
   - remote-play-hub
@@ -66,6 +66,20 @@ PC補助中でない時の主画面。ゲーム一覧、最近遊んだゲーム
 - Gallery: 全体タイムライン、ゲーム別、最近撮影、フル表示、端末保存。
 - Connect: PC接続、QR読み取り、接続テスト、外部配信ツールの状態。
 - Controller: プレイ中だけの専用面。通常タブとは別の一時モードとして扱う。
+
+## Mobile UX Reframe
+
+スマホ版はPC版の縮小コピーにしない。通常時は「見返す・選ぶ・始める」ためのPocket Library、プレイ中だけ「見ずに押せる」Controllerへ切り替える。
+
+- Navigation: Bottom Navは現在 `Home`、`Library`、`Connect` に限定する。`Gallery` はスクリーンショットDB同期が入った段階で追加する。`Controller` はタブではなく、プレイ中のNow Playingバーまたはゲーム詳細の主CTAから開く一時モードにする。
+- Home: 接続状態、続きから遊ぶ、最近遊んだゲーム、最近のスクショだけを置く。統計カードや全フィルタはLibraryへ逃がし、最初の画面を軽くする。
+- Library: スマホ向けの1カラム一覧にする。各行はタイトル2行まで、ブランド、状態、最終プレイ、導入済みだけに絞る。検索は上部固定、フィルタは横スクロールのsegmented controlにする。PC版のカード/表密度を持ち込まない。
+- Game Detail: 読み取り専用の作品面にする。状態、時間、最近スクショ、メモプレビューを見せ、操作は `PCで開く`、`スマホでプレイ`、`補助を開く` に絞る。Pause、スクショ、メモ編集を直接置かない。
+- Controller: Pause、通常スクショ、クイックメモ、直前結果、接続状態だけを大きく置く。文字消しスクショ、遅延スクショ、作品別プリセットはここから開く二段目のモードにする。
+- Gallery: Controllerの撮影結果とは保存経路を混同しない。初期は閲覧、フル表示、端末保存だけ。削除や整理はPC版に残す。
+- Recovery: 接続切れ、期限切れ、PC未起動、対象ゲーム終了は専用状態として扱い、次の操作を `再接続`、`QRから開き直す`、`前回同期を見る` のどれか1つに絞る。
+
+重複排除の原則は、ゲーム詳細が「対象を理解して始める場所」、Controllerが「プレイ中にPCへ命令する場所」です。同じPause/スクショ操作を両方に置かない。
 
 ## State Model
 

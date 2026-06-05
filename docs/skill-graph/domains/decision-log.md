@@ -12,6 +12,14 @@ links:
 
 # Decision Log
 
+## 2026-06-06: Mobile Companion UIは閲覧タブとプレイ中Controllerを分離する
+
+- Context: PWAの接続は成立したが、一覧がスマホ向け密度になっておらず、Game DetailとControllerの両方にPause、スクショ、メモ操作があり、役割が重複している。今後Gallery、文字消しスクショ、スマホでプレイ開始、ネイティブ化を足すと、通常閲覧とプレイ中操作がさらに混ざる。
+- Decision: Mobile Companionの通常ナビゲーションは現在 `Home`、`Library`、`Connect` に分け、`Gallery` はスクリーンショットDB同期が入った段階で追加する。`Controller` はタブではなくプレイ中だけ開く一時モードにする。Game Detailは読み取り専用と開始導線に絞り、PauseやスクショはControllerへ集約する。Expo/React Native化は、PWAで体験を固めた後、Bonjour、ローカルネットワーク権限、ネイティブ通知、端末保存などが必要になった段階で再判断する。
+- Rationale: スマホで使う主価値は、非プレイ時のPocket Library/Galleryと、プレイ中の補助Controllerで文脈が違う。同じ操作を詳細画面と操作画面に置くと、どちらが正規の操作面か分からなくなる。現在の実装はSvelte/Vite PWAなので、Expoへ早期移行するとReact Nativeへの再実装コストが大きく、まだ固まっていないUIの手戻りが増える。
+- Consequence: 次の実装は新機能追加ではなく、MobileCompanion画面の情報設計を先に直す。Bottom NavからControllerを外し、Now Playingバーまたは詳細CTAからだけ開く。Libraryは1カラムのスマホ一覧へ作り直し、Game Detailから直接Pause/スクショを削除する。
+- Links: [[mobile-companion-service-blueprint]], [[remote-play-companion-ux-research]]
+
 ## 2026-06-06: Mobile Companionのホーム画面起動はQR接続情報を保持する
 
 - Context: 静的manifestの `start_url` が `companion.html` 固定だと、iPhoneのホーム画面から起動した時にQR URLの `roomId` と `authToken` が落ちる。さらに公開PWAから `https://launcherg.ryoha.moe/connect` へ直接tokenを取り直す経路はブラウザ上で `Failed to fetch` になり、`roomId` だけでは再接続できない。PC側もdev再読み込みで `roomId` が変わると、ホーム画面アイコンの接続先とPC側のroomがずれる。
