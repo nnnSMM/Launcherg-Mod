@@ -208,6 +208,10 @@ export const commandSaveScreenshotByPid = async (
   });
 };
 
+export const commandSendRightClick = async () => {
+  return await invoke<void>("send_right_click");
+};
+
 export const commandUpdateGameImage = async (
   elementId: number,
   imageType: "icon" | "thumbnail",

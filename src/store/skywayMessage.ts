@@ -16,6 +16,7 @@ export type TakeScreenshotMessage = {
   type: "take_screenshot";
   gameId: number;
   cursorLine: number;
+  hideText?: boolean;
 };
 export type ControlStatusRequestMessage = {
   type: "control_status_request";
@@ -47,6 +48,9 @@ export type RemoteGameSummary = {
   lastPlayAt: string | null;
   installed: boolean;
   liked: boolean;
+  thumbnailPath?: string | null;
+  thumbnailWidth?: number | null;
+  thumbnailHeight?: number | null;
 };
 export type LibraryResponseMessage = {
   type: "library_response";
@@ -103,7 +107,9 @@ export const isRemoteMessage = (value: unknown): value is RemoteMessage => {
       return true;
     case "take_screenshot":
       return (
-        isFiniteNumber(value.gameId) && Number.isInteger(value.cursorLine)
+        isFiniteNumber(value.gameId) &&
+        Number.isInteger(value.cursorLine) &&
+        (value.hideText === undefined || typeof value.hideText === "boolean")
       );
     default:
       return false;

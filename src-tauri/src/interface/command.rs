@@ -26,6 +26,10 @@ use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, Emitter, Listener, Manager, State, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut};
 use tauri_plugin_window_state::{AppHandleExt, StateFlags};
+#[cfg(target_os = "windows")]
+use windows::Win32::UI::Input::KeyboardAndMouse::{
+    SendInput, INPUT, INPUT_0, INPUT_MOUSE, MOUSEEVENTF_RIGHTDOWN, MOUSEEVENTF_RIGHTUP, MOUSEINPUT,
+};
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -1070,6 +1074,44 @@ pub async fn save_screenshot_by_pid(
         .save_screenshot_by_pid(process_id, &upload_path)
         .await?;
     Ok(upload_path)
+}
+
+#[cfg(target_os = "windows")]
+fn mouse_input(flags: windows::Win32::UI::Input::KeyboardAndMouse::MOUSE_EVENT_FLAGS) -> INPUT {
+    INPUT {
+        r#type: INPUT_MOUSE,
+        Anonymous: INPUT_0 {
+            mi: MOUSEINPUT {
+                dx: 0,
+                dy: 0,
+                mouseData: 0,
+                dwFlags: flags,
+                time: 0,
+                dwExtraInfo: 0,
+            },
+        },
+    }
+}
+
+#[tauri::command]
+pub async fn send_right_click() -> Result<(), CommandError> {
+    #[cfg(target_os = "windows")]
+    {
+        let inputs = [
+            mouse_input(MOUSEEVENTF_RIGHTDOWN),
+            mouse_input(MOUSEEVENTF_RIGHTUP),
+        ];
+        let sent = unsafe { SendInput(&inputs, std::mem::size_of::<INPUT>() as i32) };
+        if sent != inputs.len() as u32 {
+            return Err(anyhow::anyhow!("右クリック入力の送信に失敗しました").into());
+        }
+        Ok(())
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        Err(anyhow::anyhow!("右クリック入力はWindowsでのみ利用できます").into())
+    }
 }
 
 #[tauri::command]

@@ -20,6 +20,7 @@ describe("skywayMessage", () => {
         type: "take_screenshot",
         gameId: 10,
         cursorLine: 3,
+        hideText: true,
       }),
     ).toBe(true);
   });
@@ -33,6 +34,14 @@ describe("skywayMessage", () => {
         type: "take_screenshot",
         gameId: 10,
         cursorLine: 1.5,
+      }),
+    ).toBe(false);
+    expect(
+      isRemoteMessage({
+        type: "take_screenshot",
+        gameId: 10,
+        cursorLine: 1,
+        hideText: "yes",
       }),
     ).toBe(false);
     expect(isRemoteMessage({ type: "unknown" })).toBe(false);

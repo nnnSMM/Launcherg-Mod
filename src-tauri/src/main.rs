@@ -332,6 +332,7 @@ fn main() {
             command::get_exe_path_by_lnk,
             command::get_game_cache_by_id,
             command::save_screenshot_by_pid,
+            command::send_right_click,
             command::update_game_image,
             command::get_app_setting,
             command::set_app_setting,

@@ -15,6 +15,7 @@ import { readFile } from "@tauri-apps/plugin-fs";
 import {
   commandGetPauseState,
   commandSaveScreenshotByPid,
+  commandSendRightClick,
   commandTogglePauseTracking,
 } from "@/lib/command";
 import { getStartProcessMap } from "@/store/startProcessMap";
@@ -46,8 +47,9 @@ const createSkyWay = () => {
   const { createChunks } = useChunk();
 
   const sendImagesAsChunks = async (imagePaths: string[]) => {
-    await Promise.all(
-      imagePaths.map(async (path) => {
+    const uniqueImagePaths = Array.from(new Set(imagePaths.filter(Boolean)));
+    for (const path of uniqueImagePaths) {
+      try {
         const [{ chunkId, mimeType, totalChunkLength }, chunks] =
           await createChunks(path);
         const message: ImageMetadataMessage = {
@@ -59,8 +61,10 @@ const createSkyWay = () => {
         };
         sendMessage(message);
         chunks.forEach(sendBinaryMessage);
-      }),
-    );
+      } catch (error) {
+        reportError("skyway.image.send", error);
+      }
+    }
   };
 
   const getMemoImagePaths = (text: string) => {
@@ -124,6 +128,9 @@ const createSkyWay = () => {
     lastPlayAt: element.lastPlayAt,
     installed: !!(element.exePath || element.lnkPath),
     liked: !!element.likeAt,
+    thumbnailPath: element.thumbnail || null,
+    thumbnailWidth: element.thumbnailWidth,
+    thumbnailHeight: element.thumbnailHeight,
   });
 
   const createLibraryResponseMessage =
@@ -134,6 +141,17 @@ const createSkyWay = () => {
         games: sidebarCollectionElements.value().map(toRemoteGameSummary),
       };
     };
+
+  const sendLibraryThumbnails = async (games: RemoteGameSummary[]) => {
+    const thumbnailPaths = games
+      .map((game) => game.thumbnailPath)
+      .filter((path): path is string => !!path && !sentImagePathSet.has(path));
+    thumbnailPaths.forEach((path) => sentImagePathSet.add(path));
+    await sendImagesAsChunks(thumbnailPaths);
+  };
+
+  const wait = (milliseconds: number) =>
+    new Promise((resolve) => setTimeout(resolve, milliseconds));
 
   const createControlStatusMessage =
     async (error?: string): Promise<ControlStatusMessage> => ({
@@ -201,6 +219,7 @@ const createSkyWay = () => {
           case "library_request": {
             const response = await createLibraryResponseMessage();
             sendMessage(response);
+            void sendLibraryThumbnails(response.games);
             break;
           }
           case "control_status_request": {
@@ -220,11 +239,17 @@ const createSkyWay = () => {
               sendMessage(response);
             }
             break;
-          case "take_screenshot":
+          case "take_screenshot": {
+            let didHideText = false;
             try {
               const processId = getStartProcessMap()[message.gameId];
               if (processId === undefined) {
                 throw new Error("対象ゲームの起動プロセスが見つかりません");
+              }
+              if (message.hideText) {
+                await commandSendRightClick();
+                didHideText = true;
+                await wait(180);
               }
               const imagePath = await commandSaveScreenshotByPid(
                 message.gameId,
@@ -262,7 +287,18 @@ const createSkyWay = () => {
                 ok: false,
                 error,
               });
+            } finally {
+              if (didHideText) {
+                await wait(120);
+                try {
+                  await commandSendRightClick();
+                } catch (e) {
+                  reportError("skyway.screenshot.restore_text", e);
+                }
+              }
             }
+            break;
+          }
         }
       });
       cleanupFuncs.push(removeListener);

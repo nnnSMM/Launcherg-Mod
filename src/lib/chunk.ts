@@ -18,7 +18,8 @@ export const useChunk = () => {
   const CHUNK_HEADER_SIZE = 2; // [chunkId: 1byte][index: 1byte]
   const CHUNK_DATA_SIZE = CHUNK_SIZE - CHUNK_HEADER_SIZE;
   const createNewChunkId = () => {
-    return (currentChunkId + 1) & chunkIdMask;
+    currentChunkId = (currentChunkId + 1) & chunkIdMask;
+    return currentChunkId;
   };
 
   const createChunks = async (filePath: string) => {

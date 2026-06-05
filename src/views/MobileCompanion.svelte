@@ -12,6 +12,7 @@
     MemoMessage,
     ControlStatusMessage,
     ControlStatusRequestMessage,
+    ImageMetadataMessage,
     PauseToggleMessage,
     PingMessage,
     RemoteGameSummary,
@@ -49,6 +50,7 @@
   type PcMessage =
     | PingMessage
     | MemoMessage
+    | ImageMetadataMessage
     | LibraryResponseMessage
     | ScreenshotResultMessage
     | ControlStatusMessage
@@ -61,6 +63,14 @@
   type LibraryCache = {
     games: RemoteGameSummary[];
     syncedAt: string;
+  };
+
+  type PendingImage = {
+    path: string;
+    mimeType: string;
+    totalChunkLength: number;
+    chunks: (Uint8Array | undefined)[];
+    received: number;
   };
 
   const LIBRARY_CACHE_KEY = "launcherg-mobile-companion-library-v1";
@@ -117,6 +127,9 @@
   let cachedAt: string | null = null;
   let didReceiveLibrary = false;
   let didSelectGameManually = false;
+  let imageUrlsByPath: Record<string, string> = {};
+  let pendingImages = new Map<number, PendingImage>();
+  let objectUrls: string[] = [];
   let libraryRequestAttempts = 0;
   let libraryRetryTimer: ReturnType<typeof setInterval> | undefined;
   let controlStatusTimer: ReturnType<typeof setInterval> | undefined;
@@ -226,7 +239,16 @@
       typeof value.totalPlayTimeSeconds === "number" &&
       (typeof value.lastPlayAt === "string" || value.lastPlayAt === null) &&
       typeof value.installed === "boolean" &&
-      typeof value.liked === "boolean"
+      typeof value.liked === "boolean" &&
+      (value.thumbnailPath === undefined ||
+        typeof value.thumbnailPath === "string" ||
+        value.thumbnailPath === null) &&
+      (value.thumbnailWidth === undefined ||
+        typeof value.thumbnailWidth === "number" ||
+        value.thumbnailWidth === null) &&
+      (value.thumbnailHeight === undefined ||
+        typeof value.thumbnailHeight === "number" ||
+        value.thumbnailHeight === null)
     );
   };
 
@@ -250,6 +272,13 @@
         return (
           Array.isArray(value.games) &&
           value.games.every((game) => isRemoteGameSummary(game))
+        );
+      case "image_metadata":
+        return (
+          typeof value.path === "string" &&
+          typeof value.key === "number" &&
+          typeof value.totalChunkLength === "number" &&
+          typeof value.mimeType === "string"
         );
       case "screenshot_result":
         return (
@@ -318,6 +347,56 @@
       return false;
     }
   };
+
+  const handleImageMetadata = (message: ImageMetadataMessage) => {
+    if (message.totalChunkLength <= 0) return;
+    pendingImages.set(message.key, {
+      path: message.path,
+      mimeType: message.mimeType,
+      totalChunkLength: message.totalChunkLength,
+      chunks: new Array(message.totalChunkLength),
+      received: 0,
+    });
+  };
+
+  const toImageChunk = (data: unknown): Uint8Array | null => {
+    if (data instanceof Uint8Array) return data;
+    if (data instanceof ArrayBuffer) return new Uint8Array(data);
+    if (ArrayBuffer.isView(data)) {
+      return new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
+    }
+    return null;
+  };
+
+  const handleImageChunk = (data: unknown) => {
+    const chunk = toImageChunk(data);
+    if (!chunk || chunk.byteLength < 2) return;
+
+    const key = chunk[0];
+    const index = chunk[1];
+    const pending = pendingImages.get(key);
+    if (!pending || index >= pending.totalChunkLength) return;
+    if (!pending.chunks[index]) {
+      pending.received += 1;
+    }
+    pending.chunks[index] = chunk.slice(2);
+
+    if (pending.received !== pending.totalChunkLength) return;
+    const blob = new Blob(pending.chunks as Uint8Array[], {
+      type: pending.mimeType,
+    });
+    const previousUrl = imageUrlsByPath[pending.path];
+    if (previousUrl) {
+      URL.revokeObjectURL(previousUrl);
+    }
+    const imageUrl = URL.createObjectURL(blob);
+    objectUrls = [...objectUrls, imageUrl];
+    imageUrlsByPath = { ...imageUrlsByPath, [pending.path]: imageUrl };
+    pendingImages.delete(key);
+  };
+
+  const gameThumbnailUrl = (game: RemoteGameSummary) =>
+    game.thumbnailPath ? imageUrlsByPath[game.thumbnailPath] : undefined;
 
   const sendMessage = (message: MobileOutgoingMessage) => {
     if (!dataStream) return;
@@ -455,6 +534,11 @@
       return;
     }
 
+    if (message.type === "image_metadata") {
+      handleImageMetadata(message);
+      return;
+    }
+
     if (message.type === "init_response") {
       if (selectedGameId === null) {
         selectedGameId = message.gameId;
@@ -556,7 +640,10 @@
       if (stream.contentType !== "data") return;
 
       const { removeListener } = stream.onData.add((data) => {
-        if (typeof data !== "string") return;
+        if (typeof data !== "string") {
+          handleImageChunk(data);
+          return;
+        }
         const message = parsePcMessage(data);
         if (!message) return;
         handlePcMessage(message);
@@ -588,15 +675,18 @@
     startLibrarySync();
   };
 
-  const takeScreenshot = () => {
+  const takeScreenshot = (hideText = false) => {
     if (!dataStream || selectedGameId === null) return;
     isSendingScreenshot = true;
     sendMessage({
       type: "take_screenshot",
       gameId: selectedGameId,
       cursorLine: Math.max(0, memoText.split("\n").length - 1),
+      hideText,
     });
-    lastActionText = "スクリーンショットをPCに要求しました";
+    lastActionText = hideText
+      ? "文字消しスクショをPCに要求しました"
+      : "スクリーンショットをPCに要求しました";
     setTimeout(() => {
       isSendingScreenshot = false;
     }, 12000);
@@ -636,6 +726,8 @@
   onDestroy(() => {
     cleanupCallbacks.forEach((callback) => callback());
     cleanupCallbacks = [];
+    objectUrls.forEach((url) => URL.revokeObjectURL(url));
+    objectUrls = [];
   });
 </script>
 
@@ -695,14 +787,22 @@
               一覧
             </button>
           </div>
-          <div class="library-list compact-list">
+          <div class="game-card-list compact-list">
             {#each homePrimaryGames as game (game.id)}
+              {@const thumbnailUrl = gameThumbnailUrl(game)}
               <button
                 type="button"
-                class="library-item prominent"
+                class="game-card compact-card"
                 on:click={() => selectGame(game)}
               >
-                <div class="library-item-main">
+                <div class="game-thumb">
+                  {#if thumbnailUrl}
+                    <img src={thumbnailUrl} alt="" loading="lazy" />
+                  {:else}
+                    <span class="i-material-symbols:image-outline-rounded text-[28px]" />
+                  {/if}
+                </div>
+                <div class="game-card-body">
                   <div class="game-title">{game.title}</div>
                   <div class="game-meta">
                     {game.brandName || "ブランド未設定"}
@@ -712,7 +812,6 @@
                     <span>{formatPlayTime(game.totalPlayTimeSeconds)}</span>
                   </div>
                 </div>
-                <span class="i-material-symbols:chevron-right-rounded text-[22px] text-white/45" />
               </button>
             {/each}
           </div>
@@ -769,20 +868,28 @@
           {/each}
         </div>
 
-        <div class="library-list">
+        <div class="game-card-list">
           {#if games.length === 0}
             <div class="empty-state">{libraryEmptyText}</div>
           {:else if filteredGames.length === 0}
             <div class="empty-state">該当するゲームがありません</div>
           {:else}
             {#each filteredGames as game (game.id)}
+              {@const thumbnailUrl = gameThumbnailUrl(game)}
               <button
                 type="button"
                 class:selected={game.id === selectedGameId}
-                class="library-item"
+                class="game-card"
                 on:click={() => selectGame(game)}
               >
-                <div class="library-item-main">
+                <div class="game-thumb">
+                  {#if thumbnailUrl}
+                    <img src={thumbnailUrl} alt="" loading="lazy" />
+                  {:else}
+                    <span class="i-material-symbols:image-outline-rounded text-[30px]" />
+                  {/if}
+                </div>
+                <div class="game-card-body">
                   <div class="game-title">{game.title}</div>
                   <div class="game-meta">{game.brandName || "ブランド未設定"}</div>
                   <div class="meta-chips">
@@ -793,7 +900,6 @@
                     {/if}
                   </div>
                 </div>
-                <span class="i-material-symbols:chevron-right-rounded text-[22px] text-white/35" />
               </button>
             {/each}
           {/if}
@@ -801,6 +907,7 @@
       </section>
     {:else if activeView === "detail"}
       {#if selectedGame}
+        {@const selectedThumbnailUrl = gameThumbnailUrl(selectedGame)}
         <section class="detail-panel">
           <button type="button" class="back-button" on:click={() => (activeView = "library")}>
             <span class="i-material-symbols:arrow-back-rounded text-[20px]" />
@@ -809,6 +916,14 @@
           <div class="detail-kicker">Game Detail</div>
           <div class="detail-title">{selectedGame.title}</div>
           <div class="detail-brand">{selectedGame.brandName || "ブランド未設定"}</div>
+
+          <div class="detail-thumb">
+            {#if selectedThumbnailUrl}
+              <img src={selectedThumbnailUrl} alt="" />
+            {:else}
+              <span class="i-material-symbols:image-outline-rounded text-[42px]" />
+            {/if}
+          </div>
 
           <div class="detail-stats">
             <div>
@@ -922,10 +1037,20 @@
             type="button"
             class="shutter-button"
             disabled={connectionState !== "connected" || isSendingScreenshot}
-            on:click={takeScreenshot}
+            on:click={() => takeScreenshot()}
           >
             <span class="i-material-symbols:photo-camera-outline-rounded text-[36px]" />
             <span>{isSendingScreenshot ? "撮影中" : "スクショ"}</span>
+          </button>
+
+          <button
+            type="button"
+            class="textless-button"
+            disabled={connectionState !== "connected" || isSendingScreenshot}
+            on:click={() => takeScreenshot(true)}
+          >
+            <span class="i-material-symbols:visibility-off-outline-rounded text-[22px]" />
+            <span>文字消しスクショ</span>
           </button>
 
           <button
@@ -1009,6 +1134,7 @@
     color: white;
     display: flex;
     flex-direction: column;
+    overflow-x: hidden;
     max-width: 620px;
     margin: 0 auto;
   }
@@ -1080,6 +1206,7 @@
     flex: 1;
     min-height: 0;
     overflow-y: auto;
+    overflow-x: hidden;
     padding: 14px 14px calc(92px + env(safe-area-inset-bottom, 0px));
     display: grid;
     align-content: start;
@@ -1203,21 +1330,24 @@
   }
 
   .filter-strip {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 8px;
-    overflow-x: auto;
     padding: 12px 0 2px;
   }
 
   .filter-strip button {
     min-height: 36px;
-    white-space: nowrap;
+    min-width: 0;
     border: 1px solid rgb(255 255 255 / 0.1);
     border-radius: 999px;
     background: rgb(255 255 255 / 0.05);
     color: rgb(255 255 255 / 0.68);
-    padding: 0 12px;
-    font-size: 13px;
+    padding: 0 8px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
     font-weight: 800;
   }
 
@@ -1287,9 +1417,9 @@
     padding: 0;
   }
 
-  .library-list {
+  .game-card-list {
     display: grid;
-    gap: 8px;
+    gap: 10px;
     margin-top: 12px;
   }
 
@@ -1297,35 +1427,63 @@
     margin-top: 12px;
   }
 
-  .library-item {
-    min-height: 82px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
+  .game-card {
+    min-width: 0;
     width: 100%;
+    display: flex;
+    align-items: stretch;
+    gap: 12px;
     border: 1px solid rgb(255 255 255 / 0.1);
     border-radius: 8px;
     background: rgb(255 255 255 / 0.045);
     color: white;
-    padding: 11px 12px;
+    padding: 10px;
+    text-align: left;
+    overflow: hidden;
   }
 
-  .library-item.prominent {
-    min-height: 92px;
+  .game-card.compact-card {
+    min-height: 106px;
   }
 
-  .library-item.selected {
+  .game-card.selected {
     border-color: rgb(94 201 142 / 0.55);
     background: rgb(94 201 142 / 0.13);
   }
 
-  .library-item-main {
+  .game-thumb {
+    position: relative;
+    flex: 0 0 96px;
+    width: 96px;
+    aspect-ratio: 16 / 10;
+    align-self: stretch;
+    min-height: 92px;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    border-radius: 7px;
+    background:
+      linear-gradient(135deg, rgb(94 201 142 / 0.18), transparent),
+      rgb(255 255 255 / 0.06);
+    color: rgb(255 255 255 / 0.34);
+  }
+
+  .game-thumb img,
+  .detail-thumb img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+  }
+
+  .game-card-body {
     min-width: 0;
     flex: 1;
+    align-self: center;
     text-align: left;
   }
 
-  .library-item .game-title {
+  .game-card .game-title {
     display: -webkit-box;
     overflow: hidden;
     text-overflow: initial;
@@ -1333,6 +1491,10 @@
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
     line-height: 1.35;
+  }
+
+  .game-card .game-meta {
+    white-space: normal;
   }
 
   .meta-chips {
@@ -1378,6 +1540,21 @@
     font-weight: 900;
   }
 
+  .detail-thumb {
+    min-height: 172px;
+    aspect-ratio: 16 / 9;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    margin-top: 14px;
+    border: 1px solid rgb(255 255 255 / 0.1);
+    border-radius: 8px;
+    background:
+      linear-gradient(135deg, rgb(94 201 142 / 0.16), transparent),
+      rgb(255 255 255 / 0.055);
+    color: rgb(255 255 255 / 0.32);
+  }
+
   .detail-stats {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1419,6 +1596,7 @@
   .secondary-action,
   .memo-toggle,
   .controller-memo,
+  .textless-button,
   .secondary-full-action {
     min-height: 56px;
     display: flex;
@@ -1439,6 +1617,7 @@
   .secondary-action,
   .memo-toggle,
   .controller-memo,
+  .textless-button,
   .secondary-full-action {
     background: rgb(255 255 255 / 0.06);
     color: rgb(255 255 255 / 0.9);
@@ -1452,7 +1631,8 @@
   }
 
   .memo-toggle,
-  .controller-memo {
+  .controller-memo,
+  .textless-button {
     width: 100%;
     margin-top: 10px;
   }

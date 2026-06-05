@@ -1,5 +1,11 @@
-import { describe, it, expect } from "vitest";
-import { getMimeTypeFromPath } from "./chunk";
+import { describe, it, expect, vi } from "vitest";
+import { getMimeTypeFromPath, useChunk } from "./chunk";
+
+vi.mock("@tauri-apps/plugin-fs", () => ({
+    readFile: vi.fn(async (filePath: string) =>
+        new Uint8Array(filePath.includes("second") ? [4, 5, 6] : [1, 2, 3]),
+    ),
+}));
 
 describe("chunk", () => {
     describe("getMimeTypeFromPath", () => {
@@ -36,6 +42,20 @@ describe("chunk", () => {
             expect(() => getMimeTypeFromPath("noextension")).toThrow(
                 "Unsupported file type"
             );
+        });
+    });
+
+    describe("useChunk", () => {
+        it("increments chunk ids for multiple images", async () => {
+            const { createChunks } = useChunk();
+
+            const [firstMeta, firstChunks] = await createChunks("first.png");
+            const [secondMeta, secondChunks] = await createChunks("second.png");
+
+            expect(firstMeta.chunkId).toBe(1);
+            expect(secondMeta.chunkId).toBe(2);
+            expect(firstChunks[0][0]).toBe(1);
+            expect(secondChunks[0][0]).toBe(2);
         });
     });
 });
