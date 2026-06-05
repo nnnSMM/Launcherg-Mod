@@ -1,10 +1,11 @@
-const CACHE_NAME = "launcherg-pwa-shell-v1";
+const CACHE_NAME = "launcherg-pwa-shell-mobile-pwa-v1";
 const PRECACHE_ASSETS = Array.isArray(self.__LAUNCHERG_PWA_ASSETS__)
   ? self.__LAUNCHERG_PWA_ASSETS__
   : [];
 const APP_SHELL = [
   "./",
   "./index.html",
+  "./companion.html",
   "./icon.png",
   "./manifest.webmanifest",
   ...PRECACHE_ASSETS,

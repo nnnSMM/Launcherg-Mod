@@ -1,6 +1,5 @@
 <script lang="ts">
     import Actions from "@/components/Work/Actions.svelte";
-    import { seiya } from "@/store/seiya";
     import Info from "@/components/Work/Info.svelte";
     import { PlayStatus, type Work, type CollectionElement } from "@/lib/types";
     import type { PlayStatus as PlayStatusType } from "@/lib/types";
@@ -218,11 +217,7 @@
     <div class="max-w-[1440px] mx-auto space-y-8">
         <div class="space-y-8" aria-label="作品操作">
             <div class="min-w-0 px-1 lg:px-2">
-                {#await seiya.getUrl(work.name)}
-                    <Actions id={work.id} seiyaUrl={""} />
-                {:then seiyaUrl}
-                    <Actions id={work.id} {seiyaUrl} />
-                {/await}
+                <Actions id={work.id} />
             </div>
             <div class="min-w-0 px-1 lg:px-2">
                 <div class="min-w-0 flex flex-wrap items-center gap-x-6 gap-y-4">

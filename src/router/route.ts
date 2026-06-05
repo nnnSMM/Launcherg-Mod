@@ -16,6 +16,9 @@ export const routes = {
   "/memos/:id": wrap({
     asyncComponent: () => import("@/views/Memo.svelte"),
   }),
+  "/companion": wrap({
+    asyncComponent: () => import("@/views/MobileCompanion.svelte"),
+  }),
   "/settings/play-status": wrap({
     asyncComponent: () => import("@/views/PlayStatusBulkEditor.svelte"),
   }),

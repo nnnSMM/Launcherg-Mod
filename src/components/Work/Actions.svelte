@@ -26,11 +26,9 @@
   import type { AllGameCacheOne } from "@/lib/types";
   import OtherInformation from "@/components/Work/OtherInformation.svelte";
   import { registerCollectionElementDetails } from "@/lib/registerCollectionElementDetails";
-  import QrCode from "@/components/Work/QRCode.svelte";
   import { startProcessMap } from "@/store/startProcessMap";
 
   export let id: number;
-  export let seiyaUrl: string;
 
   $: element = $sidebarCollectionElements.find((e) => e.id === id);
 
@@ -122,7 +120,6 @@
 
   let isOpenDelete = false;
   let isOpenOtherInformation = false;
-  let isOpenQrCode = false;
 </script>
 
 {#if element}
@@ -177,11 +174,6 @@
         ariaLabel={isLike ? "お気に入りを解除" : "お気に入りに追加"}
         on:click={toggleLike}
       />
-      <ButtonCancel
-        icon="i-material-symbols-qr-code"
-        ariaLabel="QRコードを表示"
-        on:click={() => (isOpenQrCode = true)}
-      />
     </div>
   </div>
 
@@ -194,5 +186,4 @@
   />
   <DeleteElement bind:isOpen={isOpenDelete} {element} />
   <OtherInformation bind:isOpen={isOpenOtherInformation} {element} />
-  <QrCode bind:isOpen={isOpenQrCode} {id} {seiyaUrl} />
 {/if}

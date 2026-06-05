@@ -1,4 +1,4 @@
-import {
+﻿import {
   SkyWayContext,
   SkyWayRoom,
   SkyWayStreamFactory,
@@ -12,19 +12,32 @@ import { memo } from "../store/memo";
 import { createWritable } from "@/lib/utils";
 import { fetch } from "@tauri-apps/plugin-http";
 import { readFile } from "@tauri-apps/plugin-fs";
-import { commandSaveScreenshotByPid } from "@/lib/command";
+import {
+  commandGetPauseState,
+  commandSaveScreenshotByPid,
+  commandTogglePauseTracking,
+} from "@/lib/command";
 import { getStartProcessMap } from "@/store/startProcessMap";
 import { showErrorToast } from "@/lib/toast";
 import { getFriendlyErrorMessage, reportError } from "@/lib/errors";
 import { useChunk } from "@/lib/chunk";
 import {
   parseRemoteMessage,
+  type ControlStatusMessage,
   type ImageMetadataMessage,
   type InitResponseMessage,
+  type LibraryResponseMessage,
   type LocalMessage,
   type MemoMessage,
   type PingMessage,
+  type RemoteGameSummary,
 } from "@/store/skywayMessage";
+import {
+  createMobileCompanionUrl,
+  SKYWAY_CONNECT_ENDPOINT,
+} from "@/lib/mobileCompanionUrl";
+import { sidebarCollectionElements } from "@/store/sidebarCollectionElements";
+import type { CollectionElement } from "@/lib/types";
 
 const createSkyWay = () => {
   const roomId = uuidV4();
@@ -99,20 +112,51 @@ const createSkyWay = () => {
     return message;
   };
 
+  const toRemoteGameSummary = (
+    element: CollectionElement,
+  ): RemoteGameSummary => ({
+    id: element.id,
+    title: element.gamename,
+    brandName: element.brandname,
+    playStatus: element.playStatus,
+    totalPlayTimeSeconds: element.totalPlayTimeSeconds,
+    lastPlayAt: element.lastPlayAt,
+    installed: !!(element.exePath || element.lnkPath),
+    liked: !!element.likeAt,
+  });
+
+  const createLibraryResponseMessage =
+    async (): Promise<LibraryResponseMessage> => {
+      await sidebarCollectionElements.refetch();
+      return {
+        type: "library_response",
+        games: sidebarCollectionElements.value().map(toRemoteGameSummary),
+      };
+    };
+
+  const createControlStatusMessage =
+    async (error?: string): Promise<ControlStatusMessage> => ({
+      type: "control_status",
+      isPaused: await commandGetPauseState(),
+      error,
+    });
+
   const cleanupFuncs: (() => void)[] = [];
   const cleanup = () => {
     cleanupFuncs.forEach((func) => func());
   };
 
   let dataStream: LocalDataStream | undefined = undefined;
+  let currentAuthToken: string | undefined = undefined;
   const setDataStream = async () => {
-    const response = await fetch("https://launcherg.ryoha.moe/connect", {
+    const response = await fetch(SKYWAY_CONNECT_ENDPOINT, {
       method: "POST",
       headers: {
         "content-type": "application/json",
       },
     });
     const { authToken } = (await response.json()) as { authToken: string };
+    currentAuthToken = authToken;
 
     const context = await SkyWayContext.Create(authToken);
     const room = await SkyWayRoom.FindOrCreate(context, {
@@ -153,11 +197,37 @@ const createSkyWay = () => {
             sendMessage(response);
             break;
           }
+          case "library_request": {
+            const response = await createLibraryResponseMessage();
+            sendMessage(response);
+            break;
+          }
+          case "control_status_request": {
+            const response = await createControlStatusMessage();
+            sendMessage(response);
+            break;
+          }
+          case "pause_toggle":
+            try {
+              const isPaused = await commandTogglePauseTracking();
+              sendMessage({ type: "control_status", isPaused });
+            } catch (e) {
+              reportError("skyway.pause.toggle", e);
+              const response = await createControlStatusMessage(
+                getFriendlyErrorMessage(e, "Pauseの切り替えに失敗しました"),
+              );
+              sendMessage(response);
+            }
+            break;
           case "take_screenshot":
             try {
+              const processId = getStartProcessMap()[message.gameId];
+              if (processId === undefined) {
+                throw new Error("対象ゲームの起動プロセスが見つかりません");
+              }
               const imagePath = await commandSaveScreenshotByPid(
                 message.gameId,
-                getStartProcessMap()[message.gameId]
+                processId
               );
               const prev = getMemo(message.gameId).value;
               const lines = prev.split("\n");
@@ -171,10 +241,26 @@ const createSkyWay = () => {
               }
               const newMemo = newLines.join("\n");
               setRemoteMemo(message.gameId, newMemo);
-              syncMemo(message.gameId, newMemo);
+              await syncMemo(message.gameId, newMemo);
+              sendMessage({
+                type: "screenshot_result",
+                gameId: message.gameId,
+                ok: true,
+                imagePath,
+              });
             } catch (e) {
               reportError("skyway.screenshot.capture", e);
-              showErrorToast(getFriendlyErrorMessage(e, "スクリーンショットの取得に失敗しました"));
+              const error = getFriendlyErrorMessage(
+                e,
+                "スクリーンショットの取得に失敗しました",
+              );
+              showErrorToast(error);
+              sendMessage({
+                type: "screenshot_result",
+                gameId: message.gameId,
+                ok: false,
+                error,
+              });
             }
         }
       });
@@ -200,16 +286,16 @@ const createSkyWay = () => {
     room.onStreamPublished.add((e) => onPublicate(e.publication));
   };
 
-  const connect = async (workId: number, seiyaUrl: string) => {
+  const connect = async (workId?: number, seiyaUrl = "") => {
     if (!dataStream) {
       await setDataStream();
     }
-    const url = new URL("https://launcherg.ryoha.moe");
-    url.searchParams.set("seiyaUrl", seiyaUrl);
-    url.searchParams.set("roomId", roomId);
-    url.searchParams.set("gameId", workId.toString());
-    // return `http://127.0.0.1:8788?seiyaUrl=${seiyaUrl}&roomId=${roomId}&gameId=${workId}`;
-    return url.toString();
+    return createMobileCompanionUrl({
+      roomId,
+      gameId: workId,
+      seiyaUrl,
+      authToken: currentAuthToken,
+    });
   };
 
   const sendMessage = (message: LocalMessage) => {

@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Launcherg Mobile Companion</title>
+    <script>
+      (() => {
+        const source = new URL(window.location.href);
+        const target = new URL("./", source);
+        const search = source.searchParams.toString();
+        target.search = "";
+        target.hash = `/companion${search ? `?${search}` : ""}`;
+        window.location.replace(target.toString());
+      })();
+    </script>
+  </head>
+  <body>
+  </body>
+</html>

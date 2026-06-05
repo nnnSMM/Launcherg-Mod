@@ -12,12 +12,36 @@ links:
 
 # Decision Log
 
+## 2026-06-05: Mobile Companion操作MVPはHTTPS PWA上で検証する
+
+- Context: スマホ実機でPCの `npm run tauri dev` にLAN HTTP接続すると、ブラウザが安全なコンテキストと見なさず、SkyWay/WebRTCに必要な `navigator.mediaDevices` が無効になって白画面になった。
+- Decision: スマホ側の実接続検証はGitHub PagesなどのHTTPS PWAで行う。LAN HTTPで開いた場合はSkyWayを読み込まず、接続不可であることを画面に表示する。操作MVPとして、Pause状態取得、Pause切替、通常スクリーンショットの成功/失敗応答をSkyWay data channelで返す。
+- Rationale: HTTPS配布を前提にすればiOS/Androidのブラウザ制約を避けられ、白画面ではなく診断可能な状態にできる。スクショとPauseはPC状態を変えるため、スマホ側に結果を返してユーザーが操作完了を判断できる必要がある。
+- Consequence: `npm run tauri dev` はPC側ホストの検証には使えるが、スマホ側をLAN HTTPで本接続検証する用途には使わない。実機確認はPagesへデプロイ後に行う。
+- Links: [[mobile-companion-service-blueprint]], [[remote-play-hub]]
+
+## 2026-06-05: Mobile Companionは接続後にPCライブラリ全体を同期する
+
+- Context: スマホ連携QRが特定ゲームまたは既存メモ画面に見えると、ユーザーは「アプリ連携」ではなく「メモ用QR」と認識してしまう。PC補助をしていない時にもスマホ側でゲーム一覧を見たいという要求がある。
+- Decision: QRはアプリ単位の連携入口にし、スマホPWAは接続後に `library_request` を送り、PC側は登録済みゲーム一覧を `library_response` で返す。対象ゲームはスマホ側の一覧から選択する。
+- Rationale: 全ゲーム一覧を最初に出すことで、PWAが単なるメモ同期画面ではなくLauncherg-Modのスマホ面として成立する。補助操作は選択中ゲームに対して行えばよく、ゲーム詳細にQRを置く必要もなくなる。
+- Consequence: 初期の一覧にはローカルファイル画像を載せない。サムネイルやスクショ一覧は、PWAで安全に配れる画像経路を決めてから追加する。
+- Links: [[mobile-companion-service-blueprint]], [[remote-play-hub]]
+
+## 2026-06-05: Mobile Companion入口はゲーム詳細ではなくアプリ全体に置く
+
+- Context: 既存のQRはゲーム詳細アクション内にあり、ユーザーには「元のメモ用QR」と区別しにくかった。Mobile CompanionはLauncherg-Modアプリと連携する入口なので、個別詳細の一操作として置くと発見性と意味づけが弱くなる。
+- Decision: Mobile CompanionのQR入口はタイトルバーの共通操作として一か所に置く。QRは特定ゲームに固定せず、接続後にスマホ側でゲーム一覧から対象を選ぶ。
+- Rationale: 入口を一か所に固定すると、将来Pause、スクリーンショット、表示状態、Library/Galleryを足しても「スマホ連携はここ」という認知を維持できる。ゲーム詳細側はPlay/設定/お気に入りなど、そのゲーム自体の操作に絞れる。
+- Consequence: ホームや設定からも同じタイトルバー入口でQRを開ける。ゲーム詳細側のQRは廃止し、特定ゲームの補助操作はスマホ側で対象を選択してから行う。
+- Links: [[mobile-companion-service-blueprint]], [[remote-play-hub]]
+
 ## 2026-06-05: Mobile Companionは公開HTTPS PWAとして提供する
 
 - Context: Mobile CompanionをPWAにする方針が決まった。既存実装ではQRの遷移先が `https://launcherg.ryoha.moe` で、SkyWay roomId/gameIdを渡す形になっている。一方、PWAからPCローカルHTTP APIを直接叩く構成はHTTPS、Service Worker、CORS、証明書、認可の難度が上がる。
-- Decision: Mobile Companionは公開HTTPS originのPWAとして提供する。Controller MVPではPWAからPCローカルAPIを直接呼ばず、既存SkyWay data channelを短命sessionId、allowedGameId、scope、TTLで安全化して使う。manifest、アイコン、Service Worker、ホーム画面追加導線を正式な配布要件にする。
-- Rationale: PWAはApp Store配布なしでiPhoneから試しやすく、既存の `launcherg.ryoha.moe` とSkyWay接続資産を活かせる。Service WorkerやinstallabilityはHTTPS前提のため、ローカルサーバー配信より公開HTTPS PWAの方が初期検証の不確実性が小さい。
-- Consequence: iOSネイティブ機能、Bonjour自動検出、Wake-on-LAN、同一LAN読み取りAPIは後続に回す。iPhoneではインストール操作をPWA内で強制できないため、Safari共有メニューからホーム画面へ追加する案内をUXに含める。オフラインキャッシュはシェルと軽い状態に限定し、メモ本文やフルサイズ画像は初期キャッシュしない。
+- Decision: Mobile Companionは公開HTTPS originのPWAとして提供する。既定のPWA配布先はGitHub Pagesの `https://nnnsmm.github.io/Launcherg-Mod/` に揃え、QRにはPC側が取得したSkyWay `authToken` と `roomId` を含める。Controller MVPではPWAからPCローカルAPIを直接呼ばず、既存SkyWay data channelを短命sessionId、allowedGameId、scope、TTLで安全化して使う。manifest、アイコン、Service Worker、ホーム画面追加導線を正式な配布要件にする。
+- Rationale: PWAはApp Store配布なしでiPhoneから試しやすい。PWA配布先とSkyWay認証APIを別originにするとCORSやプリフライトで詰まるため、PC側で取得済みの短命SkyWayトークンをQRに載せ、スマホ側はQRだけでSkyWay roomへ参加できるようにする。Service WorkerやinstallabilityはHTTPS前提のため、ローカルサーバー配信より公開HTTPS PWAの方が初期検証の不確実性が小さい。
+- Consequence: iOSネイティブ機能、Bonjour自動検出、Wake-on-LAN、同一LAN読み取りAPIは後続に回す。iPhoneではインストール操作をPWA内で強制できないため、Safari共有メニューからホーム画面へ追加する案内をUXに含める。GitHub Pages上のQR入口は `companion.html` で受け、内部では既存の hash SPA ルート `#/companion` へ遷移させる。オフラインキャッシュはシェルと軽い状態に限定し、メモ本文やフルサイズ画像は初期キャッシュしない。
 - Links: [[mobile-companion-service-blueprint]], [[remote-play-hub]], [[remote-play-companion-ux-research]]
 
 ## 2026-06-05: Mobile CompanionのMVPはSkyWay安全化とPause/通常スクショに絞る

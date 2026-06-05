@@ -1,3 +1,5 @@
+import type { PlayStatus } from "@/lib/types";
+
 export type PingMessage = { type: "ping" };
 export type MemoMessage = {
   type: "memo";
@@ -15,6 +17,41 @@ export type TakeScreenshotMessage = {
   gameId: number;
   cursorLine: number;
 };
+export type ControlStatusRequestMessage = {
+  type: "control_status_request";
+};
+export type PauseToggleMessage = {
+  type: "pause_toggle";
+};
+export type ScreenshotResultMessage = {
+  type: "screenshot_result";
+  gameId: number;
+  ok: boolean;
+  imagePath?: string;
+  error?: string;
+};
+export type ControlStatusMessage = {
+  type: "control_status";
+  isPaused: boolean;
+  error?: string;
+};
+export type LibraryRequestMessage = {
+  type: "library_request";
+};
+export type RemoteGameSummary = {
+  id: number;
+  title: string;
+  brandName: string;
+  playStatus: PlayStatus;
+  totalPlayTimeSeconds: number;
+  lastPlayAt: string | null;
+  installed: boolean;
+  liked: boolean;
+};
+export type LibraryResponseMessage = {
+  type: "library_response";
+  games: RemoteGameSummary[];
+};
 export type ImageMetadataMessage = {
   type: "image_metadata";
   path: string;
@@ -27,12 +64,18 @@ export type LocalMessage =
   | PingMessage
   | MemoMessage
   | InitResponseMessage
+  | LibraryResponseMessage
+  | ScreenshotResultMessage
+  | ControlStatusMessage
   | ImageMetadataMessage;
 export type RemoteMessage =
   | PingMessage
   | MemoMessage
   | InitMessage
-  | TakeScreenshotMessage;
+  | LibraryRequestMessage
+  | TakeScreenshotMessage
+  | ControlStatusRequestMessage
+  | PauseToggleMessage;
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
   !!value && typeof value === "object";
@@ -52,6 +95,12 @@ export const isRemoteMessage = (value: unknown): value is RemoteMessage => {
       return typeof value.text === "string" && isFiniteNumber(value.gameId);
     case "init":
       return isFiniteNumber(value.gameId);
+    case "library_request":
+      return true;
+    case "control_status_request":
+      return true;
+    case "pause_toggle":
+      return true;
     case "take_screenshot":
       return (
         isFiniteNumber(value.gameId) && Number.isInteger(value.cursorLine)

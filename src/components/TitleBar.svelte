@@ -31,6 +31,7 @@
   import { theme, type AppTheme } from "@/store/theme";
   import UpdateBadge from "@/components/Update/UpdateBadge.svelte";
   import UpdateDialog from "@/components/Update/UpdateDialog.svelte";
+  import QrCode from "@/components/Work/QRCode.svelte";
 
   export let variant: "main" | "screenshot" = "main";
   export let heightClass: string = "h-8";
@@ -44,6 +45,7 @@
     gameAdd: "\u30b2\u30fc\u30e0\u8ffd\u52a0",
     addShort: "\u8ffd\u52a0",
     shortcut: "\u30b7\u30e7\u30fc\u30c8\u30ab\u30c3\u30c8",
+    mobileCompanion: "\u30b9\u30de\u30db\u9023\u643a",
     dark: "\u30c0\u30fc\u30af\u30e2\u30fc\u30c9",
     light: "\u30e9\u30a4\u30c8\u30e2\u30fc\u30c9",
     stats: "\u7d71\u8a08",
@@ -57,6 +59,7 @@
   let isMaximized = false;
   let isOpenImportAutomatically = false;
   let isOpenImportManually = false;
+  let isOpenMobileCompanion = false;
 
   $: themeButtonLabel = $theme === "dark" ? navLabels.dark : navLabels.light;
 
@@ -187,6 +190,9 @@
       showErrorToast(getFriendlyErrorMessage(error, "テーマの切り替えに失敗しました"));
     }
   }
+  function openMobileCompanion() {
+    isOpenMobileCompanion = true;
+  }
 </script>
 
 <div class="{heightClass} {isWorkDetail ? 'bg-transparent border-border-primary' : 'bg-bg-primary/92 border-border-primary'} border-b border-solid flex items-center select-none w-full z-50 shrink-0 relative backdrop-blur-xl transition-all duration-300">
@@ -269,6 +275,15 @@
           on:click={openShortcutSettingsTab}
         >
           <div class="i-material-symbols:keyboard-outline-rounded text-[18px]" />
+        </button>
+        <button
+          type="button"
+          aria-label={navLabels.mobileCompanion}
+          use:titlebarTooltipAction={navLabels.mobileCompanion}
+          class={titlebarIconButtonClass}
+          on:click={openMobileCompanion}
+        >
+          <div class="i-material-symbols-qr-code text-[18px]" />
         </button>
         <button
           type="button"
@@ -359,6 +374,9 @@
     on:confirm={(e) => importManually(e.detail)}
     on:cancel={() => (isOpenImportManually = false)}
   />
+{/if}
+{#if isOpenMobileCompanion}
+  <QrCode bind:isOpen={isOpenMobileCompanion} />
 {/if}
 {#if variant === "main"}
   <UpdateDialog />

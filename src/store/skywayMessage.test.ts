@@ -12,6 +12,9 @@ describe("skywayMessage", () => {
       isRemoteMessage({ type: "memo", gameId: 10, text: "memo text" }),
     ).toBe(true);
     expect(isRemoteMessage({ type: "init", gameId: 10 })).toBe(true);
+    expect(isRemoteMessage({ type: "library_request" })).toBe(true);
+    expect(isRemoteMessage({ type: "control_status_request" })).toBe(true);
+    expect(isRemoteMessage({ type: "pause_toggle" })).toBe(true);
     expect(
       isRemoteMessage({
         type: "take_screenshot",
