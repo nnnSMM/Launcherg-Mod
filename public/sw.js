@@ -1,4 +1,4 @@
-const CACHE_NAME = "launcherg-pwa-shell-mobile-pwa-v1";
+const CACHE_NAME = "launcherg-pwa-shell-mobile-pwa-v2";
 const PRECACHE_ASSETS = Array.isArray(self.__LAUNCHERG_PWA_ASSETS__)
   ? self.__LAUNCHERG_PWA_ASSETS__
   : [];
@@ -50,6 +50,16 @@ const networkFirstDocument = async (request) => {
   try {
     return await cacheShellResponse(request, await fetch(request));
   } catch {
+    const url = new URL(request.url);
+    if (url.pathname.endsWith("/companion.html")) {
+      return (
+        (await caches.match("./companion.html")) ||
+        (await caches.match(request, { ignoreSearch: true })) ||
+        (await caches.match("./index.html")) ||
+        (await caches.match("./"))
+      );
+    }
+
     return (
       (await caches.match(request)) ||
       (await caches.match("./index.html")) ||

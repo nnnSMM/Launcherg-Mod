@@ -10,6 +10,7 @@
   import { fade } from "svelte/transition";
   import { isWorkDetailRoute } from "@/lib/routeHelper";
   import { setupGlobalErrorLogging } from "@/lib/errors";
+  import { isStandalonePwa } from "@/lib/pwa";
 
   $: isWorkDetail = isWorkDetailRoute($location);
 
@@ -19,6 +20,7 @@
   import { theme } from "@/store/theme";
 
   const isPublicDemoBuild = __PUBLIC_DEMO_BUILD__;
+  const isStandalonePublicPwa = isPublicDemoBuild && isStandalonePwa();
   const isTauriRuntime =
     typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
   const windowLabel = isTauriRuntime ? getCurrentWindow().label : "main";
@@ -39,7 +41,14 @@
     typeof window !== "undefined" &&
     window.location.pathname.endsWith("/companion.html");
 
-  $: isCompanionRoute = isCompanionDocument || $location === "/companion";
+  $: shouldOpenCompanionFromStandaloneStart =
+    isStandalonePublicPwa &&
+    !isCompanionDocument &&
+    ($location === "/" || $location === "/landing");
+  $: isCompanionRoute =
+    isCompanionDocument ||
+    $location === "/companion" ||
+    shouldOpenCompanionFromStandaloneStart;
   $: isLandingRoute =
     isPublicDemoBuild &&
     !isCompanionRoute &&
@@ -215,6 +224,9 @@
     if (windowLabel === "main") {
       initializeAppUpdate();
     }
+  }
+  $: if (isMounted && shouldOpenCompanionFromStandaloneStart) {
+    replace("/companion");
   }
 </script>
 
