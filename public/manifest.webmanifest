@@ -1,0 +1,26 @@
+{
+  "name": "Launcherg Mobile Companion",
+  "short_name": "Launcherg",
+  "description": "Launcherg-Mod companion PWA for mobile play support.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#111827",
+  "theme_color": "#111827",
+  "categories": ["games", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "./icon.png",
+      "sizes": "1660x1660",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon.png",
+      "sizes": "1660x1660",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

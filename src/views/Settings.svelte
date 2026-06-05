@@ -8,7 +8,8 @@
   import Input from "../components/UI/Input.svelte";
   import type { Option } from "@/lib/filter";
   import Card from "@/components/UI/Card.svelte";
-  import { showErrorToast, showInfoToast } from "@/lib/toast";
+  import { showErrorToast } from "@/lib/toast";
+  import { getFriendlyErrorMessage, reportError } from "@/lib/errors";
 
   let games: CollectionElement[] = [];
   let gameOptions: Option<number>[] = [];
@@ -52,7 +53,8 @@
       }
 
     } catch (error) {
-      console.error("Error loading settings:", error);
+      reportError("settings.load", error);
+      showErrorToast(getFriendlyErrorMessage(error, "設定の読み込みに失敗しました"));
     } finally {
       isLoading = false;
     }
@@ -91,8 +93,8 @@
         value: gameIdToSave,
       });
     } catch (error) {
-      console.error("Error saving shortcut_game_id:", error);
-      showErrorToast(`設定の保存に失敗しました: ${error}`);
+      reportError("settings.shortcutGame.save", error);
+      showErrorToast(getFriendlyErrorMessage(error, "ショートカット対象ゲームの保存に失敗しました"));
     }
   }
 
@@ -104,8 +106,8 @@
         newShortcutKey: keyToSave,
       });
     } catch (error) {
-      console.error("Error saving shortcut_key:", error);
-      showErrorToast(`設定の保存に失敗しました: ${error}`);
+      reportError("settings.shortcutKey.save", error);
+      showErrorToast(getFriendlyErrorMessage(error, "ショートカットキーの保存に失敗しました"));
     }
   }
 
@@ -117,8 +119,8 @@
         newShortcutKey: pauseKeyToSave,
       });
     } catch (error) {
-      console.error("Error saving pause_shortcut_key:", error);
-      showErrorToast(`設定の保存に失敗しました: ${error}`);
+      reportError("settings.pauseShortcutKey.save", error);
+      showErrorToast(getFriendlyErrorMessage(error, "一時停止ショートカットキーの保存に失敗しました"));
     }
   }
 

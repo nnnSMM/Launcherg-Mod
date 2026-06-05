@@ -11,6 +11,7 @@
   import { memo } from "@/store/memo";
   import { startProcessMap } from "@/store/startProcessMap";
   import { showErrorToast } from "@/lib/toast";
+  import { getFriendlyErrorMessage, reportError } from "@/lib/errors";
   import { onDestroy, onMount } from "svelte";
   import { backgroundState } from "@/store/background";
   import { handleMarkdownClick } from "@/lib/utils";
@@ -120,8 +121,8 @@
               );
               insertImage(screenshotPath);
             } catch (e) {
-              showErrorToast("スクリーンショットの取得に失敗しました");
-              console.error(e);
+              reportError("memo.screenshot.capture", e);
+              showErrorToast(getFriendlyErrorMessage(e, "スクリーンショットの取得に失敗しました"));
             }
           },
           className: "fa fa-desktop",

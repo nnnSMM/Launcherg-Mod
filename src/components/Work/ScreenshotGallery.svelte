@@ -9,6 +9,8 @@
         commandImportScreenshot,
         commandOpenScreenshotWindow,
     } from "@/lib/command";
+    import { getFriendlyErrorMessage, reportError } from "@/lib/errors";
+    import { showErrorToast } from "@/lib/toast";
 
     export let gameId: number;
 
@@ -82,7 +84,7 @@
         try {
             screenshots = await commandGetGameScreenshots(gameId);
         } catch (e) {
-            console.error("Failed to load screenshots", e);
+            reportError("screenshots.load", e);
         }
     };
 
@@ -120,7 +122,8 @@
 
             await loadScreenshots();
         } catch (e) {
-            console.error("Failed to import screenshot", e);
+            reportError("screenshots.import", e);
+            showErrorToast(getFriendlyErrorMessage(e, "スクリーンショットのインポートに失敗しました"));
         }
     };
 

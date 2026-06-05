@@ -2929,6 +2929,7 @@ dependencies = [
  "futures",
  "ico 0.3.0",
  "image",
+ "log",
  "notify",
  "rayon",
  "refinery",

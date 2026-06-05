@@ -22,6 +22,7 @@
   } from "@/lib/command";
   import { registerCollectionElementDetails } from "@/lib/registerCollectionElementDetails";
   import { showErrorToast, showInfoToast } from "@/lib/toast";
+  import { getFriendlyErrorMessage, reportError } from "@/lib/errors";
   import type { AllGameCacheOne } from "@/lib/types";
   import { sidebarCollectionElements } from "@/store/sidebarCollectionElements";
   import { autoImportProgress } from "@/store/autoImportProgress";
@@ -109,12 +110,12 @@
       try {
         await registerCollectionElementDetails();
       } catch (e) {
-        console.error("Failed to fetch extended game details:", e);
+        reportError("import.manual.details", e);
       }
       showInfoToast(`${arg.gameCache.gamename}\u3092\u767b\u9332\u3057\u307e\u3057\u305f\u3002`);
     } catch (e) {
-      console.error("Failed to add game to collection:", e);
-      showErrorToast(`${arg.gameCache.gamename}\u306e\u767b\u9332\u306b\u5931\u6557\u3057\u307e\u3057\u305f\u3002`);
+      reportError("import.manual.upsert", e);
+      showErrorToast(getFriendlyErrorMessage(e, `${arg.gameCache.gamename}\u306e\u767b\u9332\u306b\u5931\u6557\u3057\u307e\u3057\u305f`));
     } finally {
       await sidebarCollectionElements.refetch();
       isOpenImportManually = false;
@@ -138,7 +139,7 @@
     try {
       await commandSaveMainWindowState();
     } catch (e) {
-      console.error("Failed to save window state:", e);
+      reportError("window.saveState", e);
     }
   }
 
@@ -182,8 +183,8 @@
     try {
       await theme.set(targetTheme);
     } catch (error) {
-      console.error("Failed to toggle theme:", error);
-      showErrorToast(`テーマの切り替えに失敗しました: ${error}`);
+      reportError("theme.toggle", error);
+      showErrorToast(getFriendlyErrorMessage(error, "テーマの切り替えに失敗しました"));
     }
   }
 </script>

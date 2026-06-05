@@ -8,6 +8,7 @@
   import { derived } from "svelte/store";
   import Button from "@/components/UI/Button.svelte";
   import { showErrorToast } from "@/lib/toast";
+  import { getFriendlyErrorMessage, reportError } from "@/lib/errors";
   import RecentlyPlayedScroller from "@/components/Home/RecentlyPlayedScroller.svelte";
   import GameCard from "@/components/UI/GameCard.svelte";
   import { formatLastPlayed, localStorageWritable } from "@/lib/utils";
@@ -106,7 +107,8 @@
         return v;
       });
     } catch (e) {
-      showErrorToast(e as string);
+      reportError("game.play.home", e);
+      showErrorToast(getFriendlyErrorMessage(e, "ゲームの起動に失敗しました"));
     }
   };
 </script>

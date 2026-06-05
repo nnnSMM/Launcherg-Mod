@@ -3,7 +3,7 @@ import { svelte } from "@sveltejs/vite-plugin-svelte";
 import sveltePreprocess from "svelte-preprocess";
 import UnoCSS from "unocss/vite";
 import { fileURLToPath } from "node:url";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 const defaultSiteUrl = "https://nnnsmm.github.io/Launcherg-Mod/";
@@ -58,6 +58,37 @@ const createSeoFilesPlugin = () => ({
   },
 });
 
+const createPwaAssetManifestPlugin = () => ({
+  name: "create-demo-pwa-asset-manifest",
+  async closeBundle() {
+    const outDir = resolve("docs/demo");
+    const assetsDir = resolve(outDir, "assets");
+    const swPath = resolve(outDir, "sw.js");
+
+    let serviceWorker: string;
+    try {
+      serviceWorker = await readFile(swPath, "utf-8");
+    } catch {
+      return;
+    }
+
+    const entries = await readdir(assetsDir, { withFileTypes: true }).catch(
+      () => [],
+    );
+    const assets = entries
+      .filter((entry) => entry.isFile() && /\.(js|css)$/.test(entry.name))
+      .map((entry) => `./assets/${entry.name}`)
+      .sort();
+
+    const injectedAssets = `self.__LAUNCHERG_PWA_ASSETS__ = ${JSON.stringify(
+      assets,
+      null,
+      2,
+    )};\n`;
+    await writeFile(swPath, `${injectedAssets}${serviceWorker}`);
+  },
+});
+
 // https://vitejs.dev/config/
 export default defineConfig(async () => ({
   base: "./",
@@ -71,6 +102,7 @@ export default defineConfig(async () => ({
       ],
     }),
     createSeoFilesPlugin(),
+    createPwaAssetManifestPlugin(),
   ],
 
   resolve: {

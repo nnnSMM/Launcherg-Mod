@@ -137,162 +137,166 @@ fn main() {
             }
             _ => {}
         })
-        .setup(|app| -> std::result::Result<(), Box<dyn std::error::Error>> {
-            // デバッグビルドでは current_exe() が target/debug を返すため、
-            // autostart 登録を実行するとリリース版のRunエントリを開発用パスで上書きしてしまう。
-            // リリースビルドのみで登録・補修を行う。
-            #[cfg(all(desktop, not(debug_assertions)))]
-            {
-                let autostart_manager = app.autolaunch();
-                // 常に enable() を呼び、インストーラーが登録した引数なしエントリを
-                // --autostart 付きのエントリで上書きする（次回起動以降に有効）
-                if let Err(e) = autostart_manager.enable() {
-                    eprintln!("Failed to enable autostart: {}", e);
+        .setup(
+            |app| -> std::result::Result<(), Box<dyn std::error::Error>> {
+                // デバッグビルドでは current_exe() が target/debug を返すため、
+                // autostart 登録を実行するとリリース版のRunエントリを開発用パスで上書きしてしまう。
+                // リリースビルドのみで登録・補修を行う。
+                #[cfg(all(desktop, not(debug_assertions)))]
+                {
+                    let autostart_manager = app.autolaunch();
+                    // 常に enable() を呼び、インストーラーが登録した引数なしエントリを
+                    // --autostart 付きのエントリで上書きする（次回起動以降に有効）
+                    if let Err(e) = autostart_manager.enable() {
+                        eprintln!("Failed to enable autostart: {}", e);
+                    }
+                    if let Err(e) = ensure_windows_autostart_entry(app) {
+                        eprintln!("Failed to repair Windows autostart entry: {}", e);
+                    }
                 }
-                if let Err(e) = ensure_windows_autostart_entry(app) {
-                    eprintln!("Failed to repair Windows autostart entry: {}", e);
+
+                let handle = app.handle().clone();
+                if let Err(e) = handle.global_shortcut().unregister_all() {
+                    eprintln!("Failed to unregister all shortcuts on startup: {}", e);
                 }
-            }
 
-            let handle = app.handle().clone();
-            if let Err(e) = handle.global_shortcut().unregister_all() {
-                eprintln!("Failed to unregister all shortcuts on startup: {}", e);
-            }
+                // Ensure overlay is hidden on startup
+                if let Some(window) = handle.get_webview_window("overlay") {
+                    let _ = window.hide();
+                }
 
-            // Ensure overlay is hidden on startup
-            if let Some(window) = handle.get_webview_window("overlay") {
-                let _ = window.hide();
-            }
+                // Hide main window decorations (official title bar) here instead of tauri.conf.json
+                // to fix window size saving issues on Windows.
+                if let Some(window) = handle.get_webview_window("main") {
+                    let _ = window.set_decorations(false);
+                }
 
-            // Hide main window decorations (official title bar) here instead of tauri.conf.json
-            // to fix window size saving issues on Windows.
-            if let Some(window) = handle.get_webview_window("main") {
-                let _ = window.set_decorations(false);
-            }
+                // Modulesの初期化を先に行う
+                let modules = Arc::new(tauri::async_runtime::block_on(Modules::new(app.handle()))?);
+                app.manage(modules);
 
-            // Modulesの初期化を先に行う
-            let modules = Arc::new(tauri::async_runtime::block_on(Modules::new(app.handle()))?);
-            app.manage(modules);
+                app.manage(TrayLeftClickMenuToken::new());
 
-            app.manage(TrayLeftClickMenuToken::new());
+                create_tray_menu_window(app.handle())?;
 
-            create_tray_menu_window(app.handle())?;
-
-            let mut tray_builder = TrayIconBuilder::with_id("main-tray")
-                .tooltip("Launcherg")
-                .show_menu_on_left_click(false)
-                .on_tray_icon_event(|tray, event| {
-                    let app = tray.app_handle();
-                    match event {
-                        TrayIconEvent::DoubleClick { button, .. } => {
-                            if matches!(button, MouseButton::Left) {
-                                let token_state = app.state::<TrayLeftClickMenuToken>();
-                                token_state.invalidate_scheduled_menu();
-                                token_state.arm_suppress_next_left_menu_open();
-                                    if let Err(e) = show_main_window(app) {
-                                    eprintln!(
-                                        "Failed to show main window from tray double-click: {}",
-                                        e
-                                    );
-                                }
-                                let app_reset = app.clone();
-                                tauri::async_runtime::spawn(async move {
-                                    tokio::time::sleep(SUPPRESS_LEFT_MENU_RESET_AFTER_DOUBLE_CLICK)
-                                        .await;
-                                    app_reset
-                                        .state::<TrayLeftClickMenuToken>()
-                                        .clear_suppress_next_left_menu_open();
-                                });
-                            }
-                        }
-                        TrayIconEvent::Click {
-                            position,
-                            button,
-                            button_state,
-                            ..
-                        } => {
-                            if button_state != MouseButtonState::Up {
-                                return;
-                            }
-                            match button {
-                                MouseButton::Right => {
-                                    if let Err(e) = toggle_tray_menu_window(app, position) {
-                                        eprintln!("Failed to toggle tray menu: {}", e);
-                                    }
-                                }
-                                MouseButton::Left => {
+                let mut tray_builder = TrayIconBuilder::with_id("main-tray")
+                    .tooltip("Launcherg")
+                    .show_menu_on_left_click(false)
+                    .on_tray_icon_event(|tray, event| {
+                        let app = tray.app_handle();
+                        match event {
+                            TrayIconEvent::DoubleClick { button, .. } => {
+                                if matches!(button, MouseButton::Left) {
                                     let token_state = app.state::<TrayLeftClickMenuToken>();
-                                    if token_state.take_suppress_next_left_menu_open() {
-                                        return;
+                                    token_state.invalidate_scheduled_menu();
+                                    token_state.arm_suppress_next_left_menu_open();
+                                    if let Err(e) = show_main_window(app) {
+                                        eprintln!(
+                                            "Failed to show main window from tray double-click: {}",
+                                            e
+                                        );
                                     }
-                                    let generation = token_state.begin_left_click_schedule();
-                                    let app_clone = app.clone();
+                                    let app_reset = app.clone();
                                     tauri::async_runtime::spawn(async move {
-                                        tokio::time::sleep(LEFT_CLICK_TRAY_MENU_DELAY).await;
-                                        let token_state =
-                                            app_clone.state::<TrayLeftClickMenuToken>();
-                                        if !token_state.generation_matches(generation) {
-                                            return;
-                                        }
-                                        if let Err(e) =
-                                            toggle_tray_menu_window(&app_clone, position)
-                                        {
-                                            eprintln!("Failed to toggle tray menu: {}", e);
-                                        }
+                                        tokio::time::sleep(
+                                            SUPPRESS_LEFT_MENU_RESET_AFTER_DOUBLE_CLICK,
+                                        )
+                                        .await;
+                                        app_reset
+                                            .state::<TrayLeftClickMenuToken>()
+                                            .clear_suppress_next_left_menu_open();
                                     });
                                 }
-                                _ => {}
                             }
+                            TrayIconEvent::Click {
+                                position,
+                                button,
+                                button_state,
+                                ..
+                            } => {
+                                if button_state != MouseButtonState::Up {
+                                    return;
+                                }
+                                match button {
+                                    MouseButton::Right => {
+                                        if let Err(e) = toggle_tray_menu_window(app, position) {
+                                            eprintln!("Failed to toggle tray menu: {}", e);
+                                        }
+                                    }
+                                    MouseButton::Left => {
+                                        let token_state = app.state::<TrayLeftClickMenuToken>();
+                                        if token_state.take_suppress_next_left_menu_open() {
+                                            return;
+                                        }
+                                        let generation = token_state.begin_left_click_schedule();
+                                        let app_clone = app.clone();
+                                        tauri::async_runtime::spawn(async move {
+                                            tokio::time::sleep(LEFT_CLICK_TRAY_MENU_DELAY).await;
+                                            let token_state =
+                                                app_clone.state::<TrayLeftClickMenuToken>();
+                                            if !token_state.generation_matches(generation) {
+                                                return;
+                                            }
+                                            if let Err(e) =
+                                                toggle_tray_menu_window(&app_clone, position)
+                                            {
+                                                eprintln!("Failed to toggle tray menu: {}", e);
+                                            }
+                                        });
+                                    }
+                                    _ => {}
+                                }
+                            }
+                            _ => {}
                         }
-                        _ => {}
+                    });
+                if let Some(icon) = app.default_window_icon() {
+                    tray_builder = tray_builder.icon(icon.clone());
+                } else {
+                    eprintln!("Default tray icon is not available; building tray without an icon.");
+                }
+                let _tray = tray_builder.build(app)?;
+
+                let app_handle = app.handle().clone();
+                app.listen("single-instance", move |_event| {
+                    if let Err(e) = show_main_window(&app_handle) {
+                        eprintln!("Failed to show main window for single instance: {}", e);
                     }
                 });
-            if let Some(icon) = app.default_window_icon() {
-                tray_builder = tray_builder.icon(icon.clone());
-            } else {
-                eprintln!("Default tray icon is not available; building tray without an icon.");
-            }
-            let _tray = tray_builder.build(app)?;
 
-            let app_handle = app.handle().clone();
-            app.listen("single-instance", move |_event| {
-                if let Err(e) = show_main_window(&app_handle) {
-                    eprintln!("Failed to show main window for single instance: {}", e);
+                // スタートアップ起動（PC起動時の自動起動）の場合はウィンドウを表示しない
+                let is_autostart = std::env::args().any(|arg| arg == "--autostart");
+                if !is_autostart {
+                    if let Err(e) = show_main_window(app.handle()) {
+                        eprintln!("Failed to show main window on startup: {}", e);
+                    }
                 }
-            });
 
-            // スタートアップ起動（PC起動時の自動起動）の場合はウィンドウを表示しない
-            let is_autostart = std::env::args().any(|arg| arg == "--autostart");
-            if !is_autostart {
-                if let Err(e) = show_main_window(app.handle()) {
-                    eprintln!("Failed to show main window on startup: {}", e);
-                }
-            }
+                let handle = app.handle().clone();
+                tauri::async_runtime::spawn(async move {
+                    let modules = handle.state::<Arc<Modules>>();
 
-            let handle = app.handle().clone();
-            tauri::async_runtime::spawn(async move {
-                let modules = handle.state::<Arc<Modules>>();
-
-                // Register launch shortcut
-                if let Ok(Some(shortcut_key)) = modules
-                    .collection_use_case()
-                    .get_app_setting("shortcut_key".to_string())
-                    .await
-                {
-                    if !shortcut_key.is_empty() {
-                        if let Ok(shortcut) = shortcut_key.parse::<Shortcut>() {
-                            if !handle.global_shortcut().is_registered(shortcut) {
-                                if let Err(e) = handle.global_shortcut().register(shortcut) {
-                                    eprintln!("Failed to register shortcut on startup: {}", e);
+                    // Register launch shortcut
+                    if let Ok(Some(shortcut_key)) = modules
+                        .collection_use_case()
+                        .get_app_setting("shortcut_key".to_string())
+                        .await
+                    {
+                        if !shortcut_key.is_empty() {
+                            if let Ok(shortcut) = shortcut_key.parse::<Shortcut>() {
+                                if !handle.global_shortcut().is_registered(shortcut) {
+                                    if let Err(e) = handle.global_shortcut().register(shortcut) {
+                                        eprintln!("Failed to register shortcut on startup: {}", e);
+                                    }
                                 }
                             }
                         }
                     }
-                }
-            });
+                });
 
-            Ok(())
-        })
+                Ok(())
+            },
+        )
         .plugin(
             tauri_plugin_log::Builder::new()
                 .targets([
@@ -341,6 +345,7 @@ fn main() {
             command::get_game_screenshots,
             command::get_all_screenshots,
             command::open_screenshot_window,
+            command::app_log,
             command::import_screenshot,
             command::delete_screenshot,
             command::update_screenshots_order,

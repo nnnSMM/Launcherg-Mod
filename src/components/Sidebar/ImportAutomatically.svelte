@@ -6,7 +6,8 @@
     commandCreateElementsInPc,
     commandGetDefaultImportDirs,
   } from "@/lib/command";
-  import { showInfoToast } from "@/lib/toast";
+  import { showErrorToast, showInfoToast } from "@/lib/toast";
+  import { getFriendlyErrorMessage, reportError } from "@/lib/errors";
   import { createLocalStorageWritable } from "@/lib/utils";
   import { sidebarCollectionElements } from "@/store/sidebarCollectionElements";
   import { onMount } from "svelte";
@@ -112,13 +113,35 @@
         getPaths().map((v) => v.path),
         useCache,
       );
-      await registerCollectionElementDetails();
-      await sidebarCollectionElements.refetch();
-
-      const text = res.length
+      const hasNewElements = res.length > 0;
+      const text = hasNewElements
         ? `${res[0]}${res.length === 1 ? "" : ` など${res.length}件`}追加しました`
         : "新しく追加されたゲームはありません";
+
+      let detailFetchFailed = false;
+      try {
+        await registerCollectionElementDetails();
+      } catch (e) {
+        detailFetchFailed = true;
+        reportError("import.auto.details", e);
+      }
+
+      try {
+        await sidebarCollectionElements.refetch();
+      } catch (e) {
+        reportError("import.auto.refetch", e);
+        showInfoToast(text);
+        showErrorToast(getFriendlyErrorMessage(e, "追加後のゲーム一覧更新に失敗しました"));
+        return;
+      }
+
       showInfoToast(text);
+      if (detailFetchFailed && hasNewElements) {
+        showErrorToast("ゲームは追加しましたが、詳細情報の取得に失敗しました。時間をおいて再度開くと取得される場合があります。");
+      }
+    } catch (e) {
+      reportError("import.auto", e);
+      showErrorToast(getFriendlyErrorMessage(e, "フォルダからの自動追加に失敗しました"));
     } finally {
       unlistenProgress();
       unlistenProgressLive();

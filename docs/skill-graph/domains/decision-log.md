@@ -3,7 +3,7 @@ id: decision-log
 title: Decision Log
 type: log
 status: active
-updated: 2026-06-02
+updated: 2026-06-05
 links:
   - launcherg-improvement-moc
   - template-decision-record
@@ -11,6 +11,38 @@ links:
 ---
 
 # Decision Log
+
+## 2026-06-05: Mobile Companionは公開HTTPS PWAとして提供する
+
+- Context: Mobile CompanionをPWAにする方針が決まった。既存実装ではQRの遷移先が `https://launcherg.ryoha.moe` で、SkyWay roomId/gameIdを渡す形になっている。一方、PWAからPCローカルHTTP APIを直接叩く構成はHTTPS、Service Worker、CORS、証明書、認可の難度が上がる。
+- Decision: Mobile Companionは公開HTTPS originのPWAとして提供する。Controller MVPではPWAからPCローカルAPIを直接呼ばず、既存SkyWay data channelを短命sessionId、allowedGameId、scope、TTLで安全化して使う。manifest、アイコン、Service Worker、ホーム画面追加導線を正式な配布要件にする。
+- Rationale: PWAはApp Store配布なしでiPhoneから試しやすく、既存の `launcherg.ryoha.moe` とSkyWay接続資産を活かせる。Service WorkerやinstallabilityはHTTPS前提のため、ローカルサーバー配信より公開HTTPS PWAの方が初期検証の不確実性が小さい。
+- Consequence: iOSネイティブ機能、Bonjour自動検出、Wake-on-LAN、同一LAN読み取りAPIは後続に回す。iPhoneではインストール操作をPWA内で強制できないため、Safari共有メニューからホーム画面へ追加する案内をUXに含める。オフラインキャッシュはシェルと軽い状態に限定し、メモ本文やフルサイズ画像は初期キャッシュしない。
+- Links: [[mobile-companion-service-blueprint]], [[remote-play-hub]], [[remote-play-companion-ux-research]]
+
+## 2026-06-05: Mobile CompanionのMVPはSkyWay安全化とPause/通常スクショに絞る
+
+- Context: Mobile Companion構想で、PWAのHome/Library/Game Detail/Gallery/ConnectとControllerを同時にFirst MVPへ含めると、Growth Pathとの境界が矛盾し、接続方式、認可、スクショ保存先、状態管理の未解決事項を抱えたまま実装へ進むリスクがあった。
+- Decision: 最初のMVPは既存SkyWay接続ページの安全化に限定する。短命sessionId、allowedGameId、operation scope、TTLを導入し、Pause状態表示、Pause切替、通常スクリーンショットの成功/失敗フィードバックだけを検証する。Library PWA、Capture Gallery、スマホでプレイ開始ウィザード、文字消しマクロは後続フェーズへ分ける。
+- Rationale: 現行SkyWayメッセージは `type` と `gameId` の構造検証が中心で、操作権限やセッション失効を扱っていない。さらに現行の `save_screenshot_by_pid` はメモ画像保存経路であり、screenshot DBのGallery経路とは別であるため、まず信頼境界と保存先を固定する必要がある。
+- Consequence: 初回実装の価値は小さくなるが、PauseやスクリーンショットというPC状態を変える操作を安全に増やせる。スマホ側のライブラリ閲覧やGalleryは、PWA/API接続方式スパイクとスクショ保存方針を終えてから実装する。
+- Links: [[mobile-companion-service-blueprint]], [[remote-play-hub]], [[remote-play-companion-ux-research]]
+
+## 2026-06-05: スマホプレイはLauncherg-Modを司令塔にし、映像配信は既存ツールへ任せる
+
+- Context: iPhone/iPadでPC上のノベルゲームを遊ぶ構想では、できるだけLauncherg-Mod側の操作で完結したい一方、低遅延映像配信、音声、入力転送まで自前実装すると範囲が大きくなりすぎる。
+- Decision: Launcherg-Modは「スマホでプレイ」の入口、ゲーム起動、状態確認、接続案内、メモ、スクリーンショット、一時停止を担当する。映像配信と入力転送はMoonlight/SunshineまたはSteam Linkを使う前提にする。
+- Rationale: 既存のSkyWay連携でメモ同期とスクリーンショット指示の土台があり、Launcherg-Modの価値はプレイ記録と管理にある。映像配信は専用ツールの方が品質と保守性が高い。
+- Consequence: 初回MVPは同一LANと既存ツール連携に限定する。将来のiOSネイティブ化は、Remote Play Hubの操作面が固まってから検討する。
+- Links: [[remote-play-hub]], [[product-context]], [[quality-gates]]
+
+## 2026-06-05: 失敗表示は決定的な分類レイヤーでユーザー向け文言とログを分ける
+
+- Context: Clauge参考の検討で、Windows統合・インポート・ショートカット・更新・スクリーンショットの失敗時に、生エラー文字列だけではユーザーもCodexも次の確認に進みにくいことが分かった。
+- Decision: フロントエンドに小さな `errors.ts` を置き、既知の失敗を権限、パスなし、ショートカット形式、使用中、ネットワーク、DBなどに分類する。Toastには次の行動が分かる文言を出し、元エラーは文脈付きでログに残す。ショートカット登録はRust側で保存前に検証し、登録失敗時は旧状態へ戻す。
+- Rationale: 失敗理由の分類はAI要約ではなく決定的なコードで行う方が再現性が高い。既存のToastやTauri command境界に薄く差し込めるため、設定画面や更新機構の作り直しを避けられる。
+- Consequence: 代表的な失敗はユーザー向けに読みやすくなるが、未知のエラーは引き続きログ確認が必要。分類パターンは実機報告に合わせて追加する。
+- Links: [[clauge-reference-integration]], [[known-risks]], [[quality-gates]]
 
 ## 2026-06-02: スクリーンショット候補取得は互換APIを残して停止する
 

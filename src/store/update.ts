@@ -9,6 +9,7 @@ import {
 } from "@tauri-apps/plugin-updater";
 import { writable } from "svelte/store";
 import { commandGetAppSetting, commandSetAppSetting } from "@/lib/command";
+import { getFriendlyErrorMessage, reportError } from "@/lib/errors";
 
 const IGNORED_UPDATE_VERSION_KEY = "ignored_update_version";
 const MOCK_UPDATE_STORAGE_KEY = "launcherg-update-mock";
@@ -80,8 +81,8 @@ const displayVersion = (version: string) => {
 const releaseUrlForVersion = (version: string) =>
   `${releaseUrl}/tag/${encodeURIComponent(displayVersion(version))}`;
 
-const errorMessage = (error: unknown) =>
-  error instanceof Error ? error.message : String(error);
+const updateErrorMessage = (error: unknown, fallbackMessage: string) =>
+  getFriendlyErrorMessage(error, fallbackMessage);
 
 const getSearchParams = () => {
   const params = new URLSearchParams(window.location.search);
@@ -243,13 +244,13 @@ const createAppUpdateStore = () => {
 
       await applyAvailableUpdate(await toUpdateInfo(checkedUpdate), checkedUpdate);
     } catch (e) {
-      console.warn("Failed to check updates:", e);
+      reportError("update.check", e);
       activeTauriUpdate = null;
       update((state) => ({
         ...state,
         status: "error",
         update: null,
-        error: errorMessage(e),
+        error: updateErrorMessage(e, "アップデートの確認に失敗しました"),
       }));
     }
   };
@@ -354,11 +355,11 @@ const createAppUpdateStore = () => {
       }));
       await relaunch();
     } catch (e) {
-      console.error("Failed to install update:", e);
+      reportError("update.install", e);
       update((state) => ({
         ...state,
         status: "available",
-        error: errorMessage(e),
+        error: updateErrorMessage(e, "アップデートのインストールに失敗しました"),
         installMessage: "",
         installProgress: null,
       }));

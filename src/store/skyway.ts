@@ -15,6 +15,7 @@ import { readFile } from "@tauri-apps/plugin-fs";
 import { commandSaveScreenshotByPid } from "@/lib/command";
 import { getStartProcessMap } from "@/store/startProcessMap";
 import { showErrorToast } from "@/lib/toast";
+import { getFriendlyErrorMessage, reportError } from "@/lib/errors";
 import { useChunk } from "@/lib/chunk";
 import {
   parseRemoteMessage,
@@ -172,8 +173,8 @@ const createSkyWay = () => {
               setRemoteMemo(message.gameId, newMemo);
               syncMemo(message.gameId, newMemo);
             } catch (e) {
-              showErrorToast("スクリーンショットの取得に失敗しました。");
-              console.error(e);
+              reportError("skyway.screenshot.capture", e);
+              showErrorToast(getFriendlyErrorMessage(e, "スクリーンショットの取得に失敗しました"));
             }
         }
       });

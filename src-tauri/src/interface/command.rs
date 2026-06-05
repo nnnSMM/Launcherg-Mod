@@ -90,6 +90,159 @@ impl From<GameScreenshotCache> for DomainGameScreenshotCache {
     }
 }
 
+fn normalize_shortcut_key(shortcut_key: Option<String>) -> Option<String> {
+    shortcut_key
+        .map(|key| key.trim().to_string())
+        .filter(|key| !key.is_empty())
+}
+
+fn parse_shortcut_key(shortcut_key: Option<&str>) -> anyhow::Result<Option<Shortcut>> {
+    let Some(shortcut_key) = shortcut_key.map(str::trim).filter(|key| !key.is_empty()) else {
+        return Ok(None);
+    };
+
+    shortcut_key
+        .parse::<Shortcut>()
+        .map(Some)
+        .map_err(|e| anyhow::anyhow!("invalid shortcut key `{}`: {}", shortcut_key, e))
+}
+
+fn unregister_shortcut_if_needed(
+    handle: &AppHandle,
+    shortcut: Shortcut,
+) -> Result<bool, CommandError> {
+    let was_registered = handle.global_shortcut().is_registered(shortcut);
+    if was_registered {
+        handle
+            .global_shortcut()
+            .unregister(shortcut)
+            .map_err(anyhow::Error::from)?;
+    }
+
+    Ok(was_registered)
+}
+
+fn register_new_shortcut(
+    handle: &AppHandle,
+    shortcut: Shortcut,
+    shortcut_key: Option<&str>,
+) -> Result<(), CommandError> {
+    if handle.global_shortcut().is_registered(shortcut) {
+        return Err(anyhow::anyhow!(
+            "shortcut key `{}` is already registered",
+            shortcut_key.unwrap_or("")
+        )
+        .into());
+    }
+
+    handle
+        .global_shortcut()
+        .register(shortcut)
+        .map_err(anyhow::Error::from)?;
+
+    Ok(())
+}
+
+fn ensure_shortcut_not_reserved(
+    new_shortcut: Option<Shortcut>,
+    reserved_shortcut: Option<Shortcut>,
+    shortcut_key: Option<&str>,
+    reserved_name: &str,
+) -> Result<(), CommandError> {
+    if new_shortcut.is_some() && new_shortcut == reserved_shortcut {
+        return Err(anyhow::anyhow!(
+            "shortcut key `{}` is already registered by {}",
+            shortcut_key.unwrap_or(""),
+            reserved_name
+        )
+        .into());
+    }
+
+    Ok(())
+}
+
+fn ensure_pause_shortcut_change_allowed(
+    is_tracking: bool,
+    new_shortcut: Option<Shortcut>,
+    old_shortcut: Option<Shortcut>,
+) -> Result<(), CommandError> {
+    if is_tracking && new_shortcut != old_shortcut {
+        return Err(
+            anyhow::anyhow!("pause shortcut cannot be changed while tracking a game").into(),
+        );
+    }
+
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn normalize_shortcut_key_trims_and_drops_empty_values() {
+        assert_eq!(
+            normalize_shortcut_key(Some(" Ctrl+Shift+L ".to_string())),
+            Some("Ctrl+Shift+L".to_string())
+        );
+        assert_eq!(normalize_shortcut_key(Some("   ".to_string())), None);
+    }
+
+    #[test]
+    fn ensure_shortcut_not_reserved_rejects_cross_setting_conflicts() {
+        let shortcut = parse_shortcut_key(Some("Ctrl+Shift+L")).unwrap();
+
+        let error = ensure_shortcut_not_reserved(
+            shortcut,
+            shortcut,
+            Some("Ctrl+Shift+L"),
+            "pause shortcut",
+        )
+        .unwrap_err();
+
+        assert!(error
+            .to_string()
+            .contains("already registered by pause shortcut"));
+    }
+
+    #[test]
+    fn ensure_shortcut_not_reserved_allows_empty_or_distinct_shortcuts() {
+        let launch_shortcut = parse_shortcut_key(Some("Ctrl+Shift+L")).unwrap();
+        let pause_shortcut = parse_shortcut_key(Some("Ctrl+Shift+P")).unwrap();
+
+        assert!(
+            ensure_shortcut_not_reserved(None, launch_shortcut, None, "pause shortcut").is_ok()
+        );
+        assert!(ensure_shortcut_not_reserved(
+            launch_shortcut,
+            pause_shortcut,
+            Some("Ctrl+Shift+L"),
+            "pause shortcut"
+        )
+        .is_ok());
+    }
+
+    #[test]
+    fn ensure_pause_shortcut_change_allowed_rejects_changes_while_tracking() {
+        let old_shortcut = parse_shortcut_key(Some("Ctrl+Shift+P")).unwrap();
+        let new_shortcut = parse_shortcut_key(Some("Ctrl+Alt+P")).unwrap();
+
+        let error =
+            ensure_pause_shortcut_change_allowed(true, new_shortcut, old_shortcut).unwrap_err();
+
+        assert!(error
+            .to_string()
+            .contains("cannot be changed while tracking"));
+    }
+
+    #[test]
+    fn ensure_pause_shortcut_change_allowed_allows_noop_while_tracking() {
+        let shortcut = parse_shortcut_key(Some("Ctrl+Shift+P")).unwrap();
+
+        assert!(ensure_pause_shortcut_change_allowed(true, shortcut, shortcut).is_ok());
+    }
+}
+
 #[tauri::command]
 pub async fn open_screenshot_window(
     handle: AppHandle,
@@ -157,45 +310,93 @@ pub async fn open_screenshot_window(
 }
 
 #[tauri::command]
+pub async fn app_log(level: String, message: String) -> Result<(), CommandError> {
+    match level.as_str() {
+        "debug" => log::debug!("{}", message),
+        "info" => log::info!("{}", message),
+        "warn" => log::warn!("{}", message),
+        "error" => log::error!("{}", message),
+        _ => log::error!("{}", message),
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
 pub async fn update_shortcut_registration(
     handle: AppHandle,
     modules: State<'_, Arc<Modules>>,
     new_shortcut_key: Option<String>,
 ) -> Result<(), CommandError> {
-    // Get the old shortcut key from settings
-    if let Ok(Some(old_shortcut_key)) = modules
+    let normalized_shortcut_key = normalize_shortcut_key(new_shortcut_key);
+    let new_shortcut = parse_shortcut_key(normalized_shortcut_key.as_deref())?;
+    let old_shortcut = modules
         .collection_use_case()
         .get_app_setting("shortcut_key".to_string())
         .await
-    {
-        if !old_shortcut_key.is_empty() {
-            if let Ok(old_shortcut) = old_shortcut_key.parse::<Shortcut>() {
-                if handle.global_shortcut().is_registered(old_shortcut) {
-                    handle
-                        .global_shortcut()
-                        .unregister(old_shortcut)
-                        .map_err(anyhow::Error::from)?;
-                }
-            }
-        }
+        .ok()
+        .flatten()
+        .and_then(|key| parse_shortcut_key(Some(&key)).ok().flatten());
+    let pause_shortcut = modules
+        .collection_use_case()
+        .get_app_setting("pause_shortcut_key".to_string())
+        .await
+        .ok()
+        .flatten()
+        .and_then(|key| parse_shortcut_key(Some(&key)).ok().flatten());
+
+    ensure_shortcut_not_reserved(
+        new_shortcut,
+        pause_shortcut,
+        normalized_shortcut_key.as_deref(),
+        "pause shortcut",
+    )?;
+
+    if new_shortcut == old_shortcut {
+        modules
+            .collection_use_case()
+            .set_app_setting("shortcut_key".to_string(), normalized_shortcut_key)
+            .await?;
+        return Ok(());
     }
 
-    // Save the new shortcut key
-    modules
-        .collection_use_case()
-        .set_app_setting("shortcut_key".to_string(), new_shortcut_key.clone())
-        .await?;
+    let old_shortcut_was_registered = if let Some(old_shortcut) = old_shortcut {
+        unregister_shortcut_if_needed(&handle, old_shortcut)?
+    } else {
+        false
+    };
+    let mut new_shortcut_was_registered = false;
 
-    // Register the new shortcut key
-    if let Some(new_key) = new_shortcut_key {
-        if !new_key.is_empty() {
-            if let Ok(new_shortcut) = new_key.parse::<Shortcut>() {
-                handle
-                    .global_shortcut()
-                    .register(new_shortcut)
-                    .map_err(anyhow::Error::from)?;
+    if let Some(new_shortcut) = new_shortcut {
+        if let Err(e) =
+            register_new_shortcut(&handle, new_shortcut, normalized_shortcut_key.as_deref())
+        {
+            if old_shortcut_was_registered {
+                if let Some(old_shortcut) = old_shortcut {
+                    let _ = register_new_shortcut(&handle, old_shortcut, None);
+                }
+            }
+            return Err(e);
+        }
+        new_shortcut_was_registered = true;
+    }
+
+    if let Err(e) = modules
+        .collection_use_case()
+        .set_app_setting("shortcut_key".to_string(), normalized_shortcut_key)
+        .await
+    {
+        if new_shortcut_was_registered {
+            if let Some(new_shortcut) = new_shortcut {
+                let _ = unregister_shortcut_if_needed(&handle, new_shortcut);
             }
         }
+        if old_shortcut_was_registered {
+            if let Some(old_shortcut) = old_shortcut {
+                let _ = register_new_shortcut(&handle, old_shortcut, None);
+            }
+        }
+        return Err(e.into());
     }
 
     Ok(())
@@ -207,43 +408,76 @@ pub async fn update_pause_shortcut_registration(
     modules: State<'_, Arc<Modules>>,
     new_shortcut_key: Option<String>,
 ) -> Result<(), CommandError> {
-    // Get the old shortcut key from settings
-    if let Ok(Some(old_shortcut_key)) = modules
+    let normalized_shortcut_key = normalize_shortcut_key(new_shortcut_key);
+    let new_shortcut = parse_shortcut_key(normalized_shortcut_key.as_deref())?;
+    let old_shortcut = modules
         .collection_use_case()
         .get_app_setting("pause_shortcut_key".to_string())
         .await
-    {
-        if !old_shortcut_key.is_empty() {
-            if let Ok(old_shortcut) = old_shortcut_key.parse::<Shortcut>() {
-                if handle.global_shortcut().is_registered(old_shortcut) {
-                    handle
-                        .global_shortcut()
-                        .unregister(old_shortcut)
-                        .map_err(anyhow::Error::from)?;
+        .ok()
+        .flatten()
+        .and_then(|key| parse_shortcut_key(Some(&key)).ok().flatten());
+    let launch_shortcut = modules
+        .collection_use_case()
+        .get_app_setting("shortcut_key".to_string())
+        .await
+        .ok()
+        .flatten()
+        .and_then(|key| parse_shortcut_key(Some(&key)).ok().flatten());
+
+    ensure_shortcut_not_reserved(
+        new_shortcut,
+        launch_shortcut,
+        normalized_shortcut_key.as_deref(),
+        "launch shortcut",
+    )?;
+
+    if new_shortcut == old_shortcut {
+        modules
+            .collection_use_case()
+            .set_app_setting("pause_shortcut_key".to_string(), normalized_shortcut_key)
+            .await?;
+        return Ok(());
+    }
+
+    ensure_pause_shortcut_change_allowed(
+        modules.pause_manager().is_tracking(),
+        new_shortcut,
+        old_shortcut,
+    )?;
+
+    let old_shortcut_was_registered = if let Some(old_shortcut) = old_shortcut {
+        unregister_shortcut_if_needed(&handle, old_shortcut)?
+    } else {
+        false
+    };
+
+    if let Some(new_shortcut) = new_shortcut {
+        if handle.global_shortcut().is_registered(new_shortcut) {
+            if old_shortcut_was_registered {
+                if let Some(old_shortcut) = old_shortcut {
+                    let _ = register_new_shortcut(&handle, old_shortcut, None);
                 }
             }
+            return Err(anyhow::anyhow!(
+                "shortcut key `{}` is already registered",
+                normalized_shortcut_key.as_deref().unwrap_or("")
+            )
+            .into());
         }
     }
 
-    // Save the new shortcut key
-    modules
+    if let Err(e) = modules
         .collection_use_case()
-        .set_app_setting("pause_shortcut_key".to_string(), new_shortcut_key.clone())
-        .await?;
-
-    // Register the new shortcut key
-    // Register the new shortcut key only if tracking is active
-    if modules.pause_manager().is_tracking() {
-        if let Some(new_key) = new_shortcut_key {
-            if !new_key.is_empty() {
-                if let Ok(new_shortcut) = new_key.parse::<Shortcut>() {
-                    handle
-                        .global_shortcut()
-                        .register(new_shortcut)
-                        .map_err(anyhow::Error::from)?;
-                }
+        .set_app_setting("pause_shortcut_key".to_string(), normalized_shortcut_key)
+        .await
+    {
+        if old_shortcut_was_registered {
+            if let Some(old_shortcut) = old_shortcut {
+                let _ = register_new_shortcut(&handle, old_shortcut, None);
             }
         }
+        return Err(e.into());
     }
 
     Ok(())
@@ -607,7 +841,8 @@ pub async fn get_collection_element(
     match modules
         .collection_use_case()
         .get_element_by_element_id(&Id::new(collection_element_id))
-        .await.map(|v| CollectionElement::from_domain(&Arc::new(handle), v))
+        .await
+        .map(|v| CollectionElement::from_domain(&Arc::new(handle), v))
     {
         Ok(v) => Ok(v),
         Err(e) => {
@@ -816,7 +1051,8 @@ pub async fn get_game_cache_by_id(
     Ok(modules
         .all_game_cache_use_case()
         .get(id)
-        .await?.map(|v| v.into()))
+        .await?
+        .map(|v| v.into()))
 }
 
 #[tauri::command]

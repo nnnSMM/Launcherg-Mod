@@ -5,6 +5,9 @@ import "tippy.js/dist/tippy.css";
 import "simplebar/dist/simplebar.css";
 import "./toast.scss";
 import App from "./App.svelte";
+import { registerPwaServiceWorker } from "@/lib/pwa";
+
+registerPwaServiceWorker();
 
 const app = new App({
   // @ts-expect-error

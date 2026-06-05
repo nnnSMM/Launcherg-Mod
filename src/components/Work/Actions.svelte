@@ -10,6 +10,11 @@
     commandSetAppSetting,
   } from "@/lib/command";
   import { showErrorToast, showInfoToast } from "@/lib/toast";
+  import {
+    classifyError,
+    getFriendlyErrorMessage,
+    reportError,
+  } from "@/lib/errors";
   import { localStorageWritable } from "@/lib/utils";
   import ButtonCancel from "@/components/UI/ButtonCancel.svelte";
   import { sidebarCollectionElements } from "@/store/sidebarCollectionElements";
@@ -42,7 +47,8 @@
       await commandSetAppSetting("shortcut_game_id", id.toString());
       showInfoToast("ショートカットに設定しました。");
     } catch (e) {
-      showErrorToast(e as string);
+      reportError("shortcutGame.set", e);
+      showErrorToast(getFriendlyErrorMessage(e, "ショートカット対象ゲームの保存に失敗しました"));
     }
   };
 
@@ -70,14 +76,12 @@
         return v;
       });
     } catch (e) {
-      const errStr = e as string;
-      if (errStr.includes("executable not found")) {
-        showErrorToast(
-          "実行ファイルが見つかりません。パスを設定し直してください。",
-        );
+      reportError("game.play.detail", e);
+      if (classifyError(e) === "notFound") {
+        showErrorToast(getFriendlyErrorMessage(e, "ゲームの起動に失敗しました"));
         isOpenImportManually = true;
       } else {
-        showErrorToast(errStr);
+        showErrorToast(getFriendlyErrorMessage(e, "ゲームの起動に失敗しました"));
       }
     }
   };

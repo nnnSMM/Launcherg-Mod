@@ -3,12 +3,15 @@ id: idea-bank
 title: Idea Bank
 type: backlog
 status: active
-updated: 2026-06-02
+updated: 2026-06-05
 links:
   - launcherg-improvement-moc
   - idea-pipeline
   - template-improvement-card
   - known-risks
+  - clauge-reference-integration
+  - remote-play-hub
+  - mobile-companion-service-blueprint
 ---
 
 # Idea Bank
@@ -31,7 +34,117 @@ links:
 
 すぐに実装しない改善候補を置く場所です。実装候補に上げる時は [[template-improvement-card]] の形に整理します。
 
+Clauge 由来候補の組み込み順と現行実装への当て方は [[clauge-reference-integration]] に分けて管理する。
+
 ## 候補
+
+### スマホリモートプレイ連携
+
+- Type: `workflow`
+- 詳細: [[remote-play-hub]], [[mobile-companion-service-blueprint]]
+- 狙い: iPhone/iPadからPC上のノベルゲームを遊べる導線を、Launcherg-Modのゲーム起動、プレイ時間記録、メモ、スクリーンショット管理とつなげる。
+- 体験方針: ユーザーはLauncherg-Mod上の「スマホでプレイ」から始め、ゲーム起動、配信ホスト確認、スマホ接続案内、メモ・スクショ操作までをできるだけLauncherg-Mod側の画面で完結させる。
+- 根拠: Launcherg-ModはWindowsのローカルゲーム起動と記録が核なので、映像配信を自前実装するより、Steam Link、Moonlight/Sunshineなどの既存リモートプレイ環境をLauncherg-Modから起動・設定確認・案内する方が小さく始められる。既存のSkyWay連携にはメモ同期とスクリーンショット指示の土台がある。
+- 最初の一歩: 既存SkyWay接続ページを安全化し、短命セッション、許可gameId、操作scopeを検証した上で、Pause状態表示、Pause切替、通常スクショの成功/失敗表示だけを試す。
+- MVP: 同一LAN/既存SkyWay、1台のPC、1台のスマホ、1ゲームを前提にする。Library、Gallery、配信開始ウィザード、文字消しマクロは含めない。
+- 後続: 読み取り専用ライブラリPWA、スクショGallery、スマホでプレイ開始ウィザード、作品別撮影プリセット、Sunshine導入チェック、Wake-on-LAN、外出先接続を順に検討する。
+- 注意: 低遅延映像配信、ハードウェアエンコード、入力転送をLauncherg-Mod本体で抱えると過剰に重い。初回は同一LAN内、既存ツール連携、ノベルゲーム向けの低リスクな操作補助に限定する。外部ツールを使う場合も、ユーザーに複数アプリを手動で往復させない導線設計を優先する。
+
+### Clauge参考: Codex向け開発ボードをMarkdownで軽量運用する
+
+- Type: `maintenance`
+- 狙い: Codexで進める改善作業を、要望、調査、実装中、検証待ち、完了の状態で追えるようにする。
+- 根拠: ClaugeはWorkspace/Board/CardをSQLiteとMCPで扱い、エージェント作業の状態、担当、レビュー待ちをUI化している。Launcherg-Modではまず既存のSkill GraphとMarkdownで同じ価値の小さい版を作れる。
+- 最初の一歩: `docs/skill-graph/backlog` に作業カード用ノートまたは一覧を作り、各カードに成功条件、触る予定の領域、検証コマンド、残リスクを書く。
+- 注意: ClaugeのコードはPolyForm Noncommercialなので流用しない。最初はUIやSQLite化を避け、Codexが読み書きしやすいMarkdown運用に留める。
+
+### Clauge参考: Codex作業のセッション記録を標準化する
+
+- Type: `maintenance`
+- 狙い: 長い調査や中断後でも、次のCodexセッションが目的、判断、未検証事項をすぐ復元できるようにする。
+- 根拠: ClaugeはAgent session、context、linked noteを持ち、作業単位と知識を結びつけている。Launcherg-Modには `template-session-log` と `decision-log` があるため、より軽く同じ効果を出せる。
+- 最初の一歩: 重要な作業後だけ「何を見たか」「何を変えたか」「検証」「次に読むファイル」を1枚のセッションログとして残す運用を決める。
+- 注意: すべての小作業でログを書くと重い。再利用価値がある調査、失敗、判断、未完了の引き継ぎに限定する。
+
+### Clauge参考: 診断ログとサポート情報の取り出しを整える
+
+- Type: `reliability`
+- 狙い: Windows実機で起きる起動、更新、トレイ、ショートカット、プロセス監視の問題を、ユーザーとCodexが後から追えるようにする。
+- 根拠: Claugeはローリングファイルログやログ取得コマンドを持ち、失敗時の状態確認を前提にしている。Launcherg-Modでも不安定領域はWindows統合に集中している。
+- 最初の一歩: 既存ログ出力の有無、保存先、ユーザーが取り出せる情報を棚卸しし、設定画面またはトラブルシュート文書に「診断情報を開く」導線を作る。
+- 注意: 個人情報、ゲームパス、スクリーンショットパスを含みうるため、共有前に見せる/マスクする設計を先に決める。
+
+### Clauge参考: 外部コマンド失敗理由の分類を増やす
+
+- Type: `visibility`
+- 狙い: インポート、起動、更新、ファイル選択、スクリーンショット処理で失敗した時に、ユーザーが次に何をすればよいか分かるようにする。
+- 根拠: Claugeは `gh`/`glab` や各CLIの失敗を、未インストール、未認証、アクセス不可、ネットワークなどに分類してUIへ返している。Launcherg-Modでも生のエラー文字列だけでは解決しづらい場面がある。
+- 最初の一歩: まずゲーム追加・自動スキャンの失敗理由を、権限、存在しないパス、拡張子非対応、候補なし、DB失敗に分けて表示する。
+- 注意: 分類は決定的なコードで行い、AI要約に頼らない。未知のエラーは詳細を折りたたんで見せる。
+
+### Clauge参考: Codex用のプロジェクト文脈注入を明示化する
+
+- Type: `maintenance`
+- 狙い: Codexが毎回読むべきプロジェクト文脈を、`AGENTS.md` とSkill Graphに分けて安定させる。
+- 根拠: ClaugeはClaude/Codex/Gemini/OpenCodeごとに `CLAUDE.md`、`AGENTS.md`、`GEMINI.md` を使い分け、セッション目的やコンテキストを注入している。Launcherg-Modでは `AGENTS.md` が入口なので、肥大化を避けながら参照先を整理する価値がある。
+- 最初の一歩: `AGENTS.md` は短い行動規範に保ち、実装時に読む詳細は `docs/skill-graph/MOC.md` 以下へ逃がす、という境界を明文化する。
+- 注意: 自動で `AGENTS.md` を書き換える仕組みは不要。Codexが読む入口を壊さないことを優先する。
+
+### Clauge参考: ローカルMCP化は最後の段階として調査する
+
+- Type: `research`
+- 狙い: CodexからLauncherg-Modの知識グラフ、バックログ、検証結果を構造化して読めるようにする可能性を検討する。
+- 根拠: ClaugeはローカルHTTP MCPサーバーでnotes/cards/boardsをエージェントに公開している。Launcherg-Modでも将来、Markdown運用が重くなったら構造化APIの価値が出る可能性がある。
+- 最初の一歩: 既存Markdown運用で詰まる具体例を3つ集めるまでは実装しない。必要になったら読み取り専用MCPから検討する。
+- 注意: 現時点では過剰設計になりやすい。Tauriアプリ本体のユーザー価値とは別なので、先にゲーム管理機能の改善を優先する。
+
+### Clauge参考: フロントエンド例外も含めた診断ログへ統一する
+
+- Type: `reliability`
+- 狙い: リリース版で起きた画面クラッシュ、Promise rejection、Rust panic、Tauri command失敗を、ユーザー報告後に追跡しやすくする。
+- 根拠: ClaugeはRust側ローリングログに加えて、frontendの `console.*`、`window.error`、`unhandledrejection` を同じログへ転送している。Launcherg-ModはTauri plugin logを使っているが、WebView内の例外がユーザー報告に残りにくい。
+- 最初の一歩: 現在の `tauri-plugin-log` 出力先とWebviewログの残り方を確認し、JS例外をRustログへ転送する最小の `app_log` command を検討する。
+- 注意: ゲーム名、ローカルパス、スクリーンショットパスがログへ入る可能性があるため、共有用エクスポート時のマスク方針を先に決める。
+
+### Clauge参考: 更新後のWhat's New表示を追加する
+
+- Type: `visibility`
+- 狙い: アップデート後に何が変わったか、ユーザーがアプリ内ですぐ分かるようにする。
+- 根拠: Claugeは更新通知とは別に、前回起動時バージョンと現在バージョンを比較してWhat's Newモーダルを出している。Launcherg-Modには更新検知とdemo/リリース導線があるが、更新後の差分確認は外部リリースページ依存になりやすい。
+- 最初の一歩: `appUpdate` の既存メタデータまたはGitHub Release本文を使い、更新後1回だけ表示する読み取り専用モーダルを作る。
+- 注意: 起動直後の邪魔にならないよう、閉じたら同一バージョンでは再表示しない。
+
+### Clauge参考: ショートカット一覧オーバーレイを作る
+
+- Type: `visibility`
+- 狙い: グローバルショートカット、一時停止、タブ、スクリーンショット、登録操作などの操作発見性を上げる。
+- 根拠: Claugeは `Mod+/` や `?` でキーボードショートカット一覧を表示する。Launcherg-Modはショートカット機能が価値の一部だが、設定画面を見ないと全体像を把握しにくい。
+- 最初の一歩: 現行ショートカットと主要マウス操作を棚卸しし、読み取り専用のヘルプオーバーレイを追加する。
+- 注意: ユーザー設定で変更できるショートカットは、固定文言ではなく保存値から表示する。
+
+### Clauge参考: localStorageと設定キーを集中管理する
+
+- Type: `maintenance`
+- 狙い: 保存キーの衝突、旧キー残存、壊れた保存値による起動時クラッシュを減らす。
+- 根拠: ClaugeはlocalStorageキーを定数化し、旧キーからの一回限り移行や型付きアクセサを用意している。Launcherg-Modは設定がSvelte store、localStorage、SQLite app settingsに分かれるため、キー管理が散ると復旧が難しくなる。
+- 最初の一歩: `localStorage` と `commandSetAppSetting` のキー一覧を作り、壊れた値をfallbackする共通ヘルパーから適用する。
+- 注意: 既存ユーザーの保存値を消さない。移行は読み取り時に一回だけ行い、未知値は安全な初期値へ落とす。
+
+### Clauge参考: 初回セットアップをチェックリスト化する
+
+- Type: `workflow`
+- 狙い: 初回起動後に、ゲーム登録、既定インポート先、ショートカット、スクリーンショット保存先、自動起動を迷わず設定できるようにする。
+- 根拠: Claugeは初回オンボーディングでサインイン/スキップを明示し、後で設定できることを説明している。Launcherg-Modではローカル利用が中心なので、アカウントではなくデスクトップ連携の初期設定を短く案内する方が合う。
+- 最初の一歩: 初回起動時にだけ出る小さなセットアップ導線を作り、不要ならスキップして二度と出さない。
+- 注意: ランディングページ風にしない。実操作に直結するチェックリストに留める。
+
+### Clauge参考: ライブラリのインポート/エクスポートを用意する
+
+- Type: `data`
+- 狙い: DB移行、バックアップ、別PC移行、トラブル対応で、登録ゲームと主要設定を安全に持ち出せるようにする。
+- 根拠: ClaugeはREST collectionsのimport/exportをモーダルで扱い、形式自動判定や全件エクスポートを持つ。Launcherg-ModでもSQLiteファイル丸ごとコピー以外の、ユーザー向けJSONエクスポートがあると安心材料になる。
+- 最初の一歩: 読み取り専用のエクスポートから始め、登録ゲーム、プレイ状況、メモ、スクリーンショット参照、設定のうち含める範囲を明示する。
+- 注意: ローカル実行パスや画像ファイルは環境依存なので、再インポート時のパス未解決状態を扱う設計が必要。
 
 ### VNDB照合結果の確認・修正UI
 
