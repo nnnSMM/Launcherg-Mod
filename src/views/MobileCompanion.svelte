@@ -18,6 +18,7 @@
     ScreenshotResultMessage,
     TakeScreenshotMessage,
   } from "@/store/skywayMessage";
+  import { configureMobileCompanionInstallManifest } from "@/lib/mobileCompanionInstall";
   import { SKYWAY_CONNECT_ENDPOINT } from "@/lib/mobileCompanionUrl";
 
   type ConnectionState =
@@ -136,6 +137,7 @@
   };
 
   const query = companionQuery();
+  configureMobileCompanionInstallManifest(query);
   const roomId = query.get("roomId") ?? "";
   const qrAuthToken = query.get("authToken") ?? "";
   const initialGameId = Number(query.get("gameId") ?? "");

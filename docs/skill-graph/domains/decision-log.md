@@ -3,7 +3,7 @@ id: decision-log
 title: Decision Log
 type: log
 status: active
-updated: 2026-06-05
+updated: 2026-06-06
 links:
   - launcherg-improvement-moc
   - template-decision-record
@@ -11,6 +11,14 @@ links:
 ---
 
 # Decision Log
+
+## 2026-06-06: Mobile Companionのホーム画面起動はQR別manifestでroomIdを保持する
+
+- Context: iPhoneのホーム画面Web AppはSafariとは別のCookie/Storageを持つため、QRをSafariで開いたときのlocalStorageへ `roomId` を保存しても、ホーム画面から起動したPWAでは読めない。静的manifestの `start_url` だけでは、ホーム画面起動時にQR URLの `roomId` が落ち、PC連携が切れる。
+- Decision: QR経由で `roomId` を持つMobile Companion画面を開いた場合、その場で `link rel="manifest"` を動的manifestへ差し替える。動的manifestの `start_url` には `#/companion?roomId=...` を含め、短命になりうる `authToken` は含めない。PWA起動時は保存された `roomId` でSkyWay roomへ入り、SkyWay tokenは起動時に取り直す。
+- Rationale: iOS Safariとホーム画面Web Appのストレージ分離を前提にすると、起動URLそのものに再接続に必要な最小情報を持たせる必要がある。一方でSkyWay tokenをホーム画面アイコンに固定すると期限切れや漏えいのリスクがあるため、保持するのはランダムな `roomId` と初期表示に必要な軽い情報だけにする。
+- Consequence: 既に静的manifestで追加済みの古いホーム画面アイコンはOS側に古い起動URLが固定されているため、一度削除してQRから追加し直す必要がある。以後の追加では、ホーム画面起動でも同じPC連携roomへ戻れる。
+- Links: [[mobile-companion-service-blueprint]], [[remote-play-hub]]
 
 ## 2026-06-05: Mobile Companion操作MVPはHTTPS PWA上で検証する
 
