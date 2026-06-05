@@ -36,11 +36,12 @@ import {
   createMobileCompanionUrl,
   SKYWAY_CONNECT_ENDPOINT,
 } from "@/lib/mobileCompanionUrl";
+import { getOrCreateMobileCompanionRoomId } from "@/lib/mobileCompanionRoom";
 import { sidebarCollectionElements } from "@/store/sidebarCollectionElements";
 import type { CollectionElement } from "@/lib/types";
 
 const createSkyWay = () => {
-  const roomId = uuidV4();
+  const roomId = getOrCreateMobileCompanionRoomId(uuidV4);
   const sentImagePathSet = new Set<string>();
   const { createChunks } = useChunk();
 

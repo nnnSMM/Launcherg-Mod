@@ -8,13 +8,13 @@ type WebAppManifest = {
 };
 
 describe("mobile companion web app manifest", () => {
-  it("starts installed PWA launches on the companion entrypoint", async () => {
+  it("lets installed PWA launches keep the QR URL that was added", async () => {
     const manifestPath = resolve("public/manifest.webmanifest");
     const manifest = JSON.parse(
       await readFile(manifestPath, "utf-8"),
     ) as WebAppManifest;
 
     expect(manifest.id).toBe("./companion.html");
-    expect(manifest.start_url).toBe("./companion.html");
+    expect(manifest.start_url).toBeUndefined();
   });
 });

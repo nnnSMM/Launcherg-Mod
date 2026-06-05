@@ -21,11 +21,11 @@ describe("createMobileCompanionInstallStartUrl", () => {
         query,
       ),
     ).toBe(
-      "https://example.test/Launcherg-Mod/#/companion?client=mobile-pwa-v1&mode=library&roomId=room-1&gameId=42",
+      "https://example.test/Launcherg-Mod/#/companion?client=mobile-pwa-v1&mode=library&roomId=room-1&gameId=42&authToken=short-lived-token",
     );
   });
 
-  it("does not store the short-lived SkyWay token in the installed launch URL", () => {
+  it("keeps the QR SkyWay token for installed launch reconnects", () => {
     const query = new URLSearchParams({
       roomId: "room-1",
       authToken: "short-lived-token",
@@ -35,8 +35,8 @@ describe("createMobileCompanionInstallStartUrl", () => {
       query,
     );
 
-    expect(startUrl).not.toContain("authToken");
     expect(startUrl).toContain("roomId=room-1");
+    expect(startUrl).toContain("authToken=short-lived-token");
   });
 
   it("does not create an install URL without a room", () => {
@@ -70,7 +70,10 @@ describe("createMobileCompanionInstallManifest", () => {
 describe("configureMobileCompanionInstallManifest", () => {
   it("replaces the page manifest with a room-specific manifest", () => {
     document.head.innerHTML = '<link rel="manifest" href="./manifest.webmanifest">';
-    const query = new URLSearchParams({ roomId: "room-1" });
+    const query = new URLSearchParams({
+      roomId: "room-1",
+      authToken: "short-lived-token",
+    });
 
     const startUrl = configureMobileCompanionInstallManifest(query, document, {
       href: "https://example.test/Launcherg-Mod/#/companion?roomId=room-1",
@@ -78,7 +81,7 @@ describe("configureMobileCompanionInstallManifest", () => {
     const link = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
 
     expect(startUrl).toBe(
-      "https://example.test/Launcherg-Mod/#/companion?client=mobile-pwa-v1&mode=library&roomId=room-1",
+      "https://example.test/Launcherg-Mod/#/companion?client=mobile-pwa-v1&mode=library&roomId=room-1&authToken=short-lived-token",
     );
     expect(link?.href).toContain("data:application/manifest+json");
     expect(link?.dataset.launchergDynamicCompanionManifest).toBe("true");
@@ -86,7 +89,7 @@ describe("configureMobileCompanionInstallManifest", () => {
       decodeURIComponent(link?.href.split(",")[1] ?? ""),
     );
     expect(manifest.start_url).toBe(
-      "https://example.test/Launcherg-Mod/#/companion?client=mobile-pwa-v1&mode=library&roomId=room-1",
+      "https://example.test/Launcherg-Mod/#/companion?client=mobile-pwa-v1&mode=library&roomId=room-1&authToken=short-lived-token",
     );
   });
 });

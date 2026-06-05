@@ -3,7 +3,6 @@
   "short_name": "Launcherg",
   "description": "Launcherg-Mod companion PWA for mobile play support.",
   "id": "./companion.html",
-  "start_url": "./companion.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",

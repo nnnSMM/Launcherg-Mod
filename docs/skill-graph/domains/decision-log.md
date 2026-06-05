@@ -12,12 +12,12 @@ links:
 
 # Decision Log
 
-## 2026-06-06: Mobile Companionのホーム画面起動はQR別manifestでroomIdを保持する
+## 2026-06-06: Mobile Companionのホーム画面起動はQR接続情報を保持する
 
-- Context: iPhoneのホーム画面Web AppはSafariとは別のCookie/Storageを持つため、QRをSafariで開いたときのlocalStorageへ `roomId` を保存しても、ホーム画面から起動したPWAでは読めない。静的manifestの `start_url` だけでは、ホーム画面起動時にQR URLの `roomId` が落ち、PC連携が切れる。
-- Decision: QR経由で `roomId` を持つMobile Companion画面を開いた場合、その場で `link rel="manifest"` を動的manifestへ差し替える。動的manifestの `start_url` には `#/companion?roomId=...` を含め、短命になりうる `authToken` は含めない。PWA起動時は保存された `roomId` でSkyWay roomへ入り、SkyWay tokenは起動時に取り直す。
-- Rationale: iOS Safariとホーム画面Web Appのストレージ分離を前提にすると、起動URLそのものに再接続に必要な最小情報を持たせる必要がある。一方でSkyWay tokenをホーム画面アイコンに固定すると期限切れや漏えいのリスクがあるため、保持するのはランダムな `roomId` と初期表示に必要な軽い情報だけにする。
-- Consequence: 既に静的manifestで追加済みの古いホーム画面アイコンはOS側に古い起動URLが固定されているため、一度削除してQRから追加し直す必要がある。以後の追加では、ホーム画面起動でも同じPC連携roomへ戻れる。
+- Context: 静的manifestの `start_url` が `companion.html` 固定だと、iPhoneのホーム画面から起動した時にQR URLの `roomId` と `authToken` が落ちる。さらに公開PWAから `https://launcherg.ryoha.moe/connect` へ直接tokenを取り直す経路はブラウザ上で `Failed to fetch` になり、`roomId` だけでは再接続できない。PC側もdev再読み込みで `roomId` が変わると、ホーム画面アイコンの接続先とPC側のroomがずれる。
+- Decision: 静的manifestから `start_url` を外し、ホーム画面追加時のQR URLを起動URLとして残せるようにする。QR画面で差し替える動的manifestの `start_url` には `roomId` とQR発行時の `authToken` を含める。PC側のMobile Companion roomIdはlocalStorageに保存し、アプリ再読み込み後も同じroomへ戻す。
+- Rationale: 現在の配布構成では、PWA単体が新しいSkyWay tokenを発行できないため、即時再起動の体験を成立させるにはQRで渡された接続情報を起動URLに残す必要がある。静的manifestの固定 `start_url` を消すことで、iOSが動的manifestを採用しない場合でも現在URLを保持する余地を作る。
+- Consequence: 既に壊れたURLで追加済みのホーム画面アイコンはOS側に古い起動URLが固定されているため、削除してQRから追加し直す必要がある。`authToken` が期限切れになった後の再接続は引き続き失敗しうるため、将来的には公開PWAから安全にtokenを再発行できるCORS/session APIへ置き換える。
 - Links: [[mobile-companion-service-blueprint]], [[remote-play-hub]]
 
 ## 2026-06-05: Mobile Companion操作MVPはHTTPS PWA上で検証する
