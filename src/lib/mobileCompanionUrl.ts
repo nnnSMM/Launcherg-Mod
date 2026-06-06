@@ -3,7 +3,7 @@ const configuredMobileCompanionOrigin =
 
 export const MOBILE_COMPANION_ORIGIN =
   configuredMobileCompanionOrigin || "https://nnnsmm.github.io/Launcherg-Mod/";
-export const MOBILE_COMPANION_CLIENT_VERSION = "mobile-pwa-v3";
+export const MOBILE_COMPANION_CLIENT_VERSION = "mobile-pwa-v4";
 export const SKYWAY_CONNECT_ENDPOINT = "https://launcherg.ryoha.moe/connect";
 
 export type MobileCompanionUrlParams = {

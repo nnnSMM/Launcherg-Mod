@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onDestroy, onMount } from "svelte";
+  import { onDestroy, onMount, tick } from "svelte";
   import { saveImageToCache, getAllCachedImages } from "@/lib/imageCache";
   import type {
     LocalDataStream,
@@ -31,7 +31,7 @@
     | "offline"
     | "error"
     | "missing";
-  type ViewMode = "home" | "library" | "detail" | "connect" | "controller";
+  type ViewMode = "library" | "detail" | "connect" | "controller";
   type LibraryFilter =
     | "all"
     | "playing"
@@ -112,7 +112,8 @@
   ];
 
   let connectionState: ConnectionState = "idle";
-  let activeView: ViewMode = "home";
+  let activeView: ViewMode = "library";
+  let contentContainer: HTMLElement | undefined;
   let statusText = "接続待ち";
   let connectionErrorText = "";
   let dataStream: LocalDataStream | undefined;
@@ -187,9 +188,11 @@
 
   const uiState = restoreUiState();
   if (requestedMode) {
-    activeView = requestedMode === "library" ? "home" : "controller";
-  } else if (uiState?.activeView) {
+    activeView = requestedMode === "library" ? "library" : "controller";
+  } else if (uiState?.activeView && uiState.activeView !== "home") {
     activeView = uiState.activeView;
+  } else {
+    activeView = "library";
   }
   
   if (hasInitialGameId) {
@@ -231,8 +234,6 @@
   $: clearedGames = games.filter(
     (game) => game.playStatus === PLAY_STATUS.Cleared,
   );
-  $: homePrimaryGames =
-    playingGames.length > 0 ? playingGames.slice(0, 3) : recentGames.slice(0, 3);
   $: activeGame =
     activeGameId === null
       ? null
@@ -250,14 +251,6 @@
     connectionState === "connected" &&
     selectedGameId === activeGameId;
   $: memoPreview = memoText.trim();
-  $: homeEmptyText =
-    connectionState === "missing"
-      ? "PCのスマホ連携QRから開いてください"
-      : connectionState === "error"
-        ? connectionErrorText || "接続に失敗しました"
-        : connectionState === "connecting" || connectionState === "connected"
-          ? "PCのライブラリを読み込んでいます"
-          : "PCのライブラリを同期すると表示されます";
   $: libraryEmptyText =
     connectionState === "missing"
       ? "PCのスマホ連携QRから開いてください"
@@ -291,13 +284,19 @@
   $: visibleThumbnailGames =
     activeView === "library"
       ? filteredGames
-      : activeView === "home"
-        ? homePrimaryGames
-        : selectedGame
-          ? [selectedGame]
-          : [];
+      : selectedGame
+        ? [selectedGame]
+        : [];
   $: if (connectionState === "connected") {
     requestThumbnailsForGames(visibleThumbnailGames);
+  }
+
+  $: if (activeView === "detail" && contentContainer) {
+    void tick().then(() => {
+      if (contentContainer) {
+        contentContainer.scrollTop = 0;
+      }
+    });
   }
 
   const isObject = (value: unknown): value is Record<string, unknown> =>
@@ -933,93 +932,8 @@
       {statusText}
     </div>
   </header>
-
-  <section class:controller-mode={activeView === "controller"} class="content">
-    {#if activeView === "home"}
-      <section class="hero-strip">
-        <div>
-          <div class="eyebrow">同期</div>
-          <div class="hero-title">{games.length}本</div>
-        </div>
-        <div>
-          <div class="eyebrow">最終</div>
-          <div class="hero-title">{formatSyncTime(cachedAt)}</div>
-        </div>
-        <div>
-          <div class="eyebrow">Pause</div>
-          <div class:paused={isPaused} class="hero-title pause-state">
-            {isPaused ? "中断中" : "記録中"}
-          </div>
-        </div>
-        <button
-          type="button"
-          class="icon-action"
-          disabled={connectionState !== "connected"}
-          on:click={refreshLibrary}
-          aria-label="更新"
-        >
-          <span class="i-material-symbols:sync-rounded text-[22px]" />
-        </button>
-      </section>
-
-      {#if homePrimaryGames.length > 0}
-        <section class="section">
-          <div class="section-head">
-            <h2>{playingGames.length > 0 ? "プレイ中" : "最近のプレイ"}</h2>
-            <button type="button" on:click={() => (activeView = "library")}>
-              一覧
-            </button>
-          </div>
-          <div class="game-card-list compact-list">
-            {#each homePrimaryGames as game (game.id)}
-              {@const thumbnailUrl = gameThumbnailUrl(game)}
-              <button
-                type="button"
-                class="game-card compact-card"
-                on:click={() => selectGame(game)}
-              >
-                <div class="game-thumb">
-                  {#if thumbnailUrl}
-                    <img src={thumbnailUrl} alt="" loading="lazy" />
-                  {:else}
-                    <span class="i-material-symbols:image-outline-rounded text-[28px]" />
-                  {/if}
-                </div>
-                <div class="game-card-body">
-                  <div class="game-title">{game.title}</div>
-                  <div class="game-meta">
-                    {game.brandName || "ブランド未設定"}
-                  </div>
-                  <div class="meta-chips">
-                    <span>{statusLabels[game.playStatus] ?? "不明"}</span>
-                    <span>{formatPlayTime(game.totalPlayTimeSeconds)}</span>
-                  </div>
-                </div>
-              </button>
-            {/each}
-          </div>
-        </section>
-      {:else}
-        <section class="empty-state">{homeEmptyText}</section>
-      {/if}
-
-      {#if games.length > 0}
-        <section class="home-shortcuts" aria-label="ライブラリショートカット">
-          <button type="button" on:click={() => openFilteredLibrary("cleared")}>
-            <span>{clearedGames.length}</span>
-            <small>クリア済み</small>
-          </button>
-          <button type="button" on:click={() => openFilteredLibrary("unplayed")}>
-            <span>{unplayedGames.length}</span>
-            <small>未プレイ</small>
-          </button>
-          <button type="button" on:click={() => openFilteredLibrary("liked")}>
-            <span>{favoriteGames.length}</span>
-            <small>お気に入り</small>
-          </button>
-        </section>
-      {/if}
-    {:else if activeView === "library"}
+  <section class:controller-mode={activeView === "controller"} class="content" bind:this={contentContainer}>
+    {#if activeView === "library"}
       <section class="library-view">
         <div class="library-toolbar">
           <div>
@@ -1263,14 +1177,6 @@
   </section>
 
   <nav class="bottom-nav" aria-label="スマホ連携">
-    <button
-      type="button"
-      class:active={activeView === "home"}
-      on:click={() => (activeView = "home")}
-    >
-      <span class="i-material-symbols:home-outline-rounded text-[22px]" />
-      <span>ホーム</span>
-    </button>
     <button
       type="button"
       class:active={activeView === "library" || activeView === "detail"}
