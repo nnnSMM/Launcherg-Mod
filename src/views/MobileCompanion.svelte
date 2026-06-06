@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onDestroy, onMount, tick } from "svelte";
+  import { safeFormatLastPlay, safeFormatSyncTime } from "@/lib/mobileCompanionDate";
   import { saveImageToCache, getAllCachedImages } from "@/lib/imageCache";
   import type {
     LocalDataStream,
@@ -293,7 +294,11 @@
   }
 
   $: if (activeView === "detail" && contentContainer) {
-    contentContainer.scrollTop = 0;
+    void tick().then(() => {
+      if (contentContainer) {
+        contentContainer.scrollTop = 0;
+      }
+    });
   }
 
   const isObject = (value: unknown): value is Record<string, unknown> =>
@@ -484,7 +489,11 @@
 
   const sendMessage = (message: MobileOutgoingMessage) => {
     if (!dataStream) return;
-    dataStream.write(JSON.stringify(message));
+    try {
+      dataStream.write(JSON.stringify(message));
+    } catch (error) {
+      console.warn("[MobileCompanion] sendMessage failed", error);
+    }
   };
 
   const requestThumbnailsForGames = (
@@ -643,21 +652,9 @@
     return `${Math.floor((seconds / 3600) * 10) / 10}時間`;
   };
 
-  const formatLastPlay = (value: string | null) => {
-    if (!value) return "未プレイ";
-    return new Date(value).toLocaleDateString("ja-JP", {
-      month: "2-digit",
-      day: "2-digit",
-    });
-  };
+  const formatLastPlay = (value: string | null) => safeFormatLastPlay(value);
 
-  const formatSyncTime = (value: string | null) => {
-    if (!value) return "未同期";
-    return new Date(value).toLocaleTimeString("ja-JP", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
+  const formatSyncTime = (value: string | null) => safeFormatSyncTime(value);
 
   const applyLibrary = (nextGames: RemoteGameSummary[]) => {
     const syncedAt = new Date().toISOString();
