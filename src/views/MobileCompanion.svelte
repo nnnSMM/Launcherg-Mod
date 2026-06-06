@@ -295,13 +295,18 @@
 
   const getContentContainer = () => contentContainer;
 
-  $: if (activeView === "detail") {
+  const resetScrollToTop = () => {
     void tick().then(() => {
       const container = getContentContainer();
       if (container) {
         container.scrollTop = 0;
       }
     });
+  };
+
+  $: if (activeView === "detail") {
+    selectedGameId;
+    resetScrollToTop();
   }
 
   const isObject = (value: unknown): value is Record<string, unknown> =>
