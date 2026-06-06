@@ -504,13 +504,13 @@ pub async fn update_screenshot_shortcut_registration(
 ) -> Result<(), CommandError> {
     let normalized_shortcut_key = normalize_shortcut_key(new_shortcut_key);
     let new_shortcut = parse_shortcut_key(normalized_shortcut_key.as_deref())?;
-    let mut old_shortcut_str = "F12".to_string();
+    let mut old_shortcut_str = "F1".to_string();
     if let Ok(Some(key)) = modules
         .collection_use_case()
         .get_app_setting("screenshot_shortcut_key".to_string())
         .await
     {
-        if !key.is_empty() {
+        if !key.is_empty() && key != "F12" {
             old_shortcut_str = key;
         }
     }
@@ -1178,16 +1178,16 @@ pub async fn save_fullscreen_screenshot(
         .process_use_case()
         .save_fullscreen_screenshot(&upload_path)
         .await?;
-    modules
-        .collection_use_case()
-        .register_screenshot_file(&handle, work_id, upload_path.clone())
-        .await?;
     let filename = std::path::Path::new(&upload_path)
         .file_name()
         .ok_or_else(|| anyhow::anyhow!("Invalid screenshot filename"))?
         .to_string_lossy()
         .to_string();
-    spawn_screenshot_notification(handle.as_ref(), work_id, &filename);
+    spawn_screenshot_notification(handle.as_ref(), work_id, &filename, &upload_path);
+    modules
+        .collection_use_case()
+        .register_screenshot_file(&handle, work_id, upload_path.clone())
+        .await?;
     Ok(upload_path)
 }
 
@@ -1436,15 +1436,68 @@ pub fn quit_app(handle: AppHandle) {
     handle.exit(0);
 }
 
-pub fn spawn_screenshot_notification(handle: &AppHandle, game_id: i32, filename: &str) {
+#[tauri::command]
+pub fn restore_foreground_window(hwnd: String) -> Result<(), CommandError> {
+    let hwnd = hwnd.parse::<isize>().unwrap_or(0);
+    if hwnd == 0 {
+        return Ok(());
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        let _ = unsafe {
+            windows::Win32::UI::WindowsAndMessaging::SetForegroundWindow(
+                windows::Win32::Foundation::HWND(hwnd),
+            )
+        };
+    }
+
+    Ok(())
+}
+
+const SCREENSHOT_NOTIFICATION_WIDTH: f64 = 360.0;
+const SCREENSHOT_NOTIFICATION_HEIGHT: f64 = 72.0;
+const SCREENSHOT_NOTIFICATION_MARGIN: f64 = 8.0;
+
+fn screenshot_notification_position(handle: &AppHandle) -> Option<(f64, f64)> {
+    if let Ok(Some(monitor)) = handle.primary_monitor() {
+        let size = monitor.size();
+        let position = monitor.position();
+        let scale_factor = monitor.scale_factor();
+        let x = position.x as f64 / scale_factor + size.width as f64 / scale_factor
+            - SCREENSHOT_NOTIFICATION_WIDTH
+            - SCREENSHOT_NOTIFICATION_MARGIN;
+        let y = position.y as f64 / scale_factor + size.height as f64 / scale_factor
+            - SCREENSHOT_NOTIFICATION_HEIGHT
+            - SCREENSHOT_NOTIFICATION_MARGIN;
+        return Some((x, y));
+    }
+    None
+}
+
+pub fn spawn_screenshot_notification(
+    handle: &AppHandle,
+    game_id: i32,
+    filename: &str,
+    file_path: &str,
+) {
     let handle_clone = handle.clone();
-    let encoded_filename = filename.replace(" ", "%20");
-    let url = format!("/?gameId={}&filename={}", game_id, encoded_filename);
+    let filename = filename.to_string();
+    let file_path = file_path.to_string();
     #[cfg(target_os = "windows")]
     let restore_hwnd = unsafe { windows::Win32::UI::WindowsAndMessaging::GetForegroundWindow().0 };
+    #[cfg(not(target_os = "windows"))]
+    let restore_hwnd = 0;
 
     let _ = handle.run_on_main_thread(move || {
-        use tauri::{WebviewUrl, WebviewWindowBuilder};
+        let restore_hwnd_string = restore_hwnd.to_string();
+        let query = url::form_urlencoded::Serializer::new(String::new())
+            .append_pair("gameId", &game_id.to_string())
+            .append_pair("filename", &filename)
+            .append_pair("path", &file_path)
+            .append_pair("restoreHwnd", &restore_hwnd_string)
+            .finish();
+        let url = format!("index.html?{}", query);
         let timestamp = chrono::Local::now().timestamp_millis();
         let label = format!("screenshot_notification_{}", timestamp);
 
@@ -1453,24 +1506,20 @@ pub fn spawn_screenshot_notification(handle: &AppHandle, game_id: i32, filename:
             label,
             WebviewUrl::App(url.into())
         )
-        .inner_size(360.0, 96.0)
+        .inner_size(360.0, 72.0)
         .decorations(false)
         .transparent(true)
         .always_on_top(true)
         .skip_taskbar(true)
+        .focusable(false)
         .resizable(false)
         .shadow(false);
 
-        if let Ok(Some(monitor)) = handle_clone.primary_monitor() {
-            let size = monitor.size();
-            let position = monitor.position();
-            let scale_factor = monitor.scale_factor();
-            let x = position.x as f64 / scale_factor + size.width as f64 / scale_factor - 360.0 - 20.0;
-            let y = position.y as f64 / scale_factor + size.height as f64 / scale_factor - 96.0 - 56.0;
+        if let Some((x, y)) = screenshot_notification_position(&handle_clone) {
             builder = builder.position(x, y);
         }
 
-        match builder.visible(false).build() {
+        match builder.visible(true).build() {
             Ok(_) => {
                 log::info!("Successfully created screenshot notification window.");
             }

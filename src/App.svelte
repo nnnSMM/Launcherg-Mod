@@ -106,7 +106,7 @@
       "@/components/Home/ImportDropFiles.svelte"
     );
   }
-  $: if (isLandingRoute || isCompanionRoute) {
+  $: if (isLandingRoute || isCompanionRoute || isScreenshotNotification) {
     setDetailPromise = Promise.resolve();
   } else if (!didStartDetailRegistration) {
     didStartDetailRegistration = true;
@@ -118,7 +118,7 @@
   $: if ($location === "/settings/display") {
     replace("/settings/shortcut");
   }
-  $: if (!isLandingRoute && !isCompanionRoute) {
+  $: if (!isLandingRoute && !isCompanionRoute && !isScreenshotNotification) {
     syncSelectedToLocation($location);
   }
 
@@ -165,7 +165,7 @@
       }
     });
 
-    if (!isLandingRoute && !isCompanionRoute) {
+    if (!isLandingRoute && !isCompanionRoute && !isScreenshotNotification) {
       initializeMainApp();
 
       if (windowLabel === "main") {
@@ -227,7 +227,7 @@
     };
   });
 
-  $: if (isMounted && !isLandingRoute && !isCompanionRoute) {
+  $: if (isMounted && !isLandingRoute && !isCompanionRoute && !isScreenshotNotification) {
     initializeMainApp();
     if (windowLabel === "main") {
       initializeAppUpdate();

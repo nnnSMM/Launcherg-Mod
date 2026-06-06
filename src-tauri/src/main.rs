@@ -271,7 +271,6 @@ fn main() {
                         eprintln!("Failed to show main window on startup: {}", e);
                     }
                 }
-
                 let handle = app.handle().clone();
                 tauri::async_runtime::spawn(async move {
                     let modules = handle.state::<Arc<Modules>>();
@@ -294,13 +293,13 @@ fn main() {
                     }
 
                     // Register screenshot shortcut
-                    let mut screenshot_shortcut_str = "F12".to_string();
+                    let mut screenshot_shortcut_str = "F1".to_string();
                     if let Ok(Some(key)) = modules
                         .collection_use_case()
                         .get_app_setting("screenshot_shortcut_key".to_string())
                         .await
                     {
-                        if !key.is_empty() {
+                        if !key.is_empty() && key != "F12" {
                             screenshot_shortcut_str = key;
                         }
                     }
@@ -363,6 +362,7 @@ fn main() {
             command::update_pause_shortcut_registration,
             command::update_screenshot_shortcut_registration,
             command::toggle_pause_tracking,
+            command::restore_foreground_window,
             command::get_pause_state,
             command::get_tracking_state,
             command::get_game_screenshots,

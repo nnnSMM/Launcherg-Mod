@@ -56,10 +56,10 @@
       const savedScreenshotShortcutKey = await invoke<string>("get_app_setting", {
         key: "screenshot_shortcut_key",
       });
-      if (savedScreenshotShortcutKey) {
+      if (savedScreenshotShortcutKey && savedScreenshotShortcutKey !== "F12") {
         screenshotShortcutKey = savedScreenshotShortcutKey;
       } else {
-        screenshotShortcutKey = "F12";
+        screenshotShortcutKey = "F1";
       }
 
     } catch (error) {
@@ -256,13 +256,13 @@
           <h2 class="text-lg font-medium">スクリーンショット撮影用ショートカットキー</h2>
         </div>
         <p class="text-sm text-text-secondary mb-4">
-          ゲームプレイ中にスクリーンショットを撮影するためのショートカットキーを定義します。デフォルトはF12です。有効なキーの組み合わせについては、<a
+          ゲームプレイ中にスクリーンショットを撮影するためのショートカットキーを定義します。有効なキーの組み合わせについては、<a
             href="https://tauri.app/v1/api/js/globalshortcut"
             target="_blank"
             class="text-accent-accent hover:underline">Tauriのドキュメント</a
           >を参照してください。
         </p>
-        <Input bind:value={screenshotShortcutKey} placeholder="例: F12" />
+        <Input bind:value={screenshotShortcutKey} placeholder="例: F1" />
         <div class="flex gap-2 mt-2">
           <Button
             text="Ctrl"
