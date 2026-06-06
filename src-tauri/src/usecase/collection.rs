@@ -2,6 +2,7 @@ use std::{fs, sync::Arc};
 
 use chrono::Local;
 use derive_new::new;
+use sysinfo::PidExt;
 use tauri::{AppHandle, Emitter};
 use tauri_plugin_global_shortcut::GlobalShortcutExt;
 
@@ -102,6 +103,7 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
                 .find_game_process(&path_str, spawned_pid, &game_name, &config)
                 .await
             {
+                pause_manager.set_tracking_session(element_id, pid.as_u32());
                 // プロセスを監視
                 monitor
                     .monitor_process(pid, registered_shortcut, tracking_started_at)

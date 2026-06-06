@@ -12,6 +12,14 @@ links:
 
 # Decision Log
 
+## 2026-06-06: Mobile Companionの操作判定はRustの追跡セッションを正にする
+
+- Context: スマホからPause/スクショができない報告があった。スクショの起動中判定をPCフロントの `startProcessMap` に依存させると、QR再接続、PWA再起動、PC側画面リロードで状態が消え、Rust側では追跡中でもスマホ操作が失敗する。
+- Decision: 現在追跡中のgameId/processIdは `PauseManager` の追跡セッションとしてRust側に保持する。Mobile Companionのスクショは、要求gameIdがRustの追跡セッションと一致する場合だけ実行する。スマホ側へ返すControl StatusもRustの追跡状態を使う。
+- Rationale: PauseもスクショもPCアプリの追跡セッションに紐づく操作なので、ブラウザ状態ではなくTauri/Rust側の状態を信頼境界にする方が再接続に強い。
+- Consequence: Launcherg-Modでゲームを起動し、プロセス検出が完了するまではスマホ操作は失敗する。将来、手動起動ゲームを拾う場合はRust側の追跡セッション作成APIを追加する。
+- Links: [[mobile-companion-service-blueprint]], [[remote-play-hub]]
+
 ## 2026-06-06: Mobile Companionの補助スクショは通常スクショとして保存する
 
 - Context: スマホ補助スクショで `対象ゲームの起動プロセスが見つかりません` が出ていた。原因はSkyWayの `take_screenshot` が `startProcessMap` から対象ゲームのPIDを取得し、`save_screenshot_by_pid` へ渡す実装だったこと。その後、ユーザーから「メモ挿入ではなく、起動中ゲームが分かっている場合だけアプリ側の通常スクショとして保存する」と訂正があった。

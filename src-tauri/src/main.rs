@@ -344,6 +344,7 @@ fn main() {
             command::update_pause_shortcut_registration,
             command::toggle_pause_tracking,
             command::get_pause_state,
+            command::get_tracking_state,
             command::get_game_screenshots,
             command::get_all_screenshots,
             command::open_screenshot_window,

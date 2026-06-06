@@ -102,7 +102,7 @@ PC補助中でない時の主画面。ゲーム一覧、最近遊んだゲーム
 - expiresAt: セッションTTL。期限切れ後の操作は拒否する。
 - allowedGameId: 操作できるゲームID。別ゲームIDのmemo/screenshot/pauseは拒否する。
 - scopes: `memo:read`, `memo:write`, `screenshot:capture`, `pause:toggle` のように許可操作を分ける。
-- activeProcessId: 対象ゲームの現在のPID。フロントの `startProcessMap` だけに依存せず、状態取得APIで確認できるようにする。
+- activeProcessId: 対象ゲームの現在のPID。Rust側の追跡セッションを正とし、スマホ側は状態取得APIで確認する。フロントの `startProcessMap` は信頼境界にしない。
 - connectionId/deviceId: 再接続時に同じ端末か確認する。再接続でTTLやscopeが伸びないようにする。
 
 最初の実装では、1台のPC、1台のスマホ、1ゲームだけを許可し、複数ゲーム同時操作は扱わない。

@@ -314,6 +314,14 @@
       case "control_status":
         return (
           typeof value.isPaused === "boolean" &&
+          (typeof value.isTracking === "boolean" ||
+            value.isTracking === undefined) &&
+          (typeof value.activeGameId === "number" ||
+            value.activeGameId === null ||
+            value.activeGameId === undefined) &&
+          (typeof value.activeProcessId === "number" ||
+            value.activeProcessId === null ||
+            value.activeProcessId === undefined) &&
           (typeof value.error === "string" || value.error === undefined)
         );
       default:
@@ -629,6 +637,14 @@
     if (message.type === "control_status") {
       isPaused = message.isPaused;
       isTogglingPause = false;
+      if (message.isTracking === false) {
+        statusText = "PC接続中 / ゲーム未追跡";
+      } else if (
+        typeof message.activeGameId === "number" &&
+        message.activeGameId !== selectedGameId
+      ) {
+        statusText = "PC接続中 / 別ゲームを記録中";
+      }
       if (message.error) {
         lastActionText = message.error;
       }

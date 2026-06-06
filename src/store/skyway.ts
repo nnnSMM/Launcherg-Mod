@@ -13,10 +13,10 @@ import { createWritable } from "@/lib/utils";
 import { fetch } from "@tauri-apps/plugin-http";
 import { readFile } from "@tauri-apps/plugin-fs";
 import {
-  commandGetPauseState,
   commandSaveFullscreenScreenshot,
   commandSendRightClick,
   commandTogglePauseTracking,
+  commandGetTrackingState,
 } from "@/lib/command";
 import { showErrorToast } from "@/lib/toast";
 import { getFriendlyErrorMessage, reportError } from "@/lib/errors";
@@ -38,7 +38,6 @@ import {
 } from "@/lib/mobileCompanionUrl";
 import { getOrCreateMobileCompanionRoomId } from "@/lib/mobileCompanionRoom";
 import { sidebarCollectionElements } from "@/store/sidebarCollectionElements";
-import { getStartProcessMap } from "@/store/startProcessMap";
 import type { CollectionElement } from "@/lib/types";
 
 const createSkyWay = () => {
@@ -189,11 +188,17 @@ const createSkyWay = () => {
     new Promise((resolve) => setTimeout(resolve, milliseconds));
 
   const createControlStatusMessage =
-    async (error?: string): Promise<ControlStatusMessage> => ({
-      type: "control_status",
-      isPaused: await commandGetPauseState(),
-      error,
-    });
+    async (error?: string): Promise<ControlStatusMessage> => {
+      const state = await commandGetTrackingState();
+      return {
+        type: "control_status",
+        isPaused: state.isPaused,
+        isTracking: state.isTracking,
+        activeGameId: state.activeGameId,
+        activeProcessId: state.activeProcessId,
+        error,
+      };
+    };
 
   const cleanupFuncs: (() => void)[] = [];
   const cleanup = () => {
@@ -269,7 +274,14 @@ const createSkyWay = () => {
           case "pause_toggle":
             try {
               const isPaused = await commandTogglePauseTracking();
-              sendMessage({ type: "control_status", isPaused });
+              const state = await commandGetTrackingState();
+              sendMessage({
+                type: "control_status",
+                isPaused,
+                isTracking: state.isTracking,
+                activeGameId: state.activeGameId,
+                activeProcessId: state.activeProcessId,
+              });
             } catch (e) {
               reportError("skyway.pause.toggle", e);
               const response = await createControlStatusMessage(
@@ -281,10 +293,6 @@ const createSkyWay = () => {
           case "take_screenshot": {
             let didHideText = false;
             try {
-              if (getStartProcessMap()[message.gameId] === undefined) {
-                throw new Error("対象ゲームの起動プロセスが見つかりません");
-              }
-
               if (message.hideText) {
                 await commandSendRightClick();
                 didHideText = true;

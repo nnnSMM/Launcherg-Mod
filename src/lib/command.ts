@@ -243,6 +243,17 @@ export const commandGetPauseState = async () => {
   return await invoke<boolean>("get_pause_state");
 };
 
+export type TrackingState = {
+  isTracking: boolean;
+  isPaused: boolean;
+  activeGameId: number | null;
+  activeProcessId: number | null;
+};
+
+export const commandGetTrackingState = async () => {
+  return await invoke<TrackingState>("get_tracking_state");
+};
+
 export const commandGetGameScreenshots = async (gameId: number) => {
   return await invoke<Screenshot[]>("get_game_screenshots", { gameId });
 };

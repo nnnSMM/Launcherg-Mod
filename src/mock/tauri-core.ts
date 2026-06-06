@@ -597,6 +597,14 @@ export const invoke = async <T = unknown>(
   }
 
   if (cmd === "get_pause_state") return pauseState as T;
+  if (cmd === "get_tracking_state") {
+    return {
+      isTracking: true,
+      isPaused: pauseState,
+      activeGameId: 1,
+      activeProcessId: 1000,
+    } as T;
+  }
   if (cmd === "get_game_screenshots") return [] as T;
   if (cmd === "get_all_screenshots") return [] as T;
   if (cmd === "save_screenshot_by_pid" || cmd === "save_fullscreen_screenshot") {

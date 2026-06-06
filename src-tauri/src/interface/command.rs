@@ -44,6 +44,15 @@ pub struct WindowScreenshot {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct TrackingState {
+    pub is_tracking: bool,
+    pub is_paused: bool,
+    pub active_game_id: Option<i32>,
+    pub active_process_id: Option<u32>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct GameScreenshotCache {
     pub collection_element_id: i32,
     pub matched_title: Option<String>,
@@ -1082,6 +1091,14 @@ pub async fn save_fullscreen_screenshot(
     modules: State<'_, Arc<Modules>>,
     work_id: i32,
 ) -> Result<String, CommandError> {
+    let tracking_session = modules.pause_manager().tracking_session();
+    if tracking_session.as_ref().map(|session| session.game_id) != Some(work_id) {
+        return Err(anyhow::anyhow!(
+            "対象ゲームがLauncherg-Modで起動中として記録されていません"
+        )
+        .into());
+    }
+
     let handle = Arc::new(handle);
     let upload_path = modules
         .file_use_case()
@@ -1184,6 +1201,19 @@ pub async fn toggle_pause_tracking(
 #[tauri::command]
 pub async fn get_pause_state(modules: State<'_, Arc<Modules>>) -> Result<bool, CommandError> {
     Ok(modules.pause_manager().is_paused())
+}
+
+#[tauri::command]
+pub async fn get_tracking_state(
+    modules: State<'_, Arc<Modules>>,
+) -> Result<TrackingState, CommandError> {
+    let session = modules.pause_manager().tracking_session();
+    Ok(TrackingState {
+        is_tracking: modules.pause_manager().is_tracking(),
+        is_paused: modules.pause_manager().is_paused(),
+        active_game_id: session.as_ref().map(|session| session.game_id),
+        active_process_id: session.as_ref().map(|session| session.process_id),
+    })
 }
 use crate::domain::repository::screenshot::Screenshot;
 

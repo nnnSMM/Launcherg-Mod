@@ -34,6 +34,9 @@ export type ScreenshotResultMessage = {
 export type ControlStatusMessage = {
   type: "control_status";
   isPaused: boolean;
+  isTracking?: boolean;
+  activeGameId?: number | null;
+  activeProcessId?: number | null;
   error?: string;
 };
 export type LibraryRequestMessage = {
