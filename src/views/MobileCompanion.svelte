@@ -548,7 +548,7 @@
     const shouldLoadMemo = selectedGameId !== target.id;
     selectedGameId = target.id;
     didSelectGameManually = false;
-    if (activeView === "home" || activeView === "detail") {
+    if (activeView === "detail") {
       activeView = "controller";
     }
     if (shouldLoadMemo) {
@@ -1100,9 +1100,9 @@
     {:else if activeView === "controller"}
       {#if canControl && selectedGame}
         <section class="controller-panel">
-          <button type="button" class="back-button" on:click={() => (activeView = "home")}>
+          <button type="button" class="back-button" on:click={() => (activeView = "library")}>
             <span class="i-material-symbols:arrow-back-rounded text-[20px]" />
-            <span>ホーム</span>
+            <span>一覧</span>
           </button>
           <div class="controller-kicker">Now Playing</div>
           <div class="controller-game">{selectedGame.title}</div>
@@ -1297,7 +1297,6 @@
     padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px));
   }
 
-  .hero-strip,
   .section,
   .library-view,
   .detail-panel,
@@ -1309,38 +1308,6 @@
     background: rgb(255 255 255 / 0.045);
   }
 
-  .hero-strip {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
-    align-items: center;
-    gap: 12px;
-    padding: 12px;
-  }
-
-  .hero-title {
-    margin-top: 3px;
-    font-size: 20px;
-    font-weight: 800;
-  }
-
-  .pause-state {
-    color: #9ae6b4;
-  }
-
-  .pause-state.paused {
-    color: #fbd38d;
-  }
-
-  .icon-action {
-    height: 48px;
-    width: 48px;
-    border-radius: 8px;
-    display: grid;
-    place-items: center;
-    border: 1px solid rgb(255 255 255 / 0.12);
-    background: rgb(255 255 255 / 0.07);
-    color: white;
-  }
 
   .section,
   .library-view,
@@ -1437,36 +1404,6 @@
     color: #b7f3cb;
   }
 
-  .home-shortcuts {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
-  }
-
-  .home-shortcuts button {
-    min-height: 72px;
-    border: 1px solid rgb(255 255 255 / 0.1);
-    border-radius: 8px;
-    background: rgb(255 255 255 / 0.045);
-    color: white;
-  }
-
-  .home-shortcuts span,
-  .home-shortcuts small {
-    display: block;
-  }
-
-  .home-shortcuts span {
-    font-size: 22px;
-    font-weight: 900;
-  }
-
-  .home-shortcuts small {
-    margin-top: 3px;
-    color: rgb(255 255 255 / 0.48);
-    font-size: 11px;
-    font-weight: 700;
-  }
 
   .library-toolbar {
     display: flex;
