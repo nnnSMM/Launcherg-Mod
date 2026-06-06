@@ -1961,8 +1961,8 @@
 
   @media (display-mode: standalone) {
     .bottom-nav {
-      height: calc(60px + env(safe-area-inset-bottom, 0px));
-      padding-bottom: env(safe-area-inset-bottom, 0px);
+      height: calc(56px + env(safe-area-inset-bottom, 0px) * 0.3);
+      padding-bottom: calc(env(safe-area-inset-bottom, 0px) * 0.3);
     }
   }
 
