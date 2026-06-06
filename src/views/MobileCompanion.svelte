@@ -1644,12 +1644,14 @@
     color: rgb(255 255 255 / 0.34);
   }
 
-  .game-thumb img,
-  .detail-thumb img {
-    width: 100%;
-    height: 100%;
-    display: block;
-    object-fit: cover;
+  .game-thumb :global(img),
+  .detail-thumb :global(img) {
+    width: 100% !important;
+    height: 100% !important;
+    display: block !important;
+    object-fit: cover !important;
+    justify-self: stretch !important;
+    align-self: stretch !important;
   }
 
   .game-card-body {
