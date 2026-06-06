@@ -208,6 +208,10 @@ export const commandSaveScreenshotByPid = async (
   });
 };
 
+export const commandSaveFullscreenScreenshot = async (workId: number) => {
+  return await invoke<string>("save_fullscreen_screenshot", { workId });
+};
+
 export const commandSendRightClick = async () => {
   return await invoke<void>("send_right_click");
 };

@@ -14,11 +14,10 @@ import { fetch } from "@tauri-apps/plugin-http";
 import { readFile } from "@tauri-apps/plugin-fs";
 import {
   commandGetPauseState,
-  commandSaveScreenshotByPid,
+  commandSaveFullscreenScreenshot,
   commandSendRightClick,
   commandTogglePauseTracking,
 } from "@/lib/command";
-import { getStartProcessMap } from "@/store/startProcessMap";
 import { showErrorToast } from "@/lib/toast";
 import { getFriendlyErrorMessage, reportError } from "@/lib/errors";
 import { useChunk } from "@/lib/chunk";
@@ -281,19 +280,12 @@ const createSkyWay = () => {
           case "take_screenshot": {
             let didHideText = false;
             try {
-              const processId = getStartProcessMap()[message.gameId];
-              if (processId === undefined) {
-                throw new Error("対象ゲームの起動プロセスが見つかりません");
-              }
               if (message.hideText) {
                 await commandSendRightClick();
                 didHideText = true;
                 await wait(180);
               }
-              const imagePath = await commandSaveScreenshotByPid(
-                message.gameId,
-                processId
-              );
+              const imagePath = await commandSaveFullscreenScreenshot(message.gameId);
               const prev = getMemo(message.gameId).value;
               const lines = prev.split("\n");
               const newLines: string[] = [];

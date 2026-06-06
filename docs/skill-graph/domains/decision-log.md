@@ -12,6 +12,14 @@ links:
 
 # Decision Log
 
+## 2026-06-06: Mobile Companionの補助スクショは主ディスプレイ全体を撮る
+
+- Context: スマホ補助スクショで `対象ゲームの起動プロセスが見つかりません` が出ていた。原因はSkyWayの `take_screenshot` が `startProcessMap` から対象ゲームのPIDを取得し、`save_screenshot_by_pid` へ渡す実装だったこと。ユーザーが求めている補助スクショは、ゲームプロセス追跡に依存せずPC側で全画面スクショを取る操作である。
+- Decision: Mobile Companionの通常スクショ/文字消しスクショは、選択中ゲームのメモ画像保存先を使いながら、撮影対象はPCの主ディスプレイ全体にする。スマホ補助スクショでは `save_screenshot_by_pid` と `startProcessMap` を使わない。
+- Rationale: プレイ中にLauncherg-Mod側の起動追跡が切れていても、補助コントローラーからスクショを撮れることが体験上重要。保存先は従来のメモ画像経路に残すことで、Capture Galleryとの境界は維持できる。
+- Consequence: マルチモニター環境では初期実装は主ディスプレイを撮る。将来、撮影対象モニター選択や全モニター合成が必要になったらControllerの撮影設定として追加する。
+- Links: [[mobile-companion-service-blueprint]], [[remote-play-hub]]
+
 ## 2026-06-06: Mobile CompanionサムネイルはPWA側のオンデマンド要求にする
 
 - Context: PC側が `library_response` の直後に全サムネイルを一括チャンク送信すると、ゲーム件数が多いライブラリでdata channelへ負荷が集中し、一部サムネイルが届かない。送信前に送信済み扱いすると、失敗した画像も同じ接続中に再送されない。

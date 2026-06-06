@@ -1076,6 +1076,22 @@ pub async fn save_screenshot_by_pid(
     Ok(upload_path)
 }
 
+#[tauri::command]
+pub async fn save_fullscreen_screenshot(
+    handle: AppHandle,
+    modules: State<'_, Arc<Modules>>,
+    work_id: i32,
+) -> Result<String, CommandError> {
+    let upload_path = modules
+        .file_use_case()
+        .get_new_upload_image_path(&Arc::new(handle), work_id)?;
+    modules
+        .process_use_case()
+        .save_fullscreen_screenshot(&upload_path)
+        .await?;
+    Ok(upload_path)
+}
+
 #[cfg(target_os = "windows")]
 fn mouse_input(flags: windows::Win32::UI::Input::KeyboardAndMouse::MOUSE_EVENT_FLAGS) -> INPUT {
     INPUT {

@@ -21,4 +21,8 @@ impl<R: WindowsExt> ProcessUseCase<R> {
             .process()
             .save_screenshot_by_process_id(process_id, filepath)
     }
+
+    pub async fn save_fullscreen_screenshot(&self, filepath: &str) -> anyhow::Result<()> {
+        self.windows.process().save_fullscreen_screenshot(filepath)
+    }
 }

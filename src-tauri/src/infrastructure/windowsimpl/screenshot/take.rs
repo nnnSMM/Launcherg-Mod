@@ -18,6 +18,7 @@ use windows::Win32::System::WinRT::{
 use super::capture;
 use super::d3d;
 use anyhow::Context as _;
+use screenshots::Screen;
 use std::sync::mpsc::channel;
 
 fn create_capture_item_for_window(window_handle: HWND) -> Result<GraphicsCaptureItem> {
@@ -179,6 +180,19 @@ pub fn take_screenshot_by_top_window(filepath: &str) -> anyhow::Result<()> {
     save_bits_to_file(bits, item_size, filepath)?;
 
     unsafe { RoUninitialize() }
+
+    Ok(())
+}
+
+pub fn take_fullscreen_screenshot(filepath: &str) -> anyhow::Result<()> {
+    let screens = Screen::all()?;
+    let screen = screens
+        .iter()
+        .find(|screen| screen.display_info.is_primary)
+        .or_else(|| screens.first())
+        .context("No display found")?;
+    let image = screen.capture()?;
+    image.save(filepath)?;
 
     Ok(())
 }
