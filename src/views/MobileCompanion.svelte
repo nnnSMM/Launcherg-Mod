@@ -1122,8 +1122,6 @@
           <span>再読み込み</span>
         </button>
       </section>
-
-      <div class="version-label">{MOBILE_COMPANION_CLIENT_VERSION}</div>
     </section>
     {#if showNowPlayingBar && selectedGame}
       <button type="button" class="now-playing-bar" on:click={openController}>
@@ -1239,14 +1237,18 @@
 
 <style>
   .mobile-shell {
-    min-height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(620px, 100vw);
+    height: 100vh;
+    height: 100dvh;
     background: #151515;
     color: white;
     display: flex;
     flex-direction: column;
-    overflow-x: hidden;
-    max-width: 620px;
-    margin: 0 auto;
+    overflow: hidden;
   }
 
   .topbar {
@@ -1945,13 +1947,6 @@
 
   button:active {
     transform: translateY(1px);
-  }
-
-  .version-label {
-    text-align: center;
-    font-size: 11px;
-    color: #555;
-    padding: 12px 0 4px;
   }
 
   .hidden {
