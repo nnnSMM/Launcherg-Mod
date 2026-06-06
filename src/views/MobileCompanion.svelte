@@ -1886,7 +1886,7 @@
     width: min(620px, 100vw);
     height: calc(72px + env(safe-area-inset-bottom, 0px));
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     padding-bottom: env(safe-area-inset-bottom, 0px);
     border-top: 1px solid rgb(255 255 255 / 0.1);
     background: rgb(25 25 25 / 0.96);
