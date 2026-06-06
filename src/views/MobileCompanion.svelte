@@ -232,7 +232,7 @@
     (game) => game.playStatus === PLAY_STATUS.Cleared,
   );
   $: homePrimaryGames =
-    clearedGames.length > 0 ? clearedGames.slice(0, 3) : recentGames.slice(0, 3);
+    playingGames.length > 0 ? playingGames.slice(0, 3) : recentGames.slice(0, 3);
   $: activeGame =
     activeGameId === null
       ? null
@@ -964,7 +964,7 @@
       {#if homePrimaryGames.length > 0}
         <section class="section">
           <div class="section-head">
-            <h2>{clearedGames.length > 0 ? "クリア済み" : "最近"}</h2>
+            <h2>{playingGames.length > 0 ? "続きから" : "最近"}</h2>
             <button type="button" on:click={() => (activeView = "library")}>
               一覧
             </button>
@@ -1004,9 +1004,9 @@
 
       {#if games.length > 0}
         <section class="home-shortcuts" aria-label="ライブラリショートカット">
-          <button type="button" on:click={() => openFilteredLibrary("playing")}>
-            <span>{playingGames.length}</span>
-            <small>プレイ中</small>
+          <button type="button" on:click={() => openFilteredLibrary("cleared")}>
+            <span>{clearedGames.length}</span>
+            <small>クリア済み</small>
           </button>
           <button type="button" on:click={() => openFilteredLibrary("unplayed")}>
             <span>{unplayedGames.length}</span>
