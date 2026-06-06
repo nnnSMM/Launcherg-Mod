@@ -16,6 +16,7 @@
   let selectedGameId: number = 0;
   let shortcutKey: string = "";
   let pauseShortcutKey: string = "";
+  let screenshotShortcutKey: string = "";
   let isLoading = true;
 
   onMount(async () => {
@@ -50,6 +51,15 @@
       });
       if (savedPauseShortcutKey) {
         pauseShortcutKey = savedPauseShortcutKey;
+      }
+
+      const savedScreenshotShortcutKey = await invoke<string>("get_app_setting", {
+        key: "screenshot_shortcut_key",
+      });
+      if (savedScreenshotShortcutKey) {
+        screenshotShortcutKey = savedScreenshotShortcutKey;
+      } else {
+        screenshotShortcutKey = "F12";
       }
 
     } catch (error) {
@@ -124,11 +134,24 @@
     }
   }
 
+  async function updateScreenshotShortcutKey() {
+    if (isLoading) return;
+    try {
+      const keyToSave = screenshotShortcutKey === "" ? null : screenshotShortcutKey;
+      await invoke("update_screenshot_shortcut_registration", {
+        newShortcutKey: keyToSave,
+      });
+    } catch (error) {
+      reportError("settings.screenshotShortcutKey.save", error);
+      showErrorToast(getFriendlyErrorMessage(error, "スクリーンショット用ショートカットキーの保存に失敗しました"));
+    }
+  }
 
   // Reactive auto-save
   $: selectedGameId, updateShortcutGame();
   $: shortcutKey, updateShortcutKey();
   $: pauseShortcutKey, updatePauseShortcutKey();
+  $: screenshotShortcutKey, updateScreenshotShortcutKey();
 </script>
 
 <div class="p-4 text-text-primary space-y-4 h-full overflow-y-auto">
@@ -223,6 +246,41 @@
             borderless
             on:click={() =>
               (pauseShortcutKey = toggleModifier(pauseShortcutKey, "Shift"))}
+          />
+        </div>
+      </Card>
+
+      <Card className="relative z-0">
+        <div class="flex items-center gap-2 mb-2">
+          <div class="i-material-symbols-image-outline w-5 h-5" />
+          <h2 class="text-lg font-medium">スクリーンショット撮影用ショートカットキー</h2>
+        </div>
+        <p class="text-sm text-text-secondary mb-4">
+          ゲームプレイ中にスクリーンショットを撮影するためのショートカットキーを定義します。デフォルトはF12です。有効なキーの組み合わせについては、<a
+            href="https://tauri.app/v1/api/js/globalshortcut"
+            target="_blank"
+            class="text-accent-accent hover:underline">Tauriのドキュメント</a
+          >を参照してください。
+        </p>
+        <Input bind:value={screenshotShortcutKey} placeholder="例: F12" />
+        <div class="flex gap-2 mt-2">
+          <Button
+            text="Ctrl"
+            borderless
+            on:click={() =>
+              (screenshotShortcutKey = toggleModifier(screenshotShortcutKey, "Ctrl"))}
+          />
+          <Button
+            text="Alt"
+            borderless
+            on:click={() =>
+              (screenshotShortcutKey = toggleModifier(screenshotShortcutKey, "Alt"))}
+          />
+          <Button
+            text="Shift"
+            borderless
+            on:click={() =>
+              (screenshotShortcutKey = toggleModifier(screenshotShortcutKey, "Shift"))}
           />
         </div>
       </Card>

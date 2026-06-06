@@ -49,4 +49,42 @@ pub async fn handle_shortcut(app_handle: AppHandle, shortcut: Shortcut) {
             }
         }
     }
+
+    // Screenshot shortcut handling
+    let mut screenshot_shortcut_str = "F12".to_string();
+    if let Ok(Some(key)) = modules
+        .collection_use_case()
+        .get_app_setting("screenshot_shortcut_key".to_string())
+        .await
+    {
+        if !key.is_empty() {
+            screenshot_shortcut_str = key;
+        }
+    }
+
+    if let Ok(screenshot_shortcut) = screenshot_shortcut_str.parse::<Shortcut>() {
+        if shortcut == screenshot_shortcut {
+            if let Some(session) = modules.pause_manager().tracking_session() {
+                let work_id = session.game_id;
+                let app_handle_arc = Arc::new(app_handle.clone());
+
+                match modules.file_use_case().get_new_upload_image_path(&app_handle_arc, work_id) {
+                    Ok(upload_path) => {
+                        if let Err(e) = modules.process_use_case().save_fullscreen_screenshot(&upload_path).await {
+                            eprintln!("Error saving screenshot via shortcut: {}", e);
+                        } else {
+                            if let Err(e) = modules.collection_use_case().register_screenshot_file(&app_handle_arc, work_id, upload_path.clone()).await {
+                                eprintln!("Error registering screenshot via shortcut: {}", e);
+                            } else {
+                                let path = std::path::Path::new(&upload_path);
+                                let filename = path.file_name().unwrap_or_default().to_string_lossy().to_string();
+                                crate::interface::command::spawn_screenshot_notification(&app_handle, work_id, &filename);
+                            }
+                        }
+                    }
+                    Err(e) => eprintln!("Error getting upload path for screenshot via shortcut: {}", e),
+                }
+            }
+        }
+    }
 }

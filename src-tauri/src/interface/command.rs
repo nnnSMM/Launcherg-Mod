@@ -497,6 +497,77 @@ pub async fn update_pause_shortcut_registration(
 }
 
 #[tauri::command]
+pub async fn update_screenshot_shortcut_registration(
+    handle: AppHandle,
+    modules: State<'_, Arc<Modules>>,
+    new_shortcut_key: Option<String>,
+) -> Result<(), CommandError> {
+    let normalized_shortcut_key = normalize_shortcut_key(new_shortcut_key);
+    let new_shortcut = parse_shortcut_key(normalized_shortcut_key.as_deref())?;
+    let mut old_shortcut_str = "F12".to_string();
+    if let Ok(Some(key)) = modules
+        .collection_use_case()
+        .get_app_setting("screenshot_shortcut_key".to_string())
+        .await
+    {
+        if !key.is_empty() {
+            old_shortcut_str = key;
+        }
+    }
+    let old_shortcut = parse_shortcut_key(Some(&old_shortcut_str)).ok().flatten();
+
+    if new_shortcut == old_shortcut {
+        modules
+            .collection_use_case()
+            .set_app_setting("screenshot_shortcut_key".to_string(), normalized_shortcut_key)
+            .await?;
+        return Ok(());
+    }
+
+    let old_shortcut_was_registered = if let Some(old_shortcut) = old_shortcut {
+        unregister_shortcut_if_needed(&handle, old_shortcut)?
+    } else {
+        false
+    };
+
+    let mut new_shortcut_was_registered = false;
+
+    if let Some(new_shortcut) = new_shortcut {
+        if let Err(e) =
+            register_new_shortcut(&handle, new_shortcut, normalized_shortcut_key.as_deref())
+        {
+            if old_shortcut_was_registered {
+                if let Some(old_shortcut) = old_shortcut {
+                    let _ = register_new_shortcut(&handle, old_shortcut, None);
+                }
+            }
+            return Err(e);
+        }
+        new_shortcut_was_registered = true;
+    }
+
+    if let Err(e) = modules
+        .collection_use_case()
+        .set_app_setting("screenshot_shortcut_key".to_string(), normalized_shortcut_key)
+        .await
+    {
+        if new_shortcut_was_registered {
+            if let Some(new_shortcut) = new_shortcut {
+                let _ = unregister_shortcut_if_needed(&handle, new_shortcut);
+            }
+        }
+        if old_shortcut_was_registered {
+            if let Some(old_shortcut) = old_shortcut {
+                let _ = register_new_shortcut(&handle, old_shortcut, None);
+            }
+        }
+        return Err(e.into());
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
 pub async fn launch_shortcut_game(
     handle: AppHandle,
     modules: State<'_, Arc<Modules>>,
@@ -1077,7 +1148,7 @@ pub async fn save_screenshot_by_pid(
 ) -> Result<String, CommandError> {
     let upload_path = modules
         .file_use_case()
-        .get_new_upload_image_path(&Arc::new(handle), work_id)?;
+        .get_new_upload_image_path(&Arc::new(handle.clone()), work_id)?;
     modules
         .process_use_case()
         .save_screenshot_by_pid(process_id, &upload_path)
@@ -1111,6 +1182,12 @@ pub async fn save_fullscreen_screenshot(
         .collection_use_case()
         .register_screenshot_file(&handle, work_id, upload_path.clone())
         .await?;
+    let filename = std::path::Path::new(&upload_path)
+        .file_name()
+        .ok_or_else(|| anyhow::anyhow!("Invalid screenshot filename"))?
+        .to_string_lossy()
+        .to_string();
+    spawn_screenshot_notification(handle.as_ref(), work_id, &filename);
     Ok(upload_path)
 }
 
@@ -1357,4 +1434,67 @@ pub fn hide_tray_menu(handle: AppHandle) -> Result<(), CommandError> {
 pub fn quit_app(handle: AppHandle) {
     let _ = save_current_window_state(&handle);
     handle.exit(0);
+}
+
+pub fn spawn_screenshot_notification(handle: &AppHandle, game_id: i32, filename: &str) {
+    let handle_clone = handle.clone();
+    let encoded_filename = filename.replace(" ", "%20");
+    let url = format!("/?gameId={}&filename={}", game_id, encoded_filename);
+    #[cfg(target_os = "windows")]
+    let restore_hwnd = unsafe { windows::Win32::UI::WindowsAndMessaging::GetForegroundWindow().0 };
+
+    let _ = handle.run_on_main_thread(move || {
+        use tauri::{WebviewUrl, WebviewWindowBuilder};
+        let timestamp = chrono::Local::now().timestamp_millis();
+        let label = format!("screenshot_notification_{}", timestamp);
+
+        let mut builder = WebviewWindowBuilder::new(
+            &handle_clone,
+            label,
+            WebviewUrl::App(url.into())
+        )
+        .inner_size(360.0, 96.0)
+        .decorations(false)
+        .transparent(true)
+        .always_on_top(true)
+        .skip_taskbar(true)
+        .resizable(false)
+        .shadow(false);
+
+        if let Ok(Some(monitor)) = handle_clone.primary_monitor() {
+            let size = monitor.size();
+            let position = monitor.position();
+            let scale_factor = monitor.scale_factor();
+            let x = position.x as f64 / scale_factor + size.width as f64 / scale_factor - 360.0 - 20.0;
+            let y = position.y as f64 / scale_factor + size.height as f64 / scale_factor - 96.0 - 56.0;
+            builder = builder.position(x, y);
+        }
+
+        match builder.visible(false).build() {
+            Ok(_) => {
+                log::info!("Successfully created screenshot notification window.");
+            }
+            Err(e) => {
+                log::error!("Failed to create screenshot notification window: {:?}", e);
+                eprintln!("Failed to create screenshot notification window: {:?}", e);
+            }
+        }
+
+        #[cfg(target_os = "windows")]
+        if restore_hwnd != 0 {
+            let _ = unsafe {
+                windows::Win32::UI::WindowsAndMessaging::SetForegroundWindow(
+                    windows::Win32::Foundation::HWND(restore_hwnd),
+                )
+            };
+            tauri::async_runtime::spawn(async move {
+                tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+                let _ = unsafe {
+                    windows::Win32::UI::WindowsAndMessaging::SetForegroundWindow(
+                        windows::Win32::Foundation::HWND(restore_hwnd),
+                    )
+                };
+            });
+        }
+    });
 }

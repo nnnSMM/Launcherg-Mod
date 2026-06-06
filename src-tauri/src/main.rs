@@ -292,6 +292,25 @@ fn main() {
                             }
                         }
                     }
+
+                    // Register screenshot shortcut
+                    let mut screenshot_shortcut_str = "F12".to_string();
+                    if let Ok(Some(key)) = modules
+                        .collection_use_case()
+                        .get_app_setting("screenshot_shortcut_key".to_string())
+                        .await
+                    {
+                        if !key.is_empty() {
+                            screenshot_shortcut_str = key;
+                        }
+                    }
+                    if let Ok(shortcut) = screenshot_shortcut_str.parse::<Shortcut>() {
+                        if !handle.global_shortcut().is_registered(shortcut) {
+                            if let Err(e) = handle.global_shortcut().register(shortcut) {
+                                eprintln!("Failed to register screenshot shortcut on startup: {}", e);
+                            }
+                        }
+                    }
                 });
 
                 Ok(())
@@ -342,6 +361,7 @@ fn main() {
             command::launch_shortcut_game,
             command::update_shortcut_registration,
             command::update_pause_shortcut_registration,
+            command::update_screenshot_shortcut_registration,
             command::toggle_pause_tracking,
             command::get_pause_state,
             command::get_tracking_state,

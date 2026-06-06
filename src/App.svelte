@@ -19,6 +19,7 @@
   import InitializationOverlay from "@/components/UI/InitializationOverlay.svelte";
   import { theme } from "@/store/theme";
 
+
   const isPublicDemoBuild = __PUBLIC_DEMO_BUILD__;
   const isStandalonePublicPwa = isPublicDemoBuild && isStandalonePwa();
   const isTauriRuntime =
@@ -35,6 +36,7 @@
   let titleBarComponentPromise: Promise<ComponentModule> | null = null;
   let layoutComponentPromise: Promise<ComponentModule> | null = null;
   let importDropFilesComponentPromise: Promise<ComponentModule> | null = null;
+  let screenshotNotificationComponentPromise: Promise<ComponentModule> | null = null;
   let didStartDetailRegistration = false;
   let setDetailPromise: Promise<void> = Promise.resolve();
   const isCompanionDocument =
@@ -61,6 +63,13 @@
     !screenshotWindowComponentPromise
   ) {
     screenshotWindowComponentPromise = import("@/views/ScreenshotWindow.svelte");
+  }
+  $: isScreenshotNotification = windowLabel.startsWith("screenshot_notification");
+  $: if (
+    isScreenshotNotification &&
+    !screenshotNotificationComponentPromise
+  ) {
+    screenshotNotificationComponentPromise = import("@/views/ScreenshotNotification.svelte");
   }
   $: if (windowLabel === "tray_menu" && !trayMenuComponentPromise) {
     trayMenuComponentPromise = import("@/views/TrayMenu.svelte");
@@ -164,7 +173,6 @@
       }
     }
 
-
     let cleanupTooltips = () => {};
     let didUnmount = false;
     void import("@/lib/tooltip").then(({ setupGlobalTooltips }) => {
@@ -236,6 +244,10 @@
   {/await}
 {:else if windowLabel === "screenshot_window" && screenshotWindowComponentPromise}
   {#await screenshotWindowComponentPromise then module}
+    <svelte:component this={module.default} />
+  {/await}
+{:else if isScreenshotNotification && screenshotNotificationComponentPromise}
+  {#await screenshotNotificationComponentPromise then module}
     <svelte:component this={module.default} />
   {/await}
 {:else if windowLabel === "tray_menu" && trayMenuComponentPromise}

@@ -12,6 +12,14 @@ links:
 
 # Decision Log
 
+## 2026-06-06: Pause復帰とスクショプレビューはプレイを邪魔しない
+
+- Context: Pause解除後に元のゲームへフォーカスが戻らず、プレイ再開に余計なクリックが必要だった。また、スマホ/独自ショートカット経由のスクショは保存されたか分かりにくかった。
+- Decision: Pause表示時にWindowsの前面ウィンドウを記録し、Pause解除時にそのウィンドウへフォーカスを戻す。スクショプレビューはLauncherg-Modのスマホ撮影と独自スクショショートカットだけで表示し、Windows標準スクショ監視やメモ挿入用スクショでは出さない。
+- Rationale: Pauseとスクショはプレイ中の補助操作なので、成功確認は小さく出しつつ、ゲームへの入力復帰を妨げないことを優先する。
+- Consequence: フォーカス復帰はWindowsの前面制御に依存する。OSが復帰を拒否した場合でも、Pause解除自体は続行する。
+- Links: [[mobile-companion-service-blueprint]], [[remote-play-hub]]
+
 ## 2026-06-06: Mobile Companionの操作判定はRustの追跡セッションを正にする
 
 - Context: スマホからPause/スクショができない報告があった。スクショの起動中判定をPCフロントの `startProcessMap` に依存させると、QR再接続、PWA再起動、PC側画面リロードで状態が消え、Rust側では追跡中でもスマホ操作が失敗する。
