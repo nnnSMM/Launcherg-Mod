@@ -293,10 +293,13 @@
     requestThumbnailsForGames(visibleThumbnailGames);
   }
 
-  $: if (activeView === "detail" && contentContainer) {
+  const getContentContainer = () => contentContainer;
+
+  $: if (activeView === "detail") {
     void tick().then(() => {
-      if (contentContainer) {
-        contentContainer.scrollTop = 0;
+      const container = getContentContainer();
+      if (container) {
+        container.scrollTop = 0;
       }
     });
   }
