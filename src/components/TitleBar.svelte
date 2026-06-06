@@ -283,7 +283,7 @@
           class={titlebarIconButtonClass}
           on:click={openMobileCompanion}
         >
-          <div class="i-material-symbols:videogame-asset-outline-rounded text-[18px]" />
+          <div class="i-material-symbols:sports-esports-outline-rounded text-[18px]" />
         </button>
         <button
           type="button"

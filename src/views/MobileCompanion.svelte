@@ -1287,7 +1287,7 @@
         requestControlStatus();
       }}
     >
-      <span class="i-material-symbols:videogame-asset-outline-rounded text-[22px]" />
+      <span class="i-material-symbols:sports-esports-outline-rounded text-[22px]" />
       <span>操作</span>
     </button>
     <button
