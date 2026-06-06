@@ -114,7 +114,6 @@
 
   let connectionState: ConnectionState = "idle";
   let activeView: ViewMode = "library";
-  let contentContainer: HTMLElement | undefined;
   let statusText = "接続待ち";
   let connectionErrorText = "";
   let dataStream: LocalDataStream | undefined;
@@ -134,8 +133,6 @@
   let cachedAt: string | null = null;
   let didReceiveLibrary = false;
   let didSelectGameManually = false;
-  let libraryScrollTop = 0;
-  let lastActiveView: ViewMode = activeView;
   let imageUrlsByPath: Record<string, string> = {};
   let pendingImages = new Map<number, PendingImage>();
   let objectUrls: string[] = [];
@@ -295,31 +292,12 @@
     requestThumbnailsForGames(visibleThumbnailGames);
   }
 
-  $: {
-    if (lastActiveView === "library" && activeView !== "library") {
-      const container = document.querySelector(".content");
-      if (container) {
-        libraryScrollTop = container.scrollTop;
-      }
-    }
-    lastActiveView = activeView;
-  }
-
   $: if (activeView === "detail") {
     selectedGameId;
     void tick().then(() => {
-      const container = document.querySelector(".content");
+      const container = document.querySelector(".detail-content");
       if (container) {
         container.scrollTop = 0;
-      }
-    });
-  }
-
-  $: if (activeView === "library") {
-    void tick().then(() => {
-      const container = document.querySelector(".content");
-      if (container) {
-        container.scrollTop = libraryScrollTop;
       }
     });
   }
@@ -962,235 +940,74 @@
       {statusText}
     </div>
   </header>
-  <section class:controller-mode={activeView === "controller"} class="content" bind:this={contentContainer}>
-    {#if activeView === "library"}
-      <section class="library-view">
-        <div class="library-toolbar">
-          <div>
-            <div class="eyebrow">Library</div>
-            <h2>ゲーム一覧</h2>
-          </div>
-          <div class="subtle">{filteredGames.length} / {games.length} 本</div>
+  <section class="content library-content" class:hidden={activeView !== 'library'}>
+    <section class="library-view">
+      <div class="library-toolbar">
+        <div>
+          <div class="eyebrow">Library</div>
+          <h2>ゲーム一覧</h2>
         </div>
+        <div class="subtle">{filteredGames.length} / {games.length} 本</div>
+      </div>
 
-        <label class="search-shell">
-          <span class="i-material-symbols:search-rounded text-[20px]" />
-          <input
-            bind:value={searchText}
-            type="search"
-            placeholder="タイトル・ブランドで検索"
-            class="search-input"
-          />
-        </label>
+      <label class="search-shell">
+        <span class="i-material-symbols:search-rounded text-[20px]" />
+        <input
+          bind:value={searchText}
+          type="search"
+          placeholder="タイトル・ブランドで検索"
+          class="search-input"
+        />
+      </label>
 
-        <div class="filter-strip" aria-label="絞り込み">
-          {#each libraryFilters as filter}
+      <div class="filter-strip" aria-label="絞り込み">
+        {#each libraryFilters as filter}
+          <button
+            type="button"
+            class:active={libraryFilter === filter}
+            on:click={() => (libraryFilter = filter)}
+          >
+            {filterLabels[filter]}
+          </button>
+        {/each}
+      </div>
+
+      <div class="game-card-list">
+        {#if games.length === 0}
+          <div class="empty-state">{libraryEmptyText}</div>
+        {:else if filteredGames.length === 0}
+          <div class="empty-state">該当するゲームがありません</div>
+        {:else}
+          {#each filteredGames as game (game.id)}
+            {@const thumbnailUrl = gameThumbnailUrl(game)}
             <button
               type="button"
-              class:active={libraryFilter === filter}
-              on:click={() => (libraryFilter = filter)}
+              class="game-card"
+              on:click={() => selectGame(game)}
             >
-              {filterLabels[filter]}
-            </button>
-          {/each}
-        </div>
-
-        <div class="game-card-list">
-          {#if games.length === 0}
-            <div class="empty-state">{libraryEmptyText}</div>
-          {:else if filteredGames.length === 0}
-            <div class="empty-state">該当するゲームがありません</div>
-          {:else}
-            {#each filteredGames as game (game.id)}
-              {@const thumbnailUrl = gameThumbnailUrl(game)}
-              <button
-                type="button"
-                class="game-card"
-                on:click={() => selectGame(game)}
-              >
-                <div class="game-thumb">
-                  {#if thumbnailUrl}
-                    <img src={thumbnailUrl} alt="" loading="lazy" />
-                  {:else}
-                    <span class="i-material-symbols:image-outline-rounded text-[30px]" />
+              <div class="game-thumb">
+                {#if thumbnailUrl}
+                  <img src={thumbnailUrl} alt="" loading="lazy" />
+                {:else}
+                  <span class="i-material-symbols:image-outline-rounded text-[30px]" />
+                {/if}
+              </div>
+              <div class="game-card-body">
+                <div class="game-title">{game.title}</div>
+                <div class="game-meta">{game.brandName || "ブランド未設定"}</div>
+                <div class="meta-chips">
+                  <span>{statusLabels[game.playStatus] ?? "不明"}</span>
+                  <span>{formatLastPlay(game.lastPlayAt)}</span>
+                  {#if game.installed}
+                    <span>導入済み</span>
                   {/if}
                 </div>
-                <div class="game-card-body">
-                  <div class="game-title">{game.title}</div>
-                  <div class="game-meta">{game.brandName || "ブランド未設定"}</div>
-                  <div class="meta-chips">
-                    <span>{statusLabels[game.playStatus] ?? "不明"}</span>
-                    <span>{formatLastPlay(game.lastPlayAt)}</span>
-                    {#if game.installed}
-                      <span>導入済み</span>
-                    {/if}
-                  </div>
-                </div>
-              </button>
-            {/each}
-          {/if}
-        </div>
-      </section>
-    {:else if activeView === "detail"}
-      {#if selectedGame}
-        <section class="detail-panel">
-          <button type="button" class="back-button" on:click={() => (activeView = "library")}>
-            <span class="i-material-symbols:arrow-back-rounded text-[20px]" />
-            <span>一覧</span>
-          </button>
-          <div class="detail-kicker">Game Detail</div>
-          <div class="detail-title">{selectedGame.title}</div>
-          <div class="detail-brand">{selectedGame.brandName || "ブランド未設定"}</div>
-
-          <div class="detail-thumb" class:has-image={!!selectedThumbnailUrl}>
-            {#if selectedThumbnailUrl}
-              <img src={selectedThumbnailUrl} alt="" />
-            {:else}
-              <span class="i-material-symbols:image-outline-rounded text-[42px]" />
-            {/if}
-          </div>
-
-          <div class="detail-stats">
-            <div>
-              <span>{statusLabels[selectedGame.playStatus] ?? "不明"}</span>
-              <small>状態</small>
-            </div>
-            <div>
-              <span>{formatPlayTime(selectedGame.totalPlayTimeSeconds)}</span>
-              <small>時間</small>
-            </div>
-            <div>
-              <span>{formatLastPlay(selectedGame.lastPlayAt)}</span>
-              <small>最終</small>
-            </div>
-          </div>
-
-          <section class="memo-preview">
-            <div class="section-head">
-              <h2>メモ</h2>
-              <span class="subtle">編集</span>
-            </div>
-            <div class="detail-memo-editor">
-              <textarea
-                bind:value={memoText}
-                placeholder="メモを入力"
-              />
-              <button
-                type="button"
-                disabled={connectionState !== "connected" || selectedGameId === null}
-                on:click={syncMemo}
-              >
-                メモを同期
-              </button>
-            </div>
-          </section>
-        </section>
-      {:else}
-        <section class="empty-state">ゲームを選択してください</section>
-      {/if}
-    {:else if activeView === "connect"}
-      <section class="connect-view">
-        <section class="section">
-          <div class="section-head">
-            <h2>PC接続</h2>
-            <button
-              type="button"
-              disabled={connectionState !== "connected"}
-              on:click={refreshLibrary}
-            >
-              更新
+              </div>
             </button>
-          </div>
-          <div
-            class:connected={connectionState === "connected"}
-            class:offline={connectionState === "offline"}
-            class:error={connectionState === "error" || connectionState === "missing"}
-            class="connect-card"
-          >
-            <span class="i-material-symbols:desktop-windows-outline-rounded text-[28px]" />
-            <div>
-              <strong>{statusText}</strong>
-              <span>{cachedAt ? `最終同期 ${formatSyncTime(cachedAt)}` : "未同期"}</span>
-            </div>
-          </div>
-        </section>
-
-        <section class="section">
-          <h2>再接続</h2>
-          <div class="connect-copy">
-            PC側のスマホ連携QRから開くと、このPWAを同じPCに接続できます。ホーム画面アイコンが古い場合は削除して追加し直してください。
-          </div>
-          <button type="button" class="secondary-full-action" on:click={() => window.location.reload()}>
-            <span class="i-material-symbols:refresh-rounded text-[22px]" />
-            <span>再読み込み</span>
-          </button>
-        </section>
-
-        <div class="version-label">{MOBILE_COMPANION_CLIENT_VERSION}</div>
-      </section>
-    {:else if activeView === "controller"}
-      {#if canControl && selectedGame}
-        <section class="controller-panel">
-          <button type="button" class="back-button" on:click={() => (activeView = "library")}>
-            <span class="i-material-symbols:arrow-back-rounded text-[20px]" />
-            <span>一覧</span>
-          </button>
-          <div class="controller-kicker">Now Playing</div>
-          <div class="controller-game">{selectedGame.title}</div>
-          <div class="controller-status">
-            {connectionState === "connected" ? "PC接続中" : "PC未接続"} / {isPaused ? "Pause中" : "記録中"} / {formatPlayTime(selectedGame.totalPlayTimeSeconds)}
-          </div>
-
-          <button
-            type="button"
-            class:paused-action={isPaused}
-            class="pause-button"
-            disabled={connectionState !== "connected" || isTogglingPause}
-            on:click={togglePause}
-          >
-            <span
-              class={`${isPaused
-                ? "i-material-symbols:play-arrow-rounded"
-                : "i-material-symbols:pause-rounded"} text-[30px]`}
-            />
-            <span>{isPaused ? "記録再開" : "Pause"}</span>
-          </button>
-
-          <button
-            type="button"
-            class="shutter-button"
-            disabled={connectionState !== "connected" || isSendingScreenshot}
-            on:click={() => takeScreenshot()}
-          >
-            <span class="i-material-symbols:photo-camera-outline-rounded text-[36px]" />
-            <span>{isSendingScreenshot ? "撮影中" : "スクショ"}</span>
-          </button>
-
-          <button
-            type="button"
-            class="textless-button"
-            disabled={connectionState !== "connected" || isSendingScreenshot}
-            on:click={() => takeScreenshot(true)}
-          >
-            <span class="i-material-symbols:visibility-off-outline-rounded text-[22px]" />
-            <span>文字消しスクショ</span>
-          </button>
-
-        </section>
-      {:else}
-        <section class="empty-state controller-waiting">
-          <span class="i-material-symbols:gamepad-outline-rounded text-[34px]" />
-          <strong>起動中のゲームを待っています</strong>
-          <small>PC側でLauncherg-Modからゲームを起動すると、自動でコントローラーに接続します。</small>
-          {#if connectionState === "connected"}
-            <button type="button" class="secondary-full-action" on:click={requestControlStatus}>
-              状態を更新
-            </button>
-          {/if}
-        </section>
-      {/if}
-    {/if}
-
+          {/each}
+        {/if}
+      </div>
+    </section>
     {#if showNowPlayingBar && selectedGame}
       <button type="button" class="now-playing-bar" on:click={openController}>
         <span class="i-material-symbols:gamepad-outline-rounded text-[24px]" />
@@ -1201,7 +1018,189 @@
         <span class="i-material-symbols:chevron-right-rounded text-[22px]" />
       </button>
     {/if}
+    {#if lastActionText}
+      <div class="toast-line">{lastActionText}</div>
+    {/if}
+  </section>
 
+  <section class="content detail-content" class:hidden={activeView !== 'detail'}>
+    {#if selectedGame}
+      <section class="detail-panel">
+        <button type="button" class="back-button" on:click={() => (activeView = "library")}>
+          <span class="i-material-symbols:arrow-back-rounded text-[20px]" />
+          <span>一覧</span>
+        </button>
+        <div class="detail-kicker">Game Detail</div>
+        <div class="detail-title">{selectedGame.title}</div>
+        <div class="detail-brand">{selectedGame.brandName || "ブランド未設定"}</div>
+
+        <div class="detail-thumb" class:has-image={!!selectedThumbnailUrl}>
+          {#if selectedThumbnailUrl}
+            <img src={selectedThumbnailUrl} alt="" />
+          {:else}
+            <span class="i-material-symbols:image-outline-rounded text-[42px]" />
+          {/if}
+        </div>
+
+        <div class="detail-stats">
+          <div>
+            <span>{statusLabels[selectedGame.playStatus] ?? "不明"}</span>
+            <small>状態</small>
+          </div>
+          <div>
+            <span>{formatPlayTime(selectedGame.totalPlayTimeSeconds)}</span>
+            <small>時間</small>
+          </div>
+          <div>
+            <span>{formatLastPlay(selectedGame.lastPlayAt)}</span>
+            <small>最終</small>
+          </div>
+        </div>
+
+        <section class="memo-preview">
+          <div class="section-head">
+            <h2>メモ</h2>
+            <span class="subtle">編集</span>
+          </div>
+          <div class="detail-memo-editor">
+            <textarea
+              bind:value={memoText}
+              placeholder="メモを入力"
+            />
+            <button
+              type="button"
+              disabled={connectionState !== "connected" || selectedGameId === null}
+              on:click={syncMemo}
+            >
+              メモを同期
+            </button>
+          </div>
+        </section>
+      </section>
+    {:else}
+      <section class="empty-state">ゲームを選択してください</section>
+    {/if}
+    {#if lastActionText}
+      <div class="toast-line">{lastActionText}</div>
+    {/if}
+  </section>
+
+  <section class="content connect-content" class:hidden={activeView !== 'connect'}>
+    <section class="connect-view">
+      <section class="section">
+        <div class="section-head">
+          <h2>PC接続</h2>
+          <button
+            type="button"
+            disabled={connectionState !== "connected"}
+            on:click={refreshLibrary}
+          >
+            更新
+          </button>
+        </div>
+        <div
+          class:connected={connectionState === "connected"}
+          class:offline={connectionState === "offline"}
+          class:error={connectionState === "error" || connectionState === "missing"}
+          class="connect-card"
+        >
+          <span class="i-material-symbols:desktop-windows-outline-rounded text-[28px]" />
+          <div>
+            <strong>{statusText}</strong>
+            <span>{cachedAt ? `最終同期 ${formatSyncTime(cachedAt)}` : "未同期"}</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>再接続</h2>
+        <div class="connect-copy">
+          PC側のスマホ連携QRから開くと、このPWAを同じPCに接続できます。ホーム画面アイコンが古い場合は削除して追加し直してください。
+        </div>
+        <button type="button" class="secondary-full-action" on:click={() => window.location.reload()}>
+          <span class="i-material-symbols:refresh-rounded text-[22px]" />
+          <span>再読み込み</span>
+        </button>
+      </section>
+
+      <div class="version-label">{MOBILE_COMPANION_CLIENT_VERSION}</div>
+    </section>
+    {#if showNowPlayingBar && selectedGame}
+      <button type="button" class="now-playing-bar" on:click={openController}>
+        <span class="i-material-symbols:gamepad-outline-rounded text-[24px]" />
+        <span class="now-playing-copy">
+          <strong>{selectedGame.title}</strong>
+          <small>{isPaused ? "Pause中" : "コントローラーを開く"}</small>
+        </span>
+        <span class="i-material-symbols:chevron-right-rounded text-[22px]" />
+      </button>
+    {/if}
+    {#if lastActionText}
+      <div class="toast-line">{lastActionText}</div>
+    {/if}
+  </section>
+
+  <section class="content controller-content" class:controller-mode={true} class:hidden={activeView !== 'controller'}>
+    {#if canControl && selectedGame}
+      <section class="controller-panel">
+        <button type="button" class="back-button" on:click={() => (activeView = "library")}>
+          <span class="i-material-symbols:arrow-back-rounded text-[20px]" />
+          <span>一覧</span>
+        </button>
+        <div class="controller-kicker">Now Playing</div>
+        <div class="controller-game">{selectedGame.title}</div>
+        <div class="controller-status">
+          {connectionState === "connected" ? "PC接続中" : "PC未接続"} / {isPaused ? "Pause中" : "記録中"} / {formatPlayTime(selectedGame.totalPlayTimeSeconds)}
+        </div>
+
+        <button
+          type="button"
+          class:paused-action={isPaused}
+          class="pause-button"
+          disabled={connectionState !== "connected" || isTogglingPause}
+          on:click={togglePause}
+        >
+          <span
+            class={`${isPaused
+              ? "i-material-symbols:play-arrow-rounded"
+              : "i-material-symbols:pause-rounded"} text-[30px]`}
+          />
+          <span>{isPaused ? "記録再開" : "Pause"}</span>
+        </button>
+
+        <button
+          type="button"
+          class="shutter-button"
+          disabled={connectionState !== "connected" || isSendingScreenshot}
+          on:click={() => takeScreenshot()}
+        >
+          <span class="i-material-symbols:photo-camera-outline-rounded text-[36px]" />
+          <span>{isSendingScreenshot ? "撮影中" : "スクショ"}</span>
+        </button>
+
+        <button
+          type="button"
+          class="textless-button"
+          disabled={connectionState !== "connected" || isSendingScreenshot}
+          on:click={() => takeScreenshot(true)}
+        >
+          <span class="i-material-symbols:visibility-off-outline-rounded text-[22px]" />
+          <span>文字消しスクショ</span>
+        </button>
+
+      </section>
+    {:else}
+      <section class="empty-state controller-waiting">
+        <span class="i-material-symbols:gamepad-outline-rounded text-[34px]" />
+        <strong>起動中のゲームを待っています</strong>
+        <small>PC側でLauncherg-Modからゲームを起動すると、自動でコントローラーに接続します。</small>
+        {#if connectionState === "connected"}
+          <button type="button" class="secondary-full-action" on:click={requestControlStatus}>
+            状態を更新
+          </button>
+        {/if}
+      </section>
+    {/if}
     {#if lastActionText}
       <div class="toast-line">{lastActionText}</div>
     {/if}
@@ -1953,5 +1952,9 @@
     font-size: 11px;
     color: #555;
     padding: 12px 0 4px;
+  }
+
+  .hidden {
+    display: none !important;
   }
 </style>
