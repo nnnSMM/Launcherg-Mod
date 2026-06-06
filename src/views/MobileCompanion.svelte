@@ -890,20 +890,31 @@
     lastActionText = "メモを同期しました";
   };
 
+  const handleViewportReset = () => {
+    setTimeout(() => {
+      window.scrollTo(0, 0);
+    }, 50);
+  };
+
   onMount(() => {
     const htmlEl = document.documentElement;
     const bodyEl = document.body;
     const appEl = document.querySelector("#app") as HTMLElement | null;
     if (htmlEl) {
       htmlEl.style.height = "100dvh";
+      htmlEl.style.backgroundColor = "#151515";
     }
     if (bodyEl) {
       bodyEl.style.height = "100dvh";
+      bodyEl.style.backgroundColor = "#151515";
     }
     if (appEl) {
       appEl.style.overflow = "hidden";
       appEl.style.height = "100dvh";
     }
+
+    document.addEventListener("focusin", handleViewportReset);
+    document.addEventListener("focusout", handleViewportReset);
 
     void getAllCachedImages().then((cached) => {
       cached.forEach(({ path, blob }) => {
@@ -933,14 +944,19 @@
     const appEl = document.querySelector("#app") as HTMLElement | null;
     if (htmlEl) {
       htmlEl.style.height = "";
+      htmlEl.style.backgroundColor = "";
     }
     if (bodyEl) {
       bodyEl.style.height = "";
+      bodyEl.style.backgroundColor = "";
     }
     if (appEl) {
       appEl.style.overflow = "";
       appEl.style.height = "";
     }
+
+    document.removeEventListener("focusin", handleViewportReset);
+    document.removeEventListener("focusout", handleViewportReset);
 
     cleanupCallbacks.forEach((callback) => callback());
     cleanupCallbacks = [];
