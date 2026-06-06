@@ -1725,9 +1725,8 @@
   }
 
   .detail-thumb {
-    width: 100%;
-    max-width: 320px;
-    min-height: 172px;
+    width: 120px;
+    min-height: 75px;
     margin: 14px auto 0 auto;
     display: flex;
     justify-content: center;
