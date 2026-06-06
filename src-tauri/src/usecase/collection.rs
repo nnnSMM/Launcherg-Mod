@@ -576,7 +576,7 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
 
     pub async fn import_screenshot(
         &self,
-        _handle: &Arc<AppHandle>,
+        handle: &Arc<AppHandle>,
         game_id: i32,
         file_path: String,
     ) -> anyhow::Result<()> {
@@ -602,9 +602,32 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
         let dest_path = dest_dir.join(&filename);
         std::fs::copy(path, &dest_path)?;
 
+        self.register_screenshot_file(handle, game_id, dest_path.to_string_lossy().to_string())
+            .await?;
+
+        Ok(())
+    }
+
+    pub async fn register_screenshot_file(
+        &self,
+        handle: &Arc<AppHandle>,
+        game_id: i32,
+        file_path: String,
+    ) -> anyhow::Result<String> {
+        let path = std::path::Path::new(&file_path);
+        if !path.exists() {
+            return Err(anyhow::anyhow!("File not found"));
+        }
+
+        let filename = path
+            .file_name()
+            .ok_or(anyhow::anyhow!("Invalid filename"))?
+            .to_string_lossy()
+            .to_string();
+
         if let Err(e) = ensure_screenshot_thumbnail(&self.save_root_dir, game_id, &filename) {
             eprintln!(
-                "[import_screenshot] ensure_screenshot_thumbnail failed: {}",
+                "[register_screenshot_file] ensure_screenshot_thumbnail failed: {}",
                 e
             );
         }
@@ -614,10 +637,9 @@ impl<R: RepositoriesExt + Send + Sync + 'static> CollectionUseCase<R> {
             .insert(&Id::new(game_id), &filename)
             .await?;
 
-        // Emit notification
-        let _ = _handle.emit("collection-element-updated", game_id);
+        let _ = handle.emit("collection-element-updated", game_id);
 
-        Ok(())
+        Ok(filename)
     }
 
     pub async fn delete_screenshot(

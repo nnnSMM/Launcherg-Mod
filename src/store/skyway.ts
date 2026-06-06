@@ -38,6 +38,7 @@ import {
 } from "@/lib/mobileCompanionUrl";
 import { getOrCreateMobileCompanionRoomId } from "@/lib/mobileCompanionRoom";
 import { sidebarCollectionElements } from "@/store/sidebarCollectionElements";
+import { getStartProcessMap } from "@/store/startProcessMap";
 import type { CollectionElement } from "@/lib/types";
 
 const createSkyWay = () => {
@@ -280,25 +281,16 @@ const createSkyWay = () => {
           case "take_screenshot": {
             let didHideText = false;
             try {
+              if (getStartProcessMap()[message.gameId] === undefined) {
+                throw new Error("対象ゲームの起動プロセスが見つかりません");
+              }
+
               if (message.hideText) {
                 await commandSendRightClick();
                 didHideText = true;
                 await wait(180);
               }
               const imagePath = await commandSaveFullscreenScreenshot(message.gameId);
-              const prev = getMemo(message.gameId).value;
-              const lines = prev.split("\n");
-              const newLines: string[] = [];
-              for (let i = 0; i < lines.length; i++) {
-                newLines.push(lines[i]);
-                if (i === message.cursorLine) {
-                  newLines.push(`![](${imagePath})`);
-                  newLines.push("");
-                }
-              }
-              const newMemo = newLines.join("\n");
-              setRemoteMemo(message.gameId, newMemo);
-              await syncMemo(message.gameId, newMemo);
               sendMessage({
                 type: "screenshot_result",
                 gameId: message.gameId,

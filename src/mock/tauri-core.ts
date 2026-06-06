@@ -599,12 +599,14 @@ export const invoke = async <T = unknown>(
   if (cmd === "get_pause_state") return pauseState as T;
   if (cmd === "get_game_screenshots") return [] as T;
   if (cmd === "get_all_screenshots") return [] as T;
+  if (cmd === "save_screenshot_by_pid" || cmd === "save_fullscreen_screenshot") {
+    return "mock-screenshot.png" as T;
+  }
 
   if (
     cmd === "open_folder" ||
     cmd === "upload_image" ||
     cmd === "update_all_game_cache" ||
-    cmd === "save_screenshot_by_pid" ||
     cmd === "import_screenshot" ||
     cmd === "delete_screenshot" ||
     cmd === "update_screenshots_order" ||

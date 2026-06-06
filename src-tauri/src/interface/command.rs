@@ -1082,12 +1082,17 @@ pub async fn save_fullscreen_screenshot(
     modules: State<'_, Arc<Modules>>,
     work_id: i32,
 ) -> Result<String, CommandError> {
+    let handle = Arc::new(handle);
     let upload_path = modules
         .file_use_case()
-        .get_new_upload_image_path(&Arc::new(handle), work_id)?;
+        .get_new_upload_image_path(&handle, work_id)?;
     modules
         .process_use_case()
         .save_fullscreen_screenshot(&upload_path)
+        .await?;
+    modules
+        .collection_use_case()
+        .register_screenshot_file(&handle, work_id, upload_path.clone())
         .await?;
     Ok(upload_path)
 }

@@ -12,11 +12,11 @@ links:
 
 # Decision Log
 
-## 2026-06-06: Mobile Companionの補助スクショは主ディスプレイ全体を撮る
+## 2026-06-06: Mobile Companionの補助スクショは通常スクショとして保存する
 
-- Context: スマホ補助スクショで `対象ゲームの起動プロセスが見つかりません` が出ていた。原因はSkyWayの `take_screenshot` が `startProcessMap` から対象ゲームのPIDを取得し、`save_screenshot_by_pid` へ渡す実装だったこと。ユーザーが求めている補助スクショは、ゲームプロセス追跡に依存せずPC側で全画面スクショを取る操作である。
-- Decision: Mobile Companionの通常スクショ/文字消しスクショは、選択中ゲームのメモ画像保存先を使いながら、撮影対象はPCの主ディスプレイ全体にする。スマホ補助スクショでは `save_screenshot_by_pid` と `startProcessMap` を使わない。
-- Rationale: プレイ中にLauncherg-Mod側の起動追跡が切れていても、補助コントローラーからスクショを撮れることが体験上重要。保存先は従来のメモ画像経路に残すことで、Capture Galleryとの境界は維持できる。
+- Context: スマホ補助スクショで `対象ゲームの起動プロセスが見つかりません` が出ていた。原因はSkyWayの `take_screenshot` が `startProcessMap` から対象ゲームのPIDを取得し、`save_screenshot_by_pid` へ渡す実装だったこと。その後、ユーザーから「メモ挿入ではなく、起動中ゲームが分かっている場合だけアプリ側の通常スクショとして保存する」と訂正があった。
+- Decision: Mobile Companionの通常スクショ/文字消しスクショは、対象ゲームが `startProcessMap` 上で起動中として記録されている場合だけ実行する。撮影対象はPCの主ディスプレイ全体にし、撮影結果はスクリーンショットDBへ登録する。メモへMarkdown画像は挿入しない。スマホ補助スクショでは撮影自体に `save_screenshot_by_pid` を使わない。
+- Rationale: アプリ側のスクショ一覧と同じ扱いにすると、スマホで撮った画像を後からGallery/ゲーム詳細で自然に見返せる。起動中ゲームが不明な場合は保存先の紐づけが曖昧になるため、失敗として返す方が安全。
 - Consequence: マルチモニター環境では初期実装は主ディスプレイを撮る。将来、撮影対象モニター選択や全モニター合成が必要になったらControllerの撮影設定として追加する。
 - Links: [[mobile-companion-service-blueprint]], [[remote-play-hub]]
 
