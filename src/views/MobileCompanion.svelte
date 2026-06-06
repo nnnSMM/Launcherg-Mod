@@ -223,6 +223,7 @@
     selectedGameId === null
       ? null
       : games.find((game) => game.id === selectedGameId) ?? null;
+  $: selectedThumbnailUrl = selectedGame ? gameThumbnailUrl(selectedGame) : undefined;
   $: playingGames = games.filter(
     (game) => game.playStatus === PLAY_STATUS.Playing,
   );
@@ -292,11 +293,7 @@
   }
 
   $: if (activeView === "detail" && contentContainer) {
-    void tick().then(() => {
-      if (contentContainer) {
-        contentContainer.scrollTop = 0;
-      }
-    });
+    contentContainer.scrollTop = 0;
   }
 
   const isObject = (value: unknown): value is Record<string, unknown> =>
@@ -1003,7 +1000,6 @@
       </section>
     {:else if activeView === "detail"}
       {#if selectedGame}
-        {@const selectedThumbnailUrl = gameThumbnailUrl(selectedGame)}
         <section class="detail-panel">
           <button type="button" class="back-button" on:click={() => (activeView = "library")}>
             <span class="i-material-symbols:arrow-back-rounded text-[20px]" />

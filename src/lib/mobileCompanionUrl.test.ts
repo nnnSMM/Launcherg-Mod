@@ -9,7 +9,7 @@ describe("createMobileCompanionUrl", () => {
     });
 
     expect(url).toBe(
-      "https://example.test/companion.html?client=mobile-pwa-v5&mode=controller&roomId=room-1",
+      "https://example.test/companion.html?client=mobile-pwa-v6&mode=controller&roomId=room-1",
     );
   });
 
@@ -20,7 +20,7 @@ describe("createMobileCompanionUrl", () => {
     });
 
     expect(url).toBe(
-      "https://example.test/Launcherg-Mod/companion.html?client=mobile-pwa-v5&mode=controller&roomId=room-1",
+      "https://example.test/Launcherg-Mod/companion.html?client=mobile-pwa-v6&mode=controller&roomId=room-1",
     );
   });
 
@@ -34,7 +34,7 @@ describe("createMobileCompanionUrl", () => {
     });
 
     expect(url).toBe(
-      "https://example.test/companion.html?client=mobile-pwa-v5&mode=controller&roomId=room-1&gameId=42&seiyaUrl=https%3A%2F%2Fseiya.example%2Fgame%3Fid%3D42&authToken=token-1",
+      "https://example.test/companion.html?client=mobile-pwa-v6&mode=controller&roomId=room-1&gameId=42&seiyaUrl=https%3A%2F%2Fseiya.example%2Fgame%3Fid%3D42&authToken=token-1",
     );
   });
 
@@ -46,7 +46,7 @@ describe("createMobileCompanionUrl", () => {
     });
 
     expect(url).toBe(
-      "https://example.test/companion.html?client=mobile-pwa-v5&mode=library&roomId=room-1",
+      "https://example.test/companion.html?client=mobile-pwa-v6&mode=library&roomId=room-1",
     );
   });
 });
