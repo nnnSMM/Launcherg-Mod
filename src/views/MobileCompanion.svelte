@@ -891,10 +891,18 @@
   };
 
   onMount(() => {
+    const htmlEl = document.documentElement;
+    const bodyEl = document.body;
     const appEl = document.querySelector("#app") as HTMLElement | null;
+    if (htmlEl) {
+      htmlEl.style.height = "100dvh";
+    }
+    if (bodyEl) {
+      bodyEl.style.height = "100dvh";
+    }
     if (appEl) {
       appEl.style.overflow = "hidden";
-      appEl.style.height = "100%";
+      appEl.style.height = "100dvh";
     }
 
     void getAllCachedImages().then((cached) => {
@@ -920,7 +928,15 @@
   });
 
   onDestroy(() => {
+    const htmlEl = document.documentElement;
+    const bodyEl = document.body;
     const appEl = document.querySelector("#app") as HTMLElement | null;
+    if (htmlEl) {
+      htmlEl.style.height = "";
+    }
+    if (bodyEl) {
+      bodyEl.style.height = "";
+    }
     if (appEl) {
       appEl.style.overflow = "";
       appEl.style.height = "";
@@ -1328,14 +1344,14 @@
     min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
-    padding: 14px 14px calc(92px + env(safe-area-inset-bottom, 0px));
+    padding: 14px 14px 24px;
     display: grid;
     align-content: start;
     gap: 14px;
   }
 
   .content.controller-mode {
-    padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: 24px;
   }
 
   .section,
@@ -1918,18 +1934,20 @@
   }
 
   .bottom-nav {
-    position: fixed;
-    left: 50%;
-    bottom: 0;
-    transform: translateX(-50%);
-    width: min(620px, 100vw);
-    height: calc(72px + env(safe-area-inset-bottom, 0px));
+    width: 100%;
+    height: 72px;
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    padding-bottom: env(safe-area-inset-bottom, 0px);
     border-top: 1px solid rgb(255 255 255 / 0.1);
     background: rgb(25 25 25 / 0.96);
     backdrop-filter: blur(14px);
+  }
+
+  @media (display-mode: standalone) {
+    .bottom-nav {
+      height: calc(60px + env(safe-area-inset-bottom, 0px));
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
   }
 
   .bottom-nav button {
