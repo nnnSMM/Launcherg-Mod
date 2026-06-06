@@ -1,4 +1,4 @@
-﻿import {
+import {
   SkyWayContext,
   SkyWayRoom,
   SkyWayStreamFactory,
@@ -296,7 +296,7 @@ const createSkyWay = () => {
               if (message.hideText) {
                 await commandSendRightClick();
                 didHideText = true;
-                await wait(180);
+                await wait(400);
               }
               const imagePath = await commandSaveFullscreenScreenshot(message.gameId);
               sendMessage({

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onDestroy, onMount } from "svelte";
+  import { saveImageToCache, getAllCachedImages } from "@/lib/imageCache";
   import type {
     LocalDataStream,
     LocalStream,
@@ -435,6 +436,8 @@
     objectUrls = [...objectUrls, imageUrl];
     imageUrlsByPath = { ...imageUrlsByPath, [pending.path]: imageUrl };
     pendingImages.delete(key);
+    
+    void saveImageToCache(pending.path, blob);
   };
 
   const gameThumbnailUrl = (game: RemoteGameSummary) =>
@@ -839,6 +842,14 @@
   };
 
   onMount(() => {
+    void getAllCachedImages().then((cached) => {
+      cached.forEach(({ path, blob }) => {
+        const imageUrl = URL.createObjectURL(blob);
+        objectUrls = [...objectUrls, imageUrl];
+        imageUrlsByPath = { ...imageUrlsByPath, [path]: imageUrl };
+      });
+    });
+
     const restored = restoreLibraryCache();
     if (restored && !hasRequiredParams) {
       connectionState = "offline";
