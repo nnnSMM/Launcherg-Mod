@@ -1101,7 +1101,7 @@
           <div class="detail-title">{selectedGame.title}</div>
           <div class="detail-brand">{selectedGame.brandName || "ブランド未設定"}</div>
 
-          <div class="detail-thumb">
+          <div class="detail-thumb" class:has-image={!!selectedThumbnailUrl}>
             {#if selectedThumbnailUrl}
               <img src={selectedThumbnailUrl} alt="" />
             {:else}
@@ -1725,8 +1725,9 @@
   }
 
   .detail-thumb {
-    width: 120px;
-    min-height: 75px;
+    width: 100%;
+    max-width: 320px;
+    min-height: 172px;
     margin: 14px auto 0 auto;
     display: flex;
     justify-content: center;
@@ -1738,6 +1739,11 @@
       linear-gradient(135deg, rgb(94 201 142 / 0.16), transparent),
       rgb(255 255 255 / 0.055);
     color: rgb(255 255 255 / 0.32);
+  }
+
+  .detail-thumb.has-image {
+    min-height: 0 !important;
+    background: transparent !important;
   }
 
   .detail-stats {
