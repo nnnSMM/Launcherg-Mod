@@ -293,20 +293,14 @@
     requestThumbnailsForGames(visibleThumbnailGames);
   }
 
-  const getContentContainer = () => contentContainer;
-
-  const resetScrollToTop = () => {
+  $: if (activeView === "detail") {
+    selectedGameId;
     void tick().then(() => {
-      const container = getContentContainer();
+      const container = document.querySelector(".content");
       if (container) {
         container.scrollTop = 0;
       }
     });
-  };
-
-  $: if (activeView === "detail") {
-    selectedGameId;
-    resetScrollToTop();
   }
 
   const isObject = (value: unknown): value is Record<string, unknown> =>
