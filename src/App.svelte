@@ -195,14 +195,18 @@
         }
       }, 0);
     };
-    document.addEventListener("focusin", handleFocusIn);
+    if (!isCompanionRoute) {
+      document.addEventListener("focusin", handleFocusIn);
+    }
 
     const preventScroll = () => {
       if (window.scrollY !== 0) {
         window.scrollTo(0, 0);
       }
     };
-    window.addEventListener("scroll", preventScroll, { passive: true });
+    if (!isCompanionRoute) {
+      window.addEventListener("scroll", preventScroll, { passive: true });
+    }
 
     // Disable reload shortcuts inside the app shell.
     const handleKeydown = (e: KeyboardEvent) => {
@@ -219,8 +223,10 @@
     return () => {
       didUnmount = true;
       window.removeEventListener("keydown", handleKeydown);
-      document.removeEventListener("focusin", handleFocusIn);
-      window.removeEventListener("scroll", preventScroll);
+      if (!isCompanionRoute) {
+        document.removeEventListener("focusin", handleFocusIn);
+        window.removeEventListener("scroll", preventScroll);
+      }
       cleanupGlobalErrorLogging();
       cleanupTooltips();
       cleanupHistory();

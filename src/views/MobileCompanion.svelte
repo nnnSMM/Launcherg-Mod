@@ -891,6 +891,12 @@
   };
 
   onMount(() => {
+    const appEl = document.querySelector("#app") as HTMLElement | null;
+    if (appEl) {
+      appEl.style.overflow = "hidden";
+      appEl.style.height = "100%";
+    }
+
     void getAllCachedImages().then((cached) => {
       cached.forEach(({ path, blob }) => {
         const imageUrl = URL.createObjectURL(blob);
@@ -914,6 +920,12 @@
   });
 
   onDestroy(() => {
+    const appEl = document.querySelector("#app") as HTMLElement | null;
+    if (appEl) {
+      appEl.style.overflow = "";
+      appEl.style.height = "";
+    }
+
     cleanupCallbacks.forEach((callback) => callback());
     cleanupCallbacks = [];
     objectUrls.forEach((url) => URL.revokeObjectURL(url));
@@ -1250,7 +1262,7 @@
 
   .topbar {
     min-height: 64px;
-    padding: 14px 16px 12px;
+    padding: calc(14px + env(safe-area-inset-top, 0px)) 16px 12px;
     display: flex;
     align-items: center;
     justify-content: space-between;
