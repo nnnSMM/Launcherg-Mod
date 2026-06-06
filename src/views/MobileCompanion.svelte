@@ -481,8 +481,10 @@
     void saveImageToCache(pending.path, blob);
   };
 
-  const gameThumbnailUrl = (game: RemoteGameSummary) =>
-    game.thumbnailPath ? imageUrlsByPath[game.thumbnailPath] : undefined;
+  const gameThumbnailUrl = (game: RemoteGameSummary) => {
+    const path = game.thumbnailPath?.trim();
+    return path ? imageUrlsByPath[path] : undefined;
+  };
 
   const sendMessage = (message: MobileOutgoingMessage) => {
     if (!dataStream) return;
@@ -498,7 +500,7 @@
     const now = Date.now();
     const paths: string[] = [];
     for (const game of targetGames) {
-      const path = game.thumbnailPath;
+      const path = game.thumbnailPath?.trim();
       if (!path || imageUrlsByPath[path]) continue;
 
       const requestState = thumbnailRequestsByPath.get(path);

@@ -154,7 +154,7 @@ const createSkyWay = () => {
     lastPlayAt: element.lastPlayAt,
     installed: !!(element.exePath || element.lnkPath),
     liked: !!element.likeAt,
-    thumbnailPath: element.thumbnail || null,
+    thumbnailPath: element.thumbnail && element.thumbnail.trim() !== "" ? element.thumbnail.trim() : null,
     thumbnailWidth: element.thumbnailWidth,
     thumbnailHeight: element.thumbnailHeight,
   });
