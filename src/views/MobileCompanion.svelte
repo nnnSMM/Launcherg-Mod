@@ -121,7 +121,6 @@
   let memoText = "";
   let searchText = "";
   let libraryFilter: LibraryFilter = "all";
-  let isMemoOpen = false;
   let isSendingScreenshot = false;
   let isPaused = false;
   let isTogglingPause = false;
@@ -509,7 +508,6 @@
     }
     if (shouldLoadMemo) {
       memoText = "";
-      isMemoOpen = false;
       sendMessage({ type: "init", gameId: target.id });
     }
   };
@@ -574,7 +572,6 @@
     selectedGameId = game.id;
     didSelectGameManually = true;
     memoText = "";
-    isMemoOpen = false;
     lastActionText = `${game.title}を選択しました`;
     activeView = nextView;
     sendMessage({ type: "init", gameId: game.id });
@@ -590,7 +587,6 @@
       return;
     }
 
-    isMemoOpen = false;
     activeView = "controller";
     requestControlStatus();
   };
@@ -1077,13 +1073,21 @@
           <section class="memo-preview">
             <div class="section-head">
               <h2>メモ</h2>
-              <span class="subtle">閲覧のみ</span>
+              <span class="subtle">編集</span>
             </div>
-            {#if memoPreview}
-              <pre>{memoPreview}</pre>
-            {:else}
-              <div class="empty-inline">同期済みのメモはありません</div>
-            {/if}
+            <div class="detail-memo-editor">
+              <textarea
+                bind:value={memoText}
+                placeholder="メモを入力"
+              />
+              <button
+                type="button"
+                disabled={connectionState !== "connected" || selectedGameId === null}
+                on:click={syncMemo}
+              >
+                メモを同期
+              </button>
+            </div>
           </section>
         </section>
       {:else}
@@ -1175,28 +1179,6 @@
             <span>文字消しスクショ</span>
           </button>
 
-          <button
-            type="button"
-            class="controller-memo"
-            disabled={connectionState !== "connected"}
-            on:click={() => (isMemoOpen = !isMemoOpen)}
-          >
-            <span class="i-material-symbols:edit-note-outline-rounded text-[24px]" />
-            <span>クイックメモ</span>
-          </button>
-
-          {#if isMemoOpen}
-            <section class="memo-panel">
-              <textarea bind:value={memoText} />
-              <button
-                type="button"
-                disabled={connectionState !== "connected"}
-                on:click={syncMemo}
-              >
-                同期
-              </button>
-            </section>
-          {/if}
         </section>
       {:else}
         <section class="empty-state controller-waiting">
@@ -1228,34 +1210,43 @@
     {/if}
   </section>
 
-  {#if activeView !== "controller"}
-    <nav class="bottom-nav" aria-label="スマホ連携">
-      <button
-        type="button"
-        class:active={activeView === "home"}
-        on:click={() => (activeView = "home")}
-      >
-        <span class="i-material-symbols:home-outline-rounded text-[22px]" />
-        <span>ホーム</span>
-      </button>
-      <button
-        type="button"
-        class:active={activeView === "library" || activeView === "detail"}
-        on:click={() => (activeView = "library")}
-      >
-        <span class="i-material-symbols:format-list-bulleted-rounded text-[22px]" />
-        <span>一覧</span>
-      </button>
-      <button
-        type="button"
-        class:active={activeView === "connect"}
-        on:click={() => (activeView = "connect")}
-      >
-        <span class="i-material-symbols:wifi-tethering-rounded text-[22px]" />
-        <span>接続</span>
-      </button>
-    </nav>
-  {/if}
+  <nav class="bottom-nav" aria-label="スマホ連携">
+    <button
+      type="button"
+      class:active={activeView === "home"}
+      on:click={() => (activeView = "home")}
+    >
+      <span class="i-material-symbols:home-outline-rounded text-[22px]" />
+      <span>ホーム</span>
+    </button>
+    <button
+      type="button"
+      class:active={activeView === "library" || activeView === "detail"}
+      on:click={() => (activeView = "library")}
+    >
+      <span class="i-material-symbols:format-list-bulleted-rounded text-[22px]" />
+      <span>一覧</span>
+    </button>
+    <button
+      type="button"
+      class:active={activeView === "controller"}
+      on:click={() => {
+        activeView = "controller";
+        requestControlStatus();
+      }}
+    >
+      <span class="i-material-symbols:stadia-controller-outline-rounded text-[22px]" />
+      <span>補助</span>
+    </button>
+    <button
+      type="button"
+      class:active={activeView === "connect"}
+      on:click={() => (activeView = "connect")}
+    >
+      <span class="i-material-symbols:wifi-tethering-rounded text-[22px]" />
+      <span>接続</span>
+    </button>
+  </nav>
 </main>
 
 <style>
@@ -1345,7 +1336,7 @@
   }
 
   .content.controller-mode {
-    padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px));
   }
 
   .hero-strip,
@@ -1717,16 +1708,8 @@
     font-weight: 700;
   }
 
-  .detail-actions {
-    display: grid;
-    gap: 10px;
-    margin-top: 16px;
-  }
-
   .primary-action,
   .secondary-action,
-  .memo-toggle,
-  .controller-memo,
   .textless-button,
   .secondary-full-action {
     min-height: 56px;
@@ -1746,8 +1729,6 @@
   }
 
   .secondary-action,
-  .memo-toggle,
-  .controller-memo,
   .textless-button,
   .secondary-full-action {
     background: rgb(255 255 255 / 0.06);
@@ -1761,8 +1742,6 @@
     color: #fbd38d;
   }
 
-  .memo-toggle,
-  .controller-memo,
   .textless-button {
     width: 100%;
     margin-top: 10px;
@@ -1781,21 +1760,37 @@
     padding: 12px;
   }
 
-  .memo-preview pre {
-    max-height: 180px;
-    overflow: auto;
-    margin: 12px 0 0;
-    white-space: pre-wrap;
-    color: rgb(255 255 255 / 0.72);
-    font-size: 13px;
-    line-height: 1.7;
+  .detail-memo-editor {
+    display: grid;
+    gap: 10px;
+    margin-top: 12px;
   }
 
-  .empty-inline {
-    margin-top: 12px;
-    color: rgb(255 255 255 / 0.45);
-    font-size: 13px;
-    font-weight: 700;
+  .detail-memo-editor textarea {
+    min-height: 220px;
+    width: 100%;
+    resize: vertical;
+    border: 1px solid rgb(255 255 255 / 0.1);
+    border-radius: 8px;
+    background: rgb(0 0 0 / 0.22);
+    color: white;
+    padding: 12px;
+    outline: none;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  .detail-memo-editor textarea::placeholder {
+    color: rgb(255 255 255 / 0.36);
+  }
+
+  .detail-memo-editor button {
+    min-height: 46px;
+    border: 0;
+    border-radius: 8px;
+    background: white;
+    color: #151515;
+    font-weight: 900;
   }
 
   .connect-view {
@@ -1849,34 +1844,6 @@
     color: rgb(255 255 255 / 0.62);
     font-size: 13px;
     line-height: 1.65;
-  }
-
-  .memo-panel {
-    margin-top: 10px;
-    display: grid;
-    gap: 10px;
-  }
-
-  .memo-panel textarea {
-    min-height: 180px;
-    resize: vertical;
-    border: 1px solid rgb(255 255 255 / 0.1);
-    border-radius: 8px;
-    background: rgb(0 0 0 / 0.22);
-    color: white;
-    padding: 12px;
-    outline: none;
-    font-size: 15px;
-    line-height: 1.6;
-  }
-
-  .memo-panel button {
-    min-height: 46px;
-    border: 0;
-    border-radius: 8px;
-    background: white;
-    color: #151515;
-    font-weight: 900;
   }
 
   .controller-panel {
@@ -2013,7 +1980,7 @@
     width: min(620px, 100vw);
     height: calc(72px + env(safe-area-inset-bottom, 0px));
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     padding-bottom: env(safe-area-inset-bottom, 0px);
     border-top: 1px solid rgb(255 255 255 / 0.1);
     background: rgb(25 25 25 / 0.96);
