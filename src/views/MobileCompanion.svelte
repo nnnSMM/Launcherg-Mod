@@ -1644,14 +1644,20 @@
     color: rgb(255 255 255 / 0.34);
   }
 
-  .game-thumb :global(img),
-  .detail-thumb :global(img) {
+  .game-thumb :global(img) {
     width: 100% !important;
     height: 100% !important;
     display: block !important;
     object-fit: cover !important;
     justify-self: stretch !important;
     align-self: stretch !important;
+  }
+
+  .detail-thumb :global(img) {
+    width: 100% !important;
+    height: auto !important;
+    display: block !important;
+    object-fit: contain !important;
   }
 
   .game-card-body {
@@ -1719,12 +1725,14 @@
   }
 
   .detail-thumb {
+    width: 100%;
+    max-width: 320px;
     min-height: 172px;
-    aspect-ratio: 16 / 9;
-    display: grid;
-    place-items: center;
+    margin: 14px auto 0 auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
     overflow: hidden;
-    margin-top: 14px;
     border: 1px solid rgb(255 255 255 / 0.1);
     border-radius: 8px;
     background:
