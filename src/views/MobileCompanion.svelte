@@ -1,6 +1,5 @@
 <script lang="ts">
   import { onDestroy, onMount, tick } from "svelte";
-  import { safeFormatLastPlay, safeFormatSyncTime } from "@/lib/mobileCompanionDate";
   import { MOBILE_COMPANION_CLIENT_VERSION } from "@/lib/mobileCompanionUrl";
   import { saveImageToCache, getAllCachedImages } from "@/lib/imageCache";
   import type {
@@ -558,6 +557,7 @@
     if (activeView === "detail") {
       activeView = "controller";
     }
+
     if (shouldLoadMemo) {
       memoText = "";
       sendMessage({ type: "init", gameId: target.id });
@@ -653,9 +653,21 @@
     return `${Math.floor((seconds / 3600) * 10) / 10}時間`;
   };
 
-  const formatLastPlay = (value: string | null) => safeFormatLastPlay(value);
+  const formatLastPlay = (value: string | null) => {
+    if (!value) return "未プレイ";
+    return new Date(value).toLocaleDateString("ja-JP", {
+      month: "2-digit",
+      day: "2-digit",
+    });
+  };
 
-  const formatSyncTime = (value: string | null) => safeFormatSyncTime(value);
+  const formatSyncTime = (value: string | null) => {
+    if (!value) return "未同期";
+    return new Date(value).toLocaleTimeString("ja-JP", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
 
   const applyLibrary = (nextGames: RemoteGameSummary[]) => {
     const syncedAt = new Date().toISOString();
@@ -1304,7 +1316,6 @@
     background: rgb(255 255 255 / 0.045);
   }
 
-
   .section,
   .library-view,
   .detail-panel,
@@ -1399,7 +1410,6 @@
     background: rgb(94 201 142 / 0.16);
     color: #b7f3cb;
   }
-
 
   .library-toolbar {
     display: flex;
