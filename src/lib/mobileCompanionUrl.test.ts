@@ -2,14 +2,14 @@ import { describe, expect, it } from "vitest";
 import { createMobileCompanionUrl } from "./mobileCompanionUrl";
 
 describe("createMobileCompanionUrl", () => {
-  it("points the QR to the mobile companion library route", () => {
+  it("points the QR to the mobile companion controller route", () => {
     const url = createMobileCompanionUrl({
       origin: "https://example.test",
       roomId: "room-1",
     });
 
     expect(url).toBe(
-      "https://example.test/companion.html?client=mobile-pwa-v1&mode=library&roomId=room-1",
+      "https://example.test/companion.html?client=mobile-pwa-v1&mode=controller&roomId=room-1",
     );
   });
 
@@ -20,7 +20,7 @@ describe("createMobileCompanionUrl", () => {
     });
 
     expect(url).toBe(
-      "https://example.test/Launcherg-Mod/companion.html?client=mobile-pwa-v1&mode=library&roomId=room-1",
+      "https://example.test/Launcherg-Mod/companion.html?client=mobile-pwa-v1&mode=controller&roomId=room-1",
     );
   });
 
@@ -34,7 +34,19 @@ describe("createMobileCompanionUrl", () => {
     });
 
     expect(url).toBe(
-      "https://example.test/companion.html?client=mobile-pwa-v1&mode=library&roomId=room-1&gameId=42&seiyaUrl=https%3A%2F%2Fseiya.example%2Fgame%3Fid%3D42&authToken=token-1",
+      "https://example.test/companion.html?client=mobile-pwa-v1&mode=controller&roomId=room-1&gameId=42&seiyaUrl=https%3A%2F%2Fseiya.example%2Fgame%3Fid%3D42&authToken=token-1",
+    );
+  });
+
+  it("can explicitly create a library URL", () => {
+    const url = createMobileCompanionUrl({
+      origin: "https://example.test",
+      roomId: "room-1",
+      mode: "library",
+    });
+
+    expect(url).toBe(
+      "https://example.test/companion.html?client=mobile-pwa-v1&mode=library&roomId=room-1",
     );
   });
 });

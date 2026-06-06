@@ -360,6 +360,7 @@ const createSkyWay = () => {
     }
     return createMobileCompanionUrl({
       roomId,
+      mode: "controller",
       gameId: workId,
       seiyaUrl,
       authToken: currentAuthToken,

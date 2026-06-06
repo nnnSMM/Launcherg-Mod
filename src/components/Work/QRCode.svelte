@@ -43,13 +43,13 @@
   {isOpen}
   on:close={() => (isOpen = false)}
   on:cancel={() => (isOpen = false)}
-  title="スマホ連携"
+  title="補助コントローラー連携"
   autofocusCloseButton
   withFooter={false}
 >
   <div class="space-y-4 text-text-primary">
     <div>
-      このQRからスマホ連携を開きます。PCのゲーム一覧を見ながら、対象ゲームを選んで補助操作できます。
+      このQRから補助コントローラーを開きます。PCで起動中のゲームを自動検知して連携します。
     </div>
     {#if readyPromise}
       {#await readyPromise}

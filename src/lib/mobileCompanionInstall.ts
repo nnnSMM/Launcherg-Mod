@@ -6,6 +6,7 @@ import {
 const DYNAMIC_MANIFEST_MARKER = "launchergDynamicCompanionManifest";
 
 const optionalStartUrlKeys: Array<keyof MobileCompanionUrlParams | "mode"> = [
+  "mode",
   "gameId",
   "seiyaUrl",
   "authToken",

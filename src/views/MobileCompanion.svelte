@@ -125,6 +125,9 @@
   let isSendingScreenshot = false;
   let isPaused = false;
   let isTogglingPause = false;
+  let isTracking = false;
+  let activeGameId: number | null = null;
+  let activeProcessId: number | null = null;
   let lastActionText = "";
   let cachedAt: string | null = null;
   let didReceiveLibrary = false;
@@ -166,6 +169,8 @@
   configureMobileCompanionInstallManifest(query);
   const roomId = query.get("roomId") ?? "";
   const qrAuthToken = query.get("authToken") ?? "";
+  const requestedMode = query.get("mode");
+  activeView = requestedMode === "library" ? "home" : "controller";
   const initialGameId = Number(query.get("gameId") ?? "");
   const hasInitialGameId = Number.isFinite(initialGameId) && initialGameId > 0;
   const hasRequiredParams = !!roomId;
@@ -187,15 +192,22 @@
   );
   $: homePrimaryGames =
     playingGames.length > 0 ? playingGames.slice(0, 3) : recentGames.slice(0, 3);
-  $: canControl = connectionState === "connected" && selectedGame !== null;
+  $: activeGame =
+    activeGameId === null
+      ? null
+      : games.find((game) => game.id === activeGameId) ?? null;
+  $: canControl =
+    connectionState === "connected" &&
+    isTracking &&
+    activeGameId !== null &&
+    selectedGameId === activeGameId &&
+    selectedGame !== null;
   $: showNowPlayingBar =
     activeView !== "controller" &&
     activeView !== "detail" &&
     selectedGame !== null &&
     connectionState === "connected" &&
-    (selectedGame.playStatus === PLAY_STATUS.Playing ||
-      didSelectGameManually ||
-      hasInitialGameId);
+    selectedGameId === activeGameId;
   $: memoPreview = memoText.trim();
   $: homeEmptyText =
     connectionState === "missing"
@@ -478,6 +490,30 @@
     sendMessage({ type: "control_status_request" });
   };
 
+  const adoptActiveGame = (nextActiveGameId: number | null) => {
+    activeGameId = nextActiveGameId;
+    if (nextActiveGameId === null) {
+      return;
+    }
+
+    const target = games.find((game) => game.id === nextActiveGameId);
+    if (!target) {
+      return;
+    }
+
+    const shouldLoadMemo = selectedGameId !== target.id;
+    selectedGameId = target.id;
+    didSelectGameManually = false;
+    if (activeView === "home" || activeView === "detail") {
+      activeView = "controller";
+    }
+    if (shouldLoadMemo) {
+      memoText = "";
+      isMemoOpen = false;
+      sendMessage({ type: "init", gameId: target.id });
+    }
+  };
+
   const startControlStatusPolling = () => {
     requestControlStatus();
     if (controlStatusTimer) return;
@@ -546,7 +582,7 @@
   };
 
   const openController = () => {
-    const target = selectedGame ?? playingGames[0] ?? games[0];
+    const target = activeGame ?? selectedGame ?? playingGames[0] ?? games[0];
     if (!target) return;
 
     if (selectedGameId !== target.id) {
@@ -598,7 +634,9 @@
     cachedAt = syncedAt;
     saveLibraryCache(games, syncedAt);
 
-    if (selectedGameId === null) {
+    if (activeGameId !== null && games.some((game) => game.id === activeGameId)) {
+      adoptActiveGame(activeGameId);
+    } else if (selectedGameId === null) {
       const initialGame = hasInitialGameId
         ? games.find((game) => game.id === initialGameId)
         : undefined;
@@ -611,6 +649,7 @@
 
     statusText = `${games.length}本 同期済み`;
     connectionState = "connected";
+    requestControlStatus();
   };
 
   const handlePcMessage = (message: PcMessage) => {
@@ -637,13 +676,13 @@
     if (message.type === "control_status") {
       isPaused = message.isPaused;
       isTogglingPause = false;
+      isTracking = message.isTracking ?? false;
+      activeProcessId = message.activeProcessId ?? null;
+      adoptActiveGame(message.activeGameId ?? null);
       if (message.isTracking === false) {
-        statusText = "PC接続中 / ゲーム未追跡";
-      } else if (
-        typeof message.activeGameId === "number" &&
-        message.activeGameId !== selectedGameId
-      ) {
-        statusText = "PC接続中 / 別ゲームを記録中";
+        statusText = "PC接続中 / ゲーム未検知";
+      } else if (typeof message.activeGameId === "number") {
+        statusText = "PC接続中 / 補助可能";
       }
       if (message.error) {
         lastActionText = message.error;
@@ -1035,18 +1074,6 @@
             </div>
           </div>
 
-          <div class="detail-actions">
-            <button
-              type="button"
-              class="primary-action"
-              disabled={!canControl}
-              on:click={openController}
-            >
-              <span class="i-material-symbols:gamepad-outline-rounded text-[24px]" />
-              <span>補助を開く</span>
-            </button>
-          </div>
-
           <section class="memo-preview">
             <div class="section-head">
               <h2>メモ</h2>
@@ -1101,11 +1128,11 @@
         </section>
       </section>
     {:else if activeView === "controller"}
-      {#if selectedGame}
+      {#if canControl && selectedGame}
         <section class="controller-panel">
-          <button type="button" class="back-button" on:click={() => (activeView = "detail")}>
+          <button type="button" class="back-button" on:click={() => (activeView = "home")}>
             <span class="i-material-symbols:arrow-back-rounded text-[20px]" />
-            <span>詳細</span>
+            <span>ホーム</span>
           </button>
           <div class="controller-kicker">Now Playing</div>
           <div class="controller-game">{selectedGame.title}</div>
@@ -1172,7 +1199,16 @@
           {/if}
         </section>
       {:else}
-        <section class="empty-state">ゲームを選択してください</section>
+        <section class="empty-state controller-waiting">
+          <span class="i-material-symbols:gamepad-outline-rounded text-[34px]" />
+          <strong>起動中のゲームを待っています</strong>
+          <small>PC側でLauncherg-Modからゲームを起動すると、自動で補助操作に接続します。</small>
+          {#if connectionState === "connected"}
+            <button type="button" class="secondary-full-action" on:click={requestControlStatus}>
+              状態を更新
+            </button>
+          {/if}
+        </section>
       {/if}
     {/if}
 
@@ -1927,11 +1963,39 @@
     min-height: 132px;
     display: grid;
     place-items: center;
+    gap: 8px;
     color: rgb(255 255 255 / 0.52);
     font-size: 13px;
     font-weight: 700;
     text-align: center;
     padding: 16px;
+  }
+
+  .controller-waiting {
+    min-height: calc(100vh - 180px);
+    align-content: center;
+  }
+
+  .controller-waiting strong,
+  .controller-waiting small {
+    display: block;
+  }
+
+  .controller-waiting strong {
+    color: rgb(255 255 255 / 0.84);
+    font-size: 17px;
+    font-weight: 900;
+  }
+
+  .controller-waiting small {
+    max-width: 280px;
+    color: rgb(255 255 255 / 0.52);
+    font-size: 12px;
+    line-height: 1.6;
+  }
+
+  .controller-waiting .secondary-full-action {
+    max-width: 220px;
   }
 
   .toast-line {

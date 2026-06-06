@@ -28,6 +28,7 @@ describe("createMobileCompanionInstallStartUrl", () => {
   it("keeps the QR SkyWay token for installed launch reconnects", () => {
     const query = new URLSearchParams({
       roomId: "room-1",
+      mode: "controller",
       authToken: "short-lived-token",
     });
     const startUrl = createMobileCompanionInstallStartUrl(
@@ -36,6 +37,7 @@ describe("createMobileCompanionInstallStartUrl", () => {
     );
 
     expect(startUrl).toContain("roomId=room-1");
+    expect(startUrl).toContain("mode=controller");
     expect(startUrl).toContain("authToken=short-lived-token");
   });
 
@@ -72,6 +74,7 @@ describe("configureMobileCompanionInstallManifest", () => {
     document.head.innerHTML = '<link rel="manifest" href="./manifest.webmanifest">';
     const query = new URLSearchParams({
       roomId: "room-1",
+      mode: "controller",
       authToken: "short-lived-token",
     });
 
@@ -81,7 +84,7 @@ describe("configureMobileCompanionInstallManifest", () => {
     const link = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
 
     expect(startUrl).toBe(
-      "https://example.test/Launcherg-Mod/#/companion?client=mobile-pwa-v1&mode=library&roomId=room-1&authToken=short-lived-token",
+      "https://example.test/Launcherg-Mod/#/companion?client=mobile-pwa-v1&mode=controller&roomId=room-1&authToken=short-lived-token",
     );
     expect(link?.href).toContain("data:application/manifest+json");
     expect(link?.dataset.launchergDynamicCompanionManifest).toBe("true");
@@ -89,7 +92,7 @@ describe("configureMobileCompanionInstallManifest", () => {
       decodeURIComponent(link?.href.split(",")[1] ?? ""),
     );
     expect(manifest.start_url).toBe(
-      "https://example.test/Launcherg-Mod/#/companion?client=mobile-pwa-v1&mode=library&roomId=room-1&authToken=short-lived-token",
+      "https://example.test/Launcherg-Mod/#/companion?client=mobile-pwa-v1&mode=controller&roomId=room-1&authToken=short-lived-token",
     );
   });
 });

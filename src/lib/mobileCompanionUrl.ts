@@ -9,6 +9,7 @@ export const SKYWAY_CONNECT_ENDPOINT = "https://launcherg.ryoha.moe/connect";
 export type MobileCompanionUrlParams = {
   origin?: string;
   roomId: string;
+  mode?: "controller" | "library";
   gameId?: number;
   seiyaUrl?: string;
   authToken?: string;
@@ -26,13 +27,14 @@ const createCompanionEntryUrl = (origin: string) => {
 export const createMobileCompanionUrl = ({
   origin = MOBILE_COMPANION_ORIGIN,
   roomId,
+  mode = "controller",
   gameId,
   seiyaUrl = "",
   authToken = "",
 }: MobileCompanionUrlParams) => {
   const url = createCompanionEntryUrl(origin);
   url.searchParams.set("client", MOBILE_COMPANION_CLIENT_VERSION);
-  url.searchParams.set("mode", "library");
+  url.searchParams.set("mode", mode);
   url.searchParams.set("roomId", roomId);
 
   if (gameId !== undefined) {
