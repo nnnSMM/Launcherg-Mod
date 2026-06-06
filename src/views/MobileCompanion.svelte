@@ -134,6 +134,8 @@
   let cachedAt: string | null = null;
   let didReceiveLibrary = false;
   let didSelectGameManually = false;
+  let libraryScrollTop = 0;
+  let lastActiveView: ViewMode = activeView;
   let imageUrlsByPath: Record<string, string> = {};
   let pendingImages = new Map<number, PendingImage>();
   let objectUrls: string[] = [];
@@ -293,12 +295,31 @@
     requestThumbnailsForGames(visibleThumbnailGames);
   }
 
+  $: {
+    if (lastActiveView === "library" && activeView !== "library") {
+      const container = document.querySelector(".content");
+      if (container) {
+        libraryScrollTop = container.scrollTop;
+      }
+    }
+    lastActiveView = activeView;
+  }
+
   $: if (activeView === "detail") {
     selectedGameId;
     void tick().then(() => {
       const container = document.querySelector(".content");
       if (container) {
         container.scrollTop = 0;
+      }
+    });
+  }
+
+  $: if (activeView === "library") {
+    void tick().then(() => {
+      const container = document.querySelector(".content");
+      if (container) {
+        container.scrollTop = libraryScrollTop;
       }
     });
   }
