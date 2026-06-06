@@ -618,7 +618,6 @@
     selectedGameId = game.id;
     didSelectGameManually = true;
     memoText = "";
-    lastActionText = `${game.title}を選択しました`;
     activeView = nextView;
     sendMessage({ type: "init", gameId: game.id });
     requestControlStatus();
@@ -1062,7 +1061,6 @@
               {@const thumbnailUrl = gameThumbnailUrl(game)}
               <button
                 type="button"
-                class:selected={game.id === selectedGameId}
                 class="game-card"
                 on:click={() => selectGame(game)}
               >
@@ -1622,10 +1620,6 @@
     min-height: 106px;
   }
 
-  .game-card.selected {
-    border-color: rgb(94 201 142 / 0.55);
-    background: rgb(94 201 142 / 0.13);
-  }
 
   .game-thumb {
     position: relative;
