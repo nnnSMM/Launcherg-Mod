@@ -1237,11 +1237,6 @@
 
 <style>
   .mobile-shell {
-    position: fixed;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: min(620px, 100vw);
     height: 100vh;
     height: 100dvh;
     background: #151515;
@@ -1249,6 +1244,8 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    max-width: 620px;
+    margin: 0 auto;
   }
 
   .topbar {
