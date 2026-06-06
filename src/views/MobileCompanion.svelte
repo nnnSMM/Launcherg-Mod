@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onDestroy, onMount, tick } from "svelte";
   import { safeFormatLastPlay, safeFormatSyncTime } from "@/lib/mobileCompanionDate";
+  import { MOBILE_COMPANION_CLIENT_VERSION } from "@/lib/mobileCompanionUrl";
   import { saveImageToCache, getAllCachedImages } from "@/lib/imageCache";
   import type {
     LocalDataStream,
@@ -1089,6 +1090,8 @@
             <span>再読み込み</span>
           </button>
         </section>
+
+        <div class="version-label">{MOBILE_COMPANION_CLIENT_VERSION}</div>
       </section>
     {:else if activeView === "controller"}
       {#if canControl && selectedGame}
@@ -1910,5 +1913,12 @@
 
   button:active {
     transform: translateY(1px);
+  }
+
+  .version-label {
+    text-align: center;
+    font-size: 11px;
+    color: #555;
+    padding: 12px 0 4px;
   }
 </style>
