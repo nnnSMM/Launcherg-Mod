@@ -232,7 +232,7 @@
     (game) => game.playStatus === PLAY_STATUS.Cleared,
   );
   $: homePrimaryGames =
-    playingGames.length > 0 ? playingGames.slice(0, 3) : recentGames.slice(0, 3);
+    clearedGames.length > 0 ? clearedGames.slice(0, 3) : recentGames.slice(0, 3);
   $: activeGame =
     activeGameId === null
       ? null
@@ -964,7 +964,7 @@
       {#if homePrimaryGames.length > 0}
         <section class="section">
           <div class="section-head">
-            <h2>{playingGames.length > 0 ? "続きから" : "最近"}</h2>
+            <h2>{clearedGames.length > 0 ? "クリア済み" : "最近"}</h2>
             <button type="button" on:click={() => (activeView = "library")}>
               一覧
             </button>
