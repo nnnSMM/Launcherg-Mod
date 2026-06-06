@@ -45,7 +45,7 @@
     gameAdd: "\u30b2\u30fc\u30e0\u8ffd\u52a0",
     addShort: "\u8ffd\u52a0",
     shortcut: "\u30b7\u30e7\u30fc\u30c8\u30ab\u30c3\u30c8",
-    mobileCompanion: "\u30b9\u30de\u30db\u9023\u643a",
+    mobileCompanion: "\u30b3\u30f3\u30c8\u30ed\u30fc\u30e9\u30fc",
     dark: "\u30c0\u30fc\u30af\u30e2\u30fc\u30c9",
     light: "\u30e9\u30a4\u30c8\u30e2\u30fc\u30c9",
     stats: "\u7d71\u8a08",
@@ -283,7 +283,7 @@
           class={titlebarIconButtonClass}
           on:click={openMobileCompanion}
         >
-          <div class="i-material-symbols-qr-code text-[18px]" />
+          <div class="i-material-symbols:videogame-asset-outline-rounded text-[18px]" />
         </button>
         <button
           type="button"

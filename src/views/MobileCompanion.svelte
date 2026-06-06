@@ -722,7 +722,7 @@
       if (message.isTracking === false) {
         statusText = "PC接続中 / ゲーム未検知";
       } else if (typeof message.activeGameId === "number") {
-        statusText = "PC接続中 / 補助可能";
+        statusText = "PC接続中 / 操作可能";
       }
       if (message.error) {
         lastActionText = message.error;
@@ -1236,7 +1236,7 @@
         <section class="empty-state controller-waiting">
           <span class="i-material-symbols:gamepad-outline-rounded text-[34px]" />
           <strong>起動中のゲームを待っています</strong>
-          <small>PC側でLauncherg-Modからゲームを起動すると、自動で補助操作に接続します。</small>
+          <small>PC側でLauncherg-Modからゲームを起動すると、自動でコントローラーに接続します。</small>
           {#if connectionState === "connected"}
             <button type="button" class="secondary-full-action" on:click={requestControlStatus}>
               状態を更新
@@ -1251,7 +1251,7 @@
         <span class="i-material-symbols:gamepad-outline-rounded text-[24px]" />
         <span class="now-playing-copy">
           <strong>{selectedGame.title}</strong>
-          <small>{isPaused ? "Pause中" : "補助操作を開く"}</small>
+          <small>{isPaused ? "Pause中" : "コントローラーを開く"}</small>
         </span>
         <span class="i-material-symbols:chevron-right-rounded text-[22px]" />
       </button>
@@ -1287,8 +1287,8 @@
         requestControlStatus();
       }}
     >
-      <span class="i-material-symbols:stadia-controller-outline-rounded text-[22px]" />
-      <span>補助</span>
+      <span class="i-material-symbols:videogame-asset-outline-rounded text-[22px]" />
+      <span>操作</span>
     </button>
     <button
       type="button"
