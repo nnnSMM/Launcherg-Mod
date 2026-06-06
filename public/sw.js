@@ -1,4 +1,4 @@
-const CACHE_NAME = "launcherg-pwa-shell-mobile-pwa-v5";
+const CACHE_NAME = "launcherg-pwa-shell-mobile-pwa-v6";
 const PRECACHE_ASSETS = Array.isArray(self.__LAUNCHERG_PWA_ASSETS__)
   ? self.__LAUNCHERG_PWA_ASSETS__
   : [];

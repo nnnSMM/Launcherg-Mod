@@ -965,7 +965,7 @@
       {#if homePrimaryGames.length > 0}
         <section class="section">
           <div class="section-head">
-            <h2>{playingGames.length > 0 ? "続きから" : "最近"}</h2>
+            <h2>{playingGames.length > 0 ? "プレイ中" : "最近のプレイ"}</h2>
             <button type="button" on:click={() => (activeView = "library")}>
               一覧
             </button>
