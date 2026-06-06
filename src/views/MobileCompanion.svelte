@@ -165,15 +165,56 @@
     return params;
   };
 
+  const UI_STATE_KEY = "launcherg_mobile_ui_state";
+  const restoreUiState = () => {
+    try {
+      const raw = localStorage.getItem(UI_STATE_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch {
+      //
+    }
+    return null;
+  };
+
   const query = companionQuery();
   configureMobileCompanionInstallManifest(query);
   const roomId = query.get("roomId") ?? "";
   const qrAuthToken = query.get("authToken") ?? "";
   const requestedMode = query.get("mode");
-  activeView = requestedMode === "library" ? "home" : "controller";
   const initialGameId = Number(query.get("gameId") ?? "");
   const hasInitialGameId = Number.isFinite(initialGameId) && initialGameId > 0;
   const hasRequiredParams = !!roomId;
+
+  const uiState = restoreUiState();
+  if (requestedMode) {
+    activeView = requestedMode === "library" ? "home" : "controller";
+  } else if (uiState?.activeView) {
+    activeView = uiState.activeView;
+  }
+  
+  if (hasInitialGameId) {
+    selectedGameId = initialGameId;
+  } else if (uiState?.selectedGameId) {
+    selectedGameId = uiState.selectedGameId;
+  }
+
+  if (uiState) {
+    if (uiState.libraryFilter) libraryFilter = uiState.libraryFilter;
+    if (uiState.searchText !== undefined) searchText = uiState.searchText;
+    if (uiState.didSelectGameManually) didSelectGameManually = uiState.didSelectGameManually;
+  }
+
+  $: {
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem(UI_STATE_KEY, JSON.stringify({
+        activeView,
+        selectedGameId,
+        libraryFilter,
+        searchText,
+        didSelectGameManually,
+      }));
+    }
+  }
 
   $: selectedGame =
     selectedGameId === null
