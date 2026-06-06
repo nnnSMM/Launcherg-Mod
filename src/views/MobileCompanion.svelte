@@ -18,6 +18,7 @@
     RemoteGameSummary,
     ScreenshotResultMessage,
     TakeScreenshotMessage,
+    ThumbnailRequestMessage,
   } from "@/store/skywayMessage";
   import { configureMobileCompanionInstallManifest } from "@/lib/mobileCompanionInstall";
   import { SKYWAY_CONNECT_ENDPOINT } from "@/lib/mobileCompanionUrl";
@@ -44,6 +45,7 @@
     | MemoMessage
     | TakeScreenshotMessage
     | LibraryRequestMessage
+    | ThumbnailRequestMessage
     | ControlStatusRequestMessage
     | PauseToggleMessage;
 
@@ -130,9 +132,19 @@
   let imageUrlsByPath: Record<string, string> = {};
   let pendingImages = new Map<number, PendingImage>();
   let objectUrls: string[] = [];
+  let visibleThumbnailGames: RemoteGameSummary[] = [];
+  let thumbnailRequestsByPath = new Map<
+    string,
+    { attempts: number; lastRequestedAt: number }
+  >();
   let libraryRequestAttempts = 0;
   let libraryRetryTimer: ReturnType<typeof setInterval> | undefined;
   let controlStatusTimer: ReturnType<typeof setInterval> | undefined;
+  let thumbnailRetryTimer: ReturnType<typeof setInterval> | undefined;
+
+  const THUMBNAIL_BATCH_SIZE = 16;
+  const THUMBNAIL_RETRY_DELAY_MS = 8000;
+  const THUMBNAIL_MAX_ATTEMPTS = 3;
 
   const companionQuery = () => {
     const params = new URLSearchParams(window.location.search);
@@ -223,6 +235,17 @@
         return true;
     }
   });
+  $: visibleThumbnailGames =
+    activeView === "library"
+      ? filteredGames
+      : activeView === "home"
+        ? homePrimaryGames
+        : selectedGame
+          ? [selectedGame]
+          : [];
+  $: if (connectionState === "connected") {
+    requestThumbnailsForGames(visibleThumbnailGames);
+  }
 
   const isObject = (value: unknown): value is Record<string, unknown> =>
     !!value && typeof value === "object";
@@ -403,6 +426,46 @@
     dataStream.write(JSON.stringify(message));
   };
 
+  const requestThumbnailsForGames = (
+    targetGames: RemoteGameSummary[],
+    allowRetry = false,
+  ) => {
+    if (!dataStream || connectionState !== "connected") return;
+
+    const now = Date.now();
+    const paths: string[] = [];
+    for (const game of targetGames) {
+      const path = game.thumbnailPath;
+      if (!path || imageUrlsByPath[path]) continue;
+
+      const requestState = thumbnailRequestsByPath.get(path);
+      if (requestState) {
+        const canRetry =
+          allowRetry &&
+          requestState.attempts < THUMBNAIL_MAX_ATTEMPTS &&
+          now - requestState.lastRequestedAt >= THUMBNAIL_RETRY_DELAY_MS;
+        if (!canRetry) continue;
+      }
+
+      thumbnailRequestsByPath.set(path, {
+        attempts: (requestState?.attempts ?? 0) + 1,
+        lastRequestedAt: now,
+      });
+      paths.push(path);
+    }
+
+    for (let i = 0; i < paths.length; i += THUMBNAIL_BATCH_SIZE) {
+      sendMessage({
+        type: "thumbnail_request",
+        paths: paths.slice(i, i + THUMBNAIL_BATCH_SIZE),
+      });
+    }
+  };
+
+  const requestVisibleThumbnails = (allowRetry = false) => {
+    requestThumbnailsForGames(visibleThumbnailGames, allowRetry);
+  };
+
   const requestControlStatus = () => {
     sendMessage({ type: "control_status_request" });
   };
@@ -415,6 +478,20 @@
       if (controlStatusTimer) {
         clearInterval(controlStatusTimer);
         controlStatusTimer = undefined;
+      }
+    });
+  };
+
+  const startThumbnailRetry = () => {
+    requestVisibleThumbnails();
+    if (thumbnailRetryTimer) return;
+    thumbnailRetryTimer = setInterval(() => {
+      requestVisibleThumbnails(true);
+    }, THUMBNAIL_RETRY_DELAY_MS);
+    cleanupCallbacks.push(() => {
+      if (thumbnailRetryTimer) {
+        clearInterval(thumbnailRetryTimer);
+        thumbnailRetryTimer = undefined;
       }
     });
   };
@@ -654,6 +731,7 @@
       statusText = "ライブラリ同期中";
       startLibrarySync();
       startControlStatusPolling();
+      startThumbnailRetry();
     };
 
     room.publications.forEach((publication) => {
@@ -672,6 +750,7 @@
   const refreshLibrary = () => {
     didReceiveLibrary = false;
     libraryRequestAttempts = 0;
+    thumbnailRequestsByPath = new Map();
     startLibrarySync();
   };
 

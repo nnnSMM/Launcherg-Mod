@@ -39,6 +39,10 @@ export type ControlStatusMessage = {
 export type LibraryRequestMessage = {
   type: "library_request";
 };
+export type ThumbnailRequestMessage = {
+  type: "thumbnail_request";
+  paths: string[];
+};
 export type RemoteGameSummary = {
   id: number;
   title: string;
@@ -77,6 +81,7 @@ export type RemoteMessage =
   | MemoMessage
   | InitMessage
   | LibraryRequestMessage
+  | ThumbnailRequestMessage
   | TakeScreenshotMessage
   | ControlStatusRequestMessage
   | PauseToggleMessage;
@@ -101,6 +106,12 @@ export const isRemoteMessage = (value: unknown): value is RemoteMessage => {
       return isFiniteNumber(value.gameId);
     case "library_request":
       return true;
+    case "thumbnail_request":
+      return (
+        Array.isArray(value.paths) &&
+        value.paths.length <= 64 &&
+        value.paths.every((path) => typeof path === "string")
+      );
     case "control_status_request":
       return true;
     case "pause_toggle":

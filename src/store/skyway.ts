@@ -44,10 +44,22 @@ import type { CollectionElement } from "@/lib/types";
 const createSkyWay = () => {
   const roomId = getOrCreateMobileCompanionRoomId(uuidV4);
   const sentImagePathSet = new Set<string>();
+  let libraryThumbnailPathSet = new Set<string>();
+  let imageSendQueue = Promise.resolve();
   const { createChunks } = useChunk();
 
-  const sendImagesAsChunks = async (imagePaths: string[]) => {
-    const uniqueImagePaths = Array.from(new Set(imagePaths.filter(Boolean)));
+  const sendImagesAsChunks = async (
+    imagePaths: string[],
+    options: { skipSent?: boolean; rememberSent?: boolean } = {},
+  ) => {
+    const { skipSent = true, rememberSent = true } = options;
+    const uniqueImagePaths = Array.from(
+      new Set(
+        imagePaths.filter(
+          (path) => path && (!skipSent || !sentImagePathSet.has(path)),
+        ),
+      ),
+    );
     for (const path of uniqueImagePaths) {
       try {
         const [{ chunkId, mimeType, totalChunkLength }, chunks] =
@@ -61,10 +73,26 @@ const createSkyWay = () => {
         };
         sendMessage(message);
         chunks.forEach(sendBinaryMessage);
+        if (rememberSent) {
+          sentImagePathSet.add(path);
+        }
+        await wait(16);
       } catch (error) {
         reportError("skyway.image.send", error);
       }
     }
+  };
+
+  const queueImagesAsChunks = (
+    imagePaths: string[],
+    options?: { skipSent?: boolean; rememberSent?: boolean },
+  ) => {
+    imageSendQueue = imageSendQueue
+      .catch((error) => {
+        reportError("skyway.image.queue", error);
+      })
+      .then(() => sendImagesAsChunks(imagePaths, options));
+    return imageSendQueue;
   };
 
   const getMemoImagePaths = (text: string) => {
@@ -102,8 +130,7 @@ const createSkyWay = () => {
 
   const createInitResponseMessage = async (workId: number) => {
     const { value, imagePaths } = getMemo(workId);
-    imagePaths.forEach((path) => sentImagePathSet.add(path));
-    await sendImagesAsChunks(imagePaths);
+    await queueImagesAsChunks(imagePaths);
 
     const message: InitResponseMessage = {
       type: "init_response",
@@ -136,18 +163,26 @@ const createSkyWay = () => {
   const createLibraryResponseMessage =
     async (): Promise<LibraryResponseMessage> => {
       await sidebarCollectionElements.refetch();
+      const games = sidebarCollectionElements.value().map(toRemoteGameSummary);
+      libraryThumbnailPathSet = new Set(
+        games
+          .map((game) => game.thumbnailPath)
+          .filter((path): path is string => !!path),
+      );
       return {
         type: "library_response",
-        games: sidebarCollectionElements.value().map(toRemoteGameSummary),
+        games,
       };
     };
 
-  const sendLibraryThumbnails = async (games: RemoteGameSummary[]) => {
-    const thumbnailPaths = games
-      .map((game) => game.thumbnailPath)
-      .filter((path): path is string => !!path && !sentImagePathSet.has(path));
-    thumbnailPaths.forEach((path) => sentImagePathSet.add(path));
-    await sendImagesAsChunks(thumbnailPaths);
+  const sendRequestedThumbnails = async (paths: string[]) => {
+    const thumbnailPaths = paths.filter((path) =>
+      libraryThumbnailPathSet.has(path),
+    );
+    await queueImagesAsChunks(thumbnailPaths, {
+      skipSent: false,
+      rememberSent: false,
+    });
   };
 
   const wait = (milliseconds: number) =>
@@ -196,6 +231,7 @@ const createSkyWay = () => {
       const { stream } = await me.subscribe(publication.id);
       if (stream.contentType !== "data") return;
 
+      sentImagePathSet.clear();
       const { removeListener } = stream.onData.add(async (data) => {
         if (typeof data !== "string") return;
 
@@ -219,7 +255,10 @@ const createSkyWay = () => {
           case "library_request": {
             const response = await createLibraryResponseMessage();
             sendMessage(response);
-            void sendLibraryThumbnails(response.games);
+            break;
+          }
+          case "thumbnail_request": {
+            void sendRequestedThumbnails(message.paths);
             break;
           }
           case "control_status_request": {
@@ -346,7 +385,12 @@ const createSkyWay = () => {
   const sendBinaryMessage = (message: Uint8Array) => {
     if (!dataStream) return;
 
-    dataStream.write(message);
+    dataStream.write(
+      message.buffer.slice(
+        message.byteOffset,
+        message.byteOffset + message.byteLength,
+      ),
+    );
   };
 
   const syncMemo = async (workId: number, text: string) => {
@@ -355,7 +399,7 @@ const createSkyWay = () => {
     const notSharedImages = imagePaths.filter(
       (path) => !sentImagePathSet.has(path)
     );
-    await sendImagesAsChunks(notSharedImages);
+    await queueImagesAsChunks(notSharedImages);
 
     const message: MemoMessage = {
       type: "memo",

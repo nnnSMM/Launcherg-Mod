@@ -12,6 +12,14 @@ links:
 
 # Decision Log
 
+## 2026-06-06: Mobile CompanionサムネイルはPWA側のオンデマンド要求にする
+
+- Context: PC側が `library_response` の直後に全サムネイルを一括チャンク送信すると、ゲーム件数が多いライブラリでdata channelへ負荷が集中し、一部サムネイルが届かない。送信前に送信済み扱いすると、失敗した画像も同じ接続中に再送されない。
+- Decision: `library_response` はゲーム情報とサムネイルパスだけを返す。PWA側はHome、Library、Detailで表示対象になったゲームのサムネイルを `thumbnail_request` で16件ずつ要求する。PC側は直近のライブラリ応答に含まれる許可済みパスだけを順番に送信し、成功後に送信済みとして扱う。
+- Rationale: 一括送信を避けると、スマホ一覧の表示に必要な画像から優先的に取り込める。PC側で許可済みパスに限定すれば、PWAから任意ローカルファイルを要求される境界も避けられる。
+- Consequence: サムネイル欠落時はPWA側が一定間隔で再要求する。Galleryやフルサイズ画像は同じ仕組みに載せる前に、表示用サムネイルと保存対象画像の境界を別途決める。
+- Links: [[mobile-companion-service-blueprint]], [[remote-play-hub]]
+
 ## 2026-06-06: Mobile Companion UIは閲覧タブとプレイ中Controllerを分離する
 
 - Context: PWAの接続は成立したが、一覧がスマホ向け密度になっておらず、Game DetailとControllerの両方にPause、スクショ、メモ操作があり、役割が重複している。今後Gallery、文字消しスクショ、スマホでプレイ開始、ネイティブ化を足すと、通常閲覧とプレイ中操作がさらに混ざる。

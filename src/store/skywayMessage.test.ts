@@ -13,6 +13,9 @@ describe("skywayMessage", () => {
     ).toBe(true);
     expect(isRemoteMessage({ type: "init", gameId: 10 })).toBe(true);
     expect(isRemoteMessage({ type: "library_request" })).toBe(true);
+    expect(
+      isRemoteMessage({ type: "thumbnail_request", paths: ["thumb.webp"] }),
+    ).toBe(true);
     expect(isRemoteMessage({ type: "control_status_request" })).toBe(true);
     expect(isRemoteMessage({ type: "pause_toggle" })).toBe(true);
     expect(
@@ -29,6 +32,15 @@ describe("skywayMessage", () => {
     expect(isRemoteMessage(null)).toBe(false);
     expect(isRemoteMessage({ type: "memo", gameId: 10 })).toBe(false);
     expect(isRemoteMessage({ type: "init", gameId: "10" })).toBe(false);
+    expect(isRemoteMessage({ type: "thumbnail_request", paths: [10] })).toBe(
+      false,
+    );
+    expect(
+      isRemoteMessage({
+        type: "thumbnail_request",
+        paths: Array.from({ length: 65 }, (_, index) => `${index}.webp`),
+      }),
+    ).toBe(false);
     expect(
       isRemoteMessage({
         type: "take_screenshot",
