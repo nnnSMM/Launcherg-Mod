@@ -1268,15 +1268,16 @@
           <span>文字消しスクショ</span>
         </button>
 
-        <section class="memo-preview" style="flex-shrink: 0;">
+        <section class="memo-preview" style="flex: 1; display: flex; flex-direction: column; min-height: 0;">
           <div class="section-head">
             <h2>メモ</h2>
             <span class="subtle">編集</span>
           </div>
-          <div class="detail-memo-editor">
+          <div class="detail-memo-editor" style="flex: 1; display: flex; flex-direction: column; min-height: 0;">
             <textarea
               bind:value={memoText}
               placeholder="メモを入力"
+              style="flex: 1; resize: none; min-height: 60px;"
             />
             <button
               type="button"
