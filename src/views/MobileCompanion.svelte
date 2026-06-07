@@ -1267,26 +1267,27 @@
           <span class="i-material-symbols:visibility-off-outline-rounded text-[22px]" />
           <span>文字消しスクショ</span>
         </button>
-      </section>
 
-      <section class="memo-preview">
-        <div class="section-head">
-          <h2>メモ</h2>
-          <span class="subtle">編集</span>
-        </div>
-        <div class="detail-memo-editor">
-          <textarea
-            bind:value={memoText}
-            placeholder="メモを入力"
-          />
-          <button
-            type="button"
-            disabled={connectionState !== "connected" || selectedGameId === null}
-            on:click={syncMemo}
-          >
-            メモを同期
-          </button>
-        </div>
+        <section class="memo-preview" style="flex-shrink: 0;">
+          <div class="section-head">
+            <h2>メモ</h2>
+            <span class="subtle">編集</span>
+          </div>
+          <div class="detail-memo-editor">
+            <textarea
+              bind:value={memoText}
+              placeholder="メモを入力"
+            />
+            <button
+              type="button"
+              disabled={connectionState !== "connected" || selectedGameId === null}
+              on:click={syncMemo}
+            >
+              メモを同期
+            </button>
+          </div>
+        </section>
+
       </section>
     {:else}
       <section class="empty-state controller-waiting">
