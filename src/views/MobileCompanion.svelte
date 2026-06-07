@@ -1353,8 +1353,8 @@
   }
 
   .topbar {
-    min-height: 52px;
-    padding: calc(8px + env(safe-area-inset-top, 0px)) 16px 8px;
+    min-height: 44px;
+    padding: calc(4px + env(safe-area-inset-top, 0px)) 16px 4px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -1365,7 +1365,7 @@
 
   .eyebrow,
   .subtle {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
     color: rgb(255 255 255 / 0.52);
   }
@@ -1377,13 +1377,13 @@
   }
 
   h1 {
-    margin-top: 2px;
-    font-size: 22px;
+    margin-top: 1px;
+    font-size: 18px;
     line-height: 1.15;
   }
 
   h2 {
-    font-size: 18px;
+    font-size: 16px;
   }
 
   .status-pill {
@@ -1393,10 +1393,10 @@
     white-space: nowrap;
     border: 1px solid rgb(255 255 255 / 0.14);
     border-radius: 999px;
-    padding: 7px 10px;
+    padding: 5px 8px;
     color: rgb(255 255 255 / 0.72);
     background: rgb(255 255 255 / 0.06);
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 700;
   }
 
@@ -1804,6 +1804,7 @@
   }
 
   .memo-preview {
+    box-sizing: border-box;
     margin-top: 14px;
     border: 1px solid rgb(255 255 255 / 0.1);
     border-radius: 8px;
@@ -1818,6 +1819,7 @@
   }
 
   .detail-memo-editor textarea {
+    box-sizing: border-box;
     min-height: 220px;
     width: 100%;
     resize: vertical;
@@ -1827,7 +1829,7 @@
     color: white;
     padding: 12px;
     outline: none;
-    font-size: 15px;
+    font-size: 14px;
     line-height: 1.6;
   }
 
