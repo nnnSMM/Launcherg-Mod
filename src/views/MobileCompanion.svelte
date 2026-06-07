@@ -1230,10 +1230,10 @@
           <button
             type="button"
             class="reconnect-small-button"
+            title="再接続"
             on:click={() => window.location.reload()}
           >
-            <span class="i-material-symbols:refresh-rounded text-[15px]" />
-            <span>再接続</span>
+            <span class="i-material-symbols:refresh-rounded text-[20px]" />
           </button>
         </div>
 
@@ -1934,7 +1934,7 @@
 
   .pause-button {
     grid-column: span 2;
-    min-height: 56px;
+    min-height: 48px;
     width: 100%;
     display: flex;
     align-items: center;
@@ -1949,7 +1949,7 @@
   }
 
   .shutter-button {
-    min-height: 72px;
+    min-height: 56px;
     width: 100%;
     display: flex;
     align-items: center;
