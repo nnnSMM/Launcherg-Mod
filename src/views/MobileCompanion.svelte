@@ -146,6 +146,34 @@
   let controlStatusTimer: ReturnType<typeof setInterval> | undefined;
   let thumbnailRetryTimer: ReturnType<typeof setInterval> | undefined;
 
+  let wakeLock: any = null;
+
+  const requestWakeLock = async () => {
+    if (typeof navigator === "undefined" || !("wakeLock" in navigator)) return;
+    try {
+      if (wakeLock) return;
+      wakeLock = await (navigator as any).wakeLock.request("screen");
+      wakeLock.addEventListener("release", () => {
+        wakeLock = null;
+      });
+    } catch (err) {
+      console.warn("Wake Lock request failed", err);
+    }
+  };
+
+  const releaseWakeLock = async () => {
+    if (wakeLock) {
+      await wakeLock.release().catch(() => {});
+      wakeLock = null;
+    }
+  };
+
+  const handleVisibilityChange = () => {
+    if (document.visibilityState === "visible" && canControl) {
+      void requestWakeLock();
+    }
+  };
+
   const THUMBNAIL_BATCH_SIZE = 16;
   const THUMBNAIL_RETRY_DELAY_MS = 8000;
   const THUMBNAIL_MAX_ATTEMPTS = 3;
@@ -216,6 +244,14 @@
         searchText,
         didSelectGameManually,
       }));
+    }
+  }
+
+  $: {
+    if (canControl) {
+      void requestWakeLock();
+    } else {
+      void releaseWakeLock();
     }
   }
 
@@ -542,6 +578,7 @@
   };
 
   const adoptActiveGame = (nextActiveGameId: number | null) => {
+    const prevActiveGameId = activeGameId;
     activeGameId = nextActiveGameId;
     if (nextActiveGameId === null) {
       return;
@@ -555,7 +592,7 @@
     const shouldLoadMemo = selectedGameId !== target.id;
     selectedGameId = target.id;
     didSelectGameManually = false;
-    if (activeView === "detail") {
+    if (prevActiveGameId !== nextActiveGameId) {
       activeView = "controller";
     }
 
@@ -915,6 +952,7 @@
 
     document.addEventListener("focusin", handleViewportReset);
     document.addEventListener("focusout", handleViewportReset);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     void getAllCachedImages().then((cached) => {
       cached.forEach(({ path, blob }) => {
@@ -957,6 +995,8 @@
 
     document.removeEventListener("focusin", handleViewportReset);
     document.removeEventListener("focusout", handleViewportReset);
+    document.removeEventListener("visibilitychange", handleVisibilityChange);
+    void releaseWakeLock();
 
     cleanupCallbacks.forEach((callback) => callback());
     cleanupCallbacks = [];
@@ -1062,9 +1102,7 @@
         <span class="i-material-symbols:chevron-right-rounded text-[22px]" />
       </button>
     {/if}
-    {#if lastActionText}
-      <div class="toast-line">{lastActionText}</div>
-    {/if}
+
   </section>
 
   <section class="content detail-content" class:hidden={activeView !== 'detail'}>
@@ -1124,9 +1162,7 @@
     {:else}
       <section class="empty-state">ゲームを選択してください</section>
     {/if}
-    {#if lastActionText}
-      <div class="toast-line">{lastActionText}</div>
-    {/if}
+
   </section>
 
   <section class="content connect-content" class:hidden={activeView !== 'connect'}>
@@ -1177,17 +1213,19 @@
         <span class="i-material-symbols:chevron-right-rounded text-[22px]" />
       </button>
     {/if}
-    {#if lastActionText}
-      <div class="toast-line">{lastActionText}</div>
-    {/if}
+
   </section>
 
   <section class="content controller-content" class:controller-mode={true} class:hidden={activeView !== 'controller'}>
     {#if canControl && selectedGame}
       <section class="controller-panel">
-        <button type="button" class="back-button" on:click={() => (activeView = "library")}>
-          <span class="i-material-symbols:arrow-back-rounded text-[20px]" />
-          <span>一覧</span>
+        <button
+          type="button"
+          class="reconnect-small-button"
+          on:click={() => window.location.reload()}
+        >
+          <span class="i-material-symbols:refresh-rounded text-[15px]" />
+          <span>再接続</span>
         </button>
         <div class="controller-kicker">Now Playing</div>
         <div class="controller-game">{selectedGame.title}</div>
@@ -1230,6 +1268,26 @@
           <span>文字消しスクショ</span>
         </button>
 
+        <section class="memo-preview">
+          <div class="section-head">
+            <h2>メモ</h2>
+            <span class="subtle">編集</span>
+          </div>
+          <div class="detail-memo-editor">
+            <textarea
+              bind:value={memoText}
+              placeholder="メモを入力"
+            />
+            <button
+              type="button"
+              disabled={connectionState !== "connected" || selectedGameId === null}
+              on:click={syncMemo}
+            >
+              メモを同期
+            </button>
+          </div>
+        </section>
+
       </section>
     {:else}
       <section class="empty-state controller-waiting">
@@ -1243,9 +1301,7 @@
         {/if}
       </section>
     {/if}
-    {#if lastActionText}
-      <div class="toast-line">{lastActionText}</div>
-    {/if}
+
   </section>
 
   <nav class="bottom-nav" aria-label="スマホ連携">
@@ -1281,8 +1337,12 @@
 
 <style>
   .mobile-shell {
-    height: 100vh;
-    height: 100dvh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: auto;
     background: #151515;
     color: white;
     display: flex;
@@ -1293,8 +1353,8 @@
   }
 
   .topbar {
-    min-height: 64px;
-    padding: calc(14px + env(safe-area-inset-top, 0px)) 16px 12px;
+    min-height: 52px;
+    padding: calc(8px + env(safe-area-inset-top, 0px)) 16px 8px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -1622,6 +1682,20 @@
     color: rgb(255 255 255 / 0.5);
     font-size: 13px;
     font-weight: 700;
+  }
+
+  .reconnect-small-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border: 1px solid rgb(255 255 255 / 0.15);
+    border-radius: 4px;
+    background: rgb(255 255 255 / 0.05);
+    color: rgb(255 255 255 / 0.7);
+    padding: 3px 8px;
+    font-size: 11px;
+    font-weight: 800;
+    width: fit-content;
   }
 
   .detail-kicker,
