@@ -1343,18 +1343,28 @@
 </main>
 
 <style>
+  :global(body), :global(html) {
+    overscroll-behavior-y: none;
+    overflow: hidden;
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
   .mobile-shell {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    height: auto;
+    height: 100%;
     background: #151515;
     color: white;
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    overscroll-behavior-y: none;
     max-width: 620px;
     margin: 0 auto;
   }
@@ -2054,6 +2064,7 @@
   .bottom-nav {
     width: 100%;
     height: 72px;
+    flex-shrink: 0;
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     border-top: 1px solid rgb(255 255 255 / 0.1);
