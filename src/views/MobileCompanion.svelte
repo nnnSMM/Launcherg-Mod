@@ -1219,54 +1219,60 @@
   <section class="content controller-content" class:controller-mode={true} class:hidden={activeView !== 'controller'}>
     {#if canControl && selectedGame}
       <section class="controller-panel">
-        <button
-          type="button"
-          class="reconnect-small-button"
-          on:click={() => window.location.reload()}
-        >
-          <span class="i-material-symbols:refresh-rounded text-[15px]" />
-          <span>再接続</span>
-        </button>
-        <div class="controller-kicker">Now Playing</div>
-        <div class="controller-game">{selectedGame.title}</div>
-        <div class="controller-status">
-          {connectionState === "connected" ? "PC接続中" : "PC未接続"} / {isPaused ? "Pause中" : "記録中"} / {formatPlayTime(selectedGame.totalPlayTimeSeconds)}
+        <div class="controller-header">
+          <div class="controller-header-text">
+            <div class="controller-kicker">Now Playing</div>
+            <div class="controller-game">{selectedGame.title}</div>
+            <div class="controller-status">
+              {connectionState === "connected" ? "PC接続中" : "PC未接続"} / {isPaused ? "Pause中" : "記録中"} / {formatPlayTime(selectedGame.totalPlayTimeSeconds)}
+            </div>
+          </div>
+          <button
+            type="button"
+            class="reconnect-small-button"
+            on:click={() => window.location.reload()}
+          >
+            <span class="i-material-symbols:refresh-rounded text-[15px]" />
+            <span>再接続</span>
+          </button>
         </div>
 
-        <button
-          type="button"
-          class:paused-action={isPaused}
-          class="pause-button"
-          disabled={connectionState !== "connected" || isTogglingPause}
-          on:click={togglePause}
-        >
-          <span
-            class={`${isPaused
-              ? "i-material-symbols:play-arrow-rounded"
-              : "i-material-symbols:pause-rounded"} text-[30px]`}
-          />
-          <span>{isPaused ? "記録再開" : "Pause"}</span>
-        </button>
+        <div class="controller-actions">
+          <button
+            type="button"
+            class:paused-action={isPaused}
+            class="pause-button"
+            disabled={connectionState !== "connected" || isTogglingPause}
+            on:click={togglePause}
+          >
+            <span
+              class={`${isPaused
+                ? "i-material-symbols:play-arrow-rounded"
+                : "i-material-symbols:pause-rounded"} text-[30px]`}
+            />
+            <span>{isPaused ? "記録再開" : "Pause"}</span>
+          </button>
 
-        <button
-          type="button"
-          class="shutter-button"
-          disabled={connectionState !== "connected" || isSendingScreenshot}
-          on:click={() => takeScreenshot()}
-        >
-          <span class="i-material-symbols:photo-camera-outline-rounded text-[36px]" />
-          <span>{isSendingScreenshot ? "撮影中" : "スクショ"}</span>
-        </button>
+          <button
+            type="button"
+            class="shutter-button"
+            disabled={connectionState !== "connected" || isSendingScreenshot}
+            on:click={() => takeScreenshot()}
+          >
+            <span class="i-material-symbols:photo-camera-outline-rounded text-[28px]" />
+            <span>{isSendingScreenshot ? "撮影中" : "スクショ"}</span>
+          </button>
 
-        <button
-          type="button"
-          class="textless-button"
-          disabled={connectionState !== "connected" || isSendingScreenshot}
-          on:click={() => takeScreenshot(true)}
-        >
-          <span class="i-material-symbols:visibility-off-outline-rounded text-[22px]" />
-          <span>文字消しスクショ</span>
-        </button>
+          <button
+            type="button"
+            class="textless-button"
+            disabled={connectionState !== "connected" || isSendingScreenshot}
+            on:click={() => takeScreenshot(true)}
+          >
+            <span class="i-material-symbols:visibility-off-outline-rounded text-[22px]" />
+            <span>文字消し</span>
+          </button>
+        </div>
 
         <section class="memo-preview" style="flex: 1; display: flex; flex-direction: column; min-height: 0;">
           <div class="section-head">
@@ -1428,6 +1434,8 @@
   }
 
   .content.controller-mode {
+    display: flex;
+    flex-direction: column;
     padding-bottom: 24px;
   }
 
@@ -1685,6 +1693,24 @@
     font-weight: 700;
   }
 
+  .controller-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .controller-header-text {
+    min-width: 0;
+  }
+
+  .controller-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 16px;
+  }
+
   .reconnect-small-button {
     display: inline-flex;
     align-items: center;
@@ -1796,7 +1822,6 @@
 
   .textless-button {
     width: 100%;
-    margin-top: 10px;
   }
 
   .secondary-full-action {
@@ -1901,15 +1926,16 @@
   }
 
   .controller-panel {
-    min-height: calc(100vh - 190px);
     display: flex;
     flex-direction: column;
+    flex: 1;
+    min-height: 0;
   }
 
   .pause-button {
-    min-height: 64px;
+    grid-column: span 2;
+    min-height: 56px;
     width: 100%;
-    margin-top: 16px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1923,18 +1949,17 @@
   }
 
   .shutter-button {
-    min-height: 152px;
+    min-height: 72px;
     width: 100%;
-    margin-top: 22px;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 12px;
+    gap: 8px;
     border: 0;
     border-radius: 8px;
     background: #5ec98e;
     color: #101410;
-    font-size: 23px;
+    font-size: 16px;
     font-weight: 950;
   }
 
