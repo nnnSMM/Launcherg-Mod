@@ -1367,6 +1367,14 @@
     overscroll-behavior-y: none;
     max-width: 620px;
     margin: 0 auto;
+    padding-bottom: 72px;
+    box-sizing: border-box;
+  }
+
+  @media (display-mode: standalone) {
+    .mobile-shell {
+      padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px) * 0.3);
+    }
   }
 
   .topbar {
@@ -2062,9 +2070,13 @@
   }
 
   .bottom-nav {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
     width: 100%;
     height: 72px;
-    flex-shrink: 0;
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     border-top: 1px solid rgb(255 255 255 / 0.1);
