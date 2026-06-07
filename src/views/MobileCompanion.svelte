@@ -1259,8 +1259,8 @@
             disabled={connectionState !== "connected" || isSendingScreenshot}
             on:click={() => takeScreenshot()}
           >
-            <span class="i-material-symbols:photo-camera-outline-rounded text-[28px]" />
-            <span>{isSendingScreenshot ? "撮影中" : "スクショ"}</span>
+            <span class="i-material-symbols:photo-camera-outline-rounded text-[24px]" />
+            <span style="font-size: 11px;">{isSendingScreenshot ? "撮影中" : "スクショ"}</span>
           </button>
 
           <button
@@ -1269,8 +1269,8 @@
             disabled={connectionState !== "connected" || isSendingScreenshot}
             on:click={() => takeScreenshot(true)}
           >
-            <span class="i-material-symbols:visibility-off-outline-rounded text-[22px]" />
-            <span>文字消し</span>
+            <span class="i-material-symbols:visibility-off-outline-rounded text-[24px]" />
+            <span style="font-size: 11px;">文字消しスクショ</span>
           </button>
         </div>
 
@@ -1840,6 +1840,8 @@
 
   .textless-button {
     width: 100%;
+    flex-direction: column;
+    gap: 4px;
   }
 
   .secondary-full-action {
@@ -1970,9 +1972,10 @@
     min-height: 56px;
     width: 100%;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 4px;
     border: 0;
     border-radius: 8px;
     background: #5ec98e;
